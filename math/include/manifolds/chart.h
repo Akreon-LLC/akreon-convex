@@ -6,6 +6,7 @@
 #pragma once
 
 #include <concepts>
+#include <functional>
 #include <set>
 #include <vector>
 

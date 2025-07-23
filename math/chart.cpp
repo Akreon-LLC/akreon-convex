@@ -5,8 +5,6 @@
 
 #include "manifolds/chart.h"
 
-#include <functional>
-
 namespace chart {
 
 template <typename T, typename Rn, typename MapToR, typename MapFromR>

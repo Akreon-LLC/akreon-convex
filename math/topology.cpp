@@ -5,6 +5,9 @@
 
 #include "manifolds/topology.h"
 
+#include <algorithm>
+#include <limits>
+
 namespace topology {
 
 template <typename T>
