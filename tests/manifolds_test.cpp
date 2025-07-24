@@ -3,13 +3,14 @@
  * All rights reserved.
  */
 
-#include "manifolds/manifolds.h"
+#include "manifolds/manifolds.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
 using namespace topology;
 using namespace chart;
 using namespace atlas;
+using namespace smooth_map;
 
 TEST_CASE("Test topologcal space construction", "[topology]") {
   using T = int;
@@ -66,7 +67,7 @@ TEST_CASE("Test construction of valid chart", "[chart]") {
 TEST_CASE("Test construction of valid atlas", "[atlas]") {
   using Td = double;               // manifold points
   using Rn = std::vector<double>;  // points \in E
-   
+
   // Forward map: double -> vector<double>
   auto phi = [](Td x) -> Rn { return {x}; };
 
@@ -74,4 +75,16 @@ TEST_CASE("Test construction of valid atlas", "[atlas]") {
   auto inv_phi = [](const Rn& y) -> Td { return y[0]; };
 
   STATIC_REQUIRE(ValidAtlas<Td, Rn, decltype(phi), decltype(inv_phi)>);
+}
+
+TEST_CASE("Test construction of smooth map", "[smooth_map]") {
+  using Td = double;
+  using Rn = std::vector<double>;
+
+  auto phi = [](Td x) -> Rn { return {x}; };
+  auto inv_phi = [](const Rn& y) -> Td { return y[0]; };
+
+  STATIC_REQUIRE(
+      ValidSmoothMap<Td, Td, Rn, Rn, decltype(phi), decltype(inv_phi),
+                     decltype(phi), decltype(inv_phi)>);
 }

@@ -3,7 +3,9 @@
  * All rights reserved.
  */
 
-#include "manifolds/chart.h"
+#include "manifolds/chart.hpp"
+
+#include <functional>
 
 namespace chart {
 
@@ -16,6 +18,7 @@ bool is_homeomorphism(const Chart<T, Rn, MapToR, MapFromR>& chart) {
     if (x_back != x) return false;
   }
   return true;
+
 }
 
 template struct Chart<topology::Real, topology::RealN, Phi, InvPhi>;

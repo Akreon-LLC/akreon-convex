@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-#include "manifolds/atlas.h"
+#include "manifolds/atlas.hpp"
 
 namespace atlas {
 
@@ -18,6 +18,7 @@ bool Atlas<T, Rn, MapToR, MapFromR>::covers(
   return M.contains(union_of_domains);
 }
 
-template struct Atlas<topology::Real, topology::RealN, chart::Phi, chart::InvPhi>;
+template struct Atlas<topology::Real, topology::RealN, chart::Phi,
+                      chart::InvPhi>;
 
 }  // namespace atlas

@@ -9,7 +9,7 @@
 #include <set>
 #include <vector>
 
-#include "chart.h"
+#include "chart.hpp"
 
 namespace atlas {
 

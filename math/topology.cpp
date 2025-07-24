@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-#include "manifolds/topology.h"
+#include "manifolds/topology.hpp"
 
 #include <algorithm>
 #include <limits>
