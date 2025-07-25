@@ -5,6 +5,7 @@
 
 #include "manifolds/manifolds.hpp"
 
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
 using namespace topology;
@@ -42,6 +43,15 @@ TEST_CASE("Test properties of topology", "[topology]") {
 
   auto bd_X = tau.boundary(X);
   REQUIRE(bd_X.size() == 2);
+}
+
+TEST_CASE("Test metric space construction", "[metric_space]") {
+  auto d = [](const double& x, const double& y) { return std::abs(x - y); };
+  MetricSpace<double> ms{.tau = Topology<double>(), .d = d};
+  REQUIRE_NOTHROW(ms);
+
+  STATIC_REQUIRE(EuclideanType<double>);
+  STATIC_REQUIRE(!EuclideanType<int>);
 }
 
 TEST_CASE("Test topological manifold construction", "[topology]") {
