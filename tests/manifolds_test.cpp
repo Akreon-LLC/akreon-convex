@@ -10,6 +10,7 @@
 using namespace topology;
 using namespace chart;
 using namespace atlas;
+using namespace smooth_manifold;
 using namespace smooth_map;
 
 TEST_CASE("Test topologcal space construction", "[topology]") {
@@ -75,6 +76,21 @@ TEST_CASE("Test construction of valid atlas", "[atlas]") {
   auto inv_phi = [](const Rn& y) -> Td { return y[0]; };
 
   STATIC_REQUIRE(ValidAtlas<Td, Rn, decltype(phi), decltype(inv_phi)>);
+  STATIC_REQUIRE(SmoothAtlas<Td, Rn, decltype(phi), decltype(inv_phi)>);
+}
+
+TEST_CASE("Test construction of valid smooth manifold", "[smooth_manifold]") {
+  using Td = double;               // manifold points
+  using Rn = std::vector<double>;  // points \in E
+
+  // Forward map: double -> vector<double>
+  auto phi = [](Td x) -> Rn { return {x}; };
+
+  // Inverse map: vector<double> -> double
+  auto inv_phi = [](const Rn& y) -> Td { return y[0]; };
+
+  SmoothManifold<Td, Rn, decltype(phi), decltype(inv_phi)> smooth_manifold;
+  REQUIRE_NOTHROW(smooth_manifold);
 }
 
 TEST_CASE("Test construction of smooth map", "[smooth_map]") {

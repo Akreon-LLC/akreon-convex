@@ -18,9 +18,8 @@ bool is_homeomorphism(const Chart<T, Rn, MapToR, MapFromR>& chart) {
     if (x_back != x) return false;
   }
   return true;
-
 }
 
-template struct Chart<topology::Real, topology::RealN, Phi, InvPhi>;
+template struct Chart<topology::Real, topology::RealN, Phi<Real>, InvPhi<Real>>;
 
 }  // namespace chart

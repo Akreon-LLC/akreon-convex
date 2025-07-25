@@ -13,10 +13,12 @@ template <typename T1, typename T2, typename Rn1, typename Rn2,
           typename MapToRn1, typename MapFromRn1, typename MapToRn2,
           typename MapFromRn2>
 bool SmoothMap<T1, T2, Rn1, Rn2, MapToRn1, MapFromRn1, MapToRn2, MapFromRn2>::
-    is_smooth(const atlas::Atlas<T1, Rn1, MapToRn1, MapFromRn1>& atlas_M,
-              const atlas::Atlas<T2, Rn2, MapToRn2, MapFromRn2>& atlas_N) const {
-  for (const auto& chart_M : atlas_M.charts) {
-    for (const auto& chart_N : atlas_N.charts) {
+    is_smooth(const smooth_manifold::SmoothManifold<T1, Rn1, MapToRn1,
+                                                    MapFromRn1>& sm_M,
+              const smooth_manifold::SmoothManifold<T2, Rn2, MapToRn2,
+                                                    MapFromRn2>& sm_N) const {
+  for (const auto& chart_M : sm_M.atlas.charts) {
+    for (const auto& chart_N : sm_N.atlas.charts) {
       // check if the image of U under mapping f is a subset of V
       auto image_subset =
           std::all_of(chart_M.U.begin(), chart_M.U.end(), [&](const auto& p) {
