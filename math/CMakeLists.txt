@@ -8,6 +8,6 @@ FetchContent_MakeAvailable(Eigen3)
 
 include_directories(include)
 
-add_library(math topology.cpp chart.cpp atlas.cpp smooth_map.cpp)
+add_library(math topology.cpp chart.cpp atlas.cpp smooth_map.cpp vector_space.cpp)
 target_link_libraries(math PRIVATE Eigen3::Eigen)
 target_include_directories(math PUBLIC include)

@@ -15,12 +15,15 @@ template <typename Scalar, int N>
 using VectorSpace = Eigen::Matrix<Scalar, N, 1>;
 
 template <typename T>
+topology::MetricSpace<T> to_metric_space(const T& v);
+
+template <typename T>
 concept RnSpace = requires(T v) {
   typename T::Scalar;
   typename Eigen::NumTraits<typename T::Scalar>::Real;
   { v + v } -> std::convertible_to<T>;
   { v * typename T::Scalar{1} } -> std::convertible_to<T>;
-  { v.norm() } -> std::convertible_to<typename T::Scalar>;
+  { to_metric_space(v).distance_metric_is_valid() } -> std::same_as<bool>;
 };
 
 }  // namespace vector_space
