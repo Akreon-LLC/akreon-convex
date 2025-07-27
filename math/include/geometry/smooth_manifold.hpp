@@ -6,7 +6,6 @@
 #pragma once
 
 #include "atlas.hpp"
-#include "topology.hpp"
 
 namespace smooth_manifold {
 

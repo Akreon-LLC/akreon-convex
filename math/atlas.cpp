@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-#include "manifolds/atlas.hpp"
+#include "geometry/atlas.hpp"
 
 #include <algorithm>
 

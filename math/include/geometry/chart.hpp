@@ -10,7 +10,7 @@
 #include <set>
 #include <vector>
 
-#include "topology.hpp"
+#include "../topology/topology.hpp"
 
 namespace chart {
 

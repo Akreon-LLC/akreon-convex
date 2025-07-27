@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-#include "manifolds/chart.hpp"
+#include "geometry/chart.hpp"
 
 #include <functional>
 

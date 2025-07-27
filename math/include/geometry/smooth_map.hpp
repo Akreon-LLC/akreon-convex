@@ -7,6 +7,7 @@
 
 #include <functional>
 
+#include "../topology/topology.hpp"
 #include "smooth_manifold.hpp"
 
 namespace smooth_map {

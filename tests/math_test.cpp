@@ -3,7 +3,7 @@
  * All rights reserved.
  */
 
-#include "manifolds/manifolds.hpp"
+#include "math.hpp"
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
