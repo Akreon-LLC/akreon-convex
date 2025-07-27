@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <Eigen/Dense>
 #include <concepts>
 #include <functional>
 #include <set>

@@ -13,6 +13,7 @@ using namespace chart;
 using namespace atlas;
 using namespace smooth_manifold;
 using namespace smooth_map;
+using namespace vector_space;
 
 TEST_CASE("Test topologcal space construction", "[topology]") {
   using T = int;
@@ -113,4 +114,10 @@ TEST_CASE("Test construction of smooth map", "[smooth_map]") {
   STATIC_REQUIRE(
       ValidSmoothMap<Td, Td, Rn, Rn, decltype(phi), decltype(inv_phi),
                      decltype(phi), decltype(inv_phi)>);
+}
+
+TEST_CASE("Test construction of Rn space", "[vector_space]") {
+  STATIC_REQUIRE(vector_space::RnSpace<Eigen::Matrix<double, 3, 1>>);
+  STATIC_REQUIRE(
+      vector_space::RnSpace<Eigen::Matrix<std::complex<double>, 3, 1>>);
 }
