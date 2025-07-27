@@ -19,13 +19,12 @@ using Real = double;
 
 using RealN = vector_space::VectorSpace<Real, Eigen::Dynamic>;
 
-template <typename T>
-using Phi = std::function<RealN(const T&)>;
+using Phi = std::function<RealN(const Real&)>;
 
-template <typename T>
-using InvPhi = std::function<T(const RealN&)>;
+using InvPhi = std::function<Real(const RealN&)>;
 
-template <typename T, typename Rn, typename MapToRn, typename MapFromRn>
+template <typename T = Real, typename Rn = RealN, typename MapToRn = Phi,
+          typename MapFromRn = InvPhi>
 struct Chart {
   topology::Set<T> U;  // domain open subset U of the manifold M
   MapToRn phi;         // map T -> R^n
@@ -33,7 +32,15 @@ struct Chart {
 };
 
 template <typename T, typename Rn, typename MapToRn, typename MapFromRn>
-bool is_homeomorphism(const Chart<T, Rn, MapToRn, MapFromRn>& chart);
+inline bool is_homeomorphism(const Chart<T, Rn, MapToRn, MapFromRn>& chart) {
+  for (const T& x : chart.U) {
+    auto y = chart.phi(x);           // x \in U -> R^n
+    auto x_back = chart.inv_phi(y);  // R^n -> x \in U
+
+    if (x_back != x) return false;
+  }
+  return true;
+}
 
 template <typename T, typename Rn, typename MapToRn, typename MapFromRn>
 concept ValidChart = requires(const Chart<T, Rn, MapToRn, MapFromRn>& chart,

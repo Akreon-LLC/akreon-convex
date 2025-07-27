@@ -53,7 +53,6 @@ bool Atlas<T, Rn, MapToR, MapFromR>::is_compatible() const {
   return true;
 }
 
-template struct Atlas<chart::Real, chart::RealN, chart::Phi<chart::Real>,
-                      chart::InvPhi<chart::Real>>;
+template struct Atlas<chart::Real, chart::RealN, chart::Phi, chart::InvPhi>;
 
 }  // namespace atlas

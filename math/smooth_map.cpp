@@ -40,7 +40,6 @@ bool SmoothMap<T1, T2, Rn1, Rn2, MapToRn1, MapFromRn1, MapToRn2, MapFromRn2>::
 }
 
 template struct SmoothMap<chart::Real, chart::Real, chart::RealN, chart::RealN,
-                          chart::Phi<chart::Real>, chart::InvPhi<chart::Real>,
-                          chart::Phi<chart::Real>, chart::InvPhi<chart::Real>>;
+                          chart::Phi, chart::InvPhi, chart::Phi, chart::InvPhi>;
 
 }  // namespace smooth_map
