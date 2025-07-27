@@ -12,10 +12,6 @@
 
 namespace topology {
 
-// Define default metric space
-using Real = double;
-using RealN = std::vector<Real>;
-
 // Base set X
 template <typename T>
 using Set = std::set<T>;

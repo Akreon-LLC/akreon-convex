@@ -20,6 +20,6 @@ bool is_homeomorphism(const Chart<T, Rn, MapToR, MapFromR>& chart) {
   return true;
 }
 
-template struct Chart<topology::Real, topology::RealN, Phi<Real>, InvPhi<Real>>;
+template struct Chart<Real, RealN, Phi<Real>, InvPhi<Real>>;
 
 }  // namespace chart

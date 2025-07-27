@@ -25,12 +25,12 @@ template <typename T, typename Rn, typename MapToR, typename MapFromR>
 bool Atlas<T, Rn, MapToR, MapFromR>::is_compatible() const {
   auto is_close = [](const Rn& a, const Rn& b, double eps = 1e-6) {
     if (a.size() != b.size()) return false;
-    for (size_t i = 0; i < a.size(); ++i)
+    for (long i = 0; i < a.size(); ++i)
       if (std::abs(a[i] - b[i]) > eps) return false;
     return true;
   };
 
-  // p \in U_i \intersection U_j 
+  // p \in U_i \intersection U_j
   // Φ_i ∘ Φ_j^{-1} ∘ Φ_i(p) => validation for Φ_i ∘ Φ_j^{-1} transition map
   for (size_t i = 0; i < charts.size(); ++i) {
     for (size_t j = i + 1; j < charts.size(); ++j) {
@@ -53,8 +53,7 @@ bool Atlas<T, Rn, MapToR, MapFromR>::is_compatible() const {
   return true;
 }
 
-template struct Atlas<topology::Real, topology::RealN,
-                      chart::Phi<topology::Real>,
-                      chart::InvPhi<topology::Real>>;
+template struct Atlas<chart::Real, chart::RealN, chart::Phi<chart::Real>,
+                      chart::InvPhi<chart::Real>>;
 
 }  // namespace atlas

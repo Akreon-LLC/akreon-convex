@@ -5,17 +5,20 @@
 
 #pragma once
 
+#include <Eigen/Dense>
 #include <concepts>
 #include <functional>
 #include <set>
 #include <vector>
 
+#include "../algebra/vector_space.hpp"
 #include "../topology/topology.hpp"
 
 namespace chart {
 
 using Real = double;
-using RealN = std::vector<Real>;
+
+using RealN = vector_space::VectorSpace<Real, Eigen::Dynamic>;
 
 template <typename T>
 using Phi = std::function<RealN(const T&)>;

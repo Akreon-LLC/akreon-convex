@@ -39,9 +39,8 @@ bool SmoothMap<T1, T2, Rn1, Rn2, MapToRn1, MapFromRn1, MapToRn2, MapFromRn2>::
   return true;
 }
 
-template struct SmoothMap<
-    topology::Real, topology::Real, topology::RealN, topology::RealN,
-    chart::Phi<topology::Real>, chart::InvPhi<topology::Real>,
-    chart::Phi<topology::Real>, chart::InvPhi<topology::Real>>;
+template struct SmoothMap<chart::Real, chart::Real, chart::RealN, chart::RealN,
+                          chart::Phi<chart::Real>, chart::InvPhi<chart::Real>,
+                          chart::Phi<chart::Real>, chart::InvPhi<chart::Real>>;
 
 }  // namespace smooth_map

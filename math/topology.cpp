@@ -213,7 +213,7 @@ bool is_locally_euclidean(const Topology<T>& tau) {
   return ms.distance_metric_is_valid();
 }
 
-template struct Topology<Real>;
+template struct Topology<double>;
 template struct Topology<float>;
 template struct Topology<int>;
 template struct Topology<unsigned>;
