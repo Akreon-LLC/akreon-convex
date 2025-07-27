@@ -81,12 +81,19 @@ TEST_CASE("Test construction of smooth manifolds", "[smooth_manifold]") {
   SECTION("Atlas") {
     STATIC_REQUIRE(ValidAtlas<Td, Rn, decltype(phi), decltype(inv_phi)>);
     STATIC_REQUIRE(SmoothAtlas<Td, Rn, decltype(phi), decltype(inv_phi)>);
+
+    // TODO (dakre) finish this test cast
+    Atlas<Td, Rn, decltype(phi), decltype(inv_phi)> atlas;
+    Topology<Td> tau;
+
+    REQUIRE(!atlas.covers(tau));
+    REQUIRE(atlas.is_compatible());
   }
 
   SmoothManifold<Td, Rn, decltype(phi), decltype(inv_phi)> smooth_manifold;
   SECTION("Manifold") { REQUIRE_NOTHROW(smooth_manifold); }
 
-  // TODO write test for smooth map
+  // TODO (dakre) finish this test cast
   SECTION("Map") {
     STATIC_REQUIRE(
         ValidSmoothMap<Td, Td, Rn, Rn, decltype(phi), decltype(inv_phi),
