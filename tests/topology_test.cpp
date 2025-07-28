@@ -53,14 +53,4 @@ TEST_CASE("Test metric space construction", "[metric_space]") {
     MetricSpace<double, decltype(d)> ms{.tau = tau};
     REQUIRE(ms.distance_metric_is_valid());
   }
-
-  SECTION("Euclidean checks") {
-    STATIC_REQUIRE(EuclideanType<double>);
-    STATIC_REQUIRE(!EuclideanType<int>);
-  }
-}
-
-TEST_CASE("Test topological manifold construction", "[topology]") {
-  STATIC_REQUIRE(!TopologicalManifold<int>);
-  STATIC_REQUIRE(TopologicalManifold<double>);
 }

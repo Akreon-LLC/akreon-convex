@@ -234,26 +234,4 @@ concept ValidMetricSpace = requires(const MetricSpace<T, D>& metric_space) {
   { metric_space.distance_metric_is_valid() } -> std::same_as<bool>;
 };
 
-// TODO (dakre) Refactor the below
-template <typename T>
-concept EuclideanType = std::floating_point<T> || requires(T x) {
-  typename T::value_type;
-  requires std::floating_point<typename T::value_type>;
-};
-
-template <typename T>
-  requires EuclideanType<T>
-constexpr bool is_locally_euclidean(const Topology<T>& tau) {
-  auto d = [](const T& x, const T& y) { return std::abs(x - y); };
-  MetricSpace<T, decltype(d)> ms{.tau = tau};
-  return ms.distance_metric_is_valid() && tau.open_sets.size() > 0;
-}
-
-template <typename T>
-concept TopologicalManifold =
-    TopologicalSpace<T> && requires(const Topology<T>& tau) {
-      { is_locally_euclidean(tau) } -> std::same_as<bool>;
-      { is_hausdorff(tau) } -> std::same_as<bool>;
-      { is_second_countable(tau) } -> std::same_as<bool>;
-    };
 }  // namespace topology

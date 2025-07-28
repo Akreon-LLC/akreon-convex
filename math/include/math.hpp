@@ -6,8 +6,8 @@
 #pragma once
 
 #include "topology/topology.hpp"
-#include "geometry/chart.hpp"
-#include "geometry/atlas.hpp"
-#include "geometry/smooth_manifold.hpp"
-#include "geometry/smooth_map.hpp"
 #include "algebra/vector_space.hpp"
+#include "geometry/chart.hpp"
+//#include "geometry/atlas.hpp"
+//#include "geometry/smooth_manifold.hpp"
+//#include "geometry/smooth_map.hpp"

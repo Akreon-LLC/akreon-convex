@@ -15,42 +15,41 @@
 
 namespace chart {
 
-using Real = topology::Set<double>;
+using R = double;
+using Rn = vector_space::VectorSpace<R, Eigen::Dynamic>;
 
-using RealN = vector_space::VectorSpace<double, Eigen::Dynamic>;
+template <typename M>
+using Phi = std::function<Rn(const M&)>;
 
-using Phi = std::function<RealN(const Real&)>;
+template <typename M>
+using InvPhi = std::function<M(const Rn&)>;
 
-using InvPhi = std::function<Real(const RealN&)>;
-
-template <typename T = Real, typename Rn = RealN, typename MapToRn = Phi,
-          typename MapFromRn = InvPhi>
+template <typename M, typename Rn, typename MapToRn, typename MapFromRn>
+  requires requires { typename M::value_type; }
 struct Chart {
+  using T = typename M::value_type;
   topology::Set<T> U;  // domain open subset U of the manifold M
-  MapToRn phi;         // map T -> R^n
-  MapFromRn inv_phi;   // inverse map R^n -> T
+  MapToRn phi;         // map M -> R^n
+  MapFromRn inv_phi;   // inverse map R^n -> M
 };
 
-template <typename T, typename Rn, typename MapToRn, typename MapFromRn>
-constexpr bool is_homeomorphism(const Chart<T, Rn, MapToRn, MapFromRn>& chart) {
-  for (const T& x : chart.U) {
-    auto y = chart.phi(x);           // x \in U -> R^n
-    auto x_back = chart.inv_phi(y);  // R^n -> x \in U
+template <typename M, typename Rn, typename MapToRn, typename MapFromRn>
+constexpr bool is_homeomorphism(const Chart<M, Rn, MapToRn, MapFromRn>& chart) {
+  auto y = chart.phi(chart.U);           // U -> R^n
+  auto U_back = chart.inv_phi(y);  // R^n -> U
 
-    if (x_back != x) return false;
-  }
+  if (U_back != chart.U) return false;
   return true;
 }
 
-template <typename T, typename Rn, typename MapToRn, typename MapFromRn>
-concept ValidChart = requires(const Chart<T, Rn, MapToRn, MapFromRn>& chart,
-                              const topology::Topology<T>& M) {
-  requires topology::TopologicalManifold<T>;  // M must satisfy the manifold
-                                              // concept
-  // domain must be an open subset of M
-  { M.contains(chart.U) } -> std::same_as<bool>;
-  // phi must be a valid bijection with a continuous inverse
-  { is_homeomorphism(chart) } -> std::same_as<bool>;
-};
+template <typename M, typename Rn, typename MapToRn, typename MapFromRn>
+concept ValidChart =
+    topology::TopologicalManifold<typename M::value_type> &&
+    requires(const Chart<M, Rn, MapToRn, MapFromRn>& chart, const M& manifold) {
+      // domain must be an open subset of M
+      { manifold.contains(chart.U) } -> std::same_as<bool>;
+      // phi must be a valid bijection with a continuous inverse
+      { is_homeomorphism(chart) } -> std::same_as<bool>;
+    };
 
 }  // namespace chart

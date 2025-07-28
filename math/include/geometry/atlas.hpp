@@ -47,7 +47,7 @@ struct Atlas {
 
         // p \in U_i \intersection U_j
         for (const auto& p : inter) {
-          Rn phi_i_image_on_p = charts[i].phi(p);  // intersection -> R^n
+          Rn phi_i_image_on_p = charts[i].phi(Eigen::VectorXd(p));  // intersection -> R^n
           T phi_j_preimage = charts[j].inv_phi(phi_i_image_on_p);  // R^n -> U_j
           Rn phi_i_image_on_j = charts[i].phi(phi_j_preimage);     // U_j -> R^n
 
