@@ -38,19 +38,19 @@ jobs:
       working-directory: build
       run: ctest --output-on-failure
 
-    - name: Generate Coverage Info
-      working-directory: build
-      run: |
-        lcov --directory math --capture --output-file coverage.info --ignore-errors format,inconsistent
-        lcov --remove coverage.info '*/test/*' '*/_deps/*' '/usr/*' --output-file coverage_filtered.info --ignore-errors unused
+    #- name: Generate Coverage Info
+    #  working-directory: build
+    #  run: |
+    #    lcov --directory math --capture --output-file coverage.info --ignore-errors format,inconsistent
+    #    lcov --remove coverage.info '*/test/*' '*/_deps/*' '/usr/*' --output-file coverage_filtered.info --ignore-errors unused
 
-    - name: Generate HTML Report
-      working-directory: build
-      run: |
-        genhtml coverage_filtered.info --ignore-errors format,inconsistent --output-directory coverage_html
+    #- name: Generate HTML Report
+    #  working-directory: build
+    #  run: |
+    #    genhtml coverage_filtered.info --ignore-errors format,inconsistent --output-directory coverage_html
 
-    - name: Upload Coverage Report as Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report
-        path: build/coverage_html
+    #- name: Upload Coverage Report as Artifact
+    #  uses: actions/upload-artifact@v4
+    #  with:
+    #    name: coverage-report
+    #    path: build/coverage_html
