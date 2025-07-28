@@ -19,7 +19,7 @@ struct Atlas {
   using ChartT = chart::Chart<T, Rn, MapToRn, MapFromRn>;
   std::vector<ChartT> charts;
 
-  inline bool covers(const topology::Topology<T>& M) const {
+  constexpr bool covers(const topology::Topology<T>& M) const {
     topology::Set<T> union_of_domains;
     for (const auto& chart : charts)
       union_of_domains.insert(chart.U.begin(), chart.U.end());
@@ -27,7 +27,7 @@ struct Atlas {
     return M.contains(union_of_domains);
   }
 
-  inline bool is_compatible() const {
+  constexpr bool is_compatible() const {
     auto is_close = [](const Rn& a, const Rn& b, double eps = 1e-6) {
       if (a.size() != b.size()) return false;
       for (size_t i = 0; i < (size_t)a.size(); ++i)

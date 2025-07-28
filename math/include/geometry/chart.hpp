@@ -15,9 +15,9 @@
 
 namespace chart {
 
-using Real = double;
+using Real = topology::Set<double>;
 
-using RealN = vector_space::VectorSpace<Real, Eigen::Dynamic>;
+using RealN = vector_space::VectorSpace<double, Eigen::Dynamic>;
 
 using Phi = std::function<RealN(const Real&)>;
 
@@ -32,7 +32,7 @@ struct Chart {
 };
 
 template <typename T, typename Rn, typename MapToRn, typename MapFromRn>
-inline bool is_homeomorphism(const Chart<T, Rn, MapToRn, MapFromRn>& chart) {
+constexpr bool is_homeomorphism(const Chart<T, Rn, MapToRn, MapFromRn>& chart) {
   for (const T& x : chart.U) {
     auto y = chart.phi(x);           // x \in U -> R^n
     auto x_back = chart.inv_phi(y);  // R^n -> x \in U
