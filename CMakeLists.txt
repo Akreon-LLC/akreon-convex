@@ -39,8 +39,13 @@ if(BUILD_TESTING)
 
   enable_testing()
   
-  add_executable(math_test tests/math_test.cpp)
-  add_test(NAME math_test COMMAND math_test)
-  target_link_libraries(math_test PRIVATE Catch2::Catch2WithMain Eigen3::Eigen math)
-  target_include_directories(math_test PRIVATE ../math/include)
+  add_executable(topology_test tests/topology_test.cpp)
+  add_test(NAME topology_test COMMAND topology_test)
+  target_link_libraries(topology_test PRIVATE Catch2::Catch2WithMain Eigen3::Eigen math)
+  target_include_directories(topology_test PRIVATE ../math/include)
+
+  add_executable(manifold_test tests/manifold_test.cpp)
+  add_test(NAME manifold_test COMMAND manifold_test)
+  target_link_libraries(manifold_test PRIVATE Catch2::Catch2WithMain Eigen3::Eigen math)
+  target_include_directories(manifold_test PRIVATE ../math/include)
 endif()

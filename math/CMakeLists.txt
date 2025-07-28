@@ -13,7 +13,6 @@ add_library(math SHARED
     chart.cpp 
     atlas.cpp 
     smooth_map.cpp 
-    vector_space.cpp
 )
 target_link_libraries(math PRIVATE Eigen3::Eigen)
 target_include_directories(math PUBLIC include)

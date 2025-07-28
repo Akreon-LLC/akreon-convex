@@ -99,28 +99,6 @@ Set<T> Topology<T>::boundary(const Set<T>& X) {
 }
 
 template <typename T>
-  requires TopologicalSpace<T>
-bool MetricSpace<T>::distance_metric_is_valid() const {
-  Set<T> universe;
-  for (const auto& U : tau.open_sets) universe.insert(U.begin(), U.end());
-
-  for (const auto& x : universe) {
-    for (const auto& y : universe) {
-      T dxy = d(x, y);
-      T dyx = d(y, x);
-
-      if (dxy < 0) return false;
-      if (x == y && dxy != 0) return false;
-      if (x != y && dxy == 0) return false;
-      if (std::abs(dxy - dyx) > 1e-9) return false;
-      for (const auto& z : universe)
-        if (d(x, z) > d(x, y) + d(y, z) + 1e-9) return false;
-    }
-  }
-  return true;
-}
-
-template <typename T>
 bool is_closed_under_union(const Topology<T>& tau) {
   // 1. copy open sets into a vector for indexing
   const auto& sets = tau.open_sets;
@@ -209,7 +187,7 @@ bool is_second_countable(const Topology<T>& tau) {
 template <typename T>
 bool is_locally_euclidean(const Topology<T>& tau) {
   auto d = [](const T& x, const T& y) { return std::abs(x - y); };
-  MetricSpace<T> ms{.tau = tau, .d = d};
+  MetricSpace<T, decltype(d)> ms{.tau = tau};
   return ms.distance_metric_is_valid();
 }
 

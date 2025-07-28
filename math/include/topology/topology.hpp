@@ -53,17 +53,36 @@ concept TopologicalSpace = requires(Topology<T> tau, Set<T> X) {
   { is_closed_under_finite_intersection(tau) } -> std::same_as<bool>;
 };
 
-template <typename T>
-  requires TopologicalSpace<T>
+template <typename T, typename D>
+  requires TopologicalSpace<T> &&
+           requires(const T& x, const T& y, const D& d) { d(x, y); }
 struct MetricSpace {
   Topology<T> tau;
-  std::function<T(const T&, const T&)> d;
+  D d;
 
-  bool distance_metric_is_valid() const;
+  constexpr bool distance_metric_is_valid() const {
+    Set<T> universe;
+    for (const auto& U : tau.open_sets) universe.insert(U.begin(), U.end());
+
+    for (const auto& x : universe) {
+      for (const auto& y : universe) {
+        T dxy = d(x, y);
+        T dyx = d(y, x);
+
+        if (dxy < 0) return false;
+        if (x == y && dxy != 0) return false;
+        if (x != y && dxy == 0) return false;
+        if (std::abs(dxy - dyx) > 1e-9) return false;
+        for (const auto& z : universe)
+          if (d(x, z) > d(x, y) + d(y, z) + 1e-9) return false;
+      }
+    }
+    return true;
+  }
 };
 
-template <typename T>
-concept ValidMetricSpace = requires(const MetricSpace<T>& metric_space) {
+template <typename T, typename D>
+concept ValidMetricSpace = requires(const MetricSpace<T, D>& metric_space) {
   { metric_space.distance_metric_is_valid() } -> std::same_as<bool>;
 };
 
