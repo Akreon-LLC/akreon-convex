@@ -51,17 +51,19 @@ TEST_CASE("Test topologcal space construction", "[topology]") {
 
     REQUIRE(tau.is_second_countable());
   }
-}
 
-TEST_CASE("Test metric space construction", "[metric_space]") {
-  SECTION("Norm is valid") {
-    // TODO (dakre) refactor this
-    using T = Set<double>;
-    SetTopology<T> tau;
-    auto d = [](const T& x, const T& y) { return 0; };
+  SECTION("Metric space checks") {
+    auto d = [](const int& x, const int& y) { return std::abs(x - y); };
 
-    MetricSpace<decltype(tau), T, decltype(d)> ms{.tau = tau, .d = d};
-    REQUIRE(ms.distance_metric_is_valid());
+    STATIC_REQUIRE(MetricSpace<SetTopology<T>, T, decltype(d)>);
+    REQUIRE(distance_metric_is_valid_on_space(tau, d));
+
+    using Td = Set<double>;
+    SetTopology<Td> dtau;
+    auto d2 = [](const double& x, const double& y) { return std::abs(x - y); };
+
+    STATIC_REQUIRE(MetricSpace<decltype(dtau), Td, decltype(d2)>);
+    REQUIRE(distance_metric_is_valid_on_space(dtau, d2));
   }
 }
 
