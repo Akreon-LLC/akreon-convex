@@ -24,8 +24,8 @@ using Phi = std::function<Rn(const M&)>;
 template <typename M>
 using InvPhi = std::function<M(const Rn&)>;
 
-template <topology::TopologicalSpace S, typename Rn, typename MapToRn,
-          typename MapFromRn>
+template <typename S, typename Rn, typename MapToRn, typename MapFromRn>
+  requires topology::TopologicalSpace<S, typename S::value_type>
 struct Chart {
   S U;                // domain open subset U of the manifold M
   MapToRn phi;        // map U -> R^n
@@ -43,7 +43,7 @@ constexpr bool is_homeomorphism(const Chart<M, Rn, MapToRn, MapFromRn>& chart) {
 
 template <typename M, typename Rn, typename MapToRn, typename MapFromRn>
 concept ValidChart =
-    topology::TopologicalManifold<typename M::value_type> &&
+    topology::TopologicalManifold<M, typename M::value_type> &&
     requires(const Chart<M, Rn, MapToRn, MapFromRn>& chart, const M& manifold) {
       // domain must be an open subset of M
       { manifold.contains(chart.U) } -> std::same_as<bool>;

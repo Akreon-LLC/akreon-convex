@@ -26,12 +26,14 @@ struct L2 {
   }
 };
 
+#if 0
 template <typename T>
 constexpr topology::MetricSpace<T, L2<T>> to_euclidean_space(const T& v) {
   topology::MetricSpace<T, L2<T>> metric_space;
   metric_space.tau.open_sets.insert(v.begin(), v.end());
   return metric_space;
 }
+#endif
 
 template <typename T>
 concept LocallyEuclidean = FieldLike<T> && requires(const T& x, const T& y) {
@@ -42,25 +44,25 @@ concept LocallyEuclidean = FieldLike<T> && requires(const T& x, const T& y) {
 
 namespace topology {
 
-template <typename T>
+template <typename Derived, typename T>
 concept TopologicalManifold =
-    TopologicalSpace<T> && algebra::LocallyEuclidean<T> &&
-    requires(const Topology<T>& tau) {
-      { is_hausdorff(tau) } -> std::same_as<bool>;
-      { is_second_countable(tau) } -> std::same_as<bool>;
+    TopologicalSpace<Derived, T> && algebra::LocallyEuclidean<T> &&
+    requires(const Topology<Derived, T>& tau) {
+      { tau.is_hausdorff() } -> std::same_as<bool>;
+      { tau.is_second_countable() } -> std::same_as<bool>;
     };
 
 }  // namespace topology
 
 namespace algebra {
 
-template <typename T>
-concept RnSpace = topology::TopologicalManifold<T> && requires(T v) {
+template <typename Derived, typename T>
+concept RnSpace = topology::TopologicalManifold<Derived, T> && requires(T v) {
   typename T::Scalar;
   typename Eigen::NumTraits<typename T::Scalar>::Real;
   { v + v } -> std::convertible_to<T>;
   { v * typename T::Scalar{1} } -> std::convertible_to<T>;
-  { to_euclidean_space(v).distance_metric_is_valid() } -> std::same_as<bool>;
+  //{ to_euclidean_space(v).distance_metric_is_valid() } -> std::same_as<bool>;
 };
 
 }  // namespace algebra

@@ -39,7 +39,12 @@ struct scalar_type<std::complex<T>> {
 };
 
 template <typename T>
-struct scalar_type<topology::Topology<T>> {
+struct scalar_type<std::set<T>> {
+  using value_type = typename scalar_type<T>::value_type;
+};
+
+template <typename Derived, typename T>
+struct scalar_type<topology::Topology<Derived, T>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 

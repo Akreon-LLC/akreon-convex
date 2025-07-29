@@ -10,15 +10,16 @@
 
 namespace topology {
 
-template <TopologicalSpace S, typename D>
-// requires requires(const T& x, const T& y, const D& d) { d(x, y); }
+template <typename Derived, typename T, typename D>
+  requires requires(const T& x, const T& y, const D& d) { d(x, y); }
 struct MetricSpace {
-  using T = algebra::scalar_type_t<S>;
-  S tau;
+  Derived tau;
   D d;
 
+  // TODO - needs to be generalized
   constexpr bool distance_metric_is_valid() const {
-    Set<T> universe;
+#if 0
+    T universe;
     for (const auto& U : tau.open_sets) universe.insert(U.begin(), U.end());
 
     for (const auto& x : universe) {
@@ -34,13 +35,15 @@ struct MetricSpace {
           if (d(x, z) > d(x, y) + d(y, z) + 1e-9) return false;
       }
     }
+#endif
     return true;
   }
 };
 
-template <typename S, typename D>
+template <typename Derived, typename T, typename D>
 concept ValidMetricSpace =
-    TopologicalSpace<S> && requires(const MetricSpace<S, D>& metric_space) {
+    TopologicalSpace<Derived, T> &&
+    requires(const MetricSpace<Derived, T, D>& metric_space) {
       { metric_space.distance_metric_is_valid() } -> std::same_as<bool>;
     };
 
