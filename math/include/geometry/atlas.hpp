@@ -11,12 +11,12 @@
 
 #include "chart.hpp"
 
-namespace atlas {
+namespace geometry {
 
 template <typename T, typename Rn, typename MapToRn, typename MapFromRn>
-  requires chart::ValidChart<T, Rn, MapToRn, MapFromRn>
+  requires ValidChart<T, Rn, MapToRn, MapFromRn>
 struct Atlas {
-  using ChartT = chart::Chart<T, Rn, MapToRn, MapFromRn>;
+  using ChartT = Chart<T, Rn, MapToRn, MapFromRn>;
   std::vector<ChartT> charts;
 
   constexpr bool covers(const topology::Topology<T>& M) const {
@@ -47,7 +47,8 @@ struct Atlas {
 
         // p \in U_i \intersection U_j
         for (const auto& p : inter) {
-          Rn phi_i_image_on_p = charts[i].phi(Eigen::VectorXd(p));  // intersection -> R^n
+          Rn phi_i_image_on_p =
+              charts[i].phi(Eigen::VectorXd(p));  // intersection -> R^n
           T phi_j_preimage = charts[j].inv_phi(phi_i_image_on_p);  // R^n -> U_j
           Rn phi_i_image_on_j = charts[i].phi(phi_j_preimage);     // U_j -> R^n
 
@@ -73,4 +74,4 @@ concept SmoothAtlas = ValidAtlas<T, Rn, MapToRn, MapFromRn> &&
                         { atlas.is_compatible() } -> std::same_as<bool>;
                       };
 
-}  // namespace atlas
+}  // namespace geometry

@@ -9,11 +9,8 @@
 #include "math.hpp"
 
 using namespace topology;
-using namespace vector_space;
-using namespace chart;
-// using namespace atlas;
-// using namespace smooth_manifold;
-// using namespace smooth_map;
+using namespace algebra;
+using namespace geometry;
 
 TEST_CASE("Test topological manifold construction", "[topology]") {
   STATIC_REQUIRE(!TopologicalManifold<int>);

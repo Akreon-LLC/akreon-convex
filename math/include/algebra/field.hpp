@@ -9,7 +9,9 @@
 #include <type_traits>
 #include <vector>
 
-namespace field {
+#include "../topology/topology.hpp"
+
+namespace algebra {
 
 template <typename T>
 struct scalar_type {
@@ -37,19 +39,24 @@ struct scalar_type<std::complex<T>> {
 };
 
 template <typename T>
+struct scalar_type<topology::Topology<T>> {
+  using value_type = typename scalar_type<T>::value_type;
+};
+
+template <typename T>
 using scalar_type_t = typename scalar_type<T>::value_type;
 
 template <typename T>
 concept FloatingPoint = std::floating_point<scalar_type_t<T>>;
 
 template <typename T>
-concept FieldLike = std::is_arithmetic_v<T> || requires(T a, T b) {
+concept FieldLike = FloatingPoint<T> || requires(T a, T b) {
   { a + b } -> std::same_as<T>;
   { a * b } -> std::same_as<T>;
   { -a } -> std::same_as<T>;
-  { a / b } -> std::same_as<T>;
+  { a / b } -> std::floating_point;
   { a + T{0} } -> std::same_as<T>;
   { a * T{1} } -> std::same_as<T>;
 };
 
-}  // namespace field
+}  // namespace algebra

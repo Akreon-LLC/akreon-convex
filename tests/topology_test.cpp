@@ -4,13 +4,14 @@
  */
 
 #include "topology/topology.hpp"
+#include "topology/metric_space.hpp"
 #include "algebra/field.hpp"
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
 using namespace topology;
-using namespace field;
+using namespace algebra;
 
 TEST_CASE("Test topologcal space construction", "[topology]") {
   using T = int;

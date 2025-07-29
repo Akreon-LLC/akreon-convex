@@ -13,10 +13,10 @@
 #include "../algebra/vector_space.hpp"
 #include "../topology/topology.hpp"
 
-namespace chart {
+namespace geometry {
 
 using R = double;
-using Rn = vector_space::VectorSpace<R, Eigen::Dynamic>;
+using Rn = algebra::VectorSpace<R, Eigen::Dynamic>;
 
 template <typename M>
 using Phi = std::function<Rn(const M&)>;
@@ -52,4 +52,4 @@ concept ValidChart =
       { is_homeomorphism(chart) } -> std::same_as<bool>;
     };
 
-}  // namespace chart
+}  // namespace geometry

@@ -10,7 +10,7 @@
 #include "../topology/topology.hpp"
 #include "smooth_manifold.hpp"
 
-namespace smooth_map {
+namespace geometry {
 
 template <typename T1, typename T2, typename Rn1, typename Rn2,
           typename MapToRn1, typename MapFromRn1, typename MapToRn2,
@@ -21,9 +21,8 @@ struct SmoothMap {
 
   // Checks for each chart (φ, ψ) that ψ∘f∘φ⁻¹ is smooth
   constexpr bool is_smooth(
-      const smooth_manifold::SmoothManifold<T1, Rn1, MapToRn1, MapFromRn1>& M,
-      const smooth_manifold::SmoothManifold<T2, Rn2, MapToRn2, MapFromRn2>& N)
-      const {
+      const SmoothManifold<T1, Rn1, MapToRn1, MapFromRn1>& M,
+      const SmoothManifold<T2, Rn2, MapToRn2, MapFromRn2>& N) const {
     for (const auto& chart_M : M.atlas.charts) {
       for (const auto& chart_N : N.atlas.charts) {
         // check if the image of U under mapping f is a subset of V
@@ -50,14 +49,13 @@ struct SmoothMap {
 template <typename T1, typename T2, typename Rn1, typename Rn2,
           typename MapToRn1, typename MapFromRn1, typename MapToRn2,
           typename MapFromRn2>
-concept ValidSmoothMap = requires(
-    const SmoothMap<T1, T2, Rn1, Rn2, MapToRn1, MapFromRn1, MapToRn2,
-                    MapFromRn2>
-        smooth_map,
-    const smooth_manifold::SmoothManifold<T1, Rn1, MapToRn1, MapFromRn1>& sm_M,
-    const smooth_manifold::SmoothManifold<T2, Rn2, MapToRn2, MapFromRn2>&
-        sm_N) {
-  { smooth_map.is_smooth(sm_M, sm_N) } -> std::same_as<bool>;
-};
+concept ValidSmoothMap =
+    requires(const SmoothMap<T1, T2, Rn1, Rn2, MapToRn1, MapFromRn1, MapToRn2,
+                             MapFromRn2>
+                 smooth_map,
+             const SmoothManifold<T1, Rn1, MapToRn1, MapFromRn1>& sm_M,
+             const SmoothManifold<T2, Rn2, MapToRn2, MapFromRn2>& sm_N) {
+      { smooth_map.is_smooth(sm_M, sm_N) } -> std::same_as<bool>;
+    };
 
-}  // namespace smooth_map
+}  // namespace geometry

@@ -7,14 +7,14 @@
 
 #include "atlas.hpp"
 
-namespace smooth_manifold {
+namespace geometry {
 
 template <typename T, typename Rn, typename MapToRn, typename MapFromRn>
   requires topology::TopologicalManifold<T> &&
-           atlas::SmoothAtlas<T, Rn, MapToRn, MapFromRn>
+           SmoothAtlas<T, Rn, MapToRn, MapFromRn>
 struct SmoothManifold {
   topology::Topology<T> M;
-  atlas::Atlas<T, Rn, MapToRn, MapFromRn> atlas;
+  Atlas<T, Rn, MapToRn, MapFromRn> atlas;
 };
 
-}  // namespace smooth_manifold
+}  // namespace geometry
