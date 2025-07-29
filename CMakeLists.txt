@@ -2,19 +2,15 @@ cmake_minimum_required(VERSION 3.22)
 
 project(dmc VERSION 0.0.0 LANGUAGES CXX DESCRIPTION "Akreon SDK" HOMEPAGE_URL https://github.com/dakre21/akreon_sdk)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fprofile-arcs -ftest-coverage")
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -fprofile-arcs -ftest-coverage")
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 option(BUILD_TESTING "Enable building test code" ON)
-option(CODE_COVERAGE "Enable coverage flags" ON)
 
 include(FetchContent)
 
@@ -30,12 +26,6 @@ if(BUILD_TESTING)
   FetchContent_MakeAvailable(Catch2)
   
   include(CTest)
-
-  if(CODE_COVERAGE)
-    message(STATUS "Code coverage enabled")
-    add_compile_options(--coverage)
-    add_link_options(--coverage)
-  endif()
 
   enable_testing()
   
