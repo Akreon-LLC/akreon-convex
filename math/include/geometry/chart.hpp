@@ -28,14 +28,14 @@ template <typename M, typename Rn, typename MapToRn, typename MapFromRn>
   requires requires { typename M::value_type; }
 struct Chart {
   using T = typename M::value_type;
-  topology::Set<T> U;  // domain open subset U of the manifold M
-  MapToRn phi;         // map M -> R^n
-  MapFromRn inv_phi;   // inverse map R^n -> M
+  M U;                // domain open subset U of the manifold M
+  MapToRn phi;        // map M -> R^n
+  MapFromRn inv_phi;  // inverse map R^n -> M
 };
 
 template <typename M, typename Rn, typename MapToRn, typename MapFromRn>
 constexpr bool is_homeomorphism(const Chart<M, Rn, MapToRn, MapFromRn>& chart) {
-  auto y = chart.phi(chart.U);           // U -> R^n
+  auto y = chart.phi(chart.U);     // U -> R^n
   auto U_back = chart.inv_phi(y);  // R^n -> U
 
   if (U_back != chart.U) return false;

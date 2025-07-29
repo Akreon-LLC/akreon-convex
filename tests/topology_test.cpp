@@ -4,11 +4,13 @@
  */
 
 #include "topology/topology.hpp"
+#include "algebra/field.hpp"
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
 using namespace topology;
+using namespace field;
 
 TEST_CASE("Test topologcal space construction", "[topology]") {
   using T = int;
@@ -53,4 +55,12 @@ TEST_CASE("Test metric space construction", "[metric_space]") {
     MetricSpace<double, decltype(d)> ms{.tau = tau};
     REQUIRE(ms.distance_metric_is_valid());
   }
+}
+
+TEST_CASE("Test field types", "[field]") {
+  STATIC_REQUIRE(FloatingPoint<double>);
+  STATIC_REQUIRE(FloatingPoint<std::vector<double>>);
+  STATIC_REQUIRE(FloatingPoint<Eigen::Vector3d>);
+  STATIC_REQUIRE(FloatingPoint<Eigen::Matrix3d>);
+  STATIC_REQUIRE(FloatingPoint<std::vector<Eigen::Matrix3d>>);
 }

@@ -21,9 +21,10 @@ TEST_CASE("Test topological manifold construction", "[topology]") {
   STATIC_REQUIRE(TopologicalManifold<double>);
 }
 
-#if 0
 TEST_CASE("Test construction of smooth manifolds", "[smooth_manifold]") {
   using M = Rn;
+  REQUIRE(true);
+#if 0
   // Forward map: M -> Rn
   auto phi = [](const M& x) -> Rn { return x; };
 
@@ -59,8 +60,8 @@ TEST_CASE("Test construction of smooth manifolds", "[smooth_manifold]") {
         ValidSmoothMap<Td, Td, Rn, Rn, decltype(phi), decltype(inv_phi),
                        decltype(phi), decltype(inv_phi)>);
   }
-}
 #endif
+}
 
 TEST_CASE("Test construction of Rn space", "[vector_space]") {
   STATIC_REQUIRE(RnSpace<Eigen::Matrix<double, 3, 1>>);

@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) 2025 Akreon.
+ * All rights reserved.
+ */
+
+#pragma once
+
+#include <Eigen/Core>
+#include <type_traits>
+#include <vector>
+
+namespace field {
+
+template <typename T>
+struct scalar_type {
+  using value_type = T;
+};
+
+template <typename T>
+struct scalar_type<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>> {
+  using value_type = typename scalar_type<T>::value_type;
+};
+
+template <typename T, int Rows, int Cols>
+struct scalar_type<Eigen::Matrix<T, Rows, Cols>> {
+  using value_type = typename scalar_type<T>::value_type;
+};
+
+template <typename T>
+struct scalar_type<std::vector<T>> {
+  using value_type = typename scalar_type<T>::value_type;
+};
+
+template <typename T>
+struct scalar_type<std::complex<T>> {
+  using value_type = typename scalar_type<T>::value_type;
+};
+
+template <typename T>
+using scalar_type_t = typename scalar_type<T>::value_type;
+
+template <typename T>
+concept FloatingPoint = std::floating_point<scalar_type_t<T>>;
+
+template <typename T>
+concept FieldLike = std::is_arithmetic_v<T> || requires(T a, T b) {
+  { a + b } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
+  { -a } -> std::same_as<T>;
+  { a / b } -> std::same_as<T>;
+  { a + T{0} } -> std::same_as<T>;
+  { a * T{1} } -> std::same_as<T>;
+};
+
+}  // namespace field

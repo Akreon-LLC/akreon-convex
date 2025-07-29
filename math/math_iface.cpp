@@ -8,7 +8,7 @@
 #if 0
 namespace chart {
 using M = Rn;
-template struct Chart<M, Rn, Phi<M>, InvPhi<M>>;
+//template struct Chart<M, Rn, Phi<M>, InvPhi<M>>;
 }  // namespace chart
 
 namespace atlas {

@@ -7,6 +7,7 @@
 
 #include <Eigen/Core>
 
+#include "../algebra/field.hpp"
 #include "../topology/topology.hpp"
 
 namespace vector_space {
@@ -32,18 +33,10 @@ constexpr topology::MetricSpace<T, L2<T>> to_euclidean_space(const T& v) {
 }
 
 template <typename T>
-concept RnSpace = requires(T v) {
-  typename T::Scalar;
-  typename Eigen::NumTraits<typename T::Scalar>::Real;
-  { v + v } -> std::convertible_to<T>;
-  { v * typename T::Scalar{1} } -> std::convertible_to<T>;
-  { to_euclidean_space(v).distance_metric_is_valid() } -> std::same_as<bool>;
-};
-
-template <typename T>
-concept LocallyEuclidean = std::floating_point<T> && requires(const T& x, const T& y) {
-  { L2<T>{}(x, y) } -> std::convertible_to<double>;
-};
+concept LocallyEuclidean =
+    field::FloatingPoint<T> && requires(const T& x, const T& y) {
+      { L2<T>{}(x, y) } -> std::convertible_to<double>;
+    };
 
 }  // namespace vector_space
 
@@ -56,3 +49,14 @@ concept TopologicalManifold =
       { is_second_countable(tau) } -> std::same_as<bool>;
     };
 }  // namespace topology
+
+namespace vector_space {
+template <typename T>
+concept RnSpace = topology::TopologicalManifold<T> && requires(T v) {
+  typename T::Scalar;
+  typename Eigen::NumTraits<typename T::Scalar>::Real;
+  { v + v } -> std::convertible_to<T>;
+  { v * typename T::Scalar{1} } -> std::convertible_to<T>;
+  { to_euclidean_space(v).distance_metric_is_valid() } -> std::same_as<bool>;
+};
+}  // namespace vector_space
