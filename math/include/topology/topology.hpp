@@ -85,19 +85,19 @@ struct Topology {
   }
 };
 
-template <typename S>
-struct SetTopology : Topology<SetTopology<S>, S> {
-  std::set<S> open_sets;
+template <typename T>
+struct SetTopology : Topology<SetTopology<T>, T> {
+  std::set<T> open_sets;
 
  private:
-  friend Topology<SetTopology<S>, S>;
+  friend Topology<SetTopology<T>, T>;
 
-  constexpr bool contains_impl(const S& s) const {
+  constexpr bool contains_impl(const T& s) const {
     return open_sets.find(s) != open_sets.end();
   }
 
-  constexpr S interior_impl(const S& X) const {
-    S int_X;
+  constexpr T interior_impl(const T& X) const {
+    T int_X;
     // 1. iterate through all open sets in the topology
     for (const auto& U : open_sets) {
       // 2. check if U is fully contained in X (i.e., U \subset X)
@@ -109,7 +109,7 @@ struct SetTopology : Topology<SetTopology<S>, S> {
     return int_X;
   }
 
-  constexpr S closure_impl(const S& X) const {
+  constexpr T closure_impl(const T& X) const {
     // Closure of X are all the points of X + all limit points
     // cl(X) = \Intersection \{ C \subset S | C is closed and X \subset C \}
     // The above is the smallest closed set containing X (i.e., X \Union (\all
@@ -117,14 +117,14 @@ struct SetTopology : Topology<SetTopology<S>, S> {
     // C is closed iff its complement is open (i.e., C^C \in tau)
 
     // 1. construct the universe S from topology of open sets via union
-    S universe;
+    T universe;
     for (const auto& U : open_sets) universe.insert(U.begin(), U.end());
 
     // 2. intersect all closed supersets of X by starting with the full universe
     // and iteratively finding the smallest closed set containing X
     auto cl_X = universe;
     for (const auto& U : open_sets) {
-      S C;  // C = complement of U (C is a closed set)
+      T C;  // C = complement of U (C is a closed set)
       for (const auto& x : universe) {
         if (!U.count(x)) C.insert(x);
       }
@@ -134,7 +134,7 @@ struct SetTopology : Topology<SetTopology<S>, S> {
                                     [&C](const auto& x) { return C.count(x); });
 
       if (contains_X) {
-        S new_candidate;
+        T new_candidate;
         for (const auto& x : cl_X) {
           if (C.count(x)) new_candidate.insert(x);
         }
@@ -145,14 +145,14 @@ struct SetTopology : Topology<SetTopology<S>, S> {
     return cl_X;
   }
 
-  constexpr S exterior_impl(const S& X) const {
+  constexpr T exterior_impl(const T& X) const {
     // 1. construct universe S from topology open sets via union (e.g., all
     // points present in the topological space => S = \Union_{U \in \tau} U)
     // ext(X) = int(X^c)
-    S universe;
+    T universe;
     for (const auto& U : open_sets) universe.insert(U.begin(), U.end());
     // 2. construct the complement of X in the universe S (i.e., X^c = S \ X)
-    S complement;
+    T complement;
     for (const auto& x : universe) {
       if (!X.count(x)) complement.insert(x);
     }
@@ -160,7 +160,7 @@ struct SetTopology : Topology<SetTopology<S>, S> {
     return this->interior(complement);
   }
 
-  constexpr S boundary_impl(const S& X) const {
+  constexpr T boundary_impl(const T& X) const {
     // Boundary of X lies at the interface between X and X^c
     // bd(X) = cl(X) \ int(X)
     auto cl_X = this->closure(X);
@@ -168,7 +168,7 @@ struct SetTopology : Topology<SetTopology<S>, S> {
 
     // 1. construct boundary by selecting elements from the closure of X that
     // are not in the interior of X
-    S bd_X;
+    T bd_X;
     for (const auto& x : cl_X) {
       if (!int_X.count(x)) bd_X.insert(x);
     }
@@ -177,12 +177,12 @@ struct SetTopology : Topology<SetTopology<S>, S> {
 
   constexpr bool is_closed_under_union_impl() const {
     // 1. copy open sets into a vector for indexing
-    std::vector<S> set_vector(open_sets.begin(), open_sets.end());
+    std::vector<T> set_vector(open_sets.begin(), open_sets.end());
     size_t n = set_vector.size();
 
     // 2. loop over all non-empty subsets of open sets using bitmasking
     for (size_t mask = 1; mask < (1 << n); ++mask) {
-      S union_set;
+      T union_set;
 
       // 3. for each bit in mask, if bit i is set, include set_vector[i]
       for (size_t i = 0; i < n; ++i) {
@@ -201,7 +201,7 @@ struct SetTopology : Topology<SetTopology<S>, S> {
   constexpr bool is_closed_under_finite_intersection_impl() const {
     for (const auto& A : open_sets) {
       for (const auto& B : open_sets) {
-        S inter;
+        T inter;
         std::set_intersection(A.begin(), A.end(), B.begin(), B.end(),
                               std::inserter(inter, inter.begin()));
         if (!this->contains(inter)) return false;
@@ -212,7 +212,7 @@ struct SetTopology : Topology<SetTopology<S>, S> {
 
   constexpr bool is_hausdorff_impl() const {
     // 1. construct the universe S from topology of open sets via union
-    S universe;
+    T universe;
     for (const auto& U : open_sets) universe.insert(U.begin(), U.end());
 
     // 2. test that for all points in the space, two distinct points can be

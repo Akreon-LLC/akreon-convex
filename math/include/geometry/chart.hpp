@@ -16,7 +16,8 @@
 namespace geometry {
 
 using R = double;
-using Rn = algebra::VectorSpace<R, Eigen::Dynamic>;
+using Rn =
+    topology::RnSpaceTopology<algebra::VectorSpace<R, Eigen::Dynamic>>;
 
 template <typename M>
 using Phi = std::function<Rn(const M&)>;

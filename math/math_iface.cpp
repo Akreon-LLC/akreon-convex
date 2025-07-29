@@ -7,9 +7,10 @@
 
 namespace geometry {
 
-#if 0
 using M = Rn;
 template struct Chart<M, Rn, Phi<M>, InvPhi<M>>;
+
+#if 0
 
 template struct Atlas<chart::R, chart::Rn, chart::Phi<chart::M>, chart::InvPhi<chart::M>>;
 

@@ -9,6 +9,7 @@
 
 #include "../algebra/vector_space.hpp"
 #include "metric_space.hpp"
+#include "topology.hpp"
 
 namespace topology {
 
@@ -18,6 +19,30 @@ constexpr bool all_finite(const T& X) {
     if (!std::isfinite(x)) return false;
   return true;
 }
+
+template <typename T>
+struct RnSpaceTopology : Topology<RnSpaceTopology<T>, T> {
+ private:
+  friend Topology<RnSpaceTopology<T>, T>;
+
+  constexpr bool contains_impl(const T& /*X*/) const { return true; }
+
+  constexpr T interior_impl(const T& X) const { return X; }
+
+  constexpr T closure_impl(const T& X) const { return X; }
+
+  constexpr T exterior_impl(const T& X) const { return X; }
+
+  constexpr T boundary_impl(const T& X) const { return X; }
+
+  constexpr bool is_closed_under_finite_intersection_impl() const {
+    return true;
+  }
+
+  constexpr bool is_hausdoff_impl() const { return true; }
+
+  constexpr bool is_second_countable_impl() const { return true; }
+};
 
 template <typename Derived, typename T>
 concept LocallyEuclidean = algebra::FieldLike<T> &&
