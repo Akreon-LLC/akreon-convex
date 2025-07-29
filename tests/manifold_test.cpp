@@ -19,9 +19,9 @@ TEST_CASE("Test topological manifold construction", "[topology]") {
 }
 
 TEST_CASE("Test construction of smooth manifolds", "[smooth_manifold]") {
-  using M = Rn;
   REQUIRE(true);
 #if 0
+  using M = Rn;
   // Forward map: M -> Rn
   auto phi = [](const M& x) -> Rn { return x; };
 

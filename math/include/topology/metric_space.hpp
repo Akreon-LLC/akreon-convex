@@ -5,14 +5,16 @@
 
 #pragma once
 
+#include "../algebra/field.hpp"
 #include "topology.hpp"
 
 namespace topology {
 
-template <typename T, typename D>
-  requires requires(const T& x, const T& y, const D& d) { d(x, y); }
+template <TopologicalSpace S, typename D>
+// requires requires(const T& x, const T& y, const D& d) { d(x, y); }
 struct MetricSpace {
-  Topology<T> tau;
+  using T = algebra::scalar_type_t<S>;
+  S tau;
   D d;
 
   constexpr bool distance_metric_is_valid() const {
@@ -36,9 +38,10 @@ struct MetricSpace {
   }
 };
 
-template <typename T, typename D>
-concept ValidMetricSpace = requires(const MetricSpace<T, D>& metric_space) {
-  { metric_space.distance_metric_is_valid() } -> std::same_as<bool>;
-};
+template <typename S, typename D>
+concept ValidMetricSpace =
+    TopologicalSpace<S> && requires(const MetricSpace<S, D>& metric_space) {
+      { metric_space.distance_metric_is_valid() } -> std::same_as<bool>;
+    };
 
 }  // namespace topology

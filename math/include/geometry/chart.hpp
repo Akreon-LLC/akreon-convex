@@ -24,13 +24,12 @@ using Phi = std::function<Rn(const M&)>;
 template <typename M>
 using InvPhi = std::function<M(const Rn&)>;
 
-template <typename M, typename Rn, typename MapToRn, typename MapFromRn>
-  requires requires { typename M::value_type; }
+template <topology::TopologicalSpace S, typename Rn, typename MapToRn,
+          typename MapFromRn>
 struct Chart {
-  using T = typename M::value_type;
-  M U;                // domain open subset U of the manifold M
-  MapToRn phi;        // map M -> R^n
-  MapFromRn inv_phi;  // inverse map R^n -> M
+  S U;                // domain open subset U of the manifold M
+  MapToRn phi;        // map U -> R^n
+  MapFromRn inv_phi;  // inverse map R^n -> U
 };
 
 template <typename M, typename Rn, typename MapToRn, typename MapFromRn>

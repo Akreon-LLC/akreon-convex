@@ -53,7 +53,7 @@ TEST_CASE("Test metric space construction", "[metric_space]") {
     Topology<double> tau;
     auto d = [](const double& x, const double& y) { return std::abs(x - y); };
 
-    MetricSpace<double, decltype(d)> ms{.tau = tau};
+    MetricSpace<decltype(tau), decltype(d)> ms{.tau = tau};
     REQUIRE(ms.distance_metric_is_valid());
   }
 }
