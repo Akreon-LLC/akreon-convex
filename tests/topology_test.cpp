@@ -3,13 +3,10 @@
  * All rights reserved.
  */
 
-#include "topology/topology.hpp"
-
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
-#include "algebra/field.hpp"
-#include "topology/metric_space.hpp"
+#include "math.hpp"
 
 using namespace topology;
 using namespace algebra;
@@ -65,12 +62,4 @@ TEST_CASE("Test topologcal space construction", "[topology]") {
     STATIC_REQUIRE(MetricSpace<decltype(dtau), Td, decltype(d2)>);
     REQUIRE(distance_metric_is_valid_on_space(dtau, d2));
   }
-}
-
-TEST_CASE("Test field types", "[field]") {
-  STATIC_REQUIRE(FloatingPoint<double>);
-  STATIC_REQUIRE(FloatingPoint<std::vector<double>>);
-  STATIC_REQUIRE(FloatingPoint<Eigen::Vector3d>);
-  STATIC_REQUIRE(FloatingPoint<Eigen::Matrix3d>);
-  STATIC_REQUIRE(FloatingPoint<std::vector<Eigen::Matrix3d>>);
 }

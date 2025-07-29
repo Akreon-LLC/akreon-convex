@@ -28,6 +28,11 @@ if(BUILD_TESTING)
   include(CTest)
 
   enable_testing()
+
+  add_executable(algebra_test tests/algebra_test.cpp)
+  add_test(NAME algebra_test COMMAND algebra_test)
+  target_link_libraries(algebra_test PRIVATE Catch2::Catch2WithMain Eigen3::Eigen math)
+  target_include_directories(algebra_test PRIVATE ../math/include)
   
   add_executable(topology_test tests/topology_test.cpp)
   add_test(NAME topology_test COMMAND topology_test)
