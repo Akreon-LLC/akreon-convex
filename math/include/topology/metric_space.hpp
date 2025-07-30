@@ -10,8 +10,8 @@
 
 namespace topology {
 
-template <typename T, typename D>
-constexpr bool distance_metric_is_valid_on_space(const SetTopology<T>& tau,
+template <typename T, size_t N, typename D>
+constexpr bool distance_metric_is_valid_on_space(const SetTopology<T, N>& tau,
                                                  const D& d) {
   T universe;
   for (const auto& U : tau.open_sets) universe.insert(U.begin(), U.end());

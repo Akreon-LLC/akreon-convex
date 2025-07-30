@@ -20,12 +20,16 @@ constexpr bool all_finite(const T& X) {
   return true;
 }
 
-template <typename T>
-struct RnSpaceTopology : Topology<RnSpaceTopology<T>, T> {
- private:
-  friend Topology<RnSpaceTopology<T>, T>;
+template <typename T, size_t N>
+struct EuclideanTopology : Topology<EuclideanTopology<T, N>, T> {
+  static constexpr size_t s_size = N;
 
-  constexpr bool contains_impl(const T& /*X*/) const { return true; }
+ private:
+  friend Topology<EuclideanTopology<T, N>, T>;
+
+  constexpr bool contains_impl(const T& X) const {
+    return X.norm() < std::numeric_limits<double>::max();
+  }
 
   constexpr T interior_impl(const T& X) const { return X; }
 
@@ -57,7 +61,7 @@ concept TopologicalManifold =
     };
 
 template <typename Derived, typename T>
-concept RnSpace =
+concept EuclideanSpace =
     topology::TopologicalManifold<Derived, T> && requires(const T& X) {
       { all_finite(X) } -> std::same_as<bool>;
     };

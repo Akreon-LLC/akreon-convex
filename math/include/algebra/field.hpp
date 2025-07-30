@@ -38,8 +38,8 @@ struct scalar_type<std::complex<T>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
-template <typename T>
-struct scalar_type<std::set<T>> {
+template <typename T, size_t N>
+struct scalar_type<topology::OpenSet<T, N>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 

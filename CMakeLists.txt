@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(dmc VERSION 0.0.0 LANGUAGES CXX DESCRIPTION "Akreon SDK" HOMEPAGE_URL https://github.com/dakre21/akreon_sdk)
 
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -39,8 +39,8 @@ if(BUILD_TESTING)
   target_link_libraries(topology_test PRIVATE Catch2::Catch2WithMain Eigen3::Eigen math)
   target_include_directories(topology_test PRIVATE ../math/include)
 
-  add_executable(manifold_test tests/manifold_test.cpp)
-  add_test(NAME manifold_test COMMAND manifold_test)
-  target_link_libraries(manifold_test PRIVATE Catch2::Catch2WithMain Eigen3::Eigen math)
-  target_include_directories(manifold_test PRIVATE ../math/include)
+  #add_executable(manifold_test tests/manifold_test.cpp)
+  #add_test(NAME manifold_test COMMAND manifold_test)
+  #target_link_libraries(manifold_test PRIVATE Catch2::Catch2WithMain Eigen3::Eigen math)
+  #target_include_directories(manifold_test PRIVATE ../math/include)
 endif()

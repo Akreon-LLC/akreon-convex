@@ -15,16 +15,6 @@
 
 namespace geometry {
 
-using R = double;
-using Rn =
-    topology::RnSpaceTopology<algebra::VectorSpace<R, Eigen::Dynamic>>;
-
-template <typename M>
-using Phi = std::function<Rn(const M&)>;
-
-template <typename M>
-using InvPhi = std::function<M(const Rn&)>;
-
 template <typename S, typename Rn, typename MapToRn, typename MapFromRn>
   requires topology::TopologicalSpace<S, typename S::value_type>
 struct Chart {

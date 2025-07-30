@@ -6,6 +6,7 @@
 #pragma once
 
 #include "topology/topology.hpp"
+#include "topology/set_topology.hpp"
 #include "topology/metric_space.hpp"
 #include "topology/euclidean_space.hpp"
 #include "algebra/field.hpp"
