@@ -15,49 +15,49 @@ TEST_CASE("Test open set properties", "[topology]") {
   using T = OpenSet<int, 2>;
   using U = OpenSet<int, 4>;
 
-  T A{1, 2};
-  T B{2, 3};
+  constexpr T A{1, 2};
+  constexpr T B{2, 3};
 
   SECTION("Union check") {
-    auto C = set_union(A, B);
-    auto D = A | B;
-    REQUIRE(C == D);
-    REQUIRE(C.size() == 3);
-    REQUIRE(C == U{1, 2, 3});
-    REQUIRE(C.is_open(5));
-    REQUIRE(!C.is_open(3));
+    constexpr auto C = set_union(A, B);
+    constexpr auto D = A | B;
+    STATIC_REQUIRE(C == D);
+    STATIC_REQUIRE(C.size() == 3);
+    STATIC_REQUIRE(C == U{1, 2, 3});
+    STATIC_REQUIRE(C.is_open(5));
+    STATIC_REQUIRE(!C.is_open(3));
   }
 
   SECTION("Intersection check") {
-    auto C = set_intersection(A, B);
-    auto D = A & B;
-    REQUIRE(C == D);
-    REQUIRE(C.size() == 1);
-    REQUIRE(C.count(2));
-    REQUIRE(C.is_open(3));
-    REQUIRE(!C.is_open(2));
+    constexpr auto C = set_intersection(A, B);
+    constexpr auto D = A & B;
+    STATIC_REQUIRE(C == D);
+    STATIC_REQUIRE(C.size() == 1);
+    STATIC_REQUIRE(C.count(2));
+    STATIC_REQUIRE(C.is_open(3));
+    STATIC_REQUIRE(!C.is_open(2));
   }
 
   SECTION("Difference check") {
-    auto C = set_difference(A, B);
-    auto D = A - B;
-    REQUIRE(C == D);
-    REQUIRE(C.size() == 2);
-    REQUIRE(C == U{1, 3});
-    REQUIRE(C.is_open(4));
-    REQUIRE(!C.is_open(3));
+    constexpr auto C = set_difference(A, B);
+    constexpr auto D = A - B;
+    STATIC_REQUIRE(C == D);
+    STATIC_REQUIRE(C.size() == 2);
+    STATIC_REQUIRE(C == U{1, 3});
+    STATIC_REQUIRE(C.is_open(4));
+    STATIC_REQUIRE(!C.is_open(3));
   }
 
   SECTION("Complement check") { 
-    U universe{1,2,3,4};
-    auto C = set_complement(universe, A);
-    auto D = set_complement(universe, B);
-    REQUIRE(C.size() == 2);
-    REQUIRE(D.size() == 2);
-    auto E = set_intersection(C, D);
-    REQUIRE(E.size() == 1);
-    REQUIRE(E.count(4));
-    REQUIRE(E.s_size == 6);
+    constexpr U universe{1,2,3,4};
+    constexpr auto C = set_complement(universe, A);
+    constexpr auto D = set_complement(universe, B);
+    STATIC_REQUIRE(C.size() == 2);
+    STATIC_REQUIRE(D.size() == 2);
+    constexpr auto E = set_intersection(C, D);
+    STATIC_REQUIRE(E.size() == 1);
+    STATIC_REQUIRE(E.count(4));
+    STATIC_REQUIRE(E.s_size == 6);
   }
 }
 

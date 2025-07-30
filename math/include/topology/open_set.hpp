@@ -5,8 +5,11 @@
 
 #pragma once
 
+#include <algorithm>
 #include <array>
+#include <iterator>
 #include <span>
+#include <cmath>
 
 namespace topology {
 
@@ -22,6 +25,10 @@ struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
 
 template <typename T>
 constexpr bool is_iterable_v = is_iterable<T>::value;
+
+constexpr auto constexpr_abs(const auto& x) {
+  return x < 0 ? -1 * x : x;
+}
 
 // Base set X
 template <typename T, size_t N>
@@ -44,18 +51,16 @@ struct OpenSet {
     return true;
   }
 
-  constexpr T operator()(const size_t idx) const {
-    return data[idx];
-  }
+  constexpr T operator()(const size_t idx) const { return data[idx]; }
 
   constexpr bool is_open(const auto& r) const {
     bool rv = true;
     if constexpr (!is_iterable_v<T>) {
-      for (size_t i = 0; i < sz; ++i) rv &= std::abs(data[i]) < r;
+      for (size_t i = 0; i < sz; ++i) rv &= constexpr_abs(data[i]) < r;
     } else {
       for (const auto& y : data) {
         const auto size = y.size();
-        for (size_t i = 0; i < size; ++i) rv &= std::abs(y(i)) < r;
+        for (size_t i = 0; i < size; ++i) rv &= constexpr_abs(y(i)) < r;
       }
     }
     return rv;
