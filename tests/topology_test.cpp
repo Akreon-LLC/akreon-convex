@@ -76,7 +76,7 @@ TEST_CASE("Test open set properties", "[topology]") {
 TEST_CASE("Test topologcal space construction", "[topology]") {
   using T = OpenSet<int, 2>;
   SECTION("Runtime checks") {
-    Topology<T, 3> tau;
+    Topology<T, 3> tau{T{}};
 
     tau.open_sets.insert(T{1, 2});
     REQUIRE(!tau.open_sets.insert(T{1, 2}));

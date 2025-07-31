@@ -24,7 +24,11 @@ struct Topology {
   OpenSet<T, N> open_sets;
 
   template <typename... Sets>
-  constexpr Topology(Sets... sets) : open_sets{sets...} {}
+  constexpr Topology(Sets... sets)
+    requires(sizeof...(sets) <= N)
+      : open_sets{sets...} {}
+
+  Topology() = delete;
 };
 
 template <typename T, size_t N>
@@ -127,9 +131,6 @@ constexpr bool is_closed_under_union(const Topology<T, N>& tau) {
   for (size_t i = 0; i < tau.open_sets.size(); ++i) {
     for (size_t j = i + 1; j < tau.open_sets.size(); ++j) {
       const auto union_set = set_union(tau.open_sets(i), tau.open_sets(j));
-
-      // using Vt = Topology<T, N>::value_type::value_type;
-      // const auto Un = decltype(union_set)::s_size;
       const auto interior_set = interior(tau, union_set);
       if (!std::ranges::equal(interior_set, union_set)) return false;
     }

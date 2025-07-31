@@ -21,48 +21,20 @@ constexpr bool all_finite(const T& X) {
 }
 
 template <typename T, size_t N>
-struct EuclideanTopology : Topology<EuclideanTopology<T, N>, T> {
-  static constexpr size_t s_size = N;
+concept LocallyEuclidean =
+    algebra::FieldLike<T> && MetricSpace<T, N, decltype(algebra::L2<T>{})>;
 
- private:
-  friend Topology<EuclideanTopology<T, N>, T>;
-
-  constexpr bool contains_impl(const T& X) const {
-    return X.norm() < std::numeric_limits<double>::max();
-  }
-
-  constexpr T interior_impl(const T& X) const { return X; }
-
-  constexpr T closure_impl(const T& X) const { return X; }
-
-  constexpr T exterior_impl(const T& X) const { return X; }
-
-  constexpr T boundary_impl(const T& X) const { return X; }
-
-  constexpr bool is_closed_under_finite_intersection_impl() const {
-    return true;
-  }
-
-  constexpr bool is_hausdoff_impl() const { return true; }
-
-  constexpr bool is_second_countable_impl() const { return true; }
-};
-
-template <typename Derived, typename T>
-concept LocallyEuclidean = algebra::FieldLike<T> &&
-                           MetricSpace<Derived, T, decltype(algebra::L2<T>{})>;
-
-template <typename Derived, typename T>
+template <typename T, size_t N>
 concept TopologicalManifold =
-    TopologicalSpace<Derived, T> && LocallyEuclidean<Derived, T> &&
-    requires(const Topology<Derived, T>& tau) {
-      { tau.is_hausdorff() } -> std::same_as<bool>;
-      { tau.is_second_countable() } -> std::same_as<bool>;
+    TopologicalSpace<T, N> && LocallyEuclidean<T, N> &&
+    requires(const Topology<T, N>& tau) {
+      { is_hausdorff(tau) } -> std::same_as<bool>;
+      { is_second_countable(tau) } -> std::same_as<bool>;
     };
 
-template <typename Derived, typename T>
+template <typename T, size_t N>
 concept EuclideanSpace =
-    topology::TopologicalManifold<Derived, T> && requires(const T& X) {
+    topology::TopologicalManifold<T, N> && requires(const T& X) {
       { all_finite(X) } -> std::same_as<bool>;
     };
 

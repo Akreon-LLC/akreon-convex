@@ -12,18 +12,13 @@ using namespace topology;
 using namespace algebra;
 using namespace geometry;
 
-TEST_CASE("BLAH", "[blah]") {
-  REQUIRE(true);
-}
-
-#if 0
-
 TEST_CASE("Test topological manifold construction", "[topology]") {
   STATIC_REQUIRE(!TopologicalManifold<int>);
   STATIC_REQUIRE(!TopologicalManifold<Set<double>>);
   STATIC_REQUIRE(TopologicalManifold<double>);
 }
 
+#if 0
 TEST_CASE("Test construction of smooth manifolds", "[smooth_manifold]") {
   using M = Rn;
   // Forward map: M -> Rn
