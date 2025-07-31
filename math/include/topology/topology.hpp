@@ -22,6 +22,9 @@ struct Topology {
   static constexpr size_t s_size = N;
 
   OpenSet<T, N> open_sets;
+
+  template <typename... Sets>
+  constexpr Topology(Sets... sets) : open_sets{sets...} {}
 };
 
 template <typename T, size_t N>

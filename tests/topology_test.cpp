@@ -75,64 +75,71 @@ TEST_CASE("Test open set properties", "[topology]") {
 
 TEST_CASE("Test topologcal space construction", "[topology]") {
   using T = OpenSet<int, 2>;
-  Topology<T, 3> tau;
+  SECTION("Runtime checks") {
+    Topology<T, 3> tau;
 
-  tau.open_sets.insert(T{1, 2});
-  REQUIRE(!tau.open_sets.insert(T{1, 2}));
-  tau.open_sets.insert(T{3, 4});
-  tau.open_sets.insert(T{1, 5});
+    tau.open_sets.insert(T{1, 2});
+    REQUIRE(!tau.open_sets.insert(T{1, 2}));
+    tau.open_sets.insert(T{3, 4});
+    tau.open_sets.insert(T{1, 5});
 
-  REQUIRE(!tau.open_sets.insert(T{99, 100}));
+    REQUIRE(!tau.open_sets.insert(T{99, 100}));
 
-  SECTION("Static checks") { STATIC_REQUIRE(TopologicalSpace<T, 4>); }
+    REQUIRE(tau.open_sets.size() == 3);
+    REQUIRE(tau.open_sets.is_open(6));
+    REQUIRE(!tau.open_sets.is_open(1));
+  }
 
-  REQUIRE(tau.open_sets.is_open(6));
-  REQUIRE(!tau.open_sets.is_open(1));
+  constexpr Topology<T, 3> tau{T{1, 2}, T{3, 4}, T{1, 5}};
+  SECTION("Static checks") {
+    STATIC_REQUIRE(TopologicalSpace<T, 4>);
+    STATIC_REQUIRE(tau.open_sets.size() == 3);
+  }
 
   SECTION("Property checks") {
-    auto int_X = interior(tau, T{2, 3});
-    REQUIRE(int_X.size() == 0);
+    constexpr auto int_X = interior(tau, T{2, 3});
+    STATIC_REQUIRE(int_X.size() == 0);
 
-    int_X = interior(tau, T{1, 5});
-    REQUIRE(int_X.size() == 2);
+    constexpr auto int_X2 = interior(tau, T{1, 5});
+    STATIC_REQUIRE(int_X2.size() == 2);
 
-    auto ext_X = exterior(tau, T{2, 3});
-    REQUIRE(ext_X.size() == 2);
-    REQUIRE(ext_X == T{1, 5});
+    constexpr auto ext_X = exterior(tau, T{2, 3});
+    STATIC_REQUIRE(ext_X.size() == 2);
+    STATIC_REQUIRE(ext_X == T{1, 5});
 
-    auto cl_X = closure(tau, T{2, 3});
-    REQUIRE(cl_X.size() == 5);
-    REQUIRE(cl_X.count(1));
-    REQUIRE(cl_X.count(2));
-    REQUIRE(cl_X.count(3));
-    REQUIRE(cl_X.count(4));
-    REQUIRE(cl_X.count(5));
+    constexpr auto cl_X = closure(tau, T{2, 3});
+    STATIC_REQUIRE(cl_X.size() == 5);
+    STATIC_REQUIRE(cl_X.count(1));
+    STATIC_REQUIRE(cl_X.count(2));
+    STATIC_REQUIRE(cl_X.count(3));
+    STATIC_REQUIRE(cl_X.count(4));
+    STATIC_REQUIRE(cl_X.count(5));
 
-    auto bd_X = boundary(tau, T{2, 3});
-    REQUIRE(bd_X.size() == 5);
-    REQUIRE(bd_X.count(1));
-    REQUIRE(bd_X.count(2));
-    REQUIRE(bd_X.count(3));
-    REQUIRE(bd_X.count(4));
-    REQUIRE(bd_X.count(5));
+    constexpr auto bd_X = boundary(tau, T{2, 3});
+    STATIC_REQUIRE(bd_X.size() == 5);
+    STATIC_REQUIRE(bd_X.count(1));
+    STATIC_REQUIRE(bd_X.count(2));
+    STATIC_REQUIRE(bd_X.count(3));
+    STATIC_REQUIRE(bd_X.count(4));
+    STATIC_REQUIRE(bd_X.count(5));
 
-    REQUIRE(!is_closed_under_union(tau));
+    STATIC_REQUIRE(!is_closed_under_union(tau));
 
-    REQUIRE(!is_closed_under_finite_intersection(tau));
+    STATIC_REQUIRE(!is_closed_under_finite_intersection(tau));
 
     // topology above formed by open sets is not disjoint
-    REQUIRE(!is_hausdorff(tau));
+    STATIC_REQUIRE(!is_hausdorff(tau));
 
-    REQUIRE(is_second_countable(tau));
+    STATIC_REQUIRE(is_second_countable(tau));
   }
 }
 
 TEST_CASE("Test metric space", "[topology]") {
   using T = OpenSet<double, 2>;
-  Topology<T, 3> tau;
+  constexpr Topology<T, 3> tau{T{}, T{3.f, 4.f}, T{1.f, 5.f}};
 
-  auto d = [](const double& x, const double& y) { return std::abs(x - y); };
+  auto d = [](const double& x, const double& y) { return (x - y) * (x - y); };
 
-  STATIC_REQUIRE(MetricSpace<decltype(tau), 3, decltype(d)>);
-  REQUIRE(distance_metric_is_valid_on_space(tau, d));
+  STATIC_REQUIRE(MetricSpace<double, 3, decltype(d)>);
+  STATIC_REQUIRE(distance_metric_is_valid_on_space(tau, d));
 }
