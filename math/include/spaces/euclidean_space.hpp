@@ -8,10 +8,9 @@
 #include <cmath>
 
 #include "../algebra/vector_space.hpp"
-#include "metric_space.hpp"
-#include "topology.hpp"
+#include "../topology/metric_space.hpp"
 
-namespace topology {
+namespace spaces {
 
 template <typename T>
 constexpr bool all_finite(const T& X) {
@@ -22,24 +21,25 @@ constexpr bool all_finite(const T& X) {
 
 template <typename T, size_t N>
 concept LocallyEuclidean =
-    algebra::FieldLike<T> && MetricSpace<T, N, decltype(algebra::L2<T>{})>;
+    algebra::FieldLike<T> &&
+    topology::MetricSpace<T, N, decltype(algebra::L2<T>{})>;
 
 template <typename T, size_t N>
 concept TopologicalManifold =
-    TopologicalSpace<T, N> && LocallyEuclidean<T, N> &&
-    requires(const Topology<T, N>& tau) {
+    topology::TopologicalSpace<T, N> && LocallyEuclidean<T, N> &&
+    requires(const topology::Topology<T, N>& tau) {
       { is_hausdorff(tau) } -> std::same_as<bool>;
       { is_second_countable(tau) } -> std::same_as<bool>;
     };
 
 template <typename T, size_t N>
 concept EuclideanSpace =
-    topology::TopologicalManifold<T, N> && requires(const T& X) {
+    TopologicalManifold<T, N> && requires(const T& X) {
       { all_finite(X) } -> std::same_as<bool>;
     };
 
 template <typename T, size_t N>
   requires EuclideanSpace<T, N>
-using EuclideanTopology = Topology<T, N>;
+using EuclideanTopology = topology::Topology<T, N>;
 
-}  // namespace topology
+}  // namespace spaces

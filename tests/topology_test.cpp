@@ -10,6 +10,7 @@
 
 using namespace topology;
 using namespace algebra;
+using namespace spaces;
 
 TEST_CASE("Test open set properties", "[topology]") {
   using T = OpenSet<int, 2>;
