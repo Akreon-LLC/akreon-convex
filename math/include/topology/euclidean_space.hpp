@@ -38,4 +38,8 @@ concept EuclideanSpace =
       { all_finite(X) } -> std::same_as<bool>;
     };
 
+template <typename T, size_t N>
+  requires EuclideanSpace<T, N>
+using EuclideanTopology = Topology<T, N>;
+
 }  // namespace topology

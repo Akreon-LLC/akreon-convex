@@ -10,6 +10,7 @@
 #include <limits>
 #include <set>
 
+#include "../algebra/field.hpp"
 #include "open_set.hpp"
 
 namespace topology {
@@ -38,9 +39,9 @@ constexpr bool contains(const Topology<T, N>& tau, const T& set) {
 
 template <typename T, size_t N>
 constexpr auto compute_universe(const Topology<T, N>& tau) {
-  constexpr size_t MaxSize = N * T::s_size;
-  using Vt = Topology<T, N>::value_type::value_type;
-  OpenSet<Vt, MaxSize> universe;
+  constexpr size_t K = N * T::s_size;
+  using Vt = algebra::scalar_type_t<Topology<T, N>>;
+  OpenSet<Vt, K> universe;
 
   for (const auto& U : tau.open_sets)
     for (const auto& v : U) universe.insert(v);
@@ -88,7 +89,7 @@ constexpr auto closure(const Topology<T, N>& tau, const T& X) {
   // 1. construct the universe S from topology of open sets via union
   const auto universe = compute_universe(tau);
 
-  using Vt = Topology<T, N>::value_type::value_type;
+  using Vt = algebra::scalar_type_t<Topology<T, N>>;
   const auto Un = decltype(universe)::s_size;
   const auto Xn = T::s_size;
   OpenSet<Vt, Un> cl_X;
@@ -117,7 +118,7 @@ constexpr auto boundary(const Topology<T, N>& tau, const T& X) {
 
   // 1. construct boundary by selecting elements from the closure of X that
   // are not in the interior of X
-  using Vt = Topology<T, N>::value_type::value_type;
+  using Vt = algebra::scalar_type_t<Topology<T, N>>;
   const auto Cn = decltype(cl_X)::s_size;
   OpenSet<Vt, Cn> bd_X;
   for (const auto& x : cl_X)

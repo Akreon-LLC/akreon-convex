@@ -13,8 +13,7 @@ using namespace algebra;
 
 TEST_CASE("Test field types", "[field]") {
   STATIC_REQUIRE(FloatingPoint<double>);
-  STATIC_REQUIRE(FloatingPoint<std::vector<double>>);
-  STATIC_REQUIRE(FloatingPoint<Eigen::Vector3d>);
-  STATIC_REQUIRE(FloatingPoint<Eigen::Matrix3d>);
-  STATIC_REQUIRE(FloatingPoint<std::vector<Eigen::Matrix3d>>);
+  STATIC_REQUIRE(FloatingPoint<std::array<double, 1>>);
+  STATIC_REQUIRE(FloatingPoint<topology::OpenSet<double, 5>>);
+  STATIC_REQUIRE(FloatingPoint<topology::Topology<topology::OpenSet<double, 3>, 2>>);
 }

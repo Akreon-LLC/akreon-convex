@@ -5,11 +5,19 @@
 
 #pragma once
 
-#include <Eigen/Core>
+#include <array>
 #include <type_traits>
-#include <vector>
 
-#include "../topology/topology.hpp"
+// Forward declarations
+namespace topology {
+
+template <typename T, size_t N>
+struct Topology;
+
+template <typename T, size_t N>
+struct OpenSet;
+
+}  // namespace topology
 
 namespace algebra {
 
@@ -18,18 +26,8 @@ struct scalar_type {
   using value_type = T;
 };
 
-template <typename T>
-struct scalar_type<Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>> {
-  using value_type = typename scalar_type<T>::value_type;
-};
-
-template <typename T, int Rows, int Cols>
-struct scalar_type<Eigen::Matrix<T, Rows, Cols>> {
-  using value_type = typename scalar_type<T>::value_type;
-};
-
-template <typename T>
-struct scalar_type<std::vector<T>> {
+template <typename T, size_t N>
+struct scalar_type<std::array<T, N>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 

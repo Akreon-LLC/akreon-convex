@@ -143,3 +143,12 @@ TEST_CASE("Test metric space", "[topology]") {
   STATIC_REQUIRE(MetricSpace<double, 3, decltype(d)>);
   STATIC_REQUIRE(distance_metric_is_valid_on_space(tau, d));
 }
+
+TEST_CASE("Test euclidean space", "[topology]") {
+  using T = OpenSet<double, 2>;
+  constexpr EuclideanTopology<T, 1> tau{T{1.f, 2.f}};
+  STATIC_REQUIRE(tau.open_sets.size() == 1);
+
+  STATIC_REQUIRE(EuclideanSpace<double, 1>);
+  STATIC_REQUIRE(!EuclideanSpace<int, 1>);
+}

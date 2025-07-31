@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include <Eigen/Core>
 #include <cmath>
 
 #include "../algebra/field.hpp"
@@ -13,7 +12,7 @@
 namespace algebra {
 
 template <typename Scalar, int N>
-using VectorSpace = Eigen::Matrix<Scalar, N, 1>;
+struct VectorSpace;
 
 template <typename T>
 struct L2 {
