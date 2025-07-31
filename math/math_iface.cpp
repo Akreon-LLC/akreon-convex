@@ -7,6 +7,7 @@
 
 namespace geometry {
 
+#if 0
 using Real = double;
 template <size_t N>
 using R =
@@ -18,7 +19,6 @@ using Phi = std::function<R<N>(const M&)>;
 template <typename M, size_t N>
 using InvPhi = std::function<R<N>(const R<N>&)>;
 
-#if 0
 constexpr size_t N = 128;
 using M = R<N>;
 template struct Chart<M, R<N>, Phi<M, N>, InvPhi<M, N>>;

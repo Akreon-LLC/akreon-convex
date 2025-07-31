@@ -7,9 +7,9 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <iterator>
 #include <span>
-#include <cmath>
 
 namespace topology {
 
@@ -26,9 +26,7 @@ struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
 template <typename T>
 constexpr bool is_iterable_v = is_iterable<T>::value;
 
-constexpr auto constexpr_abs(const auto& x) {
-  return x < 0 ? -1 * x : x;
-}
+constexpr auto constexpr_abs(const auto& x) { return x < 0 ? -1 * x : x; }
 
 // Base set X
 template <typename T, size_t N>
@@ -49,6 +47,13 @@ struct OpenSet {
     for (size_t i = 0; i < sz; ++i)
       if (data[i] != other.data[i]) return false;
     return true;
+  }
+
+  constexpr bool operator!=(const OpenSet& other) const {
+    if (sz != other.sz) return true;
+    for (size_t i = 0; i < sz; ++i)
+      if (data[i] != other.data[i]) return true;
+    return false;
   }
 
   constexpr T operator()(const size_t idx) const { return data[idx]; }
@@ -98,7 +103,8 @@ struct OpenSet {
   constexpr bool remove(const T& x) {
     const auto rv = find(x);
     if (rv.has_value()) {
-      for (size_t i = rv + 1; i < sz; ++i) std::swap(data[i], data[i - 1]);
+      for (size_t i = rv + 1; i < data.size(); ++i)
+        std::swap(data[i], data[i - 1]);
       clear_element(data[sz--]);
       return true;
     }
@@ -147,10 +153,9 @@ struct OpenSet {
 template <typename... Ts>
 OpenSet(Ts...) -> OpenSet<std::common_type_t<Ts...>, sizeof...(Ts)>;
 
-template <typename T, size_t N1, size_t N2>
+template <typename T, size_t N1, size_t N2, size_t K = N1 + N2>
 constexpr auto set_union(const OpenSet<T, N1>& A, const OpenSet<T, N2>& B) {
-  constexpr size_t MaxSize = N1 + N2;
-  OpenSet<T, MaxSize> C;
+  OpenSet<T, K> C;
   for (const auto& x : A) C.insert(x);
   for (const auto& x : B) C.insert(x);
   return C;
@@ -161,11 +166,10 @@ constexpr auto operator|(const OpenSet<T, N1>& A, const OpenSet<T, N2>& B) {
   return set_union(A, B);
 }
 
-template <typename T, size_t N1, size_t N2>
+template <typename T, size_t N1, size_t N2, size_t K = N1>
 constexpr auto set_intersection(const OpenSet<T, N1>& A,
                                 const OpenSet<T, N2>& B) {
-  constexpr size_t MaxSize = std::min(N1, N2);
-  OpenSet<T, MaxSize> C;
+  OpenSet<T, K> C;
   if (N1 < N2) {
     for (const auto& x : A)
       if (B.count(x)) C.insert(x);
@@ -181,13 +185,12 @@ constexpr auto operator&(const OpenSet<T, N1>& A, const OpenSet<T, N2>& B) {
   return set_intersection(A, B);
 }
 
-template <typename T, size_t N1, size_t N2>
+template <typename T, size_t N1, size_t N2, size_t K = N1 + N2>
 constexpr auto set_difference(const OpenSet<T, N1>& A,
                               const OpenSet<T, N2>& B) {
   const auto C = set_union(A, B);
   const auto D = set_intersection(A, B);
-  constexpr size_t MaxSize = N1 + N2;
-  OpenSet<T, MaxSize> result;
+  OpenSet<T, K> result;
   for (const auto& x : C)
     if (!D.count(x)) result.insert(x);
 
@@ -199,7 +202,7 @@ constexpr auto operator-(const OpenSet<T, N1>& A, const OpenSet<T, N2>& B) {
   return set_difference(A, B);
 }
 
-template <typename T, size_t N1, size_t N2>
+template <typename T, size_t N1, size_t N2, size_t K = N1 + N2>
 constexpr auto set_complement(const OpenSet<T, N1>& universe,
                               const OpenSet<T, N2>& U) {
   return set_difference(universe, U);

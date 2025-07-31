@@ -11,10 +11,9 @@
 namespace topology {
 
 template <typename T, size_t N, typename D>
-constexpr bool distance_metric_is_valid_on_space(const SetTopology<T, N>& tau,
+constexpr bool distance_metric_is_valid_on_space(const Topology<T, N>& tau,
                                                  const D& d) {
-  T universe;
-  for (const auto& U : tau.open_sets) universe.insert(U.begin(), U.end());
+  const auto universe = compute_universe(tau);
 
   for (const auto& x : universe) {
     for (const auto& y : universe) {
@@ -32,10 +31,12 @@ constexpr bool distance_metric_is_valid_on_space(const SetTopology<T, N>& tau,
   return true;
 }
 
-template <typename Derived, typename T, typename D>
-concept MetricSpace =
-    TopologicalSpace<Derived, T> && requires(const Derived& space, const D& d) {
-      { distance_metric_is_valid_on_space(space, d) } -> std::same_as<bool>;
-    };
+template <typename T, size_t N, typename D>
+concept MetricSpace = TopologicalSpace<T, N> &&
+                      requires(const Topology<T, N>& space, const D& d) {
+                        {
+                          distance_metric_is_valid_on_space(space, d)
+                        } -> std::same_as<bool>;
+                      };
 
 }  // namespace topology

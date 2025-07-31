@@ -5,13 +5,12 @@
 
 #pragma once
 
-#include "topology/topology.hpp"
-#include "topology/set_topology.hpp"
-#include "topology/metric_space.hpp"
-#include "topology/euclidean_space.hpp"
 #include "algebra/field.hpp"
-#include "algebra/vector_space.hpp"
-#include "geometry/chart.hpp"
+#include "topology/topology.hpp"
+#include "topology/metric_space.hpp"
+//#include "topology/euclidean_space.hpp"
+//#include "algebra/vector_space.hpp"
+//#include "geometry/chart.hpp"
 //#include "geometry/atlas.hpp"
 //#include "geometry/smooth_manifold.hpp"
 //#include "geometry/smooth_map.hpp"

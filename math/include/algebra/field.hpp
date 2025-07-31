@@ -43,8 +43,8 @@ struct scalar_type<topology::OpenSet<T, N>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
-template <typename Derived, typename T>
-struct scalar_type<topology::Topology<Derived, T>> {
+template <typename T, size_t N>
+struct scalar_type<topology::Topology<T, N>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
