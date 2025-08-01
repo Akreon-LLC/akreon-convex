@@ -9,6 +9,7 @@
 #include "math.hpp"
 
 using namespace algebra;
+using namespace topology;
 
 TEST_CASE("Test field types", "[field]") {
   SECTION("Floating point check") {
@@ -25,5 +26,46 @@ TEST_CASE("Test field types", "[field]") {
     STATIC_REQUIRE(FieldLike<std::complex<double>>);
     STATIC_REQUIRE(!FieldLike<int>);
     STATIC_REQUIRE(!FieldLike<unsigned>);
+  }
+}
+
+TEST_CASE("Test vector space types", "[vector_space]") {
+  SECTION("Static vector checks") {
+    constexpr auto A = Vectord<2>{1.f, 2.f};
+    constexpr auto B = Vectord<2>{-1.f, 5.f};
+    constexpr auto C = add(A, B);
+    constexpr auto D = A + B;
+    STATIC_REQUIRE(C(0) == D(0));
+    STATIC_REQUIRE(C(1) == D(1));
+    STATIC_REQUIRE(C(0) == 0.f);
+    STATIC_REQUIRE(C(1) == 7.f);
+
+    constexpr double alpha = 2.f;
+    constexpr auto E = alpha * A;
+    constexpr auto F = scalar_multiplication(alpha, A);
+    STATIC_REQUIRE(E(0) == F(0));
+    STATIC_REQUIRE(E(1) == F(1));
+    STATIC_REQUIRE(E(0) == 2.f);
+    STATIC_REQUIRE(E(1) == 4.f);
+
+    STATIC_REQUIRE(9.f == dot(A, B));
+    STATIC_REQUIRE(10.f != dot(A, B));
+
+    STATIC_REQUIRE(3.f == L2(A, B));
+  }
+
+  SECTION("Static matrix checks") {
+    constexpr auto A = Vectord<2>{1.f, 2.f};
+    constexpr auto B = Matrixd<2, 2>{A, A};
+    constexpr auto C = B + B;
+    constexpr auto D = add(B, B);
+    STATIC_REQUIRE(C(0)(0) == D(0)(0));
+    STATIC_REQUIRE(C(0)(1) == D(0)(1));
+    STATIC_REQUIRE(C(1)(0) == D(1)(0));
+    STATIC_REQUIRE(C(1)(1) == D(1)(1));
+    STATIC_REQUIRE(C(0)(0) == 2.f);
+    STATIC_REQUIRE(C(0)(1) == 4.f);
+    STATIC_REQUIRE(C(1)(0) == 2.f);
+    STATIC_REQUIRE(C(1)(1) == 4.f);
   }
 }

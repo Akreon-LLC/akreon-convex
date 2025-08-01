@@ -21,8 +21,8 @@ constexpr bool all_finite(const T& X) {
 
 template <typename T, size_t N>
 concept LocallyEuclidean =
-    algebra::FieldLike<T> &&
-    topology::MetricSpace<T, N, decltype(algebra::L2<T>{})>;
+    algebra::InnerProduct<T, N> &&
+    topology::MetricSpace<T, N, decltype(algebra::L2<T, N>)>;
 
 template <typename T, size_t N>
 concept TopologicalManifold =
@@ -33,13 +33,12 @@ concept TopologicalManifold =
     };
 
 template <typename T, size_t N>
-concept EuclideanSpace =
-    TopologicalManifold<T, N> && requires(const T& X) {
-      { all_finite(X) } -> std::same_as<bool>;
-    };
+concept RnSpace = TopologicalManifold<T, N> && requires(const T& X) {
+  { all_finite(X) } -> std::same_as<bool>;
+};
 
 template <typename T, size_t N>
-  requires EuclideanSpace<T, N>
-using EuclideanTopology = topology::Topology<T, N>;
+  requires RnSpace<T, N>
+using EuclideanSpace = topology::Topology<T, N>;
 
 }  // namespace spaces

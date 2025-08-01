@@ -11,22 +11,9 @@
 #include <iterator>
 #include <span>
 
+#include "../algebra/util.hpp"
+
 namespace topology {
-
-enum error_t : int { SET_IS_FULL = 1, ALREADY_EXISTS };
-
-template <typename T, typename = void>
-struct is_iterable : std::false_type {};
-
-template <typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {};
-
-template <typename T>
-constexpr bool is_iterable_v = is_iterable<T>::value;
-
-constexpr auto constexpr_abs(const auto& x) { return x < 0 ? -1 * x : x; }
 
 // Base set X
 template <typename T, size_t N>
@@ -60,12 +47,13 @@ struct OpenSet {
 
   constexpr bool is_open(const auto& r) const {
     bool rv = true;
-    if constexpr (!is_iterable_v<T>) {
-      for (size_t i = 0; i < sz; ++i) rv &= constexpr_abs(data[i]) < r;
+    if constexpr (!algebra::is_iterable_v<T>) {
+      for (size_t i = 0; i < sz; ++i) rv &= algebra::constexpr_abs(data[i]) < r;
     } else {
       for (const auto& y : data) {
         const auto size = y.size();
-        for (size_t i = 0; i < size; ++i) rv &= constexpr_abs(y(i)) < r;
+        for (size_t i = 0; i < size; ++i)
+          rv &= algebra::constexpr_abs(y(i)) < r;
       }
     }
     return rv;
@@ -124,7 +112,7 @@ struct OpenSet {
   }
 
   constexpr std::optional<size_t> find(const T& x) const {
-    if constexpr (!is_iterable_v<T>) {
+    if constexpr (!algebra::is_iterable_v<T>) {
       for (size_t i = 0; i < data.size(); ++i)
         if (data[i] == x) return i;
     } else {
@@ -153,9 +141,9 @@ struct OpenSet {
 template <typename... Ts>
 OpenSet(Ts...) -> OpenSet<std::common_type_t<Ts...>, sizeof...(Ts)>;
 
-// (dakre) TODO need add constraint below in the event that compile time container grows too big
-// (i.e., user specifies a max size (stack size or w/e) and need to static asssert or handle this
-// case)
+// (dakre) TODO need add constraint below in the event that compile time
+// container grows too big (i.e., user specifies a max size (stack size or w/e)
+// and need to static asssert or handle this case)
 
 template <typename T, size_t N1, size_t N2, size_t K = N1 + N2>
 constexpr auto set_union(const OpenSet<T, N1>& A, const OpenSet<T, N2>& B) {
