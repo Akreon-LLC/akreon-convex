@@ -79,5 +79,11 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(E(0)(1) == 6.f);
     STATIC_REQUIRE(E(1)(0) == 3.f);
     STATIC_REQUIRE(E(1)(1) == 6.f);
+
+    constexpr auto BT = transpose(B);
+    STATIC_REQUIRE(BT(0)(0) == B(0)(0));
+    STATIC_REQUIRE(BT(0)(1) == B(1)(0));
+    STATIC_REQUIRE(BT(1)(0) == B(0)(1));
+    STATIC_REQUIRE(BT(1)(1) == B(1)(1));
   }
 }

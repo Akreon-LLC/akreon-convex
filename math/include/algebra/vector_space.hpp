@@ -66,11 +66,14 @@ struct number_of_cols<Vector<Vector<T, N1>, N2>> {
   static constexpr size_t value = N2;
 };
 
+template <typename T>
+constexpr size_t number_of_cols_v =
+    number_of_cols<std::remove_cvref_t<T>>::value;
+
 template <typename T, size_t N1, size_t N2>
 constexpr auto add(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
-  static_assert(number_of_cols<decltype(A)>::value ==
-                number_of_cols<decltype(B)>::value);
+  static_assert(number_of_cols_v<decltype(A)> == number_of_cols_v<decltype(B)>);
   Vector<T, N1> C;
   for (size_t i = 0; i < N1; ++i) C.coordinates[i] = A(i) + B(i);
   return C;
@@ -101,18 +104,26 @@ constexpr auto operator*(const Vector<T, N>& A, const scalar_type_t<T>& alpha) {
 template <typename T, size_t N1, size_t N2>
 constexpr auto dot(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
-  static_assert(number_of_cols<decltype(A)>::value ==
-                    number_of_cols<decltype(B)>::value &&
-                number_of_cols<decltype(A)>::value == 0);
+  static_assert(number_of_cols_v<decltype(A)> ==
+                    number_of_cols_v<decltype(B)> &&
+                number_of_cols_v<decltype(A)> == 0);
   scalar_type_t<T> value = 0;
   for (size_t i = 0; i < N1; ++i) value += A(i) * B(i);
   return value;
 }
 
-template <typename T>
-constexpr auto L2(const T& x, const T& y) {
-  static_assert(!is_iterable_v<T>);
-  return constexpr_abs(x - y);
+template <typename T, size_t N>
+constexpr auto transpose(const Vector<T, N>& A) {
+  constexpr size_t cols = number_of_cols_v<decltype(A)>;
+  constexpr size_t rows = N;
+  static_assert(cols > 0);
+  using InnerT = Vector<scalar_type_t<T>, cols>;
+  Vector<InnerT, rows> result;
+  for (size_t i = 0; i < cols; ++i)
+    for (size_t j = 0; j < rows; ++j)
+      result.coordinates[i].coordinates[j] = A(j)(i);
+
+  return result;
 }
 
 template <typename T, size_t N>
