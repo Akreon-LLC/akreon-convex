@@ -29,7 +29,23 @@ struct Vector {
 
   constexpr T operator()(const size_t& idx) const { return coordinates[idx]; }
 
+  constexpr bool operator==(const Vector& other) const {
+    return is_equal(other);
+  }
+
+  constexpr bool operator!=(const Vector& other) const {
+    return !is_equal(other);
+  }
+
   constexpr auto view() { return coordinates.view(); }
+
+ private:
+  constexpr bool is_equal(const Vector& other) const {
+    if (s_size != other.s_size) return false;
+    for (size_t i = 0; i < s_size; ++i)
+      if (other.coordinates[i] != coordinates[i]) return false;
+    return true;
+  }
 };
 
 template <size_t N>
@@ -126,9 +142,15 @@ constexpr auto transpose(const Vector<T, N>& A) {
   return result;
 }
 
-template <typename T, size_t N>
-constexpr auto L2(const Vector<T, N>& X, const Vector<T, N>& Y) {
+template <typename T, size_t N1, size_t N2>
+constexpr auto L2(const Vector<T, N1>& X, const Vector<T, N2>& Y) {
+  static_assert(N1 == N2);
   return constexpr_sqrt(dot(X, Y));
+}
+
+template <typename T, size_t N>
+constexpr auto L2(const Vector<T, N>& X) {
+  return constexpr_sqrt(dot(X, X));
 }
 
 template <typename T, size_t N>
@@ -139,7 +161,11 @@ concept InnerProduct = requires(const scalar_type_t<Vector<T, N>>& alpha,
   { alpha * (X + Y) == alpha * X + alpha * Y };
   { (alpha + beta) * X == alpha * X + beta * X };
   { (alpha * beta) * X == alpha * (beta * X) };
-  { L2(X, Y) } -> std::same_as<scalar_type_t<T>>;
+  { dot(X, Y) } -> std::same_as<scalar_type_t<T>>;
+  { L2(X) >= 0.f };
+  { L2(Vector<T, 1>{0.f}) == 0.f };
+  { constexpr_abs(alpha) * L2(X) == L2(constexpr_abs(alpha) * X) };
+  { L2(X + Y) <= L2(X) + L2(Y) };
 };
 
 }  // namespace algebra

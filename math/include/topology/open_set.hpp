@@ -30,17 +30,11 @@ struct OpenSet {
   }
 
   constexpr bool operator==(const OpenSet& other) const {
-    if (sz != other.sz) return false;
-    for (size_t i = 0; i < sz; ++i)
-      if (data[i] != other.data[i]) return false;
-    return true;
+    return is_equal(other);
   }
 
   constexpr bool operator!=(const OpenSet& other) const {
-    if (sz != other.sz) return true;
-    for (size_t i = 0; i < sz; ++i)
-      if (data[i] != other.data[i]) return true;
-    return false;
+    return !is_equal(other);
   }
 
   constexpr T operator()(const size_t idx) const { return data[idx]; }
@@ -131,6 +125,13 @@ struct OpenSet {
       }
     }
     return std::nullopt;
+  }
+
+  constexpr bool is_equal(const OpenSet& other) const {
+    if (sz != other.sz) return false;
+    for (size_t i = 0; i < sz; ++i)
+      if (data[i] != other.data[i]) return false;
+    return true;
   }
 
   std::array<T, N> data;

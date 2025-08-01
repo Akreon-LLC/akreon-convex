@@ -10,12 +10,10 @@
 
 using namespace topology;
 using namespace algebra;
-using namespace geometry;
+using namespace spaces;
 
-TEST_CASE("Test topological manifold construction", "[topology]") {
-  STATIC_REQUIRE(!TopologicalManifold<int>);
-  STATIC_REQUIRE(!TopologicalManifold<Set<double>>);
-  STATIC_REQUIRE(TopologicalManifold<double>);
+TEST_CASE("Test euclidean space", "[manifolds]") {
+  STATIC_REQUIRE(TopologicalManifold<double, 2>);
 }
 
 #if 0
