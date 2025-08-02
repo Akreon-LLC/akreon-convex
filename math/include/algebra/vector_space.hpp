@@ -179,7 +179,8 @@ concept InnerProduct = requires(const scalar_type_t<Vector<T, N>>& alpha,
   { L2(X) >= 0.f };
   { L2(Vector<T, 1>{0.f}) == 0.f };
   { constexpr_abs(alpha) * L2(X) == L2(constexpr_abs(alpha) * X) };
-  { L2(X + Y) <= L2(X) + L2(Y) };
+  { constexpr_abs(dot(X, Y)) <= L2(X) + L2(Y) };  // cauchy-schwarz inequality
+  { L2(X + Y) <= L2(X) + L2(Y) };                 // triangle inequality
 };
 
 }  // namespace algebra
