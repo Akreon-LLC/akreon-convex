@@ -61,16 +61,30 @@ template <size_t N>
 using Vectorcf = Vector<std::complex<float>, N>;
 
 template <size_t Rows, size_t Cols>
-using Matrixd = Vector<Vectord<Cols>, Rows>;
+using Matrixd = Vector<Vectord<Rows>, Cols>;
 
 template <size_t Rows, size_t Cols>
-using Matrixf = Vector<Vectorf<Cols>, Rows>;
+using Matrixf = Vector<Vectorf<Rows>, Cols>;
 
 template <size_t Rows, size_t Cols>
-using Matrixcd = Vector<Vectorcd<Cols>, Rows>;
+using Matrixcd = Vector<Vectorcd<Rows>, Cols>;
 
 template <size_t Rows, size_t Cols>
-using Matrixcf = Vector<Vectorcf<Cols>, Rows>;
+using Matrixcf = Vector<Vectorcf<Rows>, Cols>;
+
+template <typename T>
+struct number_of_rows {
+  static constexpr size_t value = 0;
+};
+
+template <typename T, size_t N1, size_t N2>
+struct number_of_rows<Vector<Vector<T, N1>, N2>> {
+  static constexpr size_t value = N1;
+};
+
+template <typename T>
+constexpr size_t number_of_rows_v =
+    number_of_rows<std::remove_cvref_t<T>>::value;
 
 template <typename T>
 struct number_of_cols {
@@ -89,7 +103,7 @@ constexpr size_t number_of_cols_v =
 template <typename T, size_t N1, size_t N2>
 constexpr auto add(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
-  static_assert(number_of_cols_v<decltype(A)> == number_of_cols_v<decltype(B)>);
+  static_assert(number_of_rows_v<decltype(A)> == number_of_rows_v<decltype(B)>);
   Vector<T, N1> C;
   for (size_t i = 0; i < N1; ++i) C.coordinates[i] = A(i) + B(i);
   return C;
@@ -120,9 +134,9 @@ constexpr auto operator*(const Vector<T, N>& A, const scalar_type_t<T>& alpha) {
 template <typename T, size_t N1, size_t N2>
 constexpr auto dot(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
-  static_assert(number_of_cols_v<decltype(A)> ==
-                    number_of_cols_v<decltype(B)> &&
-                number_of_cols_v<decltype(A)> == 0);
+  static_assert(number_of_rows_v<decltype(A)> ==
+                    number_of_rows_v<decltype(B)> &&
+                number_of_rows_v<decltype(A)> == 0);
   scalar_type_t<T> value = 0;
   for (size_t i = 0; i < N1; ++i) value += A(i) * B(i);
   return value;
@@ -130,14 +144,14 @@ constexpr auto dot(const Vector<T, N1>& A, const Vector<T, N2>& B) {
 
 template <typename T, size_t N>
 constexpr auto transpose(const Vector<T, N>& A) {
-  constexpr size_t cols = number_of_cols_v<decltype(A)>;
+  constexpr size_t cols = number_of_rows_v<decltype(A)>;
   constexpr size_t rows = N;
   static_assert(cols > 0);
-  using InnerT = Vector<scalar_type_t<T>, cols>;
-  Vector<InnerT, rows> result;
-  for (size_t i = 0; i < cols; ++i)
-    for (size_t j = 0; j < rows; ++j)
-      result.coordinates[i].coordinates[j] = A(j)(i);
+  using InnerT = Vector<scalar_type_t<T>, rows>;
+  Vector<InnerT, cols> result;
+  for (size_t i = 0; i < rows; ++i)
+    for (size_t j = 0; j < cols; ++j)
+      result.coordinates[j].coordinates[i] = A(i)(j);
 
   return result;
 }
