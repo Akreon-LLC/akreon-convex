@@ -156,7 +156,10 @@ constexpr auto transpose(const Vector<T, N>& A) {
   constexpr size_t cols = number_of_rows_v<decltype(A)>;
   constexpr size_t rows = N;
   static_assert(cols > 0);
-  using InnerT = Vector<scalar_type_t<T>, rows>;
+  using InnerT =
+      std::conditional_t<is_complex_v<T>,
+                         Vector<std::complex<scalar_type_t<T>>, rows>,
+                         Vector<scalar_type_t<T>, rows>>;
   Vector<InnerT, cols> result;
   for (size_t i = 0; i < rows; ++i)
     for (size_t j = 0; j < cols; ++j)
@@ -205,11 +208,28 @@ constexpr auto normalize(const Vector<T, N>& X, const Norm& norm) {
 
 template <typename T, size_t N>
 constexpr auto trace(const Vector<T, N>& A) {
+  static_assert(N > 0);
   static_assert(number_of_cols_v<decltype(A)> == number_of_rows_v<decltype(A)>);
   using St = scalar_type_t<T>;
   St sum = 0;
   for (size_t i = 0; i < N; ++i) sum += A(i)(i);
   return sum;
+}
+
+template <typename T, size_t N>
+constexpr auto hermitian(const Vector<T, N>& A)
+  requires(is_complex_v<T>)
+{
+  static_assert(N > 0);
+  const auto n_cols = number_of_cols_v<decltype(A)>;
+  const auto n_rows = number_of_rows_v<decltype(A)>;
+  static_assert(n_cols == n_rows);
+  auto AT = transpose(A);
+  for (size_t i = 0; i < n_rows; ++i)
+    for (size_t j = 0; j < n_cols; ++j)
+      AT.coordinates[i].coordinates[j] =
+          std::conj(AT.coordinates[i].coordinates[j]);
+  return AT;
 }
 
 template <typename T, size_t N>

@@ -124,5 +124,17 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(GT == H);
 
     STATIC_REQUIRE(trace(B) == 3.f);
+
+    constexpr auto c = std::complex<double>(1.f, 2.f);
+    constexpr auto c_conj = std::conj(c);
+    constexpr auto d = std::complex<double>(5.f, -1.f);
+    constexpr auto d_conj = std::conj(d);
+    constexpr auto J = Vectorcd<2>{c, d};
+    constexpr auto K = Matrixcd<2, 2>{J, J};
+    constexpr auto KH = hermitian(K);
+    STATIC_REQUIRE(KH(0)(0) == c_conj);
+    STATIC_REQUIRE(KH(0)(1) == c_conj);
+    STATIC_REQUIRE(KH(1)(0) == d_conj);
+    STATIC_REQUIRE(KH(1)(1) == d_conj);
   }
 }

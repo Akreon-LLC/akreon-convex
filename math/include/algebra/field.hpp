@@ -68,6 +68,25 @@ template <typename T>
 concept FloatingPoint = std::floating_point<scalar_type_t<T>>;
 
 template <typename T>
+struct is_complex_t : public std::false_type {};
+
+template <typename T>
+struct is_complex_t<std::complex<T>> : public std::true_type {};
+
+template <typename T, size_t N>
+struct is_complex_t<Vector<T, N>> {
+  static const bool value = is_complex_t<T>::value;
+};
+
+template <typename T, size_t N, size_t M>
+struct is_complex_t<Vector<Vector<T, N>, M>> {
+  static const bool value = is_complex_t<T>::value;
+};
+
+template <typename T>
+constexpr bool is_complex_v = is_complex_t<T>::value;
+
+template <typename T>
 concept GroupLike = requires(T a, T b, T c) {
   { a + b } -> std::same_as<T>;
   { (a + b) + c == a + (a + c) };
