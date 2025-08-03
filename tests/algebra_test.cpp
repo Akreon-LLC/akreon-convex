@@ -51,7 +51,15 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(9.f == dot(A, B));
     STATIC_REQUIRE(10.f != dot(A, B));
 
-    STATIC_REQUIRE(3.f == L2(A, B));
+    constexpr auto G = A - B;
+    STATIC_REQUIRE(G(0) == 2.f);
+    STATIC_REQUIRE(G(1) == -3.f);
+    STATIC_REQUIRE(dot(G, G) == 13.f);
+    STATIC_REQUIRE(L2(G) > 0);
+    STATIC_REQUIRE(L2(G) == euclidean_distance(A, B));
+    STATIC_REQUIRE(L1(G) > 0);
+    STATIC_REQUIRE(L1(G) == manhattan_distance(A, B));
+    STATIC_REQUIRE(max_norm(G) == 3.f);
   }
 
   SECTION("Static matrix checks") {
@@ -99,5 +107,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto HT = transpose(H);
     STATIC_REQUIRE(G == HT);
     STATIC_REQUIRE(GT == H);
+
+    STATIC_REQUIRE(trace(B) == 3.f);
   }
 }

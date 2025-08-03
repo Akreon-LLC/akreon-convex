@@ -27,6 +27,10 @@ struct Vector {
 
   constexpr Vector() : coordinates{} {}
 
+  constexpr auto begin() const { return coordinates.begin(); }
+
+  constexpr auto end() const { return coordinates.end(); }
+
   constexpr T operator()(const size_t& idx) const { return coordinates[idx]; }
 
   constexpr bool operator==(const Vector& other) const {
@@ -131,6 +135,11 @@ constexpr auto operator*(const Vector<T, N>& A, const scalar_type_t<T>& alpha) {
   return scalar_multiplication(alpha, A);
 }
 
+template <typename T, size_t N>
+constexpr auto operator-(const Vector<T, N>& A, const Vector<T, N>& B) {
+  return A + (-1) * B;
+}
+
 template <typename T, size_t N1, size_t N2>
 constexpr auto dot(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
@@ -156,15 +165,44 @@ constexpr auto transpose(const Vector<T, N>& A) {
   return result;
 }
 
-template <typename T, size_t N1, size_t N2>
-constexpr auto L2(const Vector<T, N1>& X, const Vector<T, N2>& Y) {
-  static_assert(N1 == N2);
-  return constexpr_sqrt(dot(X, Y));
-}
-
 template <typename T, size_t N>
 constexpr auto L2(const Vector<T, N>& X) {
   return constexpr_sqrt(dot(X, X));
+}
+
+template <typename T, size_t N>
+constexpr auto euclidean_distance(const Vector<T, N>& X,
+                                  const Vector<T, N>& Y) {
+  return L2(X + -1 * Y);
+}
+
+template <typename T, size_t N>
+constexpr auto L1(const Vector<T, N>& X) {
+  T sum = 0;
+  for (const auto& x : X) sum += constexpr_abs(x);
+  return sum;
+}
+
+template <typename T, size_t N>
+constexpr auto manhattan_distance(const Vector<T, N>& X,
+                                  const Vector<T, N>& Y) {
+  return L1(X + -1 * Y);
+}
+
+template <typename T, size_t N>
+constexpr auto max_norm(const Vector<T, N>& X) {
+  T mx = 0;
+  for (const auto& x : X) mx = std::max(mx, constexpr_abs(x));
+  return mx;
+}
+
+template <typename T, size_t N>
+constexpr auto trace(const Vector<T, N>& A) {
+  static_assert(number_of_cols_v<decltype(A)> == number_of_rows_v<decltype(A)>);
+  using St = scalar_type_t<T>;
+  St sum = 0;
+  for (size_t i = 0; i < N; ++i) sum += A(i)(i);
+  return sum;
 }
 
 template <typename T, size_t N>

@@ -18,7 +18,10 @@ struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
 template <typename T>
 constexpr bool is_iterable_v = is_iterable<T>::value;
 
-constexpr auto constexpr_abs(const auto& x) { return x < 0 ? -1 * x : x; }
+template <typename T>
+constexpr T constexpr_abs(const T& x) {
+  return x < 0 ? -1 * x : x;
+}
 
 template <typename T>
 constexpr T constexpr_sqrt(const T& x, T guess = 1.0) {

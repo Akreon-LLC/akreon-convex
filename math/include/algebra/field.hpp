@@ -56,6 +56,11 @@ struct scalar_type<Vector<T, N>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
+template <typename T, size_t N, size_t M>
+struct scalar_type<Vector<Vector<T, N>, M>> {
+  using value_type = typename scalar_type<T>::value_type;
+};
+
 template <typename T>
 using scalar_type_t = typename scalar_type<T>::value_type;
 
