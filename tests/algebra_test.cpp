@@ -4,6 +4,7 @@
  */
 
 #include <algorithm>
+#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include "math.hpp"
@@ -60,6 +61,20 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(L1(G) > 0);
     STATIC_REQUIRE(L1(G) == manhattan_distance(A, B));
     STATIC_REQUIRE(max_norm(G) == 3.f);
+
+    constexpr auto normalized_A = normalize(A, L2<double, 2>);
+    constexpr auto norm_A = L2(A);
+    STATIC_REQUIRE((1 / norm_A) * A == normalized_A);
+    constexpr auto normalized_B = normalize(B, max_norm<double, 2>);
+    constexpr auto norm_B = max_norm(B);
+    STATIC_REQUIRE((1 / norm_B) * B == normalized_B);
+
+    constexpr auto all_lt_one = [](const auto& vec) {
+      bool flag = true;
+      for (const auto& x : vec) flag &= x <= 1;
+      return flag;
+    };
+    STATIC_REQUIRE(all_lt_one(normalized_B));
   }
 
   SECTION("Static matrix checks") {

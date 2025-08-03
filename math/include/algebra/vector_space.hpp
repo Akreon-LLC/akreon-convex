@@ -196,6 +196,13 @@ constexpr auto max_norm(const Vector<T, N>& X) {
   return mx;
 }
 
+template <typename T, size_t N, typename Norm>
+constexpr auto normalize(const Vector<T, N>& X, const Norm& norm) {
+  const auto norm_val = norm(X);
+  assert(norm_val > 0);
+  return (1 / norm_val) * X;
+}
+
 template <typename T, size_t N>
 constexpr auto trace(const Vector<T, N>& A) {
   static_assert(number_of_cols_v<decltype(A)> == number_of_rows_v<decltype(A)>);
