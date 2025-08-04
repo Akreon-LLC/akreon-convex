@@ -22,9 +22,9 @@ if(BUILD_TESTING)
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
     GIT_TAG        v3.8.1
   )
-  
+
   FetchContent_MakeAvailable(Catch2)
-  
+
   include(CTest)
 
   enable_testing()
@@ -33,14 +33,14 @@ if(BUILD_TESTING)
   add_test(NAME algebra_test COMMAND algebra_test)
   target_link_libraries(algebra_test PRIVATE Catch2::Catch2WithMain math)
   target_include_directories(algebra_test PRIVATE ../math/include)
-  
+
   add_executable(topology_test tests/topology_test.cpp)
   add_test(NAME topology_test COMMAND topology_test)
   target_link_libraries(topology_test PRIVATE Catch2::Catch2WithMain math)
   target_include_directories(topology_test PRIVATE ../math/include)
 
-  add_executable(spaces_test tests/spaces_test.cpp)
-  add_test(NAME spaces_test COMMAND spaces_test)
-  target_link_libraries(spaces_test PRIVATE Catch2::Catch2WithMain math)
-  target_include_directories(spaces_test PRIVATE ../math/include)
+  add_executable(linear_systems_test tests/linear_systems_test.cpp)
+  add_test(NAME linear_systems_test COMMAND linear_systems_test)
+  target_link_libraries(linear_systems_test PRIVATE Catch2::Catch2WithMain math)
+  target_include_directories(linear_systems_test PRIVATE ../math/include)
 endif()

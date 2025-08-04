@@ -20,4 +20,17 @@ TEST_CASE("Test euclidean space", "[E]") {
   using Derived = Topology<OSD2, 2>;
 
   STATIC_REQUIRE(DefaultConstructible<EuclideanSpace<Derived>>);
+
+  using VD5 = Vectord<5>;
+  using Derived2 = Topology<VD5, 9>;
+  STATIC_REQUIRE(DefaultConstructible<EuclideanSpace<Derived2>>);
 }
+
+// TODO (dakre) - refactor and clean up interface
+#if 0
+TEST_CASE("Test linear system", "[y=Ax]") {
+  constexpr auto x = Vectord<3>{3.f, -2.f, 1.f};
+  constexpr auto A = Vector<Vectord<3>, 3>{x, x, x};
+  constexpr auto y = algebra::dot(A, x);
+}
+#endif
