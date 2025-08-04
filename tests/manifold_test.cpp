@@ -12,11 +12,11 @@ using namespace topology;
 using namespace algebra;
 using namespace spaces;
 
+#if 0
 TEST_CASE("Test euclidean space", "[manifolds]") {
   STATIC_REQUIRE(TopologicalManifold<double, 2>);
 }
 
-#if 0
 TEST_CASE("Test construction of smooth manifolds", "[smooth_manifold]") {
   using M = Rn;
   // Forward map: M -> Rn

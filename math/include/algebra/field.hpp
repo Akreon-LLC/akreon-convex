@@ -46,8 +46,8 @@ struct scalar_type<topology::OpenSet<T, N>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
-template <typename T, size_t N>
-struct scalar_type<topology::Topology<T, N>> {
+template <typename T, size_t N, size_t M>
+struct scalar_type<topology::Topology<topology::OpenSet<T, N>, M>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
@@ -80,6 +80,16 @@ struct is_complex_t<Vector<T, N>> {
 
 template <typename T, size_t N, size_t M>
 struct is_complex_t<Vector<Vector<T, N>, M>> {
+  static const bool value = is_complex_t<T>::value;
+};
+
+template <typename T, size_t N>
+struct is_complex_t<topology::OpenSet<T, N>> {
+  static const bool value = is_complex_t<T>::value;
+};
+
+template <typename T, size_t N, size_t M>
+struct is_complex_t<topology::Topology<topology::OpenSet<T, N>, M>> {
   static const bool value = is_complex_t<T>::value;
 };
 
