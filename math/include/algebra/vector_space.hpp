@@ -221,8 +221,11 @@ template <typename T, size_t N>
 constexpr auto trace(const Vector<T, N>& A) {
   static_assert(N > 0);
   static_assert(number_of_cols_v<decltype(A)> == number_of_rows_v<decltype(A)>);
-  using St = scalar_type_t<T>;
-  St sum = 0;
+  // (dakre) TODO determine a better way to generalize this
+  using InnerT =
+      std::conditional_t<is_complex_v<T>, std::complex<scalar_type_t<T>>,
+                         scalar_type_t<T>>;
+  InnerT sum = 0;
   for (size_t i = 0; i < N; ++i) sum += A(i)(i);
   return sum;
 }
@@ -264,6 +267,21 @@ constexpr auto operator*(const Vector<T, N>& A, const Vector<T, N>& B) {
       result.coordinates[i].coordinates[j] = dot(A(i), BT(j));
 
   return result;
+}
+
+template <typename T, size_t N>
+constexpr auto frobenius_norm(const Vector<T, N>& A) {
+  static_assert(N > 0);
+  static_assert(number_of_cols_v<decltype(A)> == number_of_rows_v<decltype(A)>);
+  scalar_type_t<T> result = 0;
+  if constexpr (!is_complex_v<T>) {
+    result = trace(transpose(A) * A);
+  } else {
+    const auto tmp = trace(hermitian(A) * A);
+    assert(is_real(tmp));
+    result = tmp.real();
+  }
+  return constexpr_sqrt(result);
 }
 
 template <typename T, size_t N>
