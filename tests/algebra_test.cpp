@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
+#include <iostream>
 
 #include "math.hpp"
 
@@ -125,16 +126,36 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 
     STATIC_REQUIRE(trace(B) == 3.f);
 
-    constexpr auto c = std::complex<double>(1.f, 2.f);
-    constexpr auto c_conj = std::conj(c);
-    constexpr auto d = std::complex<double>(5.f, -1.f);
-    constexpr auto d_conj = std::conj(d);
+    constexpr auto c = std::complex<double>(1.f, 2.f);   // 1 + 2i
+    constexpr auto c_conj = std::conj(c);                // 1 - 2i
+    constexpr auto d = std::complex<double>(5.f, -1.f);  // 5 - 1i
+    constexpr auto d_conj = std::conj(d);                // 5 + 1i
     constexpr auto J = Vectorcd<2>{c, d};
     constexpr auto K = Matrixcd<2, 2>{J, J};
+    // K = [[c d]; [c d]] -> K^* = [[\bar{c} \bar{c}] [\bar{d} \bar{d}]]
     constexpr auto KH = hermitian(K);
     STATIC_REQUIRE(KH(0)(0) == c_conj);
     STATIC_REQUIRE(KH(0)(1) == c_conj);
     STATIC_REQUIRE(KH(1)(0) == d_conj);
     STATIC_REQUIRE(KH(1)(1) == d_conj);
+
+    constexpr auto L = K * KH;
+    STATIC_REQUIRE(L(0)(0) == c * c_conj + d * d_conj);
+    STATIC_REQUIRE(L(0)(1) == c * c_conj + d * d_conj);
+    STATIC_REQUIRE(L(1)(0) == c * c_conj + d * d_conj);
+    STATIC_REQUIRE(L(1)(1) == c * c_conj + d * d_conj);
+
+    constexpr auto I = Identity<double, 3>();
+    STATIC_REQUIRE(I()(0)(0) == 1);
+    STATIC_REQUIRE(I()(0)(1) == 0);
+    STATIC_REQUIRE(I()(0)(2) == 0);
+    STATIC_REQUIRE(I()(1)(0) == 0);
+    STATIC_REQUIRE(I()(1)(1) == 1);
+    STATIC_REQUIRE(I()(1)(2) == 0);
+    STATIC_REQUIRE(I()(2)(0) == 0);
+    STATIC_REQUIRE(I()(2)(1) == 0);
+    STATIC_REQUIRE(I()(2)(2) == 1);
+
+    STATIC_REQUIRE(I() * I() == I());
   }
 }

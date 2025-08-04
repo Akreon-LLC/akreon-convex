@@ -104,6 +104,15 @@ template <typename T>
 constexpr size_t number_of_cols_v =
     number_of_cols<std::remove_cvref_t<T>>::value;
 
+template <typename T, size_t N>
+struct Identity {
+  constexpr Vector<Vector<T, N>, N> operator()() const {
+    Vector<Vector<T, N>, N> I;
+    for (size_t i = 0; i < N; ++i) I.coordinates[i].coordinates[i] = 1;
+    return I;
+  }
+};
+
 template <typename T, size_t N1, size_t N2>
 constexpr auto add(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
@@ -146,7 +155,9 @@ constexpr auto dot(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(number_of_rows_v<decltype(A)> ==
                     number_of_rows_v<decltype(B)> &&
                 number_of_rows_v<decltype(A)> == 0);
-  scalar_type_t<T> value = 0;
+  using ST = std::conditional_t<is_complex_v<T>, std::complex<scalar_type_t<T>>,
+                                scalar_type_t<T>>;
+  ST value = 0;
   for (size_t i = 0; i < N1; ++i) value += A(i) * B(i);
   return value;
 }
@@ -230,6 +241,29 @@ constexpr auto hermitian(const Vector<T, N>& A)
       AT.coordinates[i].coordinates[j] =
           std::conj(AT.coordinates[i].coordinates[j]);
   return AT;
+}
+
+template <typename T, size_t N>
+constexpr auto operator*(const Vector<T, N>& A, const Vector<T, N>& B) {
+  static_assert(N > 0);
+  const auto n_cols_A = number_of_cols_v<decltype(A)>;
+  const auto n_rows_A = number_of_rows_v<decltype(A)>;
+  const auto n_cols_B = number_of_cols_v<decltype(B)>;
+  const auto n_rows_B = number_of_rows_v<decltype(B)>;
+  static_assert(n_cols_A == n_rows_B);
+  using InnerT =
+      std::conditional_t<is_complex_v<T>,
+                         Vector<std::complex<scalar_type_t<T>>, n_rows_A>,
+                         Vector<scalar_type_t<T>, n_rows_A>>;
+  // (dakre) TODO look into refactor / maybe diff approach or concept to handle
+  // matrices
+  Vector<InnerT, n_cols_B> result;
+  const auto BT = transpose(B);
+  for (size_t i = 0; i < n_rows_A; ++i)
+    for (size_t j = 0; j < n_cols_B; ++j)
+      result.coordinates[i].coordinates[j] = dot(A(i), BT(j));
+
+  return result;
 }
 
 template <typename T, size_t N>
