@@ -64,6 +64,9 @@ using Vectorcd = Vector<std::complex<double>, N>;
 template <size_t N>
 using Vectorcf = Vector<std::complex<float>, N>;
 
+template <typename T, size_t Rows, size_t Cols>
+using Matrix = Vector<Vector<T, Rows>, Cols>;
+
 template <size_t Rows, size_t Cols>
 using Matrixd = Vector<Vectord<Rows>, Cols>;
 
@@ -150,11 +153,10 @@ constexpr auto operator-(const Vector<T, N>& A, const Vector<T, N>& B) {
 }
 
 template <typename T, size_t N1, size_t N2>
+  requires(is_complex_v<T> || std::is_arithmetic_v<T>)
 constexpr auto dot(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
-  static_assert(number_of_rows_v<decltype(A)> ==
-                    number_of_rows_v<decltype(B)> &&
-                number_of_rows_v<decltype(A)> == 0);
+  static_assert(number_of_cols_v<decltype(A)> == number_of_rows_v<decltype(B)>);
   using ST = std::conditional_t<is_complex_v<T>, std::complex<scalar_type_t<T>>,
                                 scalar_type_t<T>>;
   ST value = 0;
@@ -246,26 +248,22 @@ constexpr auto hermitian(const Vector<T, N>& A)
   return AT;
 }
 
-template <typename T, size_t N>
-constexpr auto operator*(const Vector<T, N>& A, const Vector<T, N>& B) {
-  static_assert(N > 0);
-  const auto n_cols_A = number_of_cols_v<decltype(A)>;
-  const auto n_rows_A = number_of_rows_v<decltype(A)>;
-  const auto n_cols_B = number_of_cols_v<decltype(B)>;
-  const auto n_rows_B = number_of_rows_v<decltype(B)>;
-  static_assert(n_cols_A == n_rows_B);
-  using InnerT =
-      std::conditional_t<is_complex_v<T>,
-                         Vector<std::complex<scalar_type_t<T>>, n_rows_A>,
-                         Vector<scalar_type_t<T>, n_rows_A>>;
-  // (dakre) TODO look into refactor / maybe diff approach or concept to handle
-  // matrices
-  Vector<InnerT, n_cols_B> result;
+template <typename T, size_t N, size_t M>
+constexpr auto operator*(const Vector<Vector<T, N>, M>& A,
+                         const Vector<Vector<T, M>, N>& B) {
+  Vector<Vector<T, N>, N> result;
   const auto BT = transpose(B);
-  for (size_t i = 0; i < n_rows_A; ++i)
-    for (size_t j = 0; j < n_cols_B; ++j)
+  for (size_t i = 0; i < N; ++i)
+    for (size_t j = 0; j < N; ++j)
       result.coordinates[i].coordinates[j] = dot(A(i), BT(j));
+  return result;
+}
 
+template <typename T, size_t N, size_t M>
+constexpr auto operator*(const Vector<Vector<T, N>, M>& A,
+                         const Vector<T, M>& X) {
+  Vector<T, N> result;
+  for (size_t i = 0; i < N; ++i) result.coordinates[i] = dot(A(i), X);
   return result;
 }
 

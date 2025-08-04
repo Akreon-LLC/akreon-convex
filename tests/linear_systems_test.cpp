@@ -26,11 +26,11 @@ TEST_CASE("Test euclidean space", "[E]") {
   STATIC_REQUIRE(DefaultConstructible<EuclideanSpace<Derived2>>);
 }
 
-// TODO (dakre) - refactor and clean up interface
-#if 0
 TEST_CASE("Test linear system", "[y=Ax]") {
   constexpr auto x = Vectord<3>{3.f, -2.f, 1.f};
   constexpr auto A = Vector<Vectord<3>, 3>{x, x, x};
-  constexpr auto y = algebra::dot(A, x);
+  constexpr auto y = A*x;
+  STATIC_REQUIRE(y(0) == 14.f);
+  STATIC_REQUIRE(y(1) == 14.f);
+  STATIC_REQUIRE(y(2) == 14.f);
 }
-#endif
