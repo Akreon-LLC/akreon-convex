@@ -7,8 +7,8 @@
 
 #include <cmath>
 
-#include "../algebra/vector_space.hpp"
-#include "../topology/metric_space.hpp"
+#include "inner_product_space.hpp"
+#include "metric_space.hpp"
 
 namespace spaces {
 
@@ -20,8 +20,7 @@ constexpr bool all_finite(const T& X) {
 }
 
 template <typename T, size_t N>
-concept LocallyEuclidean =
-    topology::MetricSpace<T, N, decltype(algebra::L2<T, N>)>;
+concept LocallyEuclidean = MetricSpace<T, N, decltype(algebra::L2<T, N>)>;
 
 template <typename T, size_t N>
 concept TopologicalManifold =
@@ -58,7 +57,7 @@ struct EuclideanSpace {
   }
 
   constexpr auto as_vector_space()
-    requires(algebra::InnerProduct<T, N>)
+    requires(InnerProductSpace<T, N>)
   {
     const auto derived = static_cast<Derived&>(*this);
     if constexpr (std::is_same_v<decltype(derived),

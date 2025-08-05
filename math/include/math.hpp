@@ -6,9 +6,11 @@
 #pragma once
 
 #include "algebra/field.hpp"
-#include "algebra/vector_space.hpp"
+#include "algebra/linear_algebra.hpp"
 #include "spaces/euclidean_space.hpp"
-#include "topology/metric_space.hpp"
+#include "spaces/inner_product_space.hpp"
+#include "spaces/metric_space.hpp"
+#include "spaces/topological_space.hpp"
 #include "topology/topology.hpp"
 // #include "geometry/chart.hpp"
 // #include "geometry/atlas.hpp"

@@ -197,12 +197,4 @@ constexpr bool is_second_countable(const Topology<T, N>& tau) {
   return tau.open_sets.size() < std::numeric_limits<size_t>::max();
 }
 
-template <typename T, size_t N>
-concept TopologicalSpace = requires(Topology<T, N> tau, T X) {
-  { contains(tau, T{}) } -> std::same_as<bool>;  // null set is open
-  { contains(tau, X) } -> std::same_as<bool>;    // X is open
-  { is_closed_under_union(tau) } -> std::same_as<bool>;
-  { is_closed_under_finite_intersection(tau) } -> std::same_as<bool>;
-};
-
 }  // namespace topology

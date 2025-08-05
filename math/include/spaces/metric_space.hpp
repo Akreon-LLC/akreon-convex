@@ -6,13 +6,13 @@
 #pragma once
 
 #include "../algebra/field.hpp"
-#include "topology.hpp"
+#include "topological_space.hpp"
 
-namespace topology {
+namespace spaces {
 
 template <typename T, size_t N, typename D>
-constexpr bool distance_metric_is_valid_on_space(const Topology<T, N>& tau,
-                                                 const D& d) {
+constexpr bool distance_metric_is_valid_on_space(
+    const topology::Topology<T, N>& tau, const D& d) {
   const auto universe = compute_universe(tau);
 
   for (const auto& x : universe) {
@@ -32,11 +32,10 @@ constexpr bool distance_metric_is_valid_on_space(const Topology<T, N>& tau,
 }
 
 template <typename T, size_t N, typename D>
-concept MetricSpace = TopologicalSpace<T, N> &&
-                      requires(const Topology<T, N>& space, const D& d) {
-                        {
-                          distance_metric_is_valid_on_space(space, d)
-                        } -> std::same_as<bool>;
-                      };
+concept MetricSpace =
+    TopologicalSpace<T, N> &&
+    requires(const topology::Topology<T, N>& space, const D& d) {
+      { distance_metric_is_valid_on_space(space, d) } -> std::same_as<bool>;
+    };
 
-}  // namespace topology
+}  // namespace spaces
