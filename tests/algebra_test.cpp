@@ -111,9 +111,9 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(BT(1)(1) == B(1)(1));
 
     // (dakre) TODO figure out cleaner way to build vectors & matrices
-    constexpr auto G = Matrixd<3, 1>{Vectord<3>{1.f, 2.f, 3.f}};
+    constexpr auto G = Matrixd<1, 3>{Vectord<3>{1.f, 2.f, 3.f}};
     constexpr auto H =
-        Matrixd<1, 3>{Vectord<1>{1.f}, Vectord<1>{2.f}, Vectord<1>{3.f}};
+        Matrixd<3, 1>{Vectord<1>{1.f}, Vectord<1>{2.f}, Vectord<1>{3.f}};
 
     STATIC_REQUIRE(number_of_rows_v<decltype(G)> ==
                    number_of_cols_v<decltype(H)>);
