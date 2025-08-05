@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <tuple>
+
 #include "field.hpp"
 #include "util.hpp"
 
@@ -275,7 +277,19 @@ constexpr auto frobenius_norm(const Matrix<T, Rows, Cols>& A) {
 template <typename T, size_t Rows, size_t Cols>
   requires(Rows >= Cols)
 constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
-  return A;
+  Matrix<T, Rows, Cols> Q;
+  Matrix<T, Cols, Cols> R;
+
+  for (size_t i = 0; i < Cols; ++i) {
+    auto u = A(i);
+    for (size_t j = 0; j < i; ++j) {
+      R.coordinates[j].coordinates[i] = dot(Q(j), A(i));
+      u = u - R(j)(i) * Q(j);
+    }
+    Q.coordinates[i] = normalize(u, L2<T, Cols>);
+    R.coordinates[i].coordinates[i] = dot(u, Q(i));
+  }
+  return std::tuple(transpose(Q), R);
 }
 
 }  // namespace algebra
