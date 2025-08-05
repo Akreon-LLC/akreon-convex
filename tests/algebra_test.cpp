@@ -76,6 +76,12 @@ TEST_CASE("Test vector space types", "[vector_space]") {
       return flag;
     };
     STATIC_REQUIRE(all_lt_one(normalized_B));
+
+    constexpr auto GT = transpose(G);
+    STATIC_REQUIRE(GT(0)(0) == 2.f);
+    STATIC_REQUIRE(GT(1)(0) == -3.f);
+    constexpr auto GTT = transpose(GT);
+    STATIC_REQUIRE(GTT == G);
   }
 
   SECTION("Static matrix checks") {

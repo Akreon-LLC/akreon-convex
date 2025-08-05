@@ -164,7 +164,12 @@ constexpr auto dot(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   return value;
 }
 
-// (dakre) TODO - break out new fn for vector transpose
+template <typename T, size_t N>
+constexpr auto transpose(const Vector<T, N>& X) {
+  Matrix<T, N, 1> XT;
+  for (size_t i = 0; i < N; ++i) XT.coordinates[i].coordinates[0] = X(i);
+  return XT;
+}
 
 template <typename T, size_t Rows, size_t Cols>
 constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
