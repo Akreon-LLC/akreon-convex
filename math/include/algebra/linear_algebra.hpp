@@ -309,44 +309,37 @@ constexpr auto frobenius_norm(const Matrix<T, Rows, Cols>& A) {
 template <typename T, size_t Rows, size_t Cols>
   requires(Rows >= Cols && Rows > 0 &&
            (is_complex_v<T> || std::is_arithmetic_v<T>))
-struct QR {
-  constexpr QR(const Matrix<T, Rows, Cols>& A) {
-    gram_schmidt(A);
-    Q = transpose(Q);
-  }
-
-  // (dakre) A x = b => Q R x = b => R x = Q^T b and solve via back sub
-  constexpr Vector<T, Cols> solve(const Vector<T, Cols>& b) {
-    constexpr auto QT = transpose(Q);
-    constexpr auto c = QT * b;
-    Vector<T, Cols> x;
-    for (size_t i = Cols; i >= 0; --i) {
-      T sum = 0;
-      for (size_t j = i + 1; j < Cols; ++j) sum = R(i)(j) * x(j);
-      x.coordinates[i] = (c(i) - sum) * (1 / R(i)(i));
-    }
-    return x;
-  }
-
-  constexpr auto get_Q() const { return Q; }
-
-  constexpr auto get_R() const { return R; }
-
- private:
-  constexpr void gram_schmidt(const Matrix<T, Rows, Cols>& A) {
-    for (size_t i = 0; i < Cols; ++i) {
-      auto u = A(i);
-      for (size_t j = 0; j < i; ++j) {
-        R.coordinates[j].coordinates[i] = dot(Q(j), A(i));
-        u = u - R(j)(i) * Q(j);
-      }
-      Q.coordinates[i] = normalize(u, L2<T, Cols>);
-      R.coordinates[i].coordinates[i] = dot(u, Q(i));
-    }
-  }
-
+constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
   Matrix<T, Rows, Cols> Q;
   Matrix<T, Cols, Cols> R;
-};
+  for (size_t i = 0; i < Cols; ++i) {
+    auto u = A(i);
+    for (size_t j = 0; j < i; ++j) {
+      R.coordinates[j].coordinates[i] = dot(Q(j), A(i));
+      u = u - R(j)(i) * Q(j);
+    }
+    Q.coordinates[i] = normalize(u, L2<T, Cols>);
+    R.coordinates[i].coordinates[i] = dot(u, Q(i));
+  }
+  return std::tuple(transpose(Q), R);
+}
+
+#if 0
+// A x = b => Q R x = b => R x = Q b^T
+template <typename T, size_t Rows, size_t Cols>
+  requires(is_complex_v<T> || std::is_arithmetic_v<T>)
+constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
+                   const Matrix<T, Rows, Rows>& R, const Vector<T, Cols>& b) {
+  Vector<T, Cols> x;
+  const auto c = transpose(Q) * b;
+  for (int i = Cols - 1; i >= 0; --i) {
+    T sum = 0;
+    for (int j = i + 1; j < Rows; ++j) sum += (R(i)(j) * x(j));
+    x.coordinates[i] = (c(i) - sum) / R(i)(i);
+  }
+
+  return x;
+}
+#endif
 
 }  // namespace algebra
