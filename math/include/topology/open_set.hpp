@@ -142,10 +142,6 @@ struct OpenSet {
 template <typename... Ts>
 OpenSet(Ts...) -> OpenSet<std::common_type_t<Ts...>, sizeof...(Ts)>;
 
-// (dakre) TODO need add constraint below in the event that compile time
-// container grows too big (i.e., user specifies a max size (stack size or w/e)
-// and need to static asssert or handle this case)
-
 template <typename T, size_t N1, size_t N2, size_t K = N1 + N2>
 constexpr auto set_union(const OpenSet<T, N1>& A, const OpenSet<T, N2>& B) {
   OpenSet<T, K> C;

@@ -177,6 +177,19 @@ constexpr auto dot(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   return value;
 }
 
+template <typename T, size_t Rows1, size_t Cols1, size_t Cols2>
+  requires(is_complex_v<T> || std::is_arithmetic_v<T>)
+constexpr auto outer_product(const Matrix<T, Rows1, Cols1>& A,
+                             const Matrix<T, Cols1, Cols2>& B) {
+  using ST = std::conditional_t<is_complex_v<T>, std::complex<scalar_type_t<T>>,
+                                scalar_type_t<T>>;
+  Matrix<ST, Rows1, Cols2> result;
+  for (size_t i = 0; i < Rows1; ++i)
+    for (size_t j = 0; j < Cols2; ++j)
+      result.coordinates[i].coordinates[j] = A(i)(0) * B(0)(j);
+  return result;
+}
+
 template <typename T, size_t N>
 constexpr auto transpose(const Vector<T, N>& X) {
   Matrix<T, N, 1> XT;
@@ -293,6 +306,8 @@ constexpr auto frobenius_norm(const Matrix<T, Rows, Cols>& A) {
   return constexpr_sqrt(result);
 }
 
+// (dakre) TODO - improve numerical stability (gram-schmidt currently but should
+// move to householder)
 template <typename T, size_t Rows, size_t Cols>
   requires(Rows >= Cols)
 constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
