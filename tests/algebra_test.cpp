@@ -53,6 +53,11 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(9.f == dot(A, B));
     STATIC_REQUIRE(10.f != dot(A, B));
 
+    constexpr std::complex<double> c(1.f, 2.f);
+    constexpr auto X = Vectorcd<5>{c, c, c, c, c};
+    constexpr auto result = dot(conjugate(X), X);
+    STATIC_REQUIRE(result == std::complex<double>{25, 0});
+
     constexpr auto G = A - B;
     STATIC_REQUIRE(G(0) == 2.f);
     STATIC_REQUIRE(G(1) == -3.f);

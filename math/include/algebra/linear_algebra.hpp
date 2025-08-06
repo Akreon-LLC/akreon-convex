@@ -140,12 +140,7 @@ constexpr auto scalar_multiplication(const auto& alpha, const Vector<T, N>& A) {
 }
 
 template <typename T, size_t N>
-constexpr auto operator*(const scalar_type_t<T>& alpha, const Vector<T, N>& A) {
-  return scalar_multiplication(alpha, A);
-}
-
-template <typename T, size_t N>
-constexpr auto operator*(const Vector<T, N>& A, const scalar_type_t<T>& alpha) {
+constexpr auto operator*(const auto& alpha, const Vector<T, N>& A) {
   return scalar_multiplication(alpha, A);
 }
 
@@ -231,7 +226,7 @@ constexpr auto trace(const Matrix<T, Rows, Cols>& A) {
 
 template <typename T, size_t Rows, size_t Cols>
 constexpr auto hermitian(const Matrix<T, Rows, Cols>& A)
-  requires(is_complex_v<T> && Rows == Cols && Rows > 0)
+  requires(is_complex_v<T>)
 {
   auto AT = transpose(A);
   for (size_t i = 0; i < Rows; ++i)
@@ -239,6 +234,14 @@ constexpr auto hermitian(const Matrix<T, Rows, Cols>& A)
       AT.coordinates[i].coordinates[j] =
           std::conj(AT.coordinates[i].coordinates[j]);
   return AT;
+}
+
+template <typename T, size_t N>
+  requires(is_complex_v<T> && !is_iterable_v<T>)
+constexpr auto conjugate(const Vector<T, N>& X) {
+  Vector<T, N> result;
+  for (size_t i = 0; i < N; ++i) result.coordinates[i] = std::conj(X(i));
+  return result;
 }
 
 template <typename T, size_t Rows, size_t Cols>
