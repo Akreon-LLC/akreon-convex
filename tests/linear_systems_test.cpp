@@ -43,9 +43,9 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
   constexpr auto x2 = Vectord<3>{1.f, 0.f, 1.f};
   constexpr auto x3 = Vectord<3>{0.f, 1.f, 1.f};
   constexpr auto A = Matrix<double, 3, 3>{x1, x2, x3};
-  constexpr auto result = qr(A);
-  constexpr auto Q = std::get<0>(result);
-  constexpr auto R = std::get<1>(result);
+  constexpr auto qr = QR(A);
+  constexpr auto Q = qr.get_Q();
+  constexpr auto R = qr.get_R();
   constexpr auto A_prime = Q * R;
   REQUIRE(A_prime(0)(0) == Catch::Approx(A(0)(1)).margin(eps));
   REQUIRE(A_prime(0)(1) == Catch::Approx(A(0)(1)).margin(eps));
