@@ -118,6 +118,22 @@ struct Identity {
   }
 };
 
+template <typename T, size_t N>
+  requires(!is_iterable_v<T>)
+constexpr auto as_col_vector(const Vector<T, N>& X) {
+  Matrix<T, N, 1> A;
+  for (size_t i = 0; i < N; ++i) A.coordinates[i] = X(i);
+  return A;
+}
+
+template <typename T, size_t N>
+  requires(!is_iterable_v<T>)
+constexpr auto as_row_vector(const Vector<T, N>& X) {
+  Matrix<T, 1, N> A;
+  for (size_t i = 0; i < N; ++i) A.coordinates[0].coordinates[i] = X(i);
+  return A;
+}
+
 template <typename T, size_t N1, size_t N2>
 constexpr auto add(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);

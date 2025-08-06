@@ -87,6 +87,9 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(GT(1)(0) == -3.f);
     constexpr auto GTT = transpose(GT);
     STATIC_REQUIRE(GTT == G);
+
+    STATIC_REQUIRE(std::same_as<decltype(as_col_vector(G)), Matrixd<2, 1>>);
+    STATIC_REQUIRE(std::same_as<decltype(as_row_vector(G)), Matrixd<1, 2>>);
   }
 
   SECTION("Static matrix checks") {
