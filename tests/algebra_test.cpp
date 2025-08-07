@@ -114,6 +114,17 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(C(1)(0) == 2.f);
     STATIC_REQUIRE(C(1)(1) == 4.f);
 
+    constexpr auto B_col_0 = get_col(B, 0);
+    STATIC_REQUIRE(B_col_0(0) == B(0)(0));
+    STATIC_REQUIRE(B_col_0(1) == B(1)(0));
+    constexpr auto B_col_1 = get_col(B, 1);
+    STATIC_REQUIRE(B_col_1(0) == B(0)(1));
+    STATIC_REQUIRE(B_col_1(1) == B(1)(1));
+    constexpr auto B_row_0 = get_row(B, 0);
+    STATIC_REQUIRE(B_row_0 == B(0));
+    constexpr auto B_row_1 = get_row(B, 1);
+    STATIC_REQUIRE(B_row_1 == B(1));
+
     constexpr double alpha = 3.f;
     constexpr auto E = scalar_multiplication(alpha, B);
     constexpr auto F = alpha * B;

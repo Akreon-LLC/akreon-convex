@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
-
 #include <iostream>
 
 #include "math.hpp"
@@ -18,7 +17,7 @@ using namespace spaces;
 template <typename T>
 concept DefaultConstructible = requires { T{}; };
 
-constexpr double eps = 1e-10;
+constexpr double eps = 1e-11;
 
 TEST_CASE("Test euclidean space", "[E]") {
   using OSD2 = OpenSet<double, 2>;
@@ -76,7 +75,6 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
   REQUIRE(QTQ(2)(2) == Catch::Approx(1).margin(eps));
 }
 
-#if 0
 TEST_CASE("Least squares", "[R x = Q^T b]") {
   constexpr auto x1 = Vectord<2>{1.f, 1.f};
   constexpr auto x2 = Vectord<2>{1.f, 2.f};
@@ -85,11 +83,18 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
   constexpr auto QR = qr(A);
   constexpr auto Q = std::get<0>(QR);
   constexpr auto R = std::get<1>(QR);
-  STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<2, 3>>);
+  STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<3, 2>>);
   STATIC_REQUIRE(std::same_as<decltype(R), const Matrixd<2, 2>>);
+
+  constexpr auto QTQ = transpose(Q) * Q;
+  STATIC_REQUIRE(std::same_as<decltype(QTQ), const Matrixd<2, 2>>);
+  REQUIRE(QTQ(0)(0) == Catch::Approx(1).margin(eps));
+  REQUIRE(QTQ(0)(1) == Catch::Approx(0).margin(eps));
+  REQUIRE(QTQ(1)(0) == Catch::Approx(0).margin(eps));
+  REQUIRE(QTQ(1)(1) == Catch::Approx(1).margin(eps));
 
   constexpr auto b = Vectord<3>{3.f, 5.f, 7.f};
   constexpr auto x_tilde = lsq(Q, R, b);
-  std::cout << x_tilde(0) << " " << x_tilde(1) << std::endl;
+  REQUIRE(x_tilde(0) == Catch::Approx(1.f));
+  REQUIRE(x_tilde(1) == Catch::Approx(2.f));
 }
-#endif

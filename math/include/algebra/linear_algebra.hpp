@@ -91,6 +91,22 @@ constexpr auto as_row_vector(const Vector<T, N>& X) {
   return A;
 }
 
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
+constexpr auto get_col(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
+  assert(idx < Cols);
+  Vector<T, Rows> X;
+  for (size_t i = 0; i < Rows; ++i) X[i] = A(i)(idx);
+  return X;
+}
+
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
+constexpr auto get_row(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
+  assert(idx < Rows);
+  return A(idx);
+}
+
 template <typename T, size_t N1, size_t N2>
 constexpr auto add(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
@@ -142,8 +158,7 @@ constexpr auto outer_product(const Matrix<T, Rows1, Cols1>& A,
                                 scalar_type_t<T>>;
   Matrix<ST, Rows1, Cols2> result;
   for (size_t i = 0; i < Rows1; ++i)
-    for (size_t j = 0; j < Cols2; ++j)
-      result[i][j] = A(i)(0) * B(0)(j);
+    for (size_t j = 0; j < Cols2; ++j) result[i][j] = A(i)(0) * B(0)(j);
   return result;
 }
 
@@ -158,8 +173,7 @@ template <typename T, size_t Rows, size_t Cols>
 constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
   Matrix<T, Cols, Rows> result;
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j)
-      result[j][i] = A(i)(j);
+    for (size_t j = 0; j < Cols; ++j) result[j][i] = A(i)(j);
 
   return result;
 }
@@ -216,9 +230,7 @@ constexpr auto hermitian(const Matrix<T, Rows, Cols>& A)
 {
   auto AT = transpose(A);
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j)
-      AT[i][j] =
-          std::conj(AT[i][j]);
+    for (size_t j = 0; j < Cols; ++j) AT[i][j] = std::conj(AT[i][j]);
   return AT;
 }
 
@@ -233,11 +245,10 @@ constexpr auto conjugate(const Vector<T, N>& X) {
 template <typename T, size_t Rows, size_t Cols>
 constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
                          const Matrix<T, Cols, Rows>& B) {
-  Matrix<T, Rows, Cols> result;
+  Matrix<T, Rows, Rows> result;
   const auto BT = transpose(B);
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Rows; ++j)
-      result[i][j] = dot(A(i), BT(j));
+    for (size_t j = 0; j < Rows; ++j) result[i][j] = dot(A(i), BT(j));
   return result;
 }
 
@@ -270,33 +281,33 @@ constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
   Matrix<T, Rows, Cols> Q;
   Matrix<T, Cols, Cols> R;
   for (size_t i = 0; i < Cols; ++i) {
-    auto u = A(i);
+    auto v = get_col(A, i);
     for (size_t j = 0; j < i; ++j) {
-      R[j][i] = dot(Q(j), A(i));
-      u = u - R(j)(i) * Q(j);
+      R[j][i] = dot(get_col(Q, j), v);
+      v = v - R[j][i] * get_col(Q, j);
     }
-    Q[i] = normalize(u, L2<T, Cols>);
-    R[i][i] = dot(u, Q(i));
+    const auto q_i = normalize(v, L2<T, Rows>);
+    for (size_t j = 0; j < Rows; ++j) Q[j][i] = q_i(j);
+    R[i][i] = dot(q_i, get_col(A, i));
   }
-  return std::tuple(transpose(Q), R);
+  return std::tuple(Q, R);
 }
 
-#if 0
 // A x = b => Q R x = b => R x = Q b^T
 template <typename T, size_t Rows, size_t Cols>
   requires(is_complex_v<T> || std::is_arithmetic_v<T>)
 constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
-                   const Matrix<T, Rows, Rows>& R, const Vector<T, Cols>& b) {
+                   const Matrix<T, Cols, Cols>& R, const Vector<T, Rows>& b) {
   Vector<T, Cols> x;
   const auto c = transpose(Q) * b;
-  for (int i = Cols - 1; i >= 0; --i) {
+
+  for (int i = static_cast<int>(Cols) - 1; i >= 0; --i) {
     T sum = 0;
-    for (int j = i + 1; j < Rows; ++j) sum += (R(i)(j) * x(j));
+    for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
     x[i] = (c(i) - sum) / R(i)(i);
   }
 
   return x;
 }
-#endif
 
 }  // namespace algebra
