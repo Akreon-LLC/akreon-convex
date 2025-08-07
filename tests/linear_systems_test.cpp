@@ -98,3 +98,16 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
   REQUIRE(x_tilde(0) == Catch::Approx(1.f));
   REQUIRE(x_tilde(1) == Catch::Approx(2.f));
 }
+
+TEST_CASE("SVD", "[A = U Sigma VT]") {
+  constexpr auto Z1 = make_zeros<double, 2, 2>();
+  constexpr auto all_zeros = [](const auto& Z) {
+    bool rc = true;
+    for (const auto& row : Z)
+      for (const auto& elem : row)
+        rc &= elem == 0;
+    return rc;
+  };
+  STATIC_REQUIRE(all_zeros(Z1));
+  // constexpr auto result = svd(Z1);
+}

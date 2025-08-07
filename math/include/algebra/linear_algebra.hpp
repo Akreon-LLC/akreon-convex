@@ -67,13 +67,20 @@ struct Vector {
 };
 
 template <typename T, size_t N>
-struct Identity {
-  constexpr Matrix<T, N, N> operator()() const {
-    Matrix<T, N, N> I;
-    for (size_t i = 0; i < N; ++i) I[i][i] = 1;
-    return I;
-  }
-};
+constexpr Matrix<T, N, N> make_identity() {
+  Matrix<T, N, N> I;
+  for (size_t i = 0; i < N; ++i) I[i][i] = 1;
+  return I;
+}
+
+template <typename T, size_t Rows, size_t Cols>
+constexpr Matrix<T, Rows, Cols> make_zeros() {
+  Matrix<T, Rows, Cols> Z;
+  for (size_t i = 0; i < Rows; ++i)
+    for (size_t j = 0; j < Cols; ++j)
+      Z[i][j] = 0;
+  return Z;
+}
 
 template <typename T, size_t N>
   requires(!is_iterable_v<T>)
@@ -105,6 +112,15 @@ template <typename T, size_t Rows, size_t Cols>
 constexpr auto get_row(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
   assert(idx < Rows);
   return A(idx);
+}
+
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
+constexpr auto get_diag(const Matrix<T, Rows, Cols>& A) {
+  constexpr size_t mn = std::min(Rows, Cols);
+  Vector<T, mn> diag;
+  for (size_t i = 0; i < mn; ++i) diag[i] = A(i)(i);
+  return diag;
 }
 
 template <typename T, size_t N1, size_t N2>
@@ -261,7 +277,7 @@ constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
 }
 
 template <typename T, size_t Rows, size_t Cols>
-  requires(Rows == Cols && Rows > 0)
+  requires(Rows == Cols && Rows > 0 && FieldLike<T>)
 constexpr auto frobenius_norm(const Matrix<T, Rows, Cols>& A) {
   scalar_type_t<T> result = 0;
   if constexpr (!is_complex_v<T>) {
@@ -293,6 +309,9 @@ constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
   return std::tuple(Q, R);
 }
 
+// (dakre) TODO below is gram-schmidt in the future update to be
+// householder (improved accuracy)
+//
 // A x = b => Q R x = b => R x = Q b^T
 template <typename T, size_t Rows, size_t Cols>
   requires(is_complex_v<T> || std::is_arithmetic_v<T>)
@@ -308,6 +327,37 @@ constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
   }
 
   return x;
+}
+
+// A = U \Sigma V^T
+template <typename T, size_t Rows, size_t Cols>
+constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 1000,
+                   double tol = 1e-10) {
+  auto M = transpose(A) * A;
+  const auto I = make_identity<T, Cols>();
+  auto VT = make_identity<T, Cols>();
+
+  for (size_t i = 0; i < max_iter; ++i) {
+    const auto QR = qr(M);
+    const auto Q = std::get<0>(QR);
+    const auto R = std::get<1>(QR);
+    M = R * Q;    // Apply similarity transform Mkp1 = Q^T Mk Q == R Q
+    VT = VT * Q;  // Store right singular vectors (span the row space of M)
+    const auto off_diag = M - (get_diag(M) * I);
+    if (frobenius_norm(off_diag) < tol) break;
+  }
+
+  const auto lambdas = get_diag(M);
+  Vector<T, Cols> sigmas;
+  for (size_t i = 0; i < Cols; ++i) sigmas[i] = constexpr_sqrt(lambdas(i));
+
+  // \Sigma^{-1} A V = U
+  Matrix<T, Rows, Rows> U;
+  const auto V = transpose(VT);
+  for (size_t i = 0; i < Rows; ++i) U[i] = (1 / sigmas(i)) * A * get_col(V, i);
+  U = tranpose(U);
+
+  return std::tuple(U, sigmas, VT);
 }
 
 }  // namespace algebra

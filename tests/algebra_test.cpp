@@ -179,19 +179,21 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(L(1)(1) == c * c_conj + d * d_conj);
     STATIC_REQUIRE(frobenius_norm(K) == constexpr_sqrt(trace(L).real()));
 
-    constexpr auto I = Identity<double, 3>();
-    STATIC_REQUIRE(I()(0)(0) == 1);
-    STATIC_REQUIRE(I()(0)(1) == 0);
-    STATIC_REQUIRE(I()(0)(2) == 0);
-    STATIC_REQUIRE(I()(1)(0) == 0);
-    STATIC_REQUIRE(I()(1)(1) == 1);
-    STATIC_REQUIRE(I()(1)(2) == 0);
-    STATIC_REQUIRE(I()(2)(0) == 0);
-    STATIC_REQUIRE(I()(2)(1) == 0);
-    STATIC_REQUIRE(I()(2)(2) == 1);
+    constexpr auto I = make_identity<double, 3>();
+    STATIC_REQUIRE(I(0)(0) == 1);
+    STATIC_REQUIRE(I(0)(1) == 0);
+    STATIC_REQUIRE(I(0)(2) == 0);
+    STATIC_REQUIRE(I(1)(0) == 0);
+    STATIC_REQUIRE(I(1)(1) == 1);
+    STATIC_REQUIRE(I(1)(2) == 0);
+    STATIC_REQUIRE(I(2)(0) == 0);
+    STATIC_REQUIRE(I(2)(1) == 0);
+    STATIC_REQUIRE(I(2)(2) == 1);
 
-    STATIC_REQUIRE(I() * I() == I());
+    STATIC_REQUIRE(I * I == I);
 
-    STATIC_REQUIRE(frobenius_norm(I()) == constexpr_sqrt<double>(3));
+    STATIC_REQUIRE(frobenius_norm(I) == constexpr_sqrt<double>(3));
+
+    STATIC_REQUIRE(get_diag(I) == Vectord<3>{1.f, 1.f, 1.f});
   }
 }
