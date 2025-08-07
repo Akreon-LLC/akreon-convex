@@ -100,14 +100,62 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
 }
 
 TEST_CASE("SVD", "[A = U Sigma VT]") {
-  constexpr auto Z1 = make_zeros<double, 2, 2>();
-  constexpr auto all_zeros = [](const auto& Z) {
-    bool rc = true;
-    for (const auto& row : Z)
-      for (const auto& elem : row)
-        rc &= elem == 0;
-    return rc;
-  };
-  STATIC_REQUIRE(all_zeros(Z1));
-  // constexpr auto result = svd(Z1);
+  SECTION("Known SVD") {
+    constexpr auto x1 = Vectord<2>{1.f, 0.f};
+    constexpr auto x2 = Vectord<2>{0.f, 2.f};
+    constexpr auto x3 = Vectord<2>{0.f, 0.f};
+    constexpr auto A = Matrixd<3, 2>{x1, x2, x3};
+    constexpr auto result = svd(A);
+
+    constexpr auto U = std::get<0>(result);
+    constexpr auto S = std::get<1>(result);
+    constexpr auto VT = std::get<2>(result);
+    STATIC_REQUIRE(std::same_as<decltype(U), const Matrixd<3, 3>>);
+    STATIC_REQUIRE(std::same_as<decltype(S), const Vectord<2>>);
+    STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixd<2, 2>>);
+    REQUIRE(S(0) == Catch::Approx(1.f).margin(eps));
+    REQUIRE(S(1) == Catch::Approx(2.f).margin(eps));
+
+    constexpr auto I3 = make_identity<double, 3>();
+    constexpr auto UTU = transpose(U) * U;
+    REQUIRE(UTU(0)(0) == Catch::Approx(I3(0)(0)).margin(eps));
+    REQUIRE(UTU(0)(1) == Catch::Approx(I3(0)(1)).margin(eps));
+    REQUIRE(UTU(0)(2) == Catch::Approx(I3(0)(2)).margin(eps));
+    REQUIRE(UTU(1)(0) == Catch::Approx(I3(1)(0)).margin(eps));
+    REQUIRE(UTU(1)(1) == Catch::Approx(I3(1)(1)).margin(eps));
+    REQUIRE(UTU(1)(2) == Catch::Approx(I3(1)(2)).margin(eps));
+    REQUIRE(UTU(2)(0) == Catch::Approx(I3(2)(0)).margin(eps));
+    REQUIRE(UTU(2)(1) == Catch::Approx(I3(2)(1)).margin(eps));
+    REQUIRE(UTU(2)(2) == Catch::Approx(I3(2)(2)).margin(eps));
+
+    constexpr auto VTV = VT * transpose(VT);
+    REQUIRE(VTV(0)(0) == Catch::Approx(I3(0)(0)).margin(eps));
+    REQUIRE(VTV(0)(1) == Catch::Approx(I3(0)(1)).margin(eps));
+    REQUIRE(VTV(1)(0) == Catch::Approx(I3(1)(0)).margin(eps));
+    REQUIRE(VTV(1)(1) == Catch::Approx(I3(1)(1)).margin(eps));
+  }
+
+  // (dakre) TODO - weird degenerate case has worse performance
+  SECTION("Zeros case") {
+    constexpr auto Z1 = make_zeros<double, 2, 2>();
+    constexpr auto all_zeros = [](const auto& Z) {
+      bool rc = true;
+      for (const auto& row : Z)
+        for (const auto& elem : row) rc &= elem == 0;
+      return rc;
+    };
+    STATIC_REQUIRE(all_zeros(Z1));
+    constexpr auto result = svd(Z1);
+    constexpr auto U = std::get<0>(result);
+    constexpr auto S = std::get<1>(result);
+    constexpr auto VT = std::get<2>(result);
+    STATIC_REQUIRE(std::same_as<decltype(U), const Matrixd<2, 2>>);
+    STATIC_REQUIRE(std::same_as<decltype(S), const Vectord<2>>);
+    STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixd<2, 2>>);
+    REQUIRE(S(0) == Catch::Approx(0.f).margin(1e-5));
+    REQUIRE(S(1) == Catch::Approx(0.f).margin(1e-5));
+
+    // constexpr auto I = make_identity<double, 2>();
+    // REQUIRE(VT(0)(0) == Catch::Approx(I(0)(0)));
+  }
 }

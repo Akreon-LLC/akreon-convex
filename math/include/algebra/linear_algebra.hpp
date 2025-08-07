@@ -77,8 +77,7 @@ template <typename T, size_t Rows, size_t Cols>
 constexpr Matrix<T, Rows, Cols> make_zeros() {
   Matrix<T, Rows, Cols> Z;
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j)
-      Z[i][j] = 0;
+    for (size_t j = 0; j < Cols; ++j) Z[i][j] = 0;
   return Z;
 }
 
@@ -120,6 +119,14 @@ constexpr auto get_diag(const Matrix<T, Rows, Cols>& A) {
   constexpr size_t mn = std::min(Rows, Cols);
   Vector<T, mn> diag;
   for (size_t i = 0; i < mn; ++i) diag[i] = A(i)(i);
+  return diag;
+}
+
+template <typename T, size_t N>
+  requires(FieldLike<T>)
+constexpr auto make_diag(const Vector<T, N>& X) {
+  Matrix<T, N, N> diag;
+  for (size_t i = 0; i < N; ++i) diag[i][i] = X(i);
   return diag;
 }
 
@@ -329,12 +336,16 @@ constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
   return x;
 }
 
+// (dakre) TODO 
+// 1) constexpr limits the amount of iterations may need to
+// monitor performance over time
+// 2) handle degenerate zeros case (edge)
+
 // A = U \Sigma V^T
 template <typename T, size_t Rows, size_t Cols>
-constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 1000,
+constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 100,
                    double tol = 1e-10) {
-  auto M = transpose(A) * A;
-  const auto I = make_identity<T, Cols>();
+  Matrix<T, Cols, Cols> M = transpose(A) * A;
   auto VT = make_identity<T, Cols>();
 
   for (size_t i = 0; i < max_iter; ++i) {
@@ -343,19 +354,24 @@ constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 1000,
     const auto R = std::get<1>(QR);
     M = R * Q;    // Apply similarity transform Mkp1 = Q^T Mk Q == R Q
     VT = VT * Q;  // Store right singular vectors (span the row space of M)
-    const auto off_diag = M - (get_diag(M) * I);
+    const auto off_diag = M - make_diag(get_diag(M));
     if (frobenius_norm(off_diag) < tol) break;
   }
 
   const auto lambdas = get_diag(M);
   Vector<T, Cols> sigmas;
-  for (size_t i = 0; i < Cols; ++i) sigmas[i] = constexpr_sqrt(lambdas(i));
+  for (size_t i = 0; i < Cols; ++i)
+    sigmas[i] = constexpr_sqrt(std::max<T>(0, lambdas(i)));
 
   // \Sigma^{-1} A V = U
-  Matrix<T, Rows, Rows> U;
+  auto U = make_identity<T, Rows>();
   const auto V = transpose(VT);
-  for (size_t i = 0; i < Rows; ++i) U[i] = (1 / sigmas(i)) * A * get_col(V, i);
-  U = tranpose(U);
+  constexpr auto mn = std::min(Rows, Cols);
+  for (size_t i = 0; i < mn; ++i) U[i] = (1 / sigmas(i)) * A * get_col(V, i);
+  U = transpose(U);
+
+  U = std::get<0>(qr(U));
+  VT = std::get<0>(qr(VT));
 
   return std::tuple(U, sigmas, VT);
 }
