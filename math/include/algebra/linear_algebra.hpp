@@ -5,6 +5,9 @@
 
 #pragma once
 
+#include <assert.h>
+
+#include <ranges>
 #include <tuple>
 
 #include "field.hpp"
@@ -16,11 +19,9 @@ template <typename T, size_t N>
 struct Vector {
   using value_type = T;
 
-  static_assert(FieldLike<T>, "Vector<T, N> requires T to satisfy FieldLike");
+  static_assert(FieldLike<T>);
 
   static constexpr size_t s_size = N;
-
-  std::array<T, N> coordinates;
 
   template <typename... Coords>
   constexpr Vector(Coords... coords)
@@ -33,7 +34,15 @@ struct Vector {
 
   constexpr auto end() const { return coordinates.end(); }
 
-  constexpr T operator()(const size_t& idx) const { return coordinates[idx]; }
+  constexpr const T& operator()(const size_t& idx) const {
+    assert(idx < N);
+    return coordinates[idx];
+  }
+
+  constexpr T& operator[](const size_t& idx) {
+    assert(idx < N);
+    return coordinates[idx];
+  }
 
   constexpr bool operator==(const Vector& other) const {
     return is_equal(other);
@@ -43,77 +52,25 @@ struct Vector {
     return !is_equal(other);
   }
 
-  constexpr auto view() { return coordinates.view(); }
+  constexpr auto view() { return std::span<T, N>{coordinates}; }
+
+  constexpr auto size() const { return N; }
 
  private:
   constexpr bool is_equal(const Vector& other) const {
-    if (s_size != other.s_size) return false;
     for (size_t i = 0; i < s_size; ++i)
       if (other.coordinates[i] != coordinates[i]) return false;
     return true;
   }
+
+  std::array<T, N> coordinates;
 };
-
-template <size_t N>
-using Vectord = Vector<double, N>;
-
-template <size_t N>
-using Vectorf = Vector<float, N>;
-
-template <size_t N>
-using Vectorcd = Vector<std::complex<double>, N>;
-
-template <size_t N>
-using Vectorcf = Vector<std::complex<float>, N>;
-
-template <typename T, size_t Rows, size_t Cols>
-using Matrix = Vector<Vector<T, Cols>, Rows>;
-
-template <size_t Rows, size_t Cols>
-using Matrixd = Vector<Vectord<Cols>, Rows>;
-
-template <size_t Rows, size_t Cols>
-using Matrixf = Vector<Vectorf<Cols>, Rows>;
-
-template <size_t Rows, size_t Cols>
-using Matrixcd = Vector<Vectorcd<Rows>, Rows>;
-
-template <size_t Rows, size_t Cols>
-using Matrixcf = Vector<Vectorcf<Cols>, Rows>;
-
-template <typename T>
-struct number_of_rows {
-  static constexpr size_t value = 0;
-};
-
-template <typename T, size_t Rows, size_t Cols>
-struct number_of_rows<Matrix<T, Rows, Cols>> {
-  static constexpr size_t value = Rows;
-};
-
-template <typename T>
-constexpr size_t number_of_rows_v =
-    number_of_rows<std::remove_cvref_t<T>>::value;
-
-template <typename T>
-struct number_of_cols {
-  static constexpr size_t value = 0;
-};
-
-template <typename T, size_t Rows, size_t Cols>
-struct number_of_cols<Matrix<T, Rows, Cols>> {
-  static constexpr size_t value = Cols;
-};
-
-template <typename T>
-constexpr size_t number_of_cols_v =
-    number_of_cols<std::remove_cvref_t<T>>::value;
 
 template <typename T, size_t N>
 struct Identity {
   constexpr Matrix<T, N, N> operator()() const {
     Matrix<T, N, N> I;
-    for (size_t i = 0; i < N; ++i) I.coordinates[i].coordinates[i] = 1;
+    for (size_t i = 0; i < N; ++i) I[i][i] = 1;
     return I;
   }
 };
@@ -122,7 +79,7 @@ template <typename T, size_t N>
   requires(!is_iterable_v<T>)
 constexpr auto as_col_vector(const Vector<T, N>& X) {
   Matrix<T, N, 1> A;
-  for (size_t i = 0; i < N; ++i) A.coordinates[i] = X(i);
+  for (size_t i = 0; i < N; ++i) A[i] = X(i);
   return A;
 }
 
@@ -130,7 +87,7 @@ template <typename T, size_t N>
   requires(!is_iterable_v<T>)
 constexpr auto as_row_vector(const Vector<T, N>& X) {
   Matrix<T, 1, N> A;
-  for (size_t i = 0; i < N; ++i) A.coordinates[0].coordinates[i] = X(i);
+  for (size_t i = 0; i < N; ++i) A[0][i] = X(i);
   return A;
 }
 
@@ -139,7 +96,7 @@ constexpr auto add(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
   static_assert(number_of_rows_v<decltype(A)> == number_of_rows_v<decltype(B)>);
   Vector<T, N1> C;
-  for (size_t i = 0; i < N1; ++i) C.coordinates[i] = A(i) + B(i);
+  for (size_t i = 0; i < N1; ++i) C[i] = A(i) + B(i);
   return C;
 }
 
@@ -151,7 +108,7 @@ constexpr auto operator+(const Vector<T, N1>& A, const Vector<T, N2>& B) {
 template <typename T, size_t N>
 constexpr auto scalar_multiplication(const auto& alpha, const Vector<T, N>& A) {
   Vector<T, N> C;
-  for (size_t i = 0; i < N; ++i) C.coordinates[i] = alpha * A(i);
+  for (size_t i = 0; i < N; ++i) C[i] = alpha * A(i);
   return C;
 }
 
@@ -186,14 +143,14 @@ constexpr auto outer_product(const Matrix<T, Rows1, Cols1>& A,
   Matrix<ST, Rows1, Cols2> result;
   for (size_t i = 0; i < Rows1; ++i)
     for (size_t j = 0; j < Cols2; ++j)
-      result.coordinates[i].coordinates[j] = A(i)(0) * B(0)(j);
+      result[i][j] = A(i)(0) * B(0)(j);
   return result;
 }
 
 template <typename T, size_t N>
 constexpr auto transpose(const Vector<T, N>& X) {
   Matrix<T, N, 1> XT;
-  for (size_t i = 0; i < N; ++i) XT.coordinates[i].coordinates[0] = X(i);
+  for (size_t i = 0; i < N; ++i) XT[i][0] = X(i);
   return XT;
 }
 
@@ -202,7 +159,7 @@ constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
   Matrix<T, Cols, Rows> result;
   for (size_t i = 0; i < Rows; ++i)
     for (size_t j = 0; j < Cols; ++j)
-      result.coordinates[j].coordinates[i] = A(i)(j);
+      result[j][i] = A(i)(j);
 
   return result;
 }
@@ -260,8 +217,8 @@ constexpr auto hermitian(const Matrix<T, Rows, Cols>& A)
   auto AT = transpose(A);
   for (size_t i = 0; i < Rows; ++i)
     for (size_t j = 0; j < Cols; ++j)
-      AT.coordinates[i].coordinates[j] =
-          std::conj(AT.coordinates[i].coordinates[j]);
+      AT[i][j] =
+          std::conj(AT[i][j]);
   return AT;
 }
 
@@ -269,7 +226,7 @@ template <typename T, size_t N>
   requires(is_complex_v<T> && !is_iterable_v<T>)
 constexpr auto conjugate(const Vector<T, N>& X) {
   Vector<T, N> result;
-  for (size_t i = 0; i < N; ++i) result.coordinates[i] = std::conj(X(i));
+  for (size_t i = 0; i < N; ++i) result[i] = std::conj(X(i));
   return result;
 }
 
@@ -280,7 +237,7 @@ constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
   const auto BT = transpose(B);
   for (size_t i = 0; i < Rows; ++i)
     for (size_t j = 0; j < Rows; ++j)
-      result.coordinates[i].coordinates[j] = dot(A(i), BT(j));
+      result[i][j] = dot(A(i), BT(j));
   return result;
 }
 
@@ -288,7 +245,7 @@ template <typename T, size_t Rows, size_t Cols>
 constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
                          const Vector<T, Cols>& X) {
   Vector<T, Rows> result;
-  for (size_t i = 0; i < Rows; ++i) result.coordinates[i] = dot(A(i), X);
+  for (size_t i = 0; i < Rows; ++i) result[i] = dot(A(i), X);
   return result;
 }
 
@@ -315,11 +272,11 @@ constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
   for (size_t i = 0; i < Cols; ++i) {
     auto u = A(i);
     for (size_t j = 0; j < i; ++j) {
-      R.coordinates[j].coordinates[i] = dot(Q(j), A(i));
+      R[j][i] = dot(Q(j), A(i));
       u = u - R(j)(i) * Q(j);
     }
-    Q.coordinates[i] = normalize(u, L2<T, Cols>);
-    R.coordinates[i].coordinates[i] = dot(u, Q(i));
+    Q[i] = normalize(u, L2<T, Cols>);
+    R[i][i] = dot(u, Q(i));
   }
   return std::tuple(transpose(Q), R);
 }
@@ -335,7 +292,7 @@ constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
   for (int i = Cols - 1; i >= 0; --i) {
     T sum = 0;
     for (int j = i + 1; j < Rows; ++j) sum += (R(i)(j) * x(j));
-    x.coordinates[i] = (c(i) - sum) / R(i)(i);
+    x[i] = (c(i) - sum) / R(i)(i);
   }
 
   return x;

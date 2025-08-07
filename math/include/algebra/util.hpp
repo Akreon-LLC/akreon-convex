@@ -7,6 +7,64 @@
 
 namespace algebra {
 
+template <typename T, size_t N>
+struct Vector;
+
+template <size_t N>
+using Vectord = Vector<double, N>;
+
+template <size_t N>
+using Vectorf = Vector<float, N>;
+
+template <size_t N>
+using Vectorcd = Vector<std::complex<double>, N>;
+
+template <size_t N>
+using Vectorcf = Vector<std::complex<float>, N>;
+
+template <typename T, size_t Rows, size_t Cols>
+using Matrix = Vector<Vector<T, Cols>, Rows>;
+
+template <size_t Rows, size_t Cols>
+using Matrixd = Vector<Vectord<Cols>, Rows>;
+
+template <size_t Rows, size_t Cols>
+using Matrixf = Vector<Vectorf<Cols>, Rows>;
+
+template <size_t Rows, size_t Cols>
+using Matrixcd = Vector<Vectorcd<Cols>, Rows>;
+
+template <size_t Rows, size_t Cols>
+using Matrixcf = Vector<Vectorcf<Cols>, Rows>;
+
+template <typename T>
+struct number_of_rows {
+  static constexpr size_t value = 0;
+};
+
+template <typename T, size_t Rows, size_t Cols>
+struct number_of_rows<Matrix<T, Rows, Cols>> {
+  static constexpr size_t value = Rows;
+};
+
+template <typename T>
+constexpr size_t number_of_rows_v =
+    number_of_rows<std::remove_cvref_t<T>>::value;
+
+template <typename T>
+struct number_of_cols {
+  static constexpr size_t value = 0;
+};
+
+template <typename T, size_t Rows, size_t Cols>
+struct number_of_cols<Matrix<T, Rows, Cols>> {
+  static constexpr size_t value = Cols;
+};
+
+template <typename T>
+constexpr size_t number_of_cols_v =
+    number_of_cols<std::remove_cvref_t<T>>::value;
+
 template <typename T, typename = void>
 struct is_iterable : std::false_type {};
 
