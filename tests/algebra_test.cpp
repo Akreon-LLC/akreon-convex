@@ -4,7 +4,6 @@
  */
 
 #include <algorithm>
-#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
 
@@ -33,40 +32,38 @@ TEST_CASE("Test field types", "[field]") {
 
 TEST_CASE("Test vector space types", "[vector_space]") {
   SECTION("Static vector checks") {
-    constexpr auto A = Vectord<2>{1.f, 2.f};
-    constexpr auto B = Vectord<2>{-1.f, 5.f};
+    constexpr auto A = Vectord<2>{1.0, 2.0};
+    constexpr auto B = Vectord<2>{-1.0, 5.0};
     constexpr auto C = add(A, B);
     constexpr auto D = A + B;
-    STATIC_REQUIRE(C(0) == D(0));
-    STATIC_REQUIRE(C(1) == D(1));
-    STATIC_REQUIRE(C(0) == 0.f);
-    STATIC_REQUIRE(C(1) == 7.f);
+    STATIC_REQUIRE(C == D);
+    STATIC_REQUIRE(C(0) == 0.0);
+    STATIC_REQUIRE(C(1) == 7.0);
 
-    constexpr double alpha = 2.f;
+    constexpr double alpha = 2.0;
     constexpr auto E = alpha * A;
     constexpr auto F = scalar_multiplication(alpha, A);
-    STATIC_REQUIRE(E(0) == F(0));
-    STATIC_REQUIRE(E(1) == F(1));
-    STATIC_REQUIRE(E(0) == 2.f);
-    STATIC_REQUIRE(E(1) == 4.f);
+    STATIC_REQUIRE(E == F);
+    STATIC_REQUIRE(E(0) == 2.0);
+    STATIC_REQUIRE(E(1) == 4.0);
 
-    STATIC_REQUIRE(9.f == dot(A, B));
-    STATIC_REQUIRE(10.f != dot(A, B));
+    STATIC_REQUIRE(9.0 == dot(A, B));
+    STATIC_REQUIRE(10.0 != dot(A, B));
 
-    constexpr std::complex<double> c(1.f, 2.f);
+    constexpr std::complex<double> c(1.0, 2.0);
     constexpr auto X = Vectorcd<5>{c, c, c, c, c};
     constexpr auto result = dot(conjugate(X), X);
     STATIC_REQUIRE(result == std::complex<double>{25, 0});
 
     constexpr auto G = A - B;
-    STATIC_REQUIRE(G(0) == 2.f);
-    STATIC_REQUIRE(G(1) == -3.f);
-    STATIC_REQUIRE(dot(G, G) == 13.f);
+    STATIC_REQUIRE(G(0) == 2.0);
+    STATIC_REQUIRE(G(1) == -3.0);
+    STATIC_REQUIRE(dot(G, G) == 13.0);
     STATIC_REQUIRE(L2(G) > 0);
     STATIC_REQUIRE(L2(G) == euclidean_distance(A, B));
     STATIC_REQUIRE(L1(G) > 0);
     STATIC_REQUIRE(L1(G) == manhattan_distance(A, B));
-    STATIC_REQUIRE(max_norm(G) == 3.f);
+    STATIC_REQUIRE(max_norm(G) == 3.0);
 
     constexpr auto normalized_A = normalize(A, L2<double, 2>);
     constexpr auto norm_A = L2(A);
@@ -83,8 +80,8 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(all_lt_one(normalized_B));
 
     constexpr auto GT = transpose(G);
-    STATIC_REQUIRE(GT(0)(0) == 2.f);
-    STATIC_REQUIRE(GT(1)(0) == -3.f);
+    STATIC_REQUIRE(GT(0)(0) == 2.0);
+    STATIC_REQUIRE(GT(1)(0) == -3.0);
     constexpr auto GTT = transpose(GT);
     STATIC_REQUIRE(GTT == G);
 
@@ -94,25 +91,23 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(std::same_as<decltype(G_row_vec), const Matrixd<1, 2>>);
 
     constexpr auto G_outer_prod = outer_product(G_col_vec, G_row_vec);
-    STATIC_REQUIRE(G_outer_prod(0)(0) == 4.f);
-    STATIC_REQUIRE(G_outer_prod(0)(1) == -6.f);
-    STATIC_REQUIRE(G_outer_prod(1)(0) == -6.f);
-    STATIC_REQUIRE(G_outer_prod(1)(1) == 9.f);
+    STATIC_REQUIRE(G_outer_prod(0)(0) == 4.0);
+    STATIC_REQUIRE(G_outer_prod(0)(1) == -6.0);
+    STATIC_REQUIRE(G_outer_prod(1)(0) == -6.0);
+    STATIC_REQUIRE(G_outer_prod(1)(1) == 9.0);
   }
 
   SECTION("Static matrix checks") {
-    constexpr auto A = Vectord<2>{1.f, 2.f};
+    constexpr auto A = Vectord<2>{1.0, 2.0};
     constexpr auto B = Matrixd<2, 2>{A, A};
     constexpr auto C = B + B;
     constexpr auto D = add(B, B);
-    STATIC_REQUIRE(C(0)(0) == D(0)(0));
-    STATIC_REQUIRE(C(0)(1) == D(0)(1));
-    STATIC_REQUIRE(C(1)(0) == D(1)(0));
-    STATIC_REQUIRE(C(1)(1) == D(1)(1));
-    STATIC_REQUIRE(C(0)(0) == 2.f);
-    STATIC_REQUIRE(C(0)(1) == 4.f);
-    STATIC_REQUIRE(C(1)(0) == 2.f);
-    STATIC_REQUIRE(C(1)(1) == 4.f);
+
+    STATIC_REQUIRE(all_equal(C, D));
+    STATIC_REQUIRE(C(0)(0) == 2.0);
+    STATIC_REQUIRE(C(0)(1) == 4.0);
+    STATIC_REQUIRE(C(1)(0) == 2.0);
+    STATIC_REQUIRE(C(1)(1) == 4.0);
 
     constexpr auto B_col_0 = get_col(B, 0);
     STATIC_REQUIRE(B_col_0(0) == B(0)(0));
@@ -125,28 +120,22 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto B_row_1 = get_row(B, 1);
     STATIC_REQUIRE(B_row_1 == B(1));
 
-    constexpr double alpha = 3.f;
+    constexpr double alpha = 3.0;
     constexpr auto E = scalar_multiplication(alpha, B);
     constexpr auto F = alpha * B;
-    STATIC_REQUIRE(E(0)(0) == F(0)(0));
-    STATIC_REQUIRE(E(0)(1) == F(0)(1));
-    STATIC_REQUIRE(E(1)(0) == F(1)(0));
-    STATIC_REQUIRE(E(1)(1) == F(1)(1));
-    STATIC_REQUIRE(E(0)(0) == 3.f);
-    STATIC_REQUIRE(E(0)(1) == 6.f);
-    STATIC_REQUIRE(E(1)(0) == 3.f);
-    STATIC_REQUIRE(E(1)(1) == 6.f);
+    STATIC_REQUIRE(E == F);
+    STATIC_REQUIRE(E(0)(0) == 3.0);
+    STATIC_REQUIRE(E(0)(1) == 6.0);
+    STATIC_REQUIRE(E(1)(0) == 3.0);
+    STATIC_REQUIRE(E(1)(1) == 6.0);
 
     constexpr auto BT = transpose(B);
-    STATIC_REQUIRE(BT(0)(0) == B(0)(0));
-    STATIC_REQUIRE(BT(0)(1) == B(1)(0));
-    STATIC_REQUIRE(BT(1)(0) == B(0)(1));
-    STATIC_REQUIRE(BT(1)(1) == B(1)(1));
+    STATIC_REQUIRE(rows_equal_cols(BT, B));
 
     // (dakre) TODO figure out cleaner way to build vectors & matrices
-    constexpr auto G = Matrixd<1, 3>{Vectord<3>{1.f, 2.f, 3.f}};
+    constexpr auto G = Matrixd<1, 3>{Vectord<3>{1.0, 2.0, 3.0}};
     constexpr auto H =
-        Matrixd<3, 1>{Vectord<1>{1.f}, Vectord<1>{2.f}, Vectord<1>{3.f}};
+        Matrixd<3, 1>{Vectord<1>{1.0}, Vectord<1>{2.0}, Vectord<1>{3.0}};
 
     STATIC_REQUIRE(number_of_rows_v<decltype(G)> ==
                    number_of_cols_v<decltype(H)>);
@@ -157,11 +146,11 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(G == HT);
     STATIC_REQUIRE(GT == H);
 
-    STATIC_REQUIRE(trace(B) == 3.f);
+    STATIC_REQUIRE(trace(B) == 3.0);
 
-    constexpr auto c = std::complex<double>(1.f, 2.f);   // 1 + 2i
+    constexpr auto c = std::complex<double>(1.0, 2.0);   // 1 + 2i
     constexpr auto c_conj = std::conj(c);                // 1 - 2i
-    constexpr auto d = std::complex<double>(5.f, -1.f);  // 5 - 1i
+    constexpr auto d = std::complex<double>(5.0, -1.0);  // 5 - 1i
     constexpr auto d_conj = std::conj(d);                // 5 + 1i
     constexpr auto J = Vectorcd<2>{c, d};
     constexpr auto K = Matrixcd<2, 2>{J, J};
@@ -180,20 +169,14 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(frobenius_norm(K) == constexpr_sqrt(trace(L).real()));
 
     constexpr auto I = make_identity<double, 3>();
-    STATIC_REQUIRE(I(0)(0) == 1);
-    STATIC_REQUIRE(I(0)(1) == 0);
-    STATIC_REQUIRE(I(0)(2) == 0);
-    STATIC_REQUIRE(I(1)(0) == 0);
-    STATIC_REQUIRE(I(1)(1) == 1);
-    STATIC_REQUIRE(I(1)(2) == 0);
-    STATIC_REQUIRE(I(2)(0) == 0);
-    STATIC_REQUIRE(I(2)(1) == 0);
-    STATIC_REQUIRE(I(2)(2) == 1);
+    constexpr auto I_diag = get_diag(I);
+    STATIC_REQUIRE(I_diag == Vectord<3>{1.0, 1.0, 1.0});
+    constexpr auto off_diag = I - make_diag(I_diag);
+    constexpr auto Zeros = make_zeros<double, 3, 3>();
+    STATIC_REQUIRE(all_equal(off_diag, Zeros));
 
     STATIC_REQUIRE(I * I == I);
 
     STATIC_REQUIRE(frobenius_norm(I) == constexpr_sqrt<double>(3));
-
-    STATIC_REQUIRE(get_diag(I) == Vectord<3>{1.f, 1.f, 1.f});
   }
 }

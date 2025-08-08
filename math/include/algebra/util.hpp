@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "field.hpp"
+
 namespace algebra {
 
 template <typename T, size_t N>
@@ -86,10 +88,12 @@ constexpr T constexpr_abs(const T& x) {
   return x < 0 ? -1 * x : x;
 }
 
+// (dakre) TODO handle sqrt(0) case better
 template <typename T>
-constexpr T constexpr_sqrt(const T& x, T guess = 1.0) {
+  requires(FieldLike<T>)
+constexpr T constexpr_sqrt(const T& x, T guess = 1e-10) {
   // (dakre) newton step 0.5 * (guess + x / guess)
-  return (guess * guess - x > 1e-10 || x - guess * guess > 1e-10)
+  return (guess * guess - x > 1e-14 || x - guess * guess > 1e-14)
              ? constexpr_sqrt(x, 0.5 * (guess + x / guess))
              : guess;
 }

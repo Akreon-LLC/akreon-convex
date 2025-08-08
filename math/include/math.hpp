@@ -12,7 +12,3 @@
 #include "spaces/metric_space.hpp"
 #include "spaces/topological_space.hpp"
 #include "topology/topology.hpp"
-// #include "geometry/chart.hpp"
-// #include "geometry/atlas.hpp"
-// #include "geometry/smooth_manifold.hpp"
-// #include "geometry/smooth_map.hpp"

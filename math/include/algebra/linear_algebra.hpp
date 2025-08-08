@@ -67,22 +67,24 @@ struct Vector {
 };
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr Matrix<T, N, N> make_identity() {
   Matrix<T, N, N> I;
-  for (size_t i = 0; i < N; ++i) I[i][i] = 1;
+  for (size_t i = 0; i < N; ++i) I[i][i] = T(1);
   return I;
 }
 
 template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
 constexpr Matrix<T, Rows, Cols> make_zeros() {
   Matrix<T, Rows, Cols> Z;
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) Z[i][j] = 0;
+    for (size_t j = 0; j < Cols; ++j) Z[i][j] = T(0);
   return Z;
 }
 
 template <typename T, size_t N>
-  requires(!is_iterable_v<T>)
+  requires(FieldLike<T> && !is_iterable_v<T>)
 constexpr auto as_col_vector(const Vector<T, N>& X) {
   Matrix<T, N, 1> A;
   for (size_t i = 0; i < N; ++i) A[i] = X(i);
@@ -90,7 +92,7 @@ constexpr auto as_col_vector(const Vector<T, N>& X) {
 }
 
 template <typename T, size_t N>
-  requires(!is_iterable_v<T>)
+  requires(FieldLike<T> && !is_iterable_v<T>)
 constexpr auto as_row_vector(const Vector<T, N>& X) {
   Matrix<T, 1, N> A;
   for (size_t i = 0; i < N; ++i) A[0][i] = X(i);
@@ -131,6 +133,7 @@ constexpr auto make_diag(const Vector<T, N>& X) {
 }
 
 template <typename T, size_t N1, size_t N2>
+  requires(FieldLike<T>)
 constexpr auto add(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
   static_assert(number_of_rows_v<decltype(A)> == number_of_rows_v<decltype(B)>);
@@ -140,11 +143,13 @@ constexpr auto add(const Vector<T, N1>& A, const Vector<T, N2>& B) {
 }
 
 template <typename T, size_t N1, size_t N2>
+  requires(FieldLike<T>)
 constexpr auto operator+(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   return add(A, B);
 }
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr auto scalar_multiplication(const auto& alpha, const Vector<T, N>& A) {
   Vector<T, N> C;
   for (size_t i = 0; i < N; ++i) C[i] = alpha * A(i);
@@ -152,17 +157,19 @@ constexpr auto scalar_multiplication(const auto& alpha, const Vector<T, N>& A) {
 }
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr auto operator*(const auto& alpha, const Vector<T, N>& A) {
   return scalar_multiplication(alpha, A);
 }
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr auto operator-(const Vector<T, N>& A, const Vector<T, N>& B) {
-  return A + (-1) * B;
+  return A + scalar_type_t<T>(-1) * B;
 }
 
 template <typename T, size_t N1, size_t N2>
-  requires(is_complex_v<T> || std::is_arithmetic_v<T>)
+  requires(FieldLike<T>)
 constexpr auto dot(const Vector<T, N1>& A, const Vector<T, N2>& B) {
   static_assert(N1 == N2);
   static_assert(number_of_cols_v<decltype(A)> == number_of_rows_v<decltype(B)>);
@@ -186,6 +193,7 @@ constexpr auto outer_product(const Matrix<T, Rows1, Cols1>& A,
 }
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr auto transpose(const Vector<T, N>& X) {
   Matrix<T, N, 1> XT;
   for (size_t i = 0; i < N; ++i) XT[i][0] = X(i);
@@ -193,6 +201,7 @@ constexpr auto transpose(const Vector<T, N>& X) {
 }
 
 template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
 constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
   Matrix<T, Cols, Rows> result;
   for (size_t i = 0; i < Rows; ++i)
@@ -202,17 +211,20 @@ constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
 }
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr auto L2(const Vector<T, N>& X) {
   return constexpr_sqrt(dot(X, X));
 }
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr auto euclidean_distance(const Vector<T, N>& X,
                                   const Vector<T, N>& Y) {
-  return L2(X + -1 * Y);
+  return L2(X - Y);
 }
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr auto L1(const Vector<T, N>& X) {
   T sum = 0;
   for (const auto& x : X) sum += constexpr_abs(x);
@@ -220,12 +232,14 @@ constexpr auto L1(const Vector<T, N>& X) {
 }
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr auto manhattan_distance(const Vector<T, N>& X,
                                   const Vector<T, N>& Y) {
-  return L1(X + -1 * Y);
+  return L1(X - Y);
 }
 
 template <typename T, size_t N>
+  requires(FieldLike<T>)
 constexpr auto max_norm(const Vector<T, N>& X) {
   T mx = 0;
   for (const auto& x : X) mx = std::max(mx, constexpr_abs(x));
@@ -233,6 +247,7 @@ constexpr auto max_norm(const Vector<T, N>& X) {
 }
 
 template <typename T, size_t N, typename Norm>
+  requires(FieldLike<T>)
 constexpr auto normalize(const Vector<T, N>& X, const Norm& norm) {
   const auto norm_val = norm(X);
   assert(norm_val > 0);
@@ -240,7 +255,27 @@ constexpr auto normalize(const Vector<T, N>& X, const Norm& norm) {
 }
 
 template <typename T, size_t Rows, size_t Cols>
-  requires(Rows == Cols && Rows > 0)
+  requires(FieldLike<T>)
+constexpr bool all_equal(const algebra::Matrix<T, Rows, Cols>& A,
+                         const algebra::Matrix<T, Rows, Cols>& B) {
+  bool rv = true;
+  for (size_t i = 0; i < Rows; ++i)
+    rv &= euclidean_distance(A(i), B(i)) <= 1e-10;
+  return rv;
+}
+
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
+constexpr bool rows_equal_cols(const Matrix<T, Rows, Cols>& A,
+                               const Matrix<T, Cols, Rows>& B) {
+  bool rv = true;
+  for (size_t i = 0; i < Rows; ++i)
+    rv &= euclidean_distance(A(i), get_col(B, i)) <= 1e-10;
+  return rv;
+}
+
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T> && Rows == Cols && Rows > 0)
 constexpr auto trace(const Matrix<T, Rows, Cols>& A) {
   T sum = 0;
   for (size_t i = 0; i < Rows; ++i) sum += A(i)(i);
@@ -258,7 +293,7 @@ constexpr auto hermitian(const Matrix<T, Rows, Cols>& A)
 }
 
 template <typename T, size_t N>
-  requires(is_complex_v<T> && !is_iterable_v<T>)
+  requires(FieldLike<T>)
 constexpr auto conjugate(const Vector<T, N>& X) {
   Vector<T, N> result;
   for (size_t i = 0; i < N; ++i) result[i] = std::conj(X(i));
@@ -266,6 +301,7 @@ constexpr auto conjugate(const Vector<T, N>& X) {
 }
 
 template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
 constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
                          const Matrix<T, Cols, Rows>& B) {
   Matrix<T, Rows, Rows> result;
@@ -276,6 +312,7 @@ constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
 }
 
 template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
 constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
                          const Vector<T, Cols>& X) {
   Vector<T, Rows> result;
@@ -297,12 +334,21 @@ constexpr auto frobenius_norm(const Matrix<T, Rows, Cols>& A) {
   return constexpr_sqrt(result);
 }
 
+// (dakre) TODO below is gram-schmidt in the future update to be
+// householder (improved accuracy)
 template <typename T, size_t Rows, size_t Cols>
-  requires(Rows >= Cols && Rows > 0 &&
-           (is_complex_v<T> || std::is_arithmetic_v<T>))
+  requires(Rows >= Cols && Rows > 0 && FieldLike<T>)
 constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
+  // 1. edge case if A is all zeros current GS algo does not handle this well
+  // so return I and zeros mat
   Matrix<T, Rows, Cols> Q;
   Matrix<T, Cols, Cols> R;
+  if (all_equal(A, Matrix<T, Rows, Cols>{})) {
+    for (size_t i = 0; i < Cols; ++i) Q[i][i] = T(1);
+    return std::tuple(Q, R);
+  }
+
+  // 2. gram schmidt algorithm below
   for (size_t i = 0; i < Cols; ++i) {
     auto v = get_col(A, i);
     for (size_t j = 0; j < i; ++j) {
@@ -316,12 +362,9 @@ constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
   return std::tuple(Q, R);
 }
 
-// (dakre) TODO below is gram-schmidt in the future update to be
-// householder (improved accuracy)
-//
 // A x = b => Q R x = b => R x = Q b^T
 template <typename T, size_t Rows, size_t Cols>
-  requires(is_complex_v<T> || std::is_arithmetic_v<T>)
+  requires(FieldLike<T>)
 constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
                    const Matrix<T, Cols, Cols>& R, const Vector<T, Rows>& b) {
   Vector<T, Cols> x;
@@ -336,15 +379,16 @@ constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
   return x;
 }
 
-// (dakre) TODO 
+// (dakre) TODO
 // 1) constexpr limits the amount of iterations may need to
 // monitor performance over time
 // 2) handle degenerate zeros case (edge)
 
 // A = U \Sigma V^T
 template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
 constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 100,
-                   double tol = 1e-10) {
+                   T tol = 1e-10) {
   Matrix<T, Cols, Cols> M = transpose(A) * A;
   auto VT = make_identity<T, Cols>();
 

@@ -137,7 +137,7 @@ TEST_CASE("Test topologcal space construction", "[topology]") {
 
 TEST_CASE("Test metric space", "[topology]") {
   using T = OpenSet<double, 2>;
-  constexpr Topology<T, 3> tau{T{}, T{3.f, 4.f}, T{1.f, 5.f}};
+  constexpr Topology<T, 3> tau{T{}, T{3.0, 4.0}, T{1.0, 5.0}};
 
   auto d = [](const double& x, const double& y) { return (x - y) * (x - y); };
 
