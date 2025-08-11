@@ -337,7 +337,7 @@ constexpr auto frobenius_norm(const Matrix<T, Rows, Cols>& A) {
 // (dakre) TODO below is gram-schmidt in the future update to be
 // householder (improved accuracy)
 template <typename T, size_t Rows, size_t Cols>
-  requires(Rows >= Cols && Rows > 0 && FieldLike<T>)
+  requires(Rows > 0 && FieldLike<T>)
 constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
   // 1. edge case if A is all zeros current GS algo does not handle this well
   // so return I and zeros mat
@@ -367,8 +367,12 @@ template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
                    const Matrix<T, Cols, Cols>& R, const Vector<T, Rows>& b) {
-  Vector<T, Cols> x;
-  const auto c = transpose(Q) * b;
+  Vector<T, Cols> x, c;
+
+  if constexpr (is_complex_v<T>)
+    c = hermitian(Q) * b;
+  else
+    c = transpose(Q) * b;
 
   for (int i = static_cast<int>(Cols) - 1; i >= 0; --i) {
     T sum = 0;
@@ -379,39 +383,59 @@ constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
   return x;
 }
 
-// (dakre) TODO
-// 1) constexpr limits the amount of iterations may need to
-// monitor performance over time
-// 2) handle degenerate zeros case (edge)
-
-// A = U \Sigma V^T
+// (dakre) TODO complex case unhandled below (constexpr_sqrt not ready for C
+// case)
 template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 100,
-                   T tol = 1e-10) {
-  Matrix<T, Cols, Cols> M = transpose(A) * A;
-  auto VT = make_identity<T, Cols>();
+  requires(Rows == Cols && FieldLike<T> && !is_complex_v<T>)
+constexpr auto eigenvalue_decomposition(const Matrix<T, Rows, Cols>& A,
+                                        size_t max_iter = 100, T tol = 1e-10) {
+  Matrix<T, Rows, Cols> Lambda = A;
+  auto X = make_identity<T, Cols>();
 
+  // Eigenvalue decomposition wrks with diagonolizing the matrix to solve A X =
+  // X \Lambda (\Lambda == eigenvalue matrix which is diagonal), the resulting X
+  // is our eigenvector associated with the eigenvalues
+  // 1. A_0 = A
+  // 2. A_k = Q_k R_k
+  // 3. A_{k+1} = R_k Q_k \equiv Q_k^T A_k Q_k similarity transform
   for (size_t i = 0; i < max_iter; ++i) {
-    const auto QR = qr(M);
+    const auto QR = qr(Lambda);
     const auto Q = std::get<0>(QR);
     const auto R = std::get<1>(QR);
-    M = R * Q;    // Apply similarity transform Mkp1 = Q^T Mk Q == R Q
-    VT = VT * Q;  // Store right singular vectors (span the row space of M)
-    const auto off_diag = M - make_diag(get_diag(M));
+    Lambda = R * Q;
+    X = X * Q;
+    const auto off_diag = Lambda - make_diag(get_diag(Lambda));
     if (frobenius_norm(off_diag) < tol) break;
   }
 
-  const auto lambdas = get_diag(M);
+  return std::tuple(Lambda, X);
+}
+
+// A = U \Sigma V^T
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T> && !is_complex_v<T>)
+constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 100,
+                   T tol = 1e-10) {
+  auto M = transpose(A) * A;
+  const auto result = eigenvalue_decomposition(M, max_iter, tol);
+
+  const auto lambdas = get_diag(std::get<0>(result));
+  // right singular vectors space row space of Lambda above U (A^T A) VT -> U
+  // \Sigma VT
+  auto VT = std::get<1>(result);
+
   Vector<T, Cols> sigmas;
   for (size_t i = 0; i < Cols; ++i)
     sigmas[i] = constexpr_sqrt(std::max<T>(0, lambdas(i)));
 
   // \Sigma^{-1} A V = U
   auto U = make_identity<T, Rows>();
+
   const auto V = transpose(VT);
+
   constexpr auto mn = std::min(Rows, Cols);
   for (size_t i = 0; i < mn; ++i) U[i] = (1 / sigmas(i)) * A * get_col(V, i);
+
   U = transpose(U);
 
   U = std::get<0>(qr(U));
