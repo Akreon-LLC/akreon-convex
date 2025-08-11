@@ -11,7 +11,7 @@
 #include <iterator>
 #include <span>
 
-#include "../algebra/util.hpp"
+#include "../algebra/linear_algebra_util.hpp"
 
 namespace topology {
 
