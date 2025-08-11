@@ -178,5 +178,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(I * I == I);
 
     STATIC_REQUIRE(frobenius_norm(I) == constexpr_sqrt<double>(3));
+
+    STATIC_REQUIRE(is_symmetric(I));
   }
 }

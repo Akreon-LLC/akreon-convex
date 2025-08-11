@@ -13,6 +13,15 @@
 #include "field.hpp"
 #include "util.hpp"
 
+/* (dakre) Global TODO
+ * 1. when field is complex it is mostly unhandled below (constexpr_sqrt not
+ * ready for C case)
+ * 2. break this file into multiple sub hpps
+ * 3. punting on cholesky and LDL right now, with current approach and checking
+ * positive definiteness im not seeing the performance boost needed for MVP,
+ * perhaps later on integrating it would make sense
+ */
+
 namespace algebra {
 
 template <typename T, size_t N>
@@ -300,6 +309,12 @@ constexpr auto conjugate(const Vector<T, N>& X) {
   return result;
 }
 
+template <typename T, size_t N>
+  requires(FieldLike<T> && !is_complex_v<T>)
+constexpr bool is_symmetric(const Matrix<T, N, N>& A) {
+  return all_equal(A, transpose(A));
+}
+
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
@@ -383,16 +398,14 @@ constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
   return x;
 }
 
-// (dakre) TODO complex case unhandled below (constexpr_sqrt not ready for C
-// case)
 template <typename T, size_t Rows, size_t Cols>
-  requires(Rows == Cols && FieldLike<T> && !is_complex_v<T>)
-constexpr auto eigenvalue_decomposition(const Matrix<T, Rows, Cols>& A,
-                                        size_t max_iter = 100, T tol = 1e-10) {
+  requires(Rows == Cols && FieldLike<T>)
+constexpr auto eigen_decomposition(const Matrix<T, Rows, Cols>& A,
+                                   size_t max_iter = 100, T tol = 1e-10) {
   Matrix<T, Rows, Cols> Lambda = A;
   auto X = make_identity<T, Cols>();
 
-  // Eigenvalue decomposition wrks with diagonolizing the matrix to solve A X =
+  // Eigendecomposition works with diagonalizing the matrix to solve A X =
   // X \Lambda (\Lambda == eigenvalue matrix which is diagonal), the resulting X
   // is our eigenvector associated with the eigenvalues
   // 1. A_0 = A
@@ -411,13 +424,21 @@ constexpr auto eigenvalue_decomposition(const Matrix<T, Rows, Cols>& A,
   return std::tuple(Lambda, X);
 }
 
+template <typename T, size_t N>
+  requires(FieldLike<T>)
+constexpr Vector<T, N> get_eigenvalues(
+    const std::tuple<Matrix<T, N, N>, Matrix<T, N, N>>& eig_decomp) {
+  const auto Lambda = std::get<0>(eig_decomp);
+  return get_diag(Lambda);
+}
+
 // A = U \Sigma V^T
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T> && !is_complex_v<T>)
 constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 100,
                    T tol = 1e-10) {
   auto M = transpose(A) * A;
-  const auto result = eigenvalue_decomposition(M, max_iter, tol);
+  const auto result = eigen_decomposition(M, max_iter, tol);
 
   const auto lambdas = get_diag(std::get<0>(result));
   // right singular vectors space row space of Lambda above U (A^T A) VT -> U

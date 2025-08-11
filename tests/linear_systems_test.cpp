@@ -80,12 +80,13 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
   STATIC_REQUIRE(euclidean_distance(x_tilde, Vectord<2>{1.0, 2.0}) <= eps);
 }
 
-TEST_CASE("Eigenvalue Decomposition", "[A X = Lambda X]") {
+TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
   SECTION("Diagonal A") {
     constexpr auto diag = Vectord<3>{1.0, 2.0, 3.0};
     constexpr auto A = make_diag<double, 3>(diag);
-    constexpr auto result = eigenvalue_decomposition(A);
+    constexpr auto result = eigen_decomposition(A);
     constexpr auto Lambda = std::get<0>(result);
+    STATIC_REQUIRE(get_eigenvalues(result) == get_diag(Lambda));
     STATIC_REQUIRE(all_equal(Lambda, make_diag(diag)));
   }
 
@@ -93,7 +94,7 @@ TEST_CASE("Eigenvalue Decomposition", "[A X = Lambda X]") {
     constexpr auto x1 = Vectord<2>{2.0, 1.0};
     constexpr auto x2 = Vectord<2>{1.0, 2.0};
     constexpr auto A = Matrixd<2, 2>{x1, x2};
-    constexpr auto result = eigenvalue_decomposition(A);
+    constexpr auto result = eigen_decomposition(A);
     constexpr auto Lambda = std::get<0>(result);
     constexpr auto expected = make_diag(Vectord<2>{3.0, 1.0});
     STATIC_REQUIRE(all_equal(Lambda, expected));
