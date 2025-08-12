@@ -92,12 +92,18 @@ constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
   for (size_t i = 0; i < Cols; ++i) {
     auto v = get_col(A, i);
     for (size_t j = 0; j < i; ++j) {
-      R[j][i] = dot(get_col(Q, j), v);
+      if constexpr (!is_complex_v<T>)
+        R[j][i] = dot(get_col(Q, j), v);
+      else
+        R[j][i] = dot(conjugate(get_col(Q, j)), v);
       v = v - R[j][i] * get_col(Q, j);
     }
     const auto q_i = normalize(v, L2<T, Rows>);
     for (size_t j = 0; j < Rows; ++j) Q[j][i] = q_i(j);
-    R[i][i] = dot(q_i, get_col(A, i));
+    if constexpr (!is_complex_v<T>)
+      R[i][i] = dot(q_i, get_col(A, i));
+    else
+      R[i][i] = dot(conjugate(q_i), get_col(A, i));
   }
   return std::tuple(Q, R);
 }
@@ -126,7 +132,8 @@ constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
 template <typename T, size_t Rows, size_t Cols>
   requires(Rows == Cols && FieldLike<T>)
 constexpr auto eigen_decomposition(const Matrix<T, Rows, Cols>& A,
-                                   size_t max_iter = 100, T tol = 1e-10) {
+                                   size_t max_iter = 100,
+                                   scalar_type_t<T> tol = 1e-10) {
   Matrix<T, Rows, Cols> Lambda = A;
   auto X = make_identity<T, Cols>();
 
@@ -151,7 +158,7 @@ constexpr auto eigen_decomposition(const Matrix<T, Rows, Cols>& A,
 
 template <typename T, size_t N>
   requires(FieldLike<T>)
-constexpr Vector<T, N> get_eigenvalues(
+constexpr auto get_eigenvalues(
     const std::tuple<Matrix<T, N, N>, Matrix<T, N, N>>& eig_decomp) {
   const auto Lambda = std::get<0>(eig_decomp);
   return get_diag(Lambda);
@@ -159,20 +166,35 @@ constexpr Vector<T, N> get_eigenvalues(
 
 // A = U \Sigma V^T
 template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T> && !is_complex_v<T>)
+  requires(FieldLike<T>)
 constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 100,
-                   T tol = 1e-10) {
-  auto M = transpose(A) * A;
+                   scalar_type_t<T> tol = 1e-10) {
+  Matrix<T, Cols, Cols> M;
+  if constexpr (!is_complex_v<T>)
+    M = transpose(A) * A;
+  else
+    M = conjugate_transpose(A) * A;
+
   const auto result = eigen_decomposition(M, max_iter, tol);
 
-  const auto lambdas = get_diag(std::get<0>(result));
+  const auto tmp_lambdas = get_eigenvalues(result);
+  Vector<scalar_type_t<T>, Cols> lambdas;
+  if constexpr (!is_complex_v<T>)
+    lambdas = tmp_lambdas;
+  else {
+    for (size_t i = 0; i < Cols; ++i) {
+      assert(is_real(tmp_lambdas(i)));
+      lambdas[i] = tmp_lambdas(i).real();
+    }
+  }
+
   // right singular vectors space row space of Lambda above U (A^T A) VT -> U
   // \Sigma VT
   auto VT = std::get<1>(result);
 
-  Vector<T, Cols> sigmas;
+  Vector<scalar_type_t<T>, Cols> sigmas;
   for (size_t i = 0; i < Cols; ++i)
-    sigmas[i] = constexpr_sqrt(std::max<T>(0, lambdas(i)));
+    sigmas[i] = constexpr_sqrt(std::max<scalar_type_t<T>>(0, lambdas(i)));
 
   // \Sigma^{-1} A V = U
   auto U = make_identity<T, Rows>();

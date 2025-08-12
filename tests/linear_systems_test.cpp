@@ -42,22 +42,44 @@ TEST_CASE("Test linear system", "[y=Ax]") {
 }
 
 TEST_CASE("Test QR Decomposition", "[A = QR]") {
-  constexpr auto x1 = Vectord<3>{1.0, 1.0, 0.0};
-  constexpr auto x2 = Vectord<3>{1.0, 0.0, 1.0};
-  constexpr auto x3 = Vectord<3>{0.0, 1.0, 1.0};
-  constexpr auto A = Matrix<double, 3, 3>{x1, x2, x3};
-  constexpr auto QR = qr(A);
-  constexpr auto Q = std::get<0>(QR);
-  constexpr auto R = std::get<1>(QR);
-  constexpr auto A_prime = Q * R;
-  STATIC_REQUIRE(all_equal(A_prime, A));
+  SECTION("Real A") {
+    constexpr auto x1 = Vectord<3>{1.0, 1.0, 0.0};
+    constexpr auto x2 = Vectord<3>{1.0, 0.0, 1.0};
+    constexpr auto x3 = Vectord<3>{0.0, 1.0, 1.0};
+    constexpr auto A = Matrix<double, 3, 3>{x1, x2, x3};
+    constexpr auto QR = qr(A);
+    constexpr auto Q = std::get<0>(QR);
+    constexpr auto R = std::get<1>(QR);
+    constexpr auto A_prime = Q * R;
+    STATIC_REQUIRE(all_equal(A_prime, A));
 
-  STATIC_REQUIRE(R(1)(0) == 0);
-  STATIC_REQUIRE(R(2)(0) == 0);
-  STATIC_REQUIRE(R(2)(1) == 0);
+    STATIC_REQUIRE(R(1)(0) == 0);
+    STATIC_REQUIRE(R(2)(0) == 0);
+    STATIC_REQUIRE(R(2)(1) == 0);
 
-  constexpr auto QTQ = transpose(Q) * Q;
-  STATIC_REQUIRE(all_equal(QTQ, make_identity<double, 3>()));
+    constexpr auto QTQ = transpose(Q) * Q;
+    STATIC_REQUIRE(all_equal(QTQ, make_identity<double, 3>()));
+  }
+
+  SECTION("Complex A") {
+    constexpr auto a = std::complex<double>(2.0, 0.0);
+    constexpr auto b = std::complex<double>(3.0, 1.0);
+    constexpr auto c = std::complex<double>(4.0, 0.0);
+    constexpr auto x1 = Vectorcd<2>{a, b};
+    constexpr auto x2 = Vectorcd<2>{std::conj(b), c};
+    constexpr auto A = Matrixcd<2, 2>{x1, x2};
+    constexpr auto QR = qr(A);
+    constexpr auto Q = std::get<0>(QR);
+    constexpr auto R = std::get<1>(QR);
+    constexpr auto A_prime = Q * R;
+    STATIC_REQUIRE(all_equal(A_prime, A));
+
+    constexpr auto zero = std::complex<double>(0.0, 0.0);
+    STATIC_REQUIRE(R(1)(0) == zero);
+
+    constexpr auto QTQ = conjugate_transpose(Q) * Q;
+    STATIC_REQUIRE(all_equal(QTQ, make_identity<std::complex<double>, 2>()));
+  }
 }
 
 TEST_CASE("Least squares", "[R x = Q^T b]") {
@@ -98,6 +120,23 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto Lambda = std::get<0>(result);
     constexpr auto expected = make_diag(Vectord<2>{3.0, 1.0});
     STATIC_REQUIRE(all_equal(Lambda, expected));
+  }
+
+  SECTION("Complex hermitian A") {
+    constexpr auto a = std::complex<double>(2.0, 0.0);
+    constexpr auto b = std::complex<double>(3.0, 1.0);
+    constexpr auto c = std::complex<double>(4.0, 0.0);
+    constexpr auto x1 = Vectorcd<2>{a, b};
+    constexpr auto x2 = Vectorcd<2>{std::conj(b), c};
+    constexpr auto A = Matrixcd<2, 2>{x1, x2};
+    constexpr auto res = eigen_decomposition(A);
+    constexpr auto lambdas = get_eigenvalues(res);
+    constexpr auto d = std::complex<double>(3 + constexpr_sqrt(11.0));
+    constexpr auto e = std::complex<double>(3 - constexpr_sqrt(11.0));
+    constexpr auto expected = make_diag(Vectorcd<2>{d, e});
+    constexpr auto result = make_diag(lambdas);
+    STATIC_REQUIRE(all_equal(result, expected));
+    STATIC_REQUIRE(is_hermitian(A));
   }
 }
 
@@ -147,4 +186,25 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     STATIC_REQUIRE(all_equal(VT, I));
     STATIC_REQUIRE(all_equal(U, I));
   }
+
+#if 0
+  SECTION("Complex hermitian A") {
+    constexpr auto a = std::complex<double>(2.0, 0.0);
+    constexpr auto b = std::complex<double>(3.0, 1.0);
+    constexpr auto c = std::complex<double>(4.0, 0.0);
+    constexpr auto x1 = Vectorcd<2>{a, b};
+    constexpr auto x2 = Vectorcd<2>{std::conj(b), c};
+    constexpr auto A = Matrixcd<2, 2>{x1, x2};
+    constexpr auto res = svd(A);
+    constexpr auto d = std::complex<double>(3 + constexpr_sqrt(11.0));
+    constexpr auto e = std::complex<double>(3 - constexpr_sqrt(11.0));
+    constexpr auto expected = make_diag(Vectorcd<2>{d, e});
+    constexpr auto U = std::get<0>(result);
+    constexpr auto S = std::get<1>(result);
+    constexpr auto VT = std::get<2>(result);
+    STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<2, 2>>);
+    STATIC_REQUIRE(std::same_as<decltype(S), const Vectord<2>>);
+    STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
+  }
+#endif
 }
