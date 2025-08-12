@@ -45,8 +45,8 @@ constexpr auto conjugate_transpose(const Matrix<T, Rows, Cols>& A)
   requires(is_complex_v<T>)
 {
   auto AT = transpose(A);
-  for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) AT[i][j] = std::conj(AT[i][j]);
+  for (size_t i = 0; i < Cols; ++i)
+    for (size_t j = 0; j < Rows; ++j) AT[i][j] = std::conj(AT[i][j]);
   return AT;
 }
 

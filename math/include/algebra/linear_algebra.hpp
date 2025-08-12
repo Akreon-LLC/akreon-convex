@@ -11,9 +11,7 @@
 #include "vector_norms.hpp"
 
 /* (dakre) Global TODO
- * 1. when field is complex it is mostly unhandled below (constexpr_sqrt not
- * ready for C case)
- * 2. punting on cholesky and LDL right now, with current approach and checking
+ * 1. punting on cholesky and LDL right now, with current approach and checking
  * positive definiteness im not seeing the performance boost needed for MVP,
  * perhaps later on integrating it would make sense
  */

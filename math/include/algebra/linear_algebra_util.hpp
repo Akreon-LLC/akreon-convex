@@ -81,8 +81,8 @@ template <typename T>
 constexpr bool is_iterable_v = is_iterable<T>::value;
 
 template <typename T>
-constexpr bool is_real(const std::complex<T>& z) {
-  return z.imag() == T(0);
+constexpr bool is_real(const std::complex<T>& z, scalar_type_t<T> tol = 1e-10) {
+  return z.imag() <= tol;
 }
 
 template <typename T>
