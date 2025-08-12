@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <cmath>
-
 #include "inner_product_space.hpp"
 #include "metric_space.hpp"
 
