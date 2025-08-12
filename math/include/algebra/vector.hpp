@@ -8,6 +8,7 @@
 #include <assert.h>
 
 #include <ranges>
+#include <span>
 
 #include "field.hpp"
 #include "linear_algebra_util.hpp"
