@@ -7,7 +7,7 @@
 
 #include "field.hpp"
 
-#define MAX_RECURSION_DEPTH 256
+#define MAX_STACK_DEPTH 128
 
 namespace algebra {
 
@@ -94,7 +94,7 @@ template <typename T>
   requires(FieldLike<T> && !is_complex_v<T>)
 constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0) {
   // (dakre) newton step 0.5 * (guess + x / guess)
-  if (depth + 1 < MAX_RECURSION_DEPTH &&
+  if (depth + 1 < MAX_STACK_DEPTH &&
       constexpr_abs(guess * guess - x) > 1e-14)
     return constexpr_sqrt(x, 0.5 * (guess + x / guess), depth + 1);
   return guess;

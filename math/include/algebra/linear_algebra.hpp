@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <tuple>
-
 #include "matrix_norms.hpp"
 #include "vector_norms.hpp"
 
@@ -72,142 +70,176 @@ constexpr bool is_hermitian(const Matrix<T, N, N>& A) {
   return all_equal(A, conjugate_transpose(A));
 }
 
-// (dakre) TODO below is gram-schmidt in the future update to be
-// householder (improved accuracy)
 template <typename T, size_t Rows, size_t Cols>
   requires(Rows > 0 && FieldLike<T>)
-constexpr auto qr(const Matrix<T, Rows, Cols>& A) {
-  // 1. edge case if A is all zeros current GS algo does not handle this well
-  // so return I and zeros mat
+class QR {
+ public:
+  constexpr QR(const Matrix<T, Rows, Cols>& A) {
+    // (dakre) TODO below is gram-schmidt in the future update to be
+    // householder (improved accuracy)
+    solve_gram_schmidt(A);
+  }
+
+  constexpr auto get_Q() const { return Q; }
+
+  constexpr auto get_R() const { return R; }
+
+  // A x = b => Q R x = b => R x = Q b^T
+  constexpr auto solve(const Vector<T, Rows>& b) const {
+    Vector<T, Cols> x, c;
+
+    if constexpr (is_complex_v<T>)
+      c = conjugate_transpose(Q) * b;
+    else
+      c = transpose(Q) * b;
+
+    for (int i = static_cast<int>(Cols) - 1; i >= 0; --i) {
+      T sum = 0;
+      for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
+      x[i] = (c(i) - sum) / R(i)(i);
+    }
+
+    return x;
+  }
+
+ private:
+  constexpr void solve_gram_schmidt(const Matrix<T, Rows, Cols>& A) {
+    // 1. edge case if A is all zeros current GS algo does not handle this well
+    // so return I and zeros mat
+    if (all_equal(A, Matrix<T, Rows, Cols>{})) {
+      for (size_t i = 0; i < Cols; ++i) Q[i][i] = T(1);
+      return;
+    }
+
+    // 2. gram schmidt algorithm below
+    for (size_t i = 0; i < Cols; ++i) {
+      auto v = get_col(A, i);
+      for (size_t j = 0; j < i; ++j) {
+        if constexpr (!is_complex_v<T>)
+          R[j][i] = dot(get_col(Q, j), v);
+        else
+          R[j][i] = dot(conjugate(get_col(Q, j)), v);
+        v = v - R[j][i] * get_col(Q, j);
+      }
+      const auto q_i = normalize(v, L2<T, Rows>);
+      for (size_t j = 0; j < Rows; ++j) Q[j][i] = q_i(j);
+      if constexpr (!is_complex_v<T>)
+        R[i][i] = dot(q_i, get_col(A, i));
+      else
+        R[i][i] = dot(conjugate(q_i), get_col(A, i));
+    }
+  }
+
   Matrix<T, Rows, Cols> Q;
   Matrix<T, Cols, Cols> R;
-  if (all_equal(A, Matrix<T, Rows, Cols>{})) {
-    for (size_t i = 0; i < Cols; ++i) Q[i][i] = T(1);
-    return std::tuple(Q, R);
-  }
-
-  // 2. gram schmidt algorithm below
-  for (size_t i = 0; i < Cols; ++i) {
-    auto v = get_col(A, i);
-    for (size_t j = 0; j < i; ++j) {
-      if constexpr (!is_complex_v<T>)
-        R[j][i] = dot(get_col(Q, j), v);
-      else
-        R[j][i] = dot(conjugate(get_col(Q, j)), v);
-      v = v - R[j][i] * get_col(Q, j);
-    }
-    const auto q_i = normalize(v, L2<T, Rows>);
-    for (size_t j = 0; j < Rows; ++j) Q[j][i] = q_i(j);
-    if constexpr (!is_complex_v<T>)
-      R[i][i] = dot(q_i, get_col(A, i));
-    else
-      R[i][i] = dot(conjugate(q_i), get_col(A, i));
-  }
-  return std::tuple(Q, R);
-}
-
-// A x = b => Q R x = b => R x = Q b^T
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
-                   const Matrix<T, Cols, Cols>& R, const Vector<T, Rows>& b) {
-  Vector<T, Cols> x, c;
-
-  if constexpr (is_complex_v<T>)
-    c = conjugate_transpose(Q) * b;
-  else
-    c = transpose(Q) * b;
-
-  for (int i = static_cast<int>(Cols) - 1; i >= 0; --i) {
-    T sum = 0;
-    for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
-    x[i] = (c(i) - sum) / R(i)(i);
-  }
-
-  return x;
-}
+};
 
 template <typename T, size_t Rows, size_t Cols>
   requires(Rows == Cols && FieldLike<T>)
-constexpr auto eigen_decomposition(const Matrix<T, Rows, Cols>& A,
-                                   size_t max_iter = 100,
-                                   scalar_type_t<T> tol = 1e-10) {
-  Matrix<T, Rows, Cols> Lambda = A;
-  auto X = make_identity<T, Cols>();
-
-  // Eigendecomposition works with diagonalizing the matrix to solve A X =
-  // X \Lambda (\Lambda == eigenvalue matrix which is diagonal), the resulting X
-  // is our eigenvector associated with the eigenvalues
-  // 1. A_0 = A
-  // 2. A_k = Q_k R_k
-  // 3. A_{k+1} = R_k Q_k \equiv Q_k^T A_k Q_k similarity transform
-  for (size_t i = 0; i < max_iter; ++i) {
-    const auto QR = qr(Lambda);
-    const auto Q = std::get<0>(QR);
-    const auto R = std::get<1>(QR);
-    Lambda = R * Q;
-    X = X * Q;
-    const auto off_diag = Lambda - make_diag(get_diag(Lambda));
-    if (frobenius_norm(off_diag) < tol) break;
+class EigenDecomposition {
+ public:
+  constexpr EigenDecomposition(const Matrix<T, Rows, Cols>& A,
+                               scalar_type_t<T> tol = 1e-10) {
+    solve_qr(A, tol);
   }
 
-  return std::tuple(Lambda, X);
-}
+  constexpr auto get_eigenvalues() const { return get_diag(Lambda); }
 
-template <typename T, size_t N>
-  requires(FieldLike<T>)
-constexpr auto get_eigenvalues(
-    const std::tuple<Matrix<T, N, N>, Matrix<T, N, N>>& eig_decomp) {
-  const auto Lambda = std::get<0>(eig_decomp);
-  return get_diag(Lambda);
-}
+  constexpr auto get_eigenvectors() const { return VT; }
+
+ private:
+  constexpr auto solve_qr(const Matrix<T, Rows, Cols>& A,
+                          const scalar_type_t<T>& tol) {
+    Lambda = A;
+    VT = make_identity<T, Cols>();
+
+    // Eigendecomposition works with diagonalizing the matrix to solve A X =
+    // X \Lambda (\Lambda == eigenvalue matrix which is diagonal), the resulting
+    // X is our eigenvector associated with the eigenvalues
+    // 1. A_0 = A
+    // 2. A_k = Q_k R_k
+    // 3. A_{k+1} = R_k Q_k \equiv Q_k^T A_k Q_k similarity transform
+    for (size_t i = 0; i < MAX_STACK_DEPTH; ++i) {
+      const auto qr = QR(Lambda);
+      const auto Q = qr.get_Q();
+      const auto R = qr.get_R();
+      Lambda = R * Q;
+      VT = VT * Q;
+      const auto off_diag = Lambda - make_diag(get_diag(Lambda));
+      if (frobenius_norm(off_diag) < tol) break;
+    }
+  }
+
+  Matrix<T, Rows, Cols> Lambda;
+  Matrix<T, Cols, Cols> VT;
+};
 
 // A = U \Sigma V^T
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
-constexpr auto svd(const Matrix<T, Rows, Cols>& A, size_t max_iter = 100,
-                   scalar_type_t<T> tol = 1e-10) {
-  Matrix<T, Cols, Cols> M;
-  if constexpr (!is_complex_v<T>)
-    M = transpose(A) * A;
-  else
-    M = conjugate_transpose(A) * A;
-
-  const auto result = eigen_decomposition(M, max_iter, tol);
-
-  const auto tmp_lambdas = get_eigenvalues(result);
-  Vector<scalar_type_t<T>, Cols> lambdas;
-  if constexpr (!is_complex_v<T>)
-    lambdas = tmp_lambdas;
-  else {
-    for (size_t i = 0; i < Cols; ++i) {
-      assert(is_real(tmp_lambdas(i)));
-      lambdas[i] = tmp_lambdas(i).real();
-    }
+class SVD {
+ public:
+  constexpr SVD(const Matrix<T, Rows, Cols>& A, scalar_type_t<T> tol = 1e-10) {
+    svd(A, tol);
   }
 
-  // right singular vectors space row space of Lambda above U (A^T A) VT -> U
-  // \Sigma VT
-  auto VT = std::get<1>(result);
+  constexpr auto get_left_singular_vectors() const { return U; }
 
+  constexpr auto get_right_singular_vectors() const { return VT; }
+
+  constexpr auto get_singular_values() const { return sigmas; }
+
+ private:
+  constexpr auto svd(const Matrix<T, Rows, Cols>& A,
+                     const scalar_type_t<T>& tol = 1e-10) {
+    Matrix<T, Cols, Cols> M;
+    if constexpr (!is_complex_v<T>)
+      M = transpose(A) * A;
+    else
+      M = conjugate_transpose(A) * A;
+
+    const auto result = EigenDecomposition(M, tol);
+
+    const auto tmp_lambdas = result.get_eigenvalues();
+    Vector<scalar_type_t<T>, Cols> lambdas;
+    if constexpr (!is_complex_v<T>)
+      lambdas = tmp_lambdas;
+    else {
+      for (size_t i = 0; i < Cols; ++i) {
+        assert(is_real(tmp_lambdas(i)));
+        lambdas[i] = tmp_lambdas(i).real();
+      }
+    }
+
+    // (dakre) these eigenvectors are projected onto the row space thus
+    // resembling the right singular vectors space row space of Lambda above U
+    // (A^T A) VT -> U \Sigma VT
+    VT = result.get_eigenvectors();
+
+    for (size_t i = 0; i < Cols; ++i)
+      sigmas[i] = constexpr_sqrt(std::max<scalar_type_t<T>>(0, lambdas(i)));
+
+    // \Sigma^{-1} A V = U
+    U = make_identity<T, Rows>();
+
+    const auto V = transpose(VT);
+
+    constexpr auto mn = std::min(Rows, Cols);
+    for (size_t i = 0; i < mn; ++i) U[i] = (1 / sigmas(i)) * A * get_col(V, i);
+
+    U = transpose(U);
+
+    // (dakre) re-orthonormalize U and VT to ensure vectors form an orthonormal
+    // basis
+    const auto qr_U = QR(U);
+    U = qr_U.get_Q();
+    const auto qr_VT = QR(VT);
+    VT = qr_VT.get_Q();
+  }
+
+  Matrix<T, Cols, Cols> VT;
+  Matrix<T, Rows, Rows> U;
   Vector<scalar_type_t<T>, Cols> sigmas;
-  for (size_t i = 0; i < Cols; ++i)
-    sigmas[i] = constexpr_sqrt(std::max<scalar_type_t<T>>(0, lambdas(i)));
-
-  // \Sigma^{-1} A V = U
-  auto U = make_identity<T, Rows>();
-
-  const auto V = transpose(VT);
-
-  constexpr auto mn = std::min(Rows, Cols);
-  for (size_t i = 0; i < mn; ++i) U[i] = (1 / sigmas(i)) * A * get_col(V, i);
-
-  U = transpose(U);
-
-  U = std::get<0>(qr(U));
-  VT = std::get<0>(qr(VT));
-
-  return std::tuple(U, sigmas, VT);
-}
+};
 
 }  // namespace algebra
