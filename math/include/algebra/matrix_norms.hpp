@@ -16,7 +16,7 @@ constexpr auto frobenius_norm(const Matrix<T, Rows, Cols>& A) {
   if constexpr (!is_complex_v<T>) {
     result = trace(transpose(A) * A);
   } else {
-    const auto tmp = trace(hermitian(A) * A);
+    const auto tmp = trace(conjugate_transpose(A) * A);
     assert(is_real(tmp));
     result = tmp.real();
   }

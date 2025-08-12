@@ -12,7 +12,15 @@ namespace algebra {
 template <typename T, size_t N>
   requires(FieldLike<T>)
 constexpr auto L2(const Vector<T, N>& X) {
-  return constexpr_sqrt(dot(X, X));
+  scalar_type_t<T> result = 0;
+  if constexpr (!is_complex_v<T>)
+    result = dot(X, X);
+  else {
+    const auto tmp = dot(conjugate(X), X);
+    assert(is_real(tmp));
+    result = tmp.real();
+  }
+  return constexpr_sqrt(result);
 }
 
 template <typename T, size_t N>

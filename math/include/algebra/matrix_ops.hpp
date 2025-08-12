@@ -41,7 +41,7 @@ constexpr auto trace(const Matrix<T, Rows, Cols>& A) {
 }
 
 template <typename T, size_t Rows, size_t Cols>
-constexpr auto hermitian(const Matrix<T, Rows, Cols>& A)
+constexpr auto conjugate_transpose(const Matrix<T, Rows, Cols>& A)
   requires(is_complex_v<T>)
 {
   auto AT = transpose(A);

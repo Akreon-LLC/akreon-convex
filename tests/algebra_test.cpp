@@ -155,7 +155,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto J = Vectorcd<2>{c, d};
     constexpr auto K = Matrixcd<2, 2>{J, J};
     // K = [[c d]; [c d]] -> K^* = [[\bar{c} \bar{c}] [\bar{d} \bar{d}]]
-    constexpr auto KH = hermitian(K);
+    constexpr auto KH = conjugate_transpose(K);
     STATIC_REQUIRE(KH(0)(0) == c_conj);
     STATIC_REQUIRE(KH(0)(1) == c_conj);
     STATIC_REQUIRE(KH(1)(0) == d_conj);
@@ -180,5 +180,12 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(frobenius_norm(I) == constexpr_sqrt<double>(3));
 
     STATIC_REQUIRE(is_symmetric(I));
+
+    constexpr auto a = std::complex<double>(2.0, 0.0);
+    constexpr auto b = std::complex<double>(3.0, 1.0);
+    constexpr auto x1 = Vectorcd<2>{a, b};
+    constexpr auto x2 = Vectorcd<2>{std::conj(b), a};
+    constexpr auto M = Matrixcd<2, 2>{x1, x2};
+    STATIC_REQUIRE(is_hermitian(M));
   }
 }

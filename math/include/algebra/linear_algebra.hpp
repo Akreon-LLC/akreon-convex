@@ -68,6 +68,12 @@ constexpr bool is_symmetric(const Matrix<T, N, N>& A) {
   return all_equal(A, transpose(A));
 }
 
+template <typename T, size_t N>
+  requires(FieldLike<T> && is_complex_v<T>)
+constexpr bool is_hermitian(const Matrix<T, N, N>& A) {
+  return all_equal(A, conjugate_transpose(A));
+}
+
 // (dakre) TODO below is gram-schmidt in the future update to be
 // householder (improved accuracy)
 template <typename T, size_t Rows, size_t Cols>
@@ -104,7 +110,7 @@ constexpr auto lsq(const Matrix<T, Rows, Cols>& Q,
   Vector<T, Cols> x, c;
 
   if constexpr (is_complex_v<T>)
-    c = hermitian(Q) * b;
+    c = conjugate_transpose(Q) * b;
   else
     c = transpose(Q) * b;
 
