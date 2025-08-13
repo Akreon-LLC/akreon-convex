@@ -29,18 +29,22 @@ if(BUILD_TESTING)
 
   enable_testing()
 
-  add_executable(algebra_test tests/algebra_test.cpp)
+  add_executable(algebra_test tests/unit/algebra_test.cpp)
   add_test(NAME algebra_test COMMAND algebra_test)
   target_link_libraries(algebra_test PRIVATE Catch2::Catch2WithMain math)
   target_include_directories(algebra_test PRIVATE ../math/include)
 
-  add_executable(topology_test tests/topology_test.cpp)
+  add_executable(topology_test tests/unit/topology_test.cpp)
   add_test(NAME topology_test COMMAND topology_test)
   target_link_libraries(topology_test PRIVATE Catch2::Catch2WithMain math)
   target_include_directories(topology_test PRIVATE ../math/include)
 
-  add_executable(linear_systems_test tests/linear_systems_test.cpp)
+  add_executable(linear_systems_test tests/unit/linear_systems_test.cpp)
   add_test(NAME linear_systems_test COMMAND linear_systems_test)
   target_link_libraries(linear_systems_test PRIVATE Catch2::Catch2WithMain math)
   target_include_directories(linear_systems_test PRIVATE ../math/include)
+
+  add_executable(linalg_fuzz_test tests/functional/linalg_fuzz_test.cpp)
+  target_link_libraries(linalg_fuzz_test PRIVATE math)
+  target_include_directories(linalg_fuzz_test PRIVATE ../math/include)
 endif()
