@@ -16,6 +16,14 @@
 
 namespace algebra {
 
+/**
+ * @brief Normalize a vector given a norm function
+ *
+ * @param vector of type T with N elements
+ * @param reference to a Norm object (L1, L2, max_norm, etc.)
+ *
+ * @return normalized vector
+ */
 template <typename T, size_t N, typename Norm>
   requires(FieldLike<T>)
 constexpr auto normalize(const Vector<T, N>& X, const Norm& norm) {
@@ -24,6 +32,14 @@ constexpr auto normalize(const Vector<T, N>& X, const Norm& norm) {
   return (1 / norm_val) * X;
 }
 
+/**
+ * @brief Compute the euclidean distance between two vectors (L2 norm of delta)
+ *
+ * @param vector X of type T with N elements
+ * @param vector Y of type T with N elements
+ *
+ * @return distance between two vectors as a scalar
+ */
 template <typename T, size_t N>
   requires(FieldLike<T>)
 constexpr auto euclidean_distance(const Vector<T, N>& X,
@@ -31,6 +47,14 @@ constexpr auto euclidean_distance(const Vector<T, N>& X,
   return L2(X - Y);
 }
 
+/**
+ * @brief Compute the manhattan distance between two vectors (L1 norm of delta)
+ *
+ * @param vector X of type T with N elements
+ * @param vector Y of type T with N elements
+ *
+ * @return distance between two vectors as a scalar
+ */
 template <typename T, size_t N>
   requires(FieldLike<T>)
 constexpr auto manhattan_distance(const Vector<T, N>& X,
@@ -38,6 +62,14 @@ constexpr auto manhattan_distance(const Vector<T, N>& X,
   return L1(X - Y);
 }
 
+/**
+ * @brief checks if two given matrix are equivalent
+ *
+ * @param matrix A of type T with Rows x Cols elements
+ * @param vector B of type T with Rows x Cols elements
+ *
+ * @return T/F
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr bool all_equal(const algebra::Matrix<T, Rows, Cols>& A,
@@ -48,6 +80,15 @@ constexpr bool all_equal(const algebra::Matrix<T, Rows, Cols>& A,
   return rv;
 }
 
+/**
+ * @brief checks if the row space of one matrix is equivalent to the column
+ * space of another matrix
+ *
+ * @param matrix A of type T with Rows x Cols elements
+ * @param vector B of type T with Cols x Rows elements
+ *
+ * @return T/F
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr bool rows_equal_cols(const Matrix<T, Rows, Cols>& A,
@@ -58,33 +99,73 @@ constexpr bool rows_equal_cols(const Matrix<T, Rows, Cols>& A,
   return rv;
 }
 
+/**
+ * @brief checks if a given matrix is symmetric
+ *
+ * @param matrix A of type T with N x N elements
+ *
+ * @return T/F
+ */
 template <typename T, size_t N>
   requires(FieldLike<T> && !is_complex_v<T>)
 constexpr bool is_symmetric(const Matrix<T, N, N>& A) {
   return all_equal(A, transpose(A));
 }
 
+/**
+ * @brief checks if a given matrix is hermitian
+ *
+ * @param matrix A of type T with N x N elements
+ * @return T/F
+ */
 template <typename T, size_t N>
   requires(FieldLike<T> && is_complex_v<T>)
 constexpr bool is_hermitian(const Matrix<T, N, N>& A) {
   return all_equal(A, conjugate_transpose(A));
 }
 
+/**
+ * @brief QR decomposition class definition
+ *
+ * Orthonormalizes a given Matrix into an orthogonal basis Q and upper right
+ * triangular matrix R. Currently leveraging Gram-Schmidt algorithm to do this.
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(Rows > 0 && FieldLike<T>)
 class QR {
  public:
+  /**
+   * @brief CTOR
+   *
+   * @param matrix A of type T with Rows x Cols elements
+   */
   constexpr QR(const Matrix<T, Rows, Cols>& A) {
     // (dakre) TODO below is gram-schmidt in the future update to be
     // householder (improved accuracy)
     solve_gram_schmidt(A);
   }
 
+  /**
+   * @brief basic get function for Q matrix
+   *
+   * @return Q
+   */
   constexpr auto get_Q() const { return Q; }
 
+  /**
+   * @brief basic get function for R matrix
+   *
+   * @return R
+   */
   constexpr auto get_R() const { return R; }
 
-  // A x = b => Q R x = b => R x = Q b^T
+  /**
+   * @brief least squares solver A x = b using QR decomposition
+   *
+   * A x = b => Q R x = b => R x = Q^T b
+   *
+   * @return x
+   */
   constexpr auto solve(const Vector<T, Rows>& b) const {
     Vector<T, Cols> x, c;
 
@@ -103,6 +184,11 @@ class QR {
   }
 
  private:
+  /**
+   * @brief solve QR decomposition via Gram Schmidt method
+   *
+   * @return (void)
+   */
   constexpr void solve_gram_schmidt(const Matrix<T, Rows, Cols>& A) {
     // 1. edge case if A is all zeros current GS algo does not handle this well
     // so return I and zeros mat
@@ -130,25 +216,56 @@ class QR {
     }
   }
 
-  Matrix<T, Rows, Cols> Q;
-  Matrix<T, Cols, Cols> R;
+  /** @brief QR decomposition for matrix input A */
+  Matrix<T, Rows, Cols> Q;  ///< orthonormal basis Q
+  Matrix<T, Cols, Cols> R;  ///< upper right triangular matrix R
 };
 
+/**
+ * @brief EigenDecomposition class definition
+ *
+ * Solves the following equation A X = \Lambda X via QR and successive
+ * similarity transforms to diagonalize A into eigenvalues
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(Rows == Cols && FieldLike<T>)
 class EigenDecomposition {
  public:
+  /**
+   * @brief CTOR
+   *
+   * @param matrix A of type T with Rows x Cols elements
+   * @param tolerance dictating algorithm convergence
+   */
   constexpr EigenDecomposition(const Matrix<T, Rows, Cols>& A,
                                scalar_type_t<T> tol = 1e-10) {
     solve_qr(A, tol);
   }
 
+  /**
+   * @brief basic get eigenvalues function
+   *
+   * @return vector of eigenvalues
+   */
   constexpr auto get_eigenvalues() const { return get_diag(Lambda); }
 
+  /**
+   * @brief basic get eigenvectors function
+   *
+   * @return matrix of eigenvectors
+   */
   constexpr auto get_eigenvectors() const { return VT; }
 
  private:
-  constexpr auto solve_qr(const Matrix<T, Rows, Cols>& A,
+  /**
+   * @brief solve A X = \Lambda X via QR
+   *
+   * @param matrix A of type T with Rows x Cols elements
+   * @param tolerance dictating algorithm convergence
+   *
+   * @return (void)
+   */
+  constexpr void solve_qr(const Matrix<T, Rows, Cols>& A,
                           const scalar_type_t<T>& tol) {
     Lambda = A;
     VT = make_identity<T, Cols>();
@@ -170,27 +287,62 @@ class EigenDecomposition {
     }
   }
 
-  Matrix<T, Rows, Cols> Lambda;
-  Matrix<T, Cols, Cols> VT;
+  /** @brief eigendecomposition member variables */
+  Matrix<T, Rows, Cols> Lambda;  ///< eigenvalues
+  Matrix<T, Cols, Cols> VT;      ///< eigenvectors
 };
 
-// A = U \Sigma V^T
+/**
+ * @brief Singular value decomposition class definition
+ *
+ * Decompose any matrix A into U \Sigma V^T where U are the left singular
+ * vectors, \Sigma are the singular values, and V^T are the right singular
+ * vectors
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 class SVD {
  public:
+  /**
+   * @brief CTOR
+   *
+   * @param matrix A of type T with Rows x Cols elements
+   * @param tolerance dictating algorithm convergence
+   */
   constexpr SVD(const Matrix<T, Rows, Cols>& A, scalar_type_t<T> tol = 1e-10) {
     svd(A, tol);
   }
-
+  /**
+   * @brief basic get for left singular vectors
+   *
+   * @return matrix of left singular vectors
+   */
   constexpr auto get_left_singular_vectors() const { return U; }
 
+  /**
+   * @brief basic get for right singular vectors
+   *
+   * @return matrix of right singular vectors
+   */
   constexpr auto get_right_singular_vectors() const { return VT; }
 
+  /**
+   * @brief basic get for singular values
+   *
+   * @return matrix of singular values
+   */
   constexpr auto get_singular_values() const { return sigmas; }
 
  private:
-  constexpr auto svd(const Matrix<T, Rows, Cols>& A,
+  /**
+   * @brief solve A = U \Sigma V^T
+   *
+   * @param matrix A of type T with Rows x Cols elements
+   * @param tolerance dictating algorithm convergence
+   *
+   * @return (void)
+   */
+  constexpr void svd(const Matrix<T, Rows, Cols>& A,
                      const scalar_type_t<T>& tol = 1e-10) {
     Matrix<T, Cols, Cols> M;
     if constexpr (!is_complex_v<T>)
@@ -237,9 +389,10 @@ class SVD {
     VT = qr_VT.get_Q();
   }
 
-  Matrix<T, Cols, Cols> VT;
-  Matrix<T, Rows, Rows> U;
-  Vector<scalar_type_t<T>, Cols> sigmas;
+  /** @brief SVD member variables */
+  Matrix<T, Cols, Cols> VT;               ///< right singular vectors
+  Matrix<T, Rows, Rows> U;                ///< left singular vectors
+  Vector<scalar_type_t<T>, Cols> sigmas;  ///< singular values
 };
 
 }  // namespace algebra

@@ -9,6 +9,11 @@
 
 namespace algebra {
 
+/**
+ * @brief create an identity matrix of size N type T
+ *
+ * @return I
+ */
 template <typename T, size_t N>
   requires(FieldLike<T>)
 constexpr Matrix<T, N, N> make_identity() {
@@ -17,6 +22,11 @@ constexpr Matrix<T, N, N> make_identity() {
   return I;
 }
 
+/**
+ * @brief create a matrix filled with zeros of size Rows x Cols of type T
+ *
+ * @return Zeros
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr Matrix<T, Rows, Cols> make_zeros() {
@@ -26,6 +36,13 @@ constexpr Matrix<T, Rows, Cols> make_zeros() {
   return Z;
 }
 
+/**
+ * @brief express the vector X as a column vector (N x 1)
+ *
+ * @param vector X of type T and N elements
+ *
+ * @return (N x 1) matrix
+ */
 template <typename T, size_t N>
   requires(FieldLike<T> && !is_iterable_v<T>)
 constexpr auto as_col_vector(const Vector<T, N>& X) {
@@ -34,6 +51,13 @@ constexpr auto as_col_vector(const Vector<T, N>& X) {
   return A;
 }
 
+/**
+ * @brief express the vector X as a row vector (1 x N)
+ *
+ * @param vector X of type T and N elements
+ *
+ * @return (1 x N) matrix
+ */
 template <typename T, size_t N>
   requires(FieldLike<T> && !is_iterable_v<T>)
 constexpr auto as_row_vector(const Vector<T, N>& X) {
@@ -42,6 +66,14 @@ constexpr auto as_row_vector(const Vector<T, N>& X) {
   return A;
 }
 
+/**
+ * @brief get the column of matrix A based on given index
+ *
+ * @param matrix A of size Rows x Cols of type T
+ * @param index
+ *
+ * @return vector X
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr auto get_col(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
@@ -51,6 +83,14 @@ constexpr auto get_col(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
   return X;
 }
 
+/**
+ * @brief get the row of matrix A based on given index
+ *
+ * @param matrix A of size Rows x Cols of type T
+ * @param index
+ *
+ * @return vector X
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr auto get_row(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
@@ -58,6 +98,13 @@ constexpr auto get_row(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
   return A(idx);
 }
 
+/**
+ * @brief get the diagonal of a matrix A
+ *
+ * @param matrix A of size Rows x Cols of type T
+ *
+ * @return diagonal vector
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr auto get_diag(const Matrix<T, Rows, Cols>& A) {
@@ -67,6 +114,13 @@ constexpr auto get_diag(const Matrix<T, Rows, Cols>& A) {
   return diag;
 }
 
+/**
+ * @brief make a diagonal matrix from a vector
+ *
+ * @param vector X of size N and type T
+ *
+ * @return diagonal matrix
+ */
 template <typename T, size_t N>
   requires(FieldLike<T>)
 constexpr auto make_diag(const Vector<T, N>& X) {

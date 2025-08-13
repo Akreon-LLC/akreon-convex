@@ -10,8 +10,18 @@
 
 namespace algebra {
 
+/**
+ * @brief outer product between two matrices A & B
+ *
+ * A * B = C where C is a new matrix of Rows_of_A x Cols_of_B
+ *
+ * @param matrix A of type T Rows1 x Cols1 elements
+ * @param matrix B of type T Cols1 x Cols2 elements
+ *
+ * @return matrix
+ */
 template <typename T, size_t Rows1, size_t Cols1, size_t Cols2>
-  requires(is_complex_v<T> || std::is_arithmetic_v<T>)
+  requires(FieldLike<T>)
 constexpr auto outer_product(const Matrix<T, Rows1, Cols1>& A,
                              const Matrix<T, Cols1, Cols2>& B) {
   using ST = std::conditional_t<is_complex_v<T>, std::complex<scalar_type_t<T>>,
@@ -22,6 +32,15 @@ constexpr auto outer_product(const Matrix<T, Rows1, Cols1>& A,
   return result;
 }
 
+/**
+ * @brief transpose of a matrix
+ *
+ * A^T (rows and cols flipped from A)
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return A^T
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
@@ -32,6 +51,15 @@ constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
   return result;
 }
 
+/**
+ * @brief trace of a matrix
+ *
+ * Sum of the diagonal elements of a matrix
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return sum
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T> && Rows == Cols && Rows > 0)
 constexpr auto trace(const Matrix<T, Rows, Cols>& A) {
@@ -40,6 +68,15 @@ constexpr auto trace(const Matrix<T, Rows, Cols>& A) {
   return sum;
 }
 
+/**
+ * @brief conjugate transpose of a matrix
+ *
+ * Like A^T, however the field is complex and the elements get conjugated
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return A^*
+ */
 template <typename T, size_t Rows, size_t Cols>
 constexpr auto conjugate_transpose(const Matrix<T, Rows, Cols>& A)
   requires(is_complex_v<T>)
@@ -50,6 +87,14 @@ constexpr auto conjugate_transpose(const Matrix<T, Rows, Cols>& A)
   return AT;
 }
 
+/**
+ * @brief operator overload for matrix multiplication
+ *
+ * @param matrix A of type T Rows x Cols elements
+ * @param matrix B of type T Cols x Rows elements
+ *
+ * @return A*B
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
@@ -61,6 +106,14 @@ constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
   return result;
 }
 
+/**
+ * @brief operator overload for matrix multiplication between matrix and vector
+ *
+ * @param matrix A of type T Rows x Cols elements
+ * @param vector X of type T Cols elements
+ *
+ * @return A*X
+ */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
