@@ -136,4 +136,20 @@ constexpr auto conjugate(const Vector<T, N>& X) {
   return result;
 }
 
+/**
+ * @brief cross product between X x Y = Z
+ *
+ * @param vector of type T with 3 elements
+ * @param vector of type T with 3 elements
+ *
+ * @return (3x1) vector
+ */
+template <typename T>
+  requires(FieldLike<T>)
+constexpr Vector<T, 3> cross(const Vector<T, 3>& X, const Vector<T, 3>& Y) {
+  Vector<T, 3> result{X(1) * Y(2) - X(2) * Y(1), -(X(0) * Y(2) - X(2) * Y(0)),
+                      X(0) * Y(1) - X(1) * Y(0)};
+  return result;
+}
+
 }  // namespace algebra

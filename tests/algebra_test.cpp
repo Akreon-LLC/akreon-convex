@@ -95,6 +95,23 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(G_outer_prod(0)(1) == -6.0);
     STATIC_REQUIRE(G_outer_prod(1)(0) == -6.0);
     STATIC_REQUIRE(G_outer_prod(1)(1) == 9.0);
+
+    constexpr auto Zeros = Vectord<3>(0.0, 0.0, 0.0);
+    STATIC_REQUIRE(cross(Zeros, Zeros) == Zeros);
+
+    constexpr auto ex = Vectord<3>(1.0, 0.0, 0.0);
+    constexpr auto ey = Vectord<3>(0.0, 1.0, 0.0);
+    constexpr auto ez = Vectord<3>(0.0, 0.0, 1.0);
+    STATIC_REQUIRE(cross(ex, ey) == ez);
+    STATIC_REQUIRE(cross(ey, ex) == -1 * ez);
+    STATIC_REQUIRE(cross(ez, ex) == ey);
+    STATIC_REQUIRE(cross(ex, ez) == -1 * ey);
+    STATIC_REQUIRE(cross(ey, ez) == ex);
+    STATIC_REQUIRE(cross(ez, ey) == -1 * ex);
+
+    STATIC_REQUIRE(
+        cross(Vectord<3>(1.0, 2.0, 3.0), Vectord<3>(4.0, 5.0, 6.0)) ==
+        Vectord<3>(-3.0, 6.0, -3.0));
   }
 
   SECTION("Static matrix checks") {
