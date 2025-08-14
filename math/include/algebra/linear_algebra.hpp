@@ -67,16 +67,17 @@ constexpr auto manhattan_distance(const Vector<T, N>& X,
  *
  * @param matrix A of type T with Rows x Cols elements
  * @param vector B of type T with Rows x Cols elements
+ * @param tolerance set to 1e-10 by default
  *
  * @return T/F
  */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 constexpr bool all_equal(const algebra::Matrix<T, Rows, Cols>& A,
-                         const algebra::Matrix<T, Rows, Cols>& B) {
+                         const algebra::Matrix<T, Rows, Cols>& B,
+                         scalar_type_t<T> tol = 1e-10) {
   bool rv = true;
-  for (size_t i = 0; i < Rows; ++i)
-    rv &= euclidean_distance(A(i), B(i)) <= 1e-10;
+  for (size_t i = 0; i < Rows; ++i) rv &= euclidean_distance(A(i), B(i)) <= tol;
   return rv;
 }
 
