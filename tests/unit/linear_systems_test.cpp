@@ -143,11 +143,7 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto b = Vectord<3>{3.0, 5.0, 7.0};
     constexpr auto x_tilde = qr.solve(b);
 
-    // (dakre) TODO x should really be 2x1 but with rank not being constexpr
-    // suitable inside struct its returning 3x1 with padded dim. Knowing this
-    // right not is fine but should be rectified later
-    STATIC_REQUIRE(euclidean_distance(x_tilde, Vectord<3>{1.0, 2.0, 0.0}) <=
-                   eps);
+    STATIC_REQUIRE(euclidean_distance(x_tilde, Vectord<2>{1.0, 2.0}) <= eps);
   }
 
   SECTION("Complex A") {
@@ -177,9 +173,7 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto e = std::complex<double>(7.0, 0);
     constexpr auto y = Vectorcd<3>{c, d, e};
     constexpr auto x_tilde = qr.solve(y);
-    // (dakre) TODO same issue as above
-    STATIC_REQUIRE(euclidean_distance(x_tilde, Vectorcd<3>{1.0, 2.0, 0.0}) <=
-                   eps);
+    STATIC_REQUIRE(euclidean_distance(x_tilde, Vectorcd<2>{1.0, 2.0}) <= eps);
   }
 }
 

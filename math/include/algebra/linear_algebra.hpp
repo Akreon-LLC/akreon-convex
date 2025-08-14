@@ -177,7 +177,8 @@ class QR {
    * @return x
    */
   constexpr auto solve(const Vector<T, Rows>& b) const {
-    Vector<T, Rows> x, c;
+    Vector<T, Rows> c;
+    Vector<T, Cols> x;
 
     if constexpr (is_complex_v<T>)
       c = conjugate_transpose(Q) * b;
