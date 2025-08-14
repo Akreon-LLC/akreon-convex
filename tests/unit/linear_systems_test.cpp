@@ -79,6 +79,44 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
 
     constexpr auto QTQ = conjugate_transpose(Q) * Q;
     STATIC_REQUIRE(all_equal(QTQ, make_identity<std::complex<double>, 2>()));
+    STATIC_REQUIRE(2 == qr.get_rank());
+  }
+
+  SECTION("Real A m > n") {
+    constexpr auto x1 = Vectord<2>{1.0, 1.0};
+    constexpr auto x2 = Vectord<2>{1.0, 0.0};
+    constexpr auto x3 = Vectord<2>{1.0, 0.0};
+    constexpr auto A = Matrixd<3, 2>{x1, x2, x3};
+    constexpr auto qr = QR(A);
+    constexpr auto Q = qr.get_Q();
+    constexpr auto R = qr.get_R();
+    STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<3, 3>>);
+    STATIC_REQUIRE(std::same_as<decltype(R), const Matrixd<3, 2>>);
+    constexpr auto A_prime = Q * R;
+    STATIC_REQUIRE(all_equal(A_prime, A));
+
+    constexpr auto rank = qr.get_rank();
+    STATIC_REQUIRE(rank == 2);
+
+    constexpr auto QTQ = transpose(Q) * Q;
+    constexpr auto QTQr = get_n_cols<0, rank>(get_n_rows<0, rank>(QTQ));
+    STATIC_REQUIRE(all_equal(QTQr, make_identity<double, 2>()));
+  }
+
+  SECTION("Real A m < n") {
+    constexpr auto x1 = Vectord<3>{1.0, 1.0, 0.0};
+    constexpr auto x2 = Vectord<3>{0.0, 1.0, 1.0};
+    constexpr auto A = Matrixd<2, 3>{x1, x2};
+    constexpr auto qr = QR(A);
+    constexpr auto Q = qr.get_Q();
+    constexpr auto R = qr.get_R();
+    STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<2, 2>>);
+    STATIC_REQUIRE(std::same_as<decltype(R), const Matrixd<2, 3>>);
+    constexpr auto A_prime = Q * R;
+    STATIC_REQUIRE(all_equal(A_prime, A));
+
+    constexpr auto rank = qr.get_rank();
+    STATIC_REQUIRE(rank == 2);
   }
 }
 
@@ -91,16 +129,25 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto qr = QR(A);
     constexpr auto Q = qr.get_Q();
     constexpr auto R = qr.get_R();
-    STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<3, 2>>);
-    STATIC_REQUIRE(std::same_as<decltype(R), const Matrixd<2, 2>>);
+    STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<3, 3>>);
+    STATIC_REQUIRE(std::same_as<decltype(R), const Matrixd<3, 2>>);
+
+    constexpr auto rank = qr.get_rank();
+    STATIC_REQUIRE(rank == 2);
 
     constexpr auto QTQ = transpose(Q) * Q;
-    STATIC_REQUIRE(std::same_as<decltype(QTQ), const Matrixd<2, 2>>);
-    STATIC_REQUIRE(all_equal(QTQ, make_identity<double, 2>()));
+    STATIC_REQUIRE(std::same_as<decltype(QTQ), const Matrixd<3, 3>>);
+    constexpr auto QTQr = get_n_cols<0, rank>(get_n_rows<0, rank>(QTQ));
+    STATIC_REQUIRE(all_equal(QTQr, make_identity<double, 2>()));
 
     constexpr auto b = Vectord<3>{3.0, 5.0, 7.0};
     constexpr auto x_tilde = qr.solve(b);
-    STATIC_REQUIRE(euclidean_distance(x_tilde, Vectord<2>{1.0, 2.0}) <= eps);
+
+    // (dakre) TODO x should really be 2x1 but with rank not being constexpr
+    // suitable inside struct its returning 3x1 with padded dim. Knowing this
+    // right not is fine but should be rectified later
+    STATIC_REQUIRE(euclidean_distance(x_tilde, Vectord<3>{1.0, 2.0, 0.0}) <=
+                   eps);
   }
 
   SECTION("Complex A") {
@@ -115,18 +162,24 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto qr = QR(A);
     constexpr auto Q = qr.get_Q();
     constexpr auto R = qr.get_R();
-    STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixcd<3, 2>>);
-    STATIC_REQUIRE(std::same_as<decltype(R), const Matrixcd<2, 2>>);
+    STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixcd<3, 3>>);
+    STATIC_REQUIRE(std::same_as<decltype(R), const Matrixcd<3, 2>>);
+
+    constexpr auto rank = qr.get_rank();
+    STATIC_REQUIRE(rank == 2);
 
     constexpr auto QTQ = transpose(Q) * Q;
-    STATIC_REQUIRE(std::same_as<decltype(QTQ), const Matrixcd<2, 2>>);
-    STATIC_REQUIRE(all_equal(QTQ, make_identity<std::complex<double>, 2>()));
+    STATIC_REQUIRE(std::same_as<decltype(QTQ), const Matrixcd<3, 3>>);
+    constexpr auto QTQr = get_n_cols<0, rank>(get_n_rows<0, rank>(QTQ));
+    STATIC_REQUIRE(all_equal(QTQr, make_identity<std::complex<double>, 2>()));
 
     constexpr auto d = std::complex<double>(5.0, 0);
     constexpr auto e = std::complex<double>(7.0, 0);
     constexpr auto y = Vectorcd<3>{c, d, e};
     constexpr auto x_tilde = qr.solve(y);
-    STATIC_REQUIRE(euclidean_distance(x_tilde, Vectorcd<2>{1.0, 2.0}) <= eps);
+    // (dakre) TODO same issue as above
+    STATIC_REQUIRE(euclidean_distance(x_tilde, Vectorcd<3>{1.0, 2.0, 0.0}) <=
+                   eps);
   }
 }
 

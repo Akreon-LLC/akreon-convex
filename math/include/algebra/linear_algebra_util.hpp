@@ -9,7 +9,7 @@
 
 /// @brief macro for capping stack recusion (actual max is ~512 in certain
 /// compilers so I'm being fairly conservative)
-#define MAX_STACK_DEPTH 128
+#define MAX_STACK_DEPTH 64
 
 namespace algebra {
 

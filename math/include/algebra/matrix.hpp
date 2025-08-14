@@ -129,4 +129,38 @@ constexpr auto make_diag(const Vector<T, N>& X) {
   return diag;
 }
 
+/**
+ * @brief get n rows from a matrix based on start & end indices provided as
+ * template args
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return matrix
+ */
+template <size_t Start, size_t End, typename T, size_t Rows, size_t Cols>
+  requires(End - Start <= Rows && Start < Rows)
+constexpr auto get_n_rows(const Matrix<T, Rows, Cols>& A) {
+  Matrix<T, End - Start, Cols> result;
+  for (size_t i = Start, idx = 0; i < End; ++i, ++idx)
+    result[idx] = get_row(A, i);
+  return result;
+}
+
+/**
+ * @brief get n cols from a matrix based on start & end indices provided as
+ * template args
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return matrix
+ */
+template <size_t Start, size_t End, typename T, size_t Rows, size_t Cols>
+  requires(End - Start <= Cols && Start < Cols)
+constexpr auto get_n_cols(const Matrix<T, Rows, Cols>& A) {
+  Matrix<T, End - Start, Rows> result;
+  for (size_t i = Start, idx = 0; i < End; ++i, ++idx)
+    result[idx] = get_col(A, i);
+  return transpose(result);
+}
+
 }  // namespace algebra

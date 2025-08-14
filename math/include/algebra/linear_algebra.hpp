@@ -140,7 +140,7 @@ class QR {
    *
    * @param matrix A of type T with Rows x Cols elements
    */
-  constexpr QR(const Matrix<T, Rows, Cols>& A) {
+  constexpr QR(const Matrix<T, Rows, Cols>& A) : rank(0) {
     // (dakre) TODO below is gram-schmidt in the future update to be
     // householder (improved accuracy)
     solve_gram_schmidt(A);
@@ -161,21 +161,31 @@ class QR {
   constexpr auto get_R() const { return R; }
 
   /**
+   * @brief get rank of matrix
+   *
+   * @return rank
+   */
+  constexpr auto get_rank() const { return rank; }
+
+  /**
    * @brief least squares solver A x = b using QR decomposition
    *
    * A x = b => Q R x = b => R x = Q^T b
    *
+   * @param vector b representing the outputs or observables of a linear system
+   *
    * @return x
    */
   constexpr auto solve(const Vector<T, Rows>& b) const {
-    Vector<T, Cols> x, c;
+    Vector<T, Rows> x, c;
 
     if constexpr (is_complex_v<T>)
       c = conjugate_transpose(Q) * b;
     else
       c = transpose(Q) * b;
 
-    for (int i = static_cast<int>(Cols) - 1; i >= 0; --i) {
+    constexpr auto mn = std::min(Rows, Cols);
+    for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
       T sum = 0;
       for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
       x[i] = (c(i) - sum) / R(i)(i);
@@ -191,35 +201,54 @@ class QR {
    * @return (void)
    */
   constexpr void solve_gram_schmidt(const Matrix<T, Rows, Cols>& A) {
+    // (dakre) defining tolerance here to be used in gram-schmidt below as a
+    // deciding factor to increase span of Q or keep the same and continue
+    // (rank-determining const)
+    constexpr scalar_type_t<T> tol = 1e-8;
+
     // 1. edge case if A is all zeros current GS algo does not handle this well
     // so return I and zeros mat
     if (all_equal(A, Matrix<T, Rows, Cols>{})) {
-      for (size_t i = 0; i < Cols; ++i) Q[i][i] = T(1);
+      for (size_t i = 0; i < Rows; ++i) Q[i][i] = T(1);
       return;
     }
 
     // 2. gram schmidt algorithm below
     for (size_t i = 0; i < Cols; ++i) {
       auto v = get_col(A, i);
-      for (size_t j = 0; j < i; ++j) {
+      for (size_t j = 0; j < rank; ++j) {
         if constexpr (!is_complex_v<T>)
           R[j][i] = dot(get_col(Q, j), v);
         else
           R[j][i] = dot(conjugate(get_col(Q, j)), v);
         v = v - R[j][i] * get_col(Q, j);
       }
-      const auto q_i = normalize(v, L2<T, Rows>);
-      for (size_t j = 0; j < Rows; ++j) Q[j][i] = q_i(j);
-      if constexpr (!is_complex_v<T>)
-        R[i][i] = dot(q_i, get_col(A, i));
-      else
-        R[i][i] = dot(conjugate(q_i), get_col(A, i));
+
+      if (rank >= Rows) {
+        // (dakre) Q is full and only need to fill R now from the projections
+        // above
+        continue;
+      } else {
+        if (L2(v) <= tol) {
+          // (dakre) the calculated orthogonal v lies in the subspace spanned by
+          // Q already thus lives in the null space of A
+          continue;
+        }
+        const auto q_i = normalize(v, L2<T, Rows>);
+        for (size_t j = 0; j < Rows; ++j) Q[j][rank] = q_i(j);
+        if constexpr (!is_complex_v<T>)
+          R[rank][i] = dot(q_i, get_col(A, i));
+        else
+          R[rank][i] = dot(conjugate(q_i), get_col(A, i));
+        rank++;
+      }
     }
   }
 
   /** @brief QR decomposition for matrix input A */
-  Matrix<T, Rows, Cols> Q;  ///< orthonormal basis Q
-  Matrix<T, Cols, Cols> R;  ///< upper right triangular matrix R
+  Matrix<T, Rows, Rows> Q;  ///< orthonormal basis Q
+  Matrix<T, Rows, Cols> R;  ///< upper right triangular matrix R
+  size_t rank;              ///< rank of A
 };
 
 /**
@@ -365,7 +394,7 @@ class SVD {
     }
 
     // (dakre) these eigenvectors are projected onto the row space thus
-    // resembling the right singular vectors space row space of Lambda above U
+    // resembling the right singular vectors of the row space of Lambda above U
     // (A^T A) VT -> U \Sigma VT
     VT = result.get_eigenvectors();
 

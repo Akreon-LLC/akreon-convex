@@ -95,14 +95,14 @@ constexpr auto conjugate_transpose(const Matrix<T, Rows, Cols>& A)
  *
  * @return A*B
  */
-template <typename T, size_t Rows, size_t Cols>
+template <typename T, size_t Rows, size_t Cols1, size_t Cols2>
   requires(FieldLike<T>)
-constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
-                         const Matrix<T, Cols, Rows>& B) {
-  Matrix<T, Rows, Rows> result;
+constexpr auto operator*(const Matrix<T, Rows, Cols1>& A,
+                         const Matrix<T, Cols1, Cols2>& B) {
+  Matrix<T, Rows, Cols2> result;
   const auto BT = transpose(B);
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Rows; ++j) result[i][j] = dot(A(i), BT(j));
+    for (size_t j = 0; j < Cols2; ++j) result[i][j] = dot(A(i), BT(j));
   return result;
 }
 
