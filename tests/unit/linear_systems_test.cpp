@@ -8,18 +8,13 @@
 #include <iostream>
 
 #include "math.hpp"
+#include "unit_test_helpers.hpp"
 
 using namespace topology;
 using namespace algebra;
 using namespace spaces;
+using namespace unit_test;
 
-template <typename T>
-concept DefaultConstructible = requires { T{}; };
-
-// (dakre) TODO please note that constexpr sqrt for 0 has precision of 1e-10
-// need to fix more and look into but an improvement over newton step precision
-// of 1e-7 w/ guess 1 before. Thus setting test eps to 1e-10
-constexpr double eps = 1e-10;
 
 TEST_CASE("Test euclidean space", "[E]") {
   using OSD2 = OpenSet<double, 2>;

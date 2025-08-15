@@ -8,9 +8,11 @@
 #include <iostream>
 
 #include "math.hpp"
+#include "unit_test_helpers.hpp"
 
 using namespace algebra;
 using namespace topology;
+using namespace unit_test;
 
 TEST_CASE("Test field types", "[field]") {
   SECTION("Floating point check") {
@@ -209,5 +211,23 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto x2 = Vectorcd<2>{std::conj(b), a};
     constexpr auto M = Matrixcd<2, 2>{x1, x2};
     STATIC_REQUIRE(is_hermitian(M));
+  }
+}
+
+TEST_CASE("Householder vectors", "[householder]") {
+  SECTION("Real householder vectors & matrices") {
+    constexpr Vector<double, 4> x{1.0, 2.0, 3.0, 4.0};
+    constexpr auto h = HouseholderVector(x);
+    constexpr auto beta = h.get_beta();
+    constexpr auto v = h.get_v();
+
+    constexpr auto I = make_identity<double, 4>();
+    constexpr auto P =
+        I - beta * outer_product(as_col_vector(v), as_row_vector(v));
+    STATIC_REQUIRE(all_equal(transpose(P) * P, I));
+
+    constexpr auto Px = P * x;
+    constexpr auto expected = Vectord<4>{5.47723, 0.0, 0.0, 0.0};
+    STATIC_REQUIRE(euclidean_distance(Px, expected) <= eps);
   }
 }
