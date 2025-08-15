@@ -129,10 +129,17 @@ constexpr bool is_hermitian(const Matrix<T, N, N>& A) {
  * @brief QR decomposition class definition
  *
  * Orthonormalizes a given Matrix into an orthogonal basis Q and upper right
- * triangular matrix R. Currently leveraging Gram-Schmidt algorithm to do this.
+ * triangular matrix R. Deprecated gram schmidt for householder for better
+ * numerical properties.
+ *
+ * Q is now compact in householder where A = QR => Q = A R^{-1} in the
+ * representation of this class
+ *
+ * For short and fat matrices just transpose A -> QR -> transpose result back
+ * into A = L Q result
  */
 template <typename T, size_t Rows, size_t Cols>
-  requires(Rows > 0 && FieldLike<T>)
+  requires(Rows >= Cols && Rows > 0 && FieldLike<T>)
 class QR {
  public:
   /**
@@ -140,116 +147,126 @@ class QR {
    *
    * @param matrix A of type T with Rows x Cols elements
    */
-  constexpr QR(const Matrix<T, Rows, Cols>& A) : rank(0) {
-    // (dakre) TODO below is gram-schmidt in the future update to be
-    // householder (improved accuracy)
-    solve_gram_schmidt(A);
-  }
+  constexpr QR(const Matrix<T, Rows, Cols>& A) { solve_householder(A); }
 
   /**
    * @brief basic get function for Q matrix
    *
    * @return Q
    */
-  constexpr auto get_Q() const { return Q; }
+  constexpr auto get_householder_Q() const { return Q; }
+
+  /**
+   * @brief get Q from compact householder Q
+   *
+   * To acquire Q we simply apply reflections in the reverse order with Q = I to
+   * start. Then A = QR.
+   *
+   * @return orthonormal Q
+   */
+  constexpr auto get_Q() const {
+    const size_t k = std::min(Rows, Cols);
+    auto Q_bar = make_identity<T, Rows>();
+    constexpr_for<0, k>([&]<size_t jj>(std::integral_constant<size_t, jj>) {
+      const size_t j = k - jj - 1;
+      Vector<T, Rows - j> v;
+      v[0] = T(1);
+      for (size_t i = j + 1, a = 1; i < Rows; ++i, ++a) v[a] = Q(i)(j);
+
+      auto v_col = as_col_vector(v);
+
+      auto Q_block = get_n_rows<j, Rows>(Q_bar);
+      Q_block = Q_block - (beta(j) * v_col) * (transpose(v_col) * Q_block);
+
+      for (size_t r = j, a = 0; r < Rows; ++r, ++a)
+        for (size_t c = 0; c < Rows; ++c) Q_bar[r][c] = Q_block(a)(c);
+    });
+    return Q_bar;
+  }
 
   /**
    * @brief basic get function for R matrix
    *
    * @return R
    */
-  constexpr auto get_R() const { return R; }
+  constexpr auto get_R() const { return get_upper_right_triangular_matrix(Q); }
 
   /**
    * @brief get rank of matrix
    *
    * @return rank
    */
-  constexpr auto get_rank() const { return rank; }
+  constexpr auto get_rank(scalar_type_t<T> tol = 1e-6) const {
+    const auto& R = get_R();
+    const size_t mn = std::min(Rows, Cols);
+    size_t rank = 0;
+    for (size_t i = 0; i < mn; ++i)
+      if (R(i)(i) > tol) rank += 1;
+    return rank;
+  }
 
   /**
    * @brief least squares solver A x = b using QR decomposition
    *
-   * A x = b => Q R x = b => R x = Q^T b
+   * GS method: A x = b => Q R x = b => R x = Q^T b
+   * Householder with compact Q: x = Q^T b
    *
    * @param vector b representing the outputs or observables of a linear system
    *
    * @return x
    */
   constexpr auto solve(const Vector<T, Rows>& b) const {
-    Vector<T, Rows> c;
-    Vector<T, Cols> x;
-
-    if constexpr (is_complex_v<T>)
-      c = conjugate_transpose(Q) * b;
-    else
-      c = transpose(Q) * b;
-
-    constexpr auto mn = std::min(Rows, Cols);
-    for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
-      T sum = 0;
-      for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
-      x[i] = (c(i) - sum) / R(i)(i);
-    }
-
-    return x;
+    if constexpr (is_complex_v<T>) return conjugate_transpose(Q) * b;
+    return transpose(Q) * b;
   }
 
  private:
   /**
-   * @brief solve QR decomposition via Gram Schmidt method
+   * @brief construct householder matrix from A (solve QR where Q is compact
+   * form)
+   *
+   * Premultiplication matrix-vector product update with rank-1 update
+   * PA = (I - beta v v^T) A = A - (beta v)*(v^T A)
+   *
+   * Postmultiplication
+   * AP = A*(I - beta v v^T) = A - (A v)(beta v)^T
+   *
+   * Householder essentially annihilates subdiagonal column entries based on
+   * each successive iterations reflections. Look at premultiplication case:
+   *
+   * P0 A annhiliates first col and creates basis vector in spanning first dir.
+   * P1 P0 A annihilates second col and creates basis spanning 2 dim now... so
+   * on and so forth till R = Pk Pk-1 ... P0 A where R is our right upper
+   * triangular matrix
+   *
+   * @param matrix A of type T with Rows x Cols elements
    *
    * @return (void)
    */
-  constexpr void solve_gram_schmidt(const Matrix<T, Rows, Cols>& A) {
-    // (dakre) defining tolerance here to be used in gram-schmidt below as a
-    // deciding factor to increase span of Q or keep the same and continue
-    // (rank-determining const)
-    constexpr scalar_type_t<T> tol = 1e-8;
+  constexpr void solve_householder(const Matrix<T, Rows, Cols>& A) {
+    Q = A;
+    constexpr auto mn = std::min(Rows, Cols);
+    constexpr_for<0, mn>([&]<size_t j>(std::integral_constant<size_t, j>) {
+      const auto& Q_jm = get_n_rows<j, Rows>(Q);
+      const auto& Q_jm_j = get_col(Q_jm, j);
 
-    // 1. edge case if A is all zeros current GS algo does not handle this well
-    // so return I and zeros mat
-    if (all_equal(A, Matrix<T, Rows, Cols>{})) {
-      for (size_t i = 0; i < Rows; ++i) Q[i][i] = T(1);
-      return;
-    }
+      const auto& q = HouseholderVector(Q_jm_j);
+      beta[j] = q.get_beta();
+      const auto& v = as_col_vector(q.get_v());
 
-    // 2. gram schmidt algorithm below
-    for (size_t i = 0; i < Cols; ++i) {
-      auto v = get_col(A, i);
-      for (size_t j = 0; j < rank; ++j) {
-        if constexpr (!is_complex_v<T>)
-          R[j][i] = dot(get_col(Q, j), v);
-        else
-          R[j][i] = dot(conjugate(get_col(Q, j)), v);
-        v = v - R[j][i] * get_col(Q, j);
-      }
+      auto Q_jm_jn = get_n_cols<j, Cols>(Q_jm);
+      Q_jm_jn = Q_jm_jn - (beta[j] * v) * (transpose(v) * Q_jm_jn);
+      for (size_t k = j, a = 0; k < Rows; ++k, ++a)
+        for (size_t l = j, b = 0; l < Cols; ++l, ++b) Q[k][l] = Q_jm_jn(a)(b);
 
-      if (rank >= Rows) {
-        // (dakre) Q is full and only need to fill R now from the projections
-        // above
-        continue;
-      } else {
-        if (L2(v) <= tol) {
-          // (dakre) the calculated orthogonal v lies in the subspace spanned by
-          // Q already thus lives in the null space of A
-          continue;
-        }
-        const auto q_i = normalize(v, L2<T, Rows>);
-        for (size_t j = 0; j < Rows; ++j) Q[j][rank] = q_i(j);
-        if constexpr (!is_complex_v<T>)
-          R[rank][i] = dot(q_i, get_col(A, i));
-        else
-          R[rank][i] = dot(conjugate(q_i), get_col(A, i));
-        rank++;
-      }
-    }
+      for (size_t k = j + 1, a = 1; k < Rows; ++k, ++a) Q[k][j] = v(a)(0);
+    });
   }
 
   /** @brief QR decomposition for matrix input A */
-  Matrix<T, Rows, Rows> Q;  ///< orthonormal basis Q
-  Matrix<T, Rows, Cols> R;  ///< upper right triangular matrix R
-  size_t rank;              ///< rank of A
+  Matrix<T, Rows, Rows> Q;  ///< orthonormal basis Q (slighty different than GS
+                            ///< as its fully compact and can use straight up)
+  Vector<T, Rows> beta;     ///< beta scalars
 };
 
 /**

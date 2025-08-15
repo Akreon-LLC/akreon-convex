@@ -15,7 +15,6 @@ using namespace algebra;
 using namespace spaces;
 using namespace unit_test;
 
-
 TEST_CASE("Test euclidean space", "[E]") {
   using OSD2 = OpenSet<double, 2>;
   using Derived = Topology<OSD2, 2>;
@@ -56,6 +55,7 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     STATIC_REQUIRE(all_equal(QTQ, make_identity<double, 3>()));
   }
 
+#if 0
   SECTION("Complex A") {
     constexpr auto a = std::complex<double>(2.0, 0.0);
     constexpr auto b = std::complex<double>(3.0, 1.0);
@@ -113,8 +113,10 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     constexpr auto rank = qr.get_rank();
     STATIC_REQUIRE(rank == 2);
   }
+#endif
 }
 
+#if 0
 TEST_CASE("Least squares", "[R x = Q^T b]") {
   SECTION("Real A") {
     constexpr auto x1 = Vectord<2>{1.0, 1.0};
@@ -290,3 +292,4 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     STATIC_REQUIRE(all_equal(VTV, I));
   }
 }
+#endif

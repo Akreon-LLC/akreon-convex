@@ -133,6 +133,12 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(get_n_cols<0, 1>(B) == transpose(get_col(B, 0)));
     STATIC_REQUIRE(all_equal(get_n_cols<0, 2>(B), B));
 
+    constexpr auto BR = get_upper_right_triangular_matrix(B);
+    constexpr auto BL = get_lower_left_triangular_matrix(B);
+    STATIC_REQUIRE(BR(1)(0) == 0.0);
+    STATIC_REQUIRE(BL(0)(1) == 0.0);
+    STATIC_REQUIRE(get_diag(BR) == get_diag(BL));
+
     constexpr auto B_col_0 = get_col(B, 0);
     STATIC_REQUIRE(B_col_0(0) == B(0)(0));
     STATIC_REQUIRE(B_col_0(1) == B(1)(0));
@@ -215,7 +221,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 }
 
 TEST_CASE("Householder vectors", "[householder]") {
-  SECTION("Real householder vectors & matrices") {
+  SECTION("Real householder vectors") {
     constexpr Vector<double, 4> x{1.0, 2.0, 3.0, 4.0};
     constexpr auto h = HouseholderVector(x);
     constexpr auto beta = h.get_beta();

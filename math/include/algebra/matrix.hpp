@@ -6,6 +6,7 @@
 #pragma once
 
 #include "vector.hpp"
+#include "vector_ops.hpp"
 
 namespace algebra {
 
@@ -161,6 +162,40 @@ constexpr auto get_n_cols(const Matrix<T, Rows, Cols>& A) {
   for (size_t i = Start, idx = 0; i < End; ++i, ++idx)
     result[idx] = get_col(A, i);
   return transpose(result);
+}
+
+/**
+ * @brief get upper right triangular matrix from A
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return matrix
+ */
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
+constexpr auto get_upper_right_triangular_matrix(
+    const Matrix<T, Rows, Cols>& A) {
+  Matrix<T, Rows, Cols> R;
+  for (size_t i = 0; i < Rows; ++i)
+    for (size_t j = i; j < Cols; ++j) R[i][j] = A(i)(j);
+  return R;
+}
+
+/**
+ * @brief get lower left triangular matrix from A
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return matrix
+ */
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
+constexpr auto get_lower_left_triangular_matrix(
+    const Matrix<T, Rows, Cols>& A) {
+  Matrix<T, Rows, Cols> L;
+  for (size_t i = 0; i < Cols; ++i)
+    for (size_t j = i; j < Rows; ++j) L[j][i] = A(j)(i);
+  return L;
 }
 
 }  // namespace algebra

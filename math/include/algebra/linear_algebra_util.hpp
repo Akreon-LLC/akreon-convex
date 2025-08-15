@@ -170,4 +170,21 @@ constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0) {
   return guess;
 }
 
+/**
+ * @brief constexpr for loop which recursively unrolls a dynamic for loop into
+ * compile time recursive loop
+ *
+ * @param functor object that is forwarded
+ *
+ * @return (void)
+ */
+template <size_t Start, size_t End, typename Func>
+  requires(End - Start < MAX_STEP_EVAL)
+constexpr void constexpr_for(Func&& f) {
+  if constexpr (Start < End) {
+    f(std::integral_constant<size_t, Start>{});
+    constexpr_for<Start + 1, End>(std::forward<Func>(f));
+  }
+}
+
 }  // namespace algebra
