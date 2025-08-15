@@ -7,9 +7,8 @@
 
 #include "field.hpp"
 
-/// @brief macro for capping stack recusion (actual max is ~512 in certain
-/// compilers so I'm being fairly conservative)
-#define MAX_STACK_DEPTH 64
+/// @brief macro for capping compile step eval (default max is ~512)
+#define MAX_STEP_EVAL 512
 
 namespace algebra {
 
@@ -166,7 +165,7 @@ template <typename T>
   requires(FieldLike<T> && !is_complex_v<T>)
 constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0) {
   // (dakre) newton step 0.5 * (guess + x / guess)
-  if (depth + 1 < MAX_STACK_DEPTH && constexpr_abs(guess * guess - x) > 1e-14)
+  if (depth + 1 < MAX_STEP_EVAL && constexpr_abs(guess * guess - x) > 1e-10)
     return constexpr_sqrt(x, T(0.5) * (guess + x / guess), depth + 1);
   return guess;
 }

@@ -307,14 +307,30 @@ class EigenDecomposition {
     // 1. A_0 = A
     // 2. A_k = Q_k R_k
     // 3. A_{k+1} = R_k Q_k \equiv Q_k^T A_k Q_k similarity transform
-    for (size_t i = 0; i < MAX_STACK_DEPTH; ++i) {
+    for (size_t i = 0; i < MAX_STEP_EVAL; ++i) {
       const auto qr = QR(Lambda);
-      const auto Q = qr.get_Q();
-      const auto R = qr.get_R();
+      const auto& Q = qr.get_Q();
+      const auto& R = qr.get_R();
       Lambda = R * Q;
       VT = VT * Q;
       const auto off_diag = Lambda - make_diag(get_diag(Lambda));
-      if (frobenius_norm(off_diag) < tol) break;
+
+      // (dakre) NOTE removing fro norm here as it creates too many steps for
+      // compiler to evaluate nominally... if (frobenius_norm(off_diag) < tol)
+      // break;
+      T sum = 0;
+      for (size_t i = 0; i < Rows; ++i)
+        for (size_t j = 0; j < Cols; ++j) sum += off_diag(i)(j);
+
+      sum *= sum;
+
+      scalar_type_t<T> res;
+      if constexpr (is_complex_v<T>)
+        res = sum.real();
+      else
+        res = sum;
+
+      if (res < tol * tol) break;
     }
   }
 
