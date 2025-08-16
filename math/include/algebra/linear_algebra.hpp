@@ -297,12 +297,17 @@ class QR {
  * @brief EigenDecomposition class definition
  *
  * Solves the following equation A X = \Lambda X via QR and successive
- * similarity transforms to diagonalize A into eigenvalues
+ * similarity transforms to diagonalize A into eigenvalues.
+ *
+ * Following orthogonal iteration outlined in Matrix Computations 7.3.2 - 7.3.3
+ * QR Iteration-- TODO there is speed up using givens and householder
+ * reflections more directly but I will look at that later on
  */
 template <typename T, size_t Rows, size_t Cols>
   requires(Rows == Cols && FieldLike<T>)
 class EigenDecomposition {
  public:
+  constexpr static size_t K = std::min(Rows, Cols);
   /**
    * @brief CTOR
    *
@@ -319,7 +324,7 @@ class EigenDecomposition {
    *
    * @return vector of eigenvalues
    */
-  constexpr auto get_eigenvalues() const { return get_diag(Lambda); }
+  constexpr auto get_eigenvalues() const { return lambdas; }
 
   /**
    * @brief basic get eigenvectors function
@@ -339,47 +344,54 @@ class EigenDecomposition {
    */
   constexpr void solve_qr(const Matrix<T, Rows, Cols>& A,
                           const scalar_type_t<T>& tol) {
-    Lambda = A;
+    Matrix<T, Rows, Cols> Z = A;
+
+    auto qr = QR(Z);
+    auto Q = qr.get_Q();
+    auto R = qr.get_R();
+
     VT = make_identity<T, Cols>();
 
     // Eigendecomposition works with diagonalizing the matrix to solve A X =
-    // X \Lambda (\Lambda == eigenvalue matrix which is diagonal), the resulting
-    // X is our eigenvector associated with the eigenvalues
-    // 1. A_0 = A
-    // 2. A_k = Q_k R_k
-    // 3. A_{k+1} = R_k Q_k \equiv Q_k^T A_k Q_k similarity transform
+    // X \Lambda (\Lambda == eigenvalue matrix which is diagonal)
     for (size_t i = 0; i < MAX_STEP_EVAL; ++i) {
-      const auto qr = QR(Lambda);
-      const auto& Q = qr.get_Q();
-      const auto& R = qr.get_R();
-      Lambda = R * Q;
+      Z = A * Q;
+      qr = QR(Z);
+      Q = qr.get_Q();
+      R = qr.get_R();
+
+      Matrix<T, Rows, Cols> Tk;
+      if constexpr (is_complex_v<T>)
+        Tk = conjugate_transpose(Q) * (A * Q);
+      else
+        Tk = transpose(Q) * (A * Q);
+
       VT = VT * Q;
-      const auto off_diag = Lambda - make_diag(get_diag(Lambda));
+      lambdas = get_diag(Tk);
 
       // (dakre) NOTE removing fro norm here as it creates too many steps for
       // compiler to evaluate nominally... if (frobenius_norm(off_diag) < tol)
       // break;
-      T sum = 0;
-      for (size_t i = 0; i < Rows; ++i)
-        for (size_t j = 0; j < Cols; ++j) sum += off_diag(i)(j);
-
-      sum *= sum;
-
-      scalar_type_t<T> res;
-      if constexpr (is_complex_v<T>)
-        res = sum.real();
-      else
-        res = sum;
+      scalar_type_t<T> res = scalar_type_t<T>(0);
+      for (size_t i = 1; i < Rows; ++i) {
+        for (size_t j = 0; j < std::min(i, Cols); ++j) {
+          if constexpr (is_complex_v<T>)
+            res += (std::conj(Tk(i)(j)) * Tk(i)(j)).real();
+          else
+            res += Tk(i)(j) * Tk(i)(j);
+        }
+      }
 
       if (res < tol * tol) break;
     }
   }
 
   /** @brief eigendecomposition member variables */
-  Matrix<T, Rows, Cols> Lambda;  ///< eigenvalues
-  Matrix<T, Cols, Cols> VT;      ///< eigenvectors
+  Vector<T, K> lambdas;      ///< eigenvalues
+  Matrix<T, Cols, Cols> VT;  ///< eigenvectors
 };
 
+#if 0
 /**
  * @brief Singular value decomposition class definition
  *
@@ -482,5 +494,6 @@ class SVD {
   Matrix<T, Rows, Rows> U;                ///< left singular vectors
   Vector<scalar_type_t<T>, Cols> sigmas;  ///< singular values
 };
+#endif
 
 }  // namespace algebra

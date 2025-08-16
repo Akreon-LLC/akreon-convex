@@ -174,7 +174,6 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
   }
 }
 
-#if 0
 TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
   SECTION("Diagonal A") {
     constexpr auto diag = Vectord<3>{1.0, 2.0, 3.0};
@@ -194,6 +193,7 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
   }
 
+#if 0
   SECTION("Complex hermitian A") {
     constexpr auto a = std::complex<double>(2.0, 0.0);
     constexpr auto b = std::complex<double>(3.0, 1.0);
@@ -203,15 +203,20 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto A = Matrixcd<2, 2>{x1, x2};
     constexpr auto res = EigenDecomposition(A);
     constexpr auto lambdas = res.get_eigenvalues();
+
     constexpr auto d = std::complex<double>(3 + constexpr_sqrt(11.0));
     constexpr auto e = std::complex<double>(3 - constexpr_sqrt(11.0));
     constexpr auto expected = make_diag(Vectorcd<2>{d, e});
     constexpr auto result = make_diag(lambdas);
-    STATIC_REQUIRE(all_equal(result, expected));
     STATIC_REQUIRE(is_hermitian(A));
+    std::cout << result(0)(0) << " " << result(1)(1) << std::endl;
+    std::cout << expected(0)(0) << " " << expected(1)(1) << std::endl;
+    //STATIC_REQUIRE(all_equal(result, expected));
   }
+#endif
 }
 
+#if 0
 TEST_CASE("SVD", "[A = U Sigma VT]") {
   SECTION("Known SVD") {
     constexpr auto x1 = Vectord<2>{1.0, 0.0};
