@@ -9,7 +9,7 @@
 
 #include "math.hpp"
 
-#define TRIALS 1000
+#define TRIALS 10000
 
 using namespace algebra;
 
@@ -43,7 +43,7 @@ auto make_vec(std::mt19937& rng, std::uniform_real_distribution<T>& dist) {
   for (size_t i = 0; i < N; ++i) b[i] = dist(rng);
   return b;
 }
-#if 0
+
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T> && !is_complex_v<T>)
 void fuzz_test(const scalar_type_t<T>& tol) {
@@ -66,6 +66,7 @@ void fuzz_test(const scalar_type_t<T>& tol) {
       throw std::runtime_error("A_prime != A");
     }
 
+#if 0
     const auto svd = SVD(A);
     const auto U = svd.get_left_singular_vectors();
     const auto sigmas = svd.get_singular_values();
@@ -73,9 +74,6 @@ void fuzz_test(const scalar_type_t<T>& tol) {
     static_assert(std::same_as<decltype(U), const Matrix<T, Rows, Rows>>);
     static_assert(std::same_as<decltype(VT), const Matrix<T, Cols, Cols>>);
     static_assert(std::same_as<decltype(sigmas), const Vector<T, Cols>>);
-
-    //const auto A_svd = U * (make_diag(sigmas) * VT);
-    //std::cout << all_equal(A, A_svd) << std::endl;
 
     T min_sv = 1000, max_sv = 0;
     for (const auto& x : sigmas) {
@@ -99,18 +97,18 @@ void fuzz_test(const scalar_type_t<T>& tol) {
       print_mat(VT);
       throw std::runtime_error("Failed to perform SVD on A");
     }
+#endif
 
     const auto x = make_vec<T, Cols>(rng, dist);
     const auto b = A * x;
     const auto x_tilde = res.solve(b);
     const auto lsq_fit = A * x_tilde;
-    const auto normalized_residual =
-        euclidean_distance(lsq_fit, b) / L2<T, Rows>(b);
-    if (normalized_residual > tol) {
+    const auto residual = euclidean_distance(lsq_fit, b);
+    if (residual > tol) {
       std::cerr << "LSQ test case failed for tolerance " << tol << std::endl;
-      std::cerr << "Normalized residual " << normalized_residual << std::endl;
+      std::cerr << "Residual " << residual << std::endl;
       std::cerr << "Matrix rank " << r << std::endl;
-      std::cerr << "Matrix condition number " << k << std::endl;
+      // std::cerr << "Matrix condition number " << k << std::endl;
       print_mat(A);
       std::cerr << "Vector b" << std::endl;
       print_vec(b);
@@ -120,22 +118,17 @@ void fuzz_test(const scalar_type_t<T>& tol) {
     }
   }
 }
-#endif
 
 int main() {
   try {
-#if 0
     std::cout << "Starting double test" << std::endl;
     fuzz_test<double, 3, 3>(1e-10);
-    // (dakre) TODO float precision is not so good, partly to be expected but
-    // householder reflection qr may help
     std::cout << "Starting float test" << std::endl;
-    fuzz_test<float, 3, 3>(1e-2);
+    fuzz_test<float, 3, 3>(1e-4);
     std::cout << "Starting double 3x2 test" << std::endl;
     fuzz_test<double, 3, 2>(1e-10);
-    std::cout << "Starting double 2x3 test" << std::endl;
-    fuzz_test<double, 2, 3>(1e-10);
-#endif
+    // std::cout << "Starting double 2x3 test" << std::endl;
+    // fuzz_test<double, 2, 3>(1e-10);
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
     return -1;

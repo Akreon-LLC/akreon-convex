@@ -55,28 +55,6 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     STATIC_REQUIRE(all_equal(QTQ, make_identity<double, 3>()));
   }
 
-#if 0
-  SECTION("Complex A") {
-    constexpr auto a = std::complex<double>(2.0, 0.0);
-    constexpr auto b = std::complex<double>(3.0, 1.0);
-    constexpr auto c = std::complex<double>(4.0, 0.0);
-    constexpr auto x1 = Vectorcd<2>{a, b};
-    constexpr auto x2 = Vectorcd<2>{std::conj(b), c};
-    constexpr auto A = Matrixcd<2, 2>{x1, x2};
-    constexpr auto qr = QR(A);
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
-    constexpr auto A_prime = Q * R;
-    STATIC_REQUIRE(all_equal(A_prime, A));
-
-    constexpr auto zero = std::complex<double>(0.0, 0.0);
-    STATIC_REQUIRE(R(1)(0) == zero);
-
-    constexpr auto QTQ = conjugate_transpose(Q) * Q;
-    STATIC_REQUIRE(all_equal(QTQ, make_identity<std::complex<double>, 2>()));
-    STATIC_REQUIRE(2 == qr.get_rank());
-  }
-
   SECTION("Real A m > n") {
     constexpr auto x1 = Vectord<2>{1.0, 1.0};
     constexpr auto x2 = Vectord<2>{1.0, 0.0};
@@ -102,21 +80,42 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     constexpr auto x1 = Vectord<3>{1.0, 1.0, 0.0};
     constexpr auto x2 = Vectord<3>{0.0, 1.0, 1.0};
     constexpr auto A = Matrixd<2, 3>{x1, x2};
-    constexpr auto qr = QR(A);
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
-    STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<2, 2>>);
-    STATIC_REQUIRE(std::same_as<decltype(R), const Matrixd<2, 3>>);
-    constexpr auto A_prime = Q * R;
+    constexpr auto qr = QR(transpose(A));
+    constexpr auto Q = transpose(qr.get_Q());
+    constexpr auto L = transpose(qr.get_R());
+    STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<3, 3>>);
+    STATIC_REQUIRE(std::same_as<decltype(L), const Matrixd<2, 3>>);
+    constexpr auto A_prime = L * Q;
     STATIC_REQUIRE(all_equal(A_prime, A));
 
     constexpr auto rank = qr.get_rank();
     STATIC_REQUIRE(rank == 2);
   }
+
+#if 0
+  SECTION("Complex A") {
+    constexpr auto a = std::complex<double>(2.0, 0.0);
+    constexpr auto b = std::complex<double>(3.0, 1.0);
+    constexpr auto c = std::complex<double>(4.0, 0.0);
+    constexpr auto x1 = Vectorcd<2>{a, b};
+    constexpr auto x2 = Vectorcd<2>{std::conj(b), c};
+    constexpr auto A = Matrixcd<2, 2>{x1, x2};
+    constexpr auto qr = QR(A);
+    constexpr auto Q = qr.get_Q();
+    constexpr auto R = qr.get_R();
+    constexpr auto A_prime = Q * R;
+    STATIC_REQUIRE(all_equal(A_prime, A));
+
+    constexpr auto zero = std::complex<double>(0.0, 0.0);
+    STATIC_REQUIRE(R(1)(0) == zero);
+
+    constexpr auto QTQ = conjugate_transpose(Q) * Q;
+    STATIC_REQUIRE(all_equal(QTQ, make_identity<std::complex<double>, 2>()));
+    STATIC_REQUIRE(2 == qr.get_rank());
+  }
 #endif
 }
 
-#if 0
 TEST_CASE("Least squares", "[R x = Q^T b]") {
   SECTION("Real A") {
     constexpr auto x1 = Vectord<2>{1.0, 1.0};
@@ -132,6 +131,9 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto rank = qr.get_rank();
     STATIC_REQUIRE(rank == 2);
 
+    constexpr auto A_prime = Q * R;
+    STATIC_REQUIRE(all_equal(A_prime, A));
+
     constexpr auto QTQ = transpose(Q) * Q;
     STATIC_REQUIRE(std::same_as<decltype(QTQ), const Matrixd<3, 3>>);
     constexpr auto QTQr = get_n_cols<0, rank>(get_n_rows<0, rank>(QTQ));
@@ -143,6 +145,7 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     STATIC_REQUIRE(euclidean_distance(x_tilde, Vectord<2>{1.0, 2.0}) <= eps);
   }
 
+#if 0
   SECTION("Complex A") {
     // (dakre) adding small eps to im part but otherwise same as before
     constexpr auto a = std::complex<double>(1.0, 1e-8);
@@ -172,8 +175,10 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto x_tilde = qr.solve(y);
     STATIC_REQUIRE(euclidean_distance(x_tilde, Vectorcd<2>{1.0, 2.0}) <= eps);
   }
+#endif
 }
 
+#if 0
 TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
   SECTION("Diagonal A") {
     constexpr auto diag = Vectord<3>{1.0, 2.0, 3.0};

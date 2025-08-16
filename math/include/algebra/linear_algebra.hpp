@@ -208,16 +208,32 @@ class QR {
   /**
    * @brief least squares solver A x = b using QR decomposition
    *
-   * GS method: A x = b => Q R x = b => R x = Q^T b
-   * Householder with compact Q: x = Q^T b
+   * LSQ method: A x = b => Q R x = b => R x = Q^T b
    *
    * @param vector b representing the outputs or observables of a linear system
    *
    * @return x
    */
   constexpr auto solve(const Vector<T, Rows>& b) const {
-    if constexpr (is_complex_v<T>) return conjugate_transpose(Q) * b;
-    return transpose(Q) * b;
+    Vector<T, Rows> c;
+    Vector<T, Cols> x;
+
+    const auto Q_bar = get_Q();
+    const auto R = get_R();
+
+    if constexpr (is_complex_v<T>)
+      c = conjugate_transpose(Q_bar) * b;
+    else
+      c = transpose(Q_bar) * b;
+
+    constexpr auto mn = std::min(Rows, Cols);
+    for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
+      T sum = 0;
+      for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
+      x[i] = (c(i) - sum) / R(i)(i);
+    }
+
+    return x;
   }
 
  private:
@@ -264,7 +280,7 @@ class QR {
   }
 
   /** @brief QR decomposition for matrix input A */
-  Matrix<T, Rows, Rows> Q;  ///< orthonormal basis Q (slighty different than GS
+  Matrix<T, Rows, Cols> Q;  ///< orthonormal basis Q (slighty different than GS
                             ///< as its fully compact and can use straight up)
   Vector<T, Rows> beta;     ///< beta scalars
 };
