@@ -170,9 +170,16 @@ struct HouseholderVector {
    *
    * @param vector x to be transformed into householder
    */
-  constexpr HouseholderVector(const Vector<T, N>& x)
-    requires(N > 1)
-  {
+  constexpr HouseholderVector(const Vector<T, N>& x) {
+    make_householder(x, std::integral_constant<size_t, N>{});
+  }
+
+  constexpr auto get_beta() const { return beta; }
+
+  constexpr auto get_v() const { return v; }
+
+ private:
+  constexpr void make_householder(const Vector<T, N>& x, auto) {
     const auto x_shifted = get_elements<1, N>(x);
     scalar_type_t<T> sigma;
     if constexpr (!is_complex_v<T>)
@@ -200,23 +207,12 @@ struct HouseholderVector {
     }
   }
 
-  /**
-   * @brief CTOR to handle degenerate 1x1 case
-   *
-   * @param vector x (not used)
-   */
-  constexpr HouseholderVector(const Vector<T, 1>& /*x*/)
-    requires(N == 1)
-  {
+  constexpr void make_householder(const Vector<T, N>&,
+                                  std::integral_constant<std::size_t, 1>) {
     beta = 0;
     v[0] = 1;
   }
 
-  constexpr auto get_beta() const { return beta; }
-
-  constexpr auto get_v() const { return v; }
-
- private:
   /** @brief Vector member variables */
   Vector<T, N> v;         ///< householder vector
   scalar_type_t<T> beta;  ///< scalar to form P
