@@ -176,7 +176,11 @@ class QR {
       auto v_col = as_col_vector(v);
 
       auto Q_block = get_n_rows<j, Rows>(Q_bar);
-      Q_block = Q_block - (beta(j) * v_col) * (transpose(v_col) * Q_block);
+      if constexpr (is_complex_v<T>)
+        Q_block = Q_block -
+                  (beta(j) * v_col) * (conjugate_transpose(v_col) * Q_block);
+      else
+        Q_block = Q_block - (beta(j) * v_col) * (transpose(v_col) * Q_block);
 
       for (size_t r = j, a = 0; r < Rows; ++r, ++a)
         for (size_t c = 0; c < Rows; ++c) Q_bar[r][c] = Q_block(a)(c);
@@ -201,7 +205,7 @@ class QR {
     const size_t mn = std::min(Rows, Cols);
     size_t rank = 0;
     for (size_t i = 0; i < mn; ++i)
-      if (R(i)(i) > tol) rank += 1;
+      if (L2<T, 1>(Vector<T, 1>{R(i)(i)}) > tol) rank += 1;
     return rank;
   }
 
@@ -271,7 +275,11 @@ class QR {
       const auto& v = as_col_vector(q.get_v());
 
       auto Q_jm_jn = get_n_cols<j, Cols>(Q_jm);
-      Q_jm_jn = Q_jm_jn - (beta[j] * v) * (transpose(v) * Q_jm_jn);
+      if constexpr (is_complex_v<T>)
+        Q_jm_jn = Q_jm_jn - (beta[j] * v) * (conjugate_transpose(v) * Q_jm_jn);
+      else
+        Q_jm_jn = Q_jm_jn - (beta[j] * v) * (transpose(v) * Q_jm_jn);
+
       for (size_t k = j, a = 0; k < Rows; ++k, ++a)
         for (size_t l = j, b = 0; l < Cols; ++l, ++b) Q[k][l] = Q_jm_jn(a)(b);
 

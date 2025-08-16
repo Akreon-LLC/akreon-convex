@@ -92,7 +92,6 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     STATIC_REQUIRE(rank == 2);
   }
 
-#if 0
   SECTION("Complex A") {
     constexpr auto a = std::complex<double>(2.0, 0.0);
     constexpr auto b = std::complex<double>(3.0, 1.0);
@@ -113,7 +112,6 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     STATIC_REQUIRE(all_equal(QTQ, make_identity<std::complex<double>, 2>()));
     STATIC_REQUIRE(2 == qr.get_rank());
   }
-#endif
 }
 
 TEST_CASE("Least squares", "[R x = Q^T b]") {
@@ -145,7 +143,6 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     STATIC_REQUIRE(euclidean_distance(x_tilde, Vectord<2>{1.0, 2.0}) <= eps);
   }
 
-#if 0
   SECTION("Complex A") {
     // (dakre) adding small eps to im part but otherwise same as before
     constexpr auto a = std::complex<double>(1.0, 1e-8);
@@ -175,7 +172,6 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto x_tilde = qr.solve(y);
     STATIC_REQUIRE(euclidean_distance(x_tilde, Vectorcd<2>{1.0, 2.0}) <= eps);
   }
-#endif
 }
 
 #if 0

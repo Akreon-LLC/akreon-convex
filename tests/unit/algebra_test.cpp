@@ -32,6 +32,27 @@ TEST_CASE("Test field types", "[field]") {
   }
 }
 
+TEST_CASE("Test constexpr math", "[math]") {
+  constexpr auto res1 = constexpr_sqrt(64.0) - 8.0;
+  STATIC_REQUIRE(res1 < eps);
+
+  STATIC_REQUIRE(constexpr_abs(-2.0) == 2.0);
+
+  STATIC_REQUIRE(constexpr_cos(M_PI / 2) < eps);
+
+  STATIC_REQUIRE(constexpr_sin(M_PI) < eps);
+
+  STATIC_REQUIRE(constexpr_sin(M_PI / 4) - constexpr_cos(M_PI / 4) < eps);
+
+  constexpr auto a = constexpr_expi(M_PI / 6);
+  STATIC_REQUIRE(a.real() == constexpr_cos(M_PI / 6));
+  STATIC_REQUIRE(a.imag() == constexpr_sin(M_PI / 6));
+
+  constexpr auto b = std::complex<double>(1.0, -2.0);
+  constexpr auto expected = 2.3607;
+  STATIC_REQUIRE(L2<std::complex<double>, 1>(b) - expected < eps);
+}
+
 TEST_CASE("Test vector space types", "[vector_space]") {
   SECTION("Static vector checks") {
     constexpr auto A = Vectord<2>{1.0, 2.0};
@@ -221,7 +242,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 }
 
 TEST_CASE("Householder vectors", "[householder]") {
-  SECTION("Real householder vectors") {
+  SECTION("Real householder vector") {
     constexpr Vector<double, 4> x{1.0, 2.0, 3.0, 4.0};
     constexpr auto h = HouseholderVector(x);
     constexpr auto beta = h.get_beta();
@@ -236,4 +257,45 @@ TEST_CASE("Householder vectors", "[householder]") {
     constexpr auto expected = Vectord<4>{5.47723, 0.0, 0.0, 0.0};
     STATIC_REQUIRE(euclidean_distance(Px, expected) <= eps);
   }
+
+  SECTION("Complex householder vector (all real)") {
+    constexpr std::complex<double> a(1.0, 0.0);
+    constexpr std::complex<double> b(2.0, 0.0);
+    constexpr std::complex<double> c(3.0, 0.0);
+    constexpr std::complex<double> d(4.0, 0.0);
+    constexpr Vector<std::complex<double>, 4> x{a, b, c, d};
+
+    constexpr auto h = HouseholderVector(x);
+    constexpr auto beta = h.get_beta();
+    constexpr auto v = h.get_v();
+
+    constexpr auto I = make_identity<std::complex<double>, 4>();
+    constexpr auto P =
+        I - beta * outer_product(as_col_vector(v), as_row_vector(conjugate(v)));
+    STATIC_REQUIRE(all_equal(conjugate_transpose(P) * P, I));
+
+    // (dakre) complex case reflects in opp dir as reals maybe monitor more as
+    // time goes on
+    constexpr auto Px = P * x;
+    constexpr std::complex<double> e(-5.47723, 0.0);
+    constexpr std::complex<double> f(0.0, 0.0);
+    constexpr auto expected = Vectorcd<4>{e, f, f, f};
+    STATIC_REQUIRE(euclidean_distance(Px, expected) <= eps);
+  }
+
+  SECTION("Complex householder vector") {
+    constexpr std::complex<double> a(1.0, 2.0);
+    constexpr std::complex<double> b(3.0, 4.0);
+    constexpr Vector<std::complex<double>, 2> x{a, b};
+
+    constexpr auto h = HouseholderVector(x);
+    constexpr auto beta = h.get_beta();
+    constexpr auto v = h.get_v();
+
+    constexpr auto I = make_identity<std::complex<double>, 2>();
+    constexpr auto P =
+        I - beta * outer_product(as_col_vector(v), as_row_vector(conjugate(v)));
+    STATIC_REQUIRE(all_equal(conjugate_transpose(P) * P, I));
+  }
+
 }

@@ -148,6 +148,7 @@ constexpr bool is_real(const std::complex<T>& z, scalar_type_t<T> tol = 1e-10) {
  * @return |x|
  */
 template <typename T>
+  requires(!is_complex_v<T>)
 constexpr T constexpr_abs(const T& x) {
   return x < 0 ? -1 * x : x;
 }
@@ -171,6 +172,56 @@ constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0) {
 }
 
 /**
+ * @brief perform sin via taylor series approximation
+ *
+ * @param x as type T
+ *
+ * @return cosine approx of x
+ */
+template <typename T>
+  requires(FieldLike<T> && !is_complex_v<T>)
+constexpr auto constexpr_sin(const T& x, int terms = 12) {
+  T sum = x, term = x;
+  for (int k = 1; k < terms; ++k) {
+    term *= (-(x * x)) / (T(2 * k - 1) * T(2 * k));
+    sum += term;
+  }
+  return sum;
+}
+
+/**
+ * @brief perform sin via taylor series approximation
+ *
+ * @param x as type T
+ *
+ * @return cosine approx of x
+ */
+template <typename T>
+  requires(FieldLike<T> && !is_complex_v<T>)
+constexpr auto constexpr_cos(const T& x, int terms = 12) {
+  T sum = T(1), term = T(1);
+  for (int k = 1; k < terms; ++k) {
+    term *= (-(x * x)) / (T(2 * k - 1) * T(2 * k));
+    sum += term;
+  }
+  return sum;
+}
+
+/**
+ * @brief perform exp on an imaginary number (unit circle)
+ *
+ * @param theta \in R (e^{i \theta})
+ *
+ * @return complex number
+ */
+template <typename T>
+  requires(FieldLike<T> && !is_complex_v<T>)
+constexpr auto constexpr_expi(const T& theta, int terms = 12) {
+  return std::complex<T>(constexpr_cos(theta, terms),
+                         constexpr_sin(theta, terms));
+}
+
+/*
  * @brief constexpr for loop which recursively unrolls a dynamic for loop into
  * compile time recursive loop
  *
