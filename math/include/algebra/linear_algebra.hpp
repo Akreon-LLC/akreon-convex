@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include "hessenberg.hpp"
+#include "householder.hpp"
 #include "matrix_norms.hpp"
 #include "vector_norms.hpp"
 
@@ -150,13 +152,6 @@ class QR {
   constexpr QR(const Matrix<T, Rows, Cols>& A) { solve_householder(A); }
 
   /**
-   * @brief basic get function for Q matrix
-   *
-   * @return Q
-   */
-  constexpr auto get_householder_Q() const { return Q; }
-
-  /**
    * @brief get Q from compact householder Q
    *
    * To acquire Q we simply apply reflections in the reverse order with Q = I to
@@ -164,36 +159,14 @@ class QR {
    *
    * @return orthonormal Q
    */
-  constexpr auto get_Q() const {
-    const size_t k = std::min(Rows, Cols);
-    auto Q_bar = make_identity<T, Rows>();
-    constexpr_for<0, k>([&]<size_t jj>(std::integral_constant<size_t, jj>) {
-      const size_t j = k - jj - 1;
-      Vector<T, Rows - j> v;
-      v[0] = T(1);
-      for (size_t i = j + 1, a = 1; i < Rows; ++i, ++a) v[a] = Q(i)(j);
-
-      auto v_col = as_col_vector(v);
-
-      auto Q_block = get_n_rows<j, Rows>(Q_bar);
-      if constexpr (is_complex_v<T>)
-        Q_block = Q_block -
-                  (beta(j) * v_col) * (conjugate_transpose(v_col) * Q_block);
-      else
-        Q_block = Q_block - (beta(j) * v_col) * (transpose(v_col) * Q_block);
-
-      for (size_t r = j, a = 0; r < Rows; ++r, ++a)
-        for (size_t c = 0; c < Rows; ++c) Q_bar[r][c] = Q_block(a)(c);
-    });
-    return Q_bar;
-  }
+  constexpr auto get_Q() const { return get_unitary_matrix(); }
 
   /**
    * @brief basic get function for R matrix
    *
    * @return R
    */
-  constexpr auto get_R() const { return get_upper_right_triangular_matrix(Q); }
+  constexpr auto get_R() const { return get_upper_right_triangular_matrix(H); }
 
   /**
    * @brief get rank of matrix
@@ -222,13 +195,13 @@ class QR {
     Vector<T, Rows> c;
     Vector<T, Cols> x;
 
-    const auto Q_bar = get_Q();
+    const auto Q = get_Q();
     const auto R = get_R();
 
     if constexpr (is_complex_v<T>)
-      c = conjugate_transpose(Q_bar) * b;
+      c = conjugate_transpose(Q) * b;
     else
-      c = transpose(Q_bar) * b;
+      c = transpose(Q) * b;
 
     constexpr auto mn = std::min(Rows, Cols);
     for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
@@ -263,11 +236,10 @@ class QR {
    *
    * @return (void)
    */
-  constexpr void solve_householder(const Matrix<T, Rows, Cols>& A) {
-    Q = A;
-    constexpr auto mn = std::min(Rows, Cols);
-    constexpr_for<0, mn>([&]<size_t j>(std::integral_constant<size_t, j>) {
-      const auto& Q_jm = get_n_rows<j, Rows>(Q);
+  constexpr void solve_householder(Matrix<T, Rows, Cols> A) {
+    H = A;
+    constexpr_for<0, Cols>([&]<size_t j>(std::integral_constant<size_t, j>) {
+      const auto& Q_jm = get_n_rows<j, Rows>(H);
       const auto& Q_jm_j = get_col(Q_jm, j);
 
       const auto& q = HouseholderVector(Q_jm_j);
@@ -281,14 +253,45 @@ class QR {
         Q_jm_jn = Q_jm_jn - (beta[j] * v) * (transpose(v) * Q_jm_jn);
 
       for (size_t k = j, a = 0; k < Rows; ++k, ++a)
-        for (size_t l = j, b = 0; l < Cols; ++l, ++b) Q[k][l] = Q_jm_jn(a)(b);
+        for (size_t l = j, b = 0; l < Cols; ++l, ++b) H[k][l] = Q_jm_jn(a)(b);
 
-      for (size_t k = j + 1, a = 1; k < Rows; ++k, ++a) Q[k][j] = v(a)(0);
+      for (size_t k = j + 1, a = 1; k < Rows; ++k, ++a) H[k][j] = v(a)(0);
     });
   }
 
+  /**
+   * @brief get unitary matrix U from factored householder matrix
+   *
+   * To acquire U we simply apply reflections in the reverse order starting with
+   * U = I => U^* A U = H
+   *
+   * @return unitary matrix U
+   */
+  constexpr auto get_unitary_matrix() const {
+    auto U = make_identity<T, Rows>();
+    constexpr_for<0, Cols>([&]<size_t jj>(std::integral_constant<size_t, jj>) {
+      const size_t j = Cols - jj - 1;
+      Vector<T, Rows - j> v;
+      v[0] = T(1);
+      for (size_t i = j + 1, a = 1; i < Rows; ++i, ++a) v[a] = H(i)(j);
+
+      const auto& v_col = as_col_vector(v);
+
+      auto Q_block = get_n_rows<j, Rows>(U);
+      if constexpr (is_complex_v<T>)
+        Q_block = Q_block -
+                  (beta(j) * v_col) * (conjugate_transpose(v_col) * Q_block);
+      else
+        Q_block = Q_block - (beta(j) * v_col) * (transpose(v_col) * Q_block);
+
+      for (size_t r = j, a = 0; r < Rows; ++r, ++a)
+        for (size_t c = 0; c < Rows; ++c) U[r][c] = Q_block(a)(c);
+    }); 
+    return U;
+  }
+
   /** @brief QR decomposition for matrix input A */
-  Matrix<T, Rows, Cols> Q;  ///< orthonormal basis Q (slighty different than GS
+  Matrix<T, Rows, Cols> H;  ///< orthonormal basis Q (slighty different than GS
                             ///< as its fully compact and can use straight up)
   Vector<T, Rows> beta;     ///< beta scalars
 };
@@ -298,24 +301,24 @@ class QR {
  *
  * Solves the following equation A X = \Lambda X via QR and successive
  * similarity transforms to diagonalize A into eigenvalues.
- *
- * Following orthogonal iteration outlined in Matrix Computations 7.3.2 - 7.3.3
- * QR Iteration-- TODO there is speed up using givens and householder
- * reflections more directly but I will look at that later on
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(Rows == Cols && FieldLike<T>)
+template <typename T, size_t N>
+  requires(FieldLike<T>)
 class EigenDecomposition {
  public:
-  constexpr static size_t K = std::min(Rows, Cols);
+  // @brief aliasing complex and real types for eigen decomposition
+  using Real = scalar_type_t<T>;
+  using Complex = std::conditional_t<is_complex_v<T>, T, std::complex<Real>>;
+
   /**
    * @brief CTOR
    *
    * @param matrix A of type T with Rows x Cols elements
    * @param tolerance dictating algorithm convergence
    */
-  constexpr EigenDecomposition(const Matrix<T, Rows, Cols>& A,
-                               scalar_type_t<T> tol = 1e-10) {
+  constexpr EigenDecomposition(const Matrix<T, N, N>& A,
+                               scalar_type_t<T> tol = 1e-10)
+      : converged(false) {
     solve_qr(A, tol);
   }
 
@@ -333,62 +336,96 @@ class EigenDecomposition {
    */
   constexpr auto get_eigenvectors() const { return VT; }
 
+  /**
+   * @brief basic get for convergence flag
+   *
+   * @return T/F
+   */
+  constexpr auto get_converged() const { return converged; }
+
  private:
   /**
    * @brief solve A X = \Lambda X via QR
    *
-   * @param matrix A of type T with Rows x Cols elements
+   * Following the practical QR Algorithm 7.5 in Matrix Computations
+   *
+   * @param matrix A of type T with N x N elements
    * @param tolerance dictating algorithm convergence
    *
    * @return (void)
    */
-  constexpr void solve_qr(const Matrix<T, Rows, Cols>& A,
+  constexpr void solve_qr(const Matrix<T, N, N>& A,
                           const scalar_type_t<T>& tol) {
-    Matrix<T, Rows, Cols> Z = A;
+    // 1. calculate hessenberg matrix
+    const auto H_mat = HessenbergMatrix(A);
+    auto H = H_mat();
 
-    auto qr = QR(Z);
-    auto Q = qr.get_Q();
-    auto R = qr.get_R();
-
-    VT = make_identity<T, Cols>();
+    // 2. perform shifted QR iteration on H
+    const auto I = make_identity<T, N>();
+    // VT = I;
 
     // Eigendecomposition works with diagonalizing the matrix to solve A X =
     // X \Lambda (\Lambda == eigenvalue matrix which is diagonal)
     for (size_t i = 0; i < MAX_STEP_EVAL; ++i) {
-      Z = A * Q;
-      qr = QR(Z);
-      Q = qr.get_Q();
-      R = qr.get_R();
+      const auto mu = H(N - 1)(N - 1);
+      H = H - mu * I;
+      auto qr = QR(H);
+      auto U = qr.get_Q();
+      auto R = qr.get_R();
 
-      Matrix<T, Rows, Cols> Tk;
-      if constexpr (is_complex_v<T>)
-        Tk = conjugate_transpose(Q) * (A * Q);
-      else
-        Tk = transpose(Q) * (A * Q);
+      // R U + mu I = U^T (U R + mu I) U = U^T H U (similarity transform)
+      H = R * U + mu * I;
 
-      VT = VT * Q;
-      lambdas = get_diag(Tk);
+      // (dakre) TODO fix eigenvectors
+      // VT = VT * U;
 
-      // (dakre) NOTE removing fro norm here as it creates too many steps for
-      // compiler to evaluate nominally... if (frobenius_norm(off_diag) < tol)
-      // break;
-      scalar_type_t<T> res = scalar_type_t<T>(0);
-      for (size_t i = 1; i < Rows; ++i) {
-        for (size_t j = 0; j < std::min(i, Cols); ++j) {
-          if constexpr (is_complex_v<T>)
-            res += (std::conj(Tk(i)(j)) * Tk(i)(j)).real();
-          else
-            res += Tk(i)(j) * Tk(i)(j);
+      // (dakre) iterate through the upper hessenberg to acquire eigenvalues
+      if constexpr (is_complex_v<T>) {
+        for (size_t j = 0; j < N; ++j) lambdas[j] = H(j)(j);
+      } else {
+        // (dakre) Hessenberg forms Real Schur Decomposition on the
+        // quasi-triangular matrix. Complex eigs come in pairs, and if c is zero
+        // then its strictly real 1x1 block
+        for (size_t j = 0; j < N; ++j) {
+          Real a = H(j)(j);
+          if (j + 1 == N) {
+            lambdas[j] = Complex(a, 0);
+            continue;
+          }
+          Real c = H(j + 1)(j);
+          if (constexpr_abs(c) < tol) {
+            lambdas[j] = Complex(a, 0);
+            continue;
+          }
+          Real d = H(j + 1)(j + 1);
+          Real b = H(j)(j + 1);
+          lambdas[j] = Complex(a, b);
+          lambdas[j + 1] = Complex(c, d);
+          j++;
         }
       }
 
-      if (res < tol * tol) break;
+      scalar_type_t<T> res = scalar_type_t<T>(0);
+      for (size_t j = 1; j < N; ++j) {
+        for (size_t k = 0; k < std::min(j, N); ++k) {
+          if constexpr (is_complex_v<T>)
+            res += (std::conj(H(j)(k)) * H(j)(k)).real();
+          else
+            res += H(j)(k) * H(j)(k);
+        }
+      }
+
+      if (res < tol * tol) {
+        converged = true;
+        break;
+      }
     }
   }
 
   /** @brief eigendecomposition member variables */
-  Vector<T, K> lambdas;      ///< eigenvalues
-  Matrix<T, Cols, Cols> VT;  ///< eigenvectors
+  Vector<Complex, N> lambdas;  ///< eigenvalues
+  Matrix<Complex, N, N> VT;    ///< eigenvectors
+  bool converged;
 };
 
 #if 0

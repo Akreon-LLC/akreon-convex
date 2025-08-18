@@ -297,5 +297,32 @@ TEST_CASE("Householder vectors", "[householder]") {
         I - beta * outer_product(as_col_vector(v), as_row_vector(conjugate(v)));
     STATIC_REQUIRE(all_equal(conjugate_transpose(P) * P, I));
   }
+}
 
+TEST_CASE("Hessenberg matrices", "[hessenberg]") {
+  SECTION("Real hessenberg matrix") {
+    constexpr auto a = Vectord<3>{1.0, 2.0, 3.0};
+    constexpr auto b = Vectord<3>{4.0, 5.0, 6.0};
+    constexpr auto c = Vectord<3>{7.0, 8.0, 9.0};
+    constexpr auto A = Matrixd<3, 3>{a, b, c};
+    constexpr auto H_mat = HessenbergMatrix(A);
+    constexpr auto H = H_mat();
+    constexpr auto beta = H_mat.get_beta();
+    STATIC_REQUIRE(constexpr_abs(beta(0)) > 0.0);
+    STATIC_REQUIRE(constexpr_abs(beta(1)) == 0.0);
+    STATIC_REQUIRE(constexpr_abs(beta(2)) == 0.0);
+    STATIC_REQUIRE(H(2)(0) == 0.0);
+    // std::cout << H(0)(0) << " " << H(0)(1) << " " << H(0)(2) << std::endl;
+    // std::cout << H(1)(0) << " " << H(1)(1) << " " << H(1)(2) << std::endl;
+    // std::cout << H(2)(0) << " " << H(2)(1) << " " << H(2)(2) << std::endl;
+
+    constexpr auto U = H_mat.get_U();
+    constexpr auto UTU = transpose(U) * U;
+    std::cout << U(0)(0) << " " << U(0)(1) << " " << U(0)(2) << std::endl;
+    std::cout << U(1)(0) << " " << U(1)(1) << " " << U(1)(2) << std::endl;
+    std::cout << U(2)(0) << " " << U(2)(1) << " " << U(2)(2) << std::endl;
+    STATIC_REQUIRE(all_equal(UTU, make_identity<double, 3>()));
+
+    STATIC_REQUIRE(all_equal(H, transpose(U) * A * U));
+  }
 }

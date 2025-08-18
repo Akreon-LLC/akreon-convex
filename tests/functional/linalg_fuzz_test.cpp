@@ -99,8 +99,20 @@ void fuzz_test(const scalar_type_t<T>& tol) {
     }
 #endif
 
+    if constexpr (Rows == Cols) {
+      const auto eig_decomp = EigenDecomposition(A);
+      if (!eig_decomp.get_converged()) {
+        std::cerr << "A" << std::endl;
+        print_mat(A);
+        std::cerr << "Eigen values" << std::endl;
+        print_vec(eig_decomp.get_eigenvalues());
+        throw std::runtime_error("eig decomp failed to find solution");
+      }
+    }
+
     const auto x = make_vec<T, Cols>(rng, dist);
     const auto b = A * x;
+
     const auto x_tilde = res.solve(b);
     const auto lsq_fit = A * x_tilde;
     const auto residual = euclidean_distance(lsq_fit, b);
