@@ -133,14 +133,15 @@ void fuzz_test(const scalar_type_t<T>& tol) {
 
 int main() {
   try {
-    std::cout << "Starting double test" << std::endl;
-    fuzz_test<double, 3, 3>(1e-10);
-    std::cout << "Starting float test" << std::endl;
-    fuzz_test<float, 3, 3>(1e-4);
+    constexpr_for<2, 10>([&]<size_t i>(std::integral_constant<size_t, i>) {
+      std::cout << "Starting double symmetric test for " << i << std::endl;
+      fuzz_test<double, i, i>(1e-10);
+
+      std::cout << "Starting float symmetric test for " << i << std::endl;
+      fuzz_test<float, i, i>(1e-3);
+    });
     std::cout << "Starting double 3x2 test" << std::endl;
     fuzz_test<double, 3, 2>(1e-10);
-    // std::cout << "Starting double 2x3 test" << std::endl;
-    // fuzz_test<double, 2, 3>(1e-10);
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
     return -1;

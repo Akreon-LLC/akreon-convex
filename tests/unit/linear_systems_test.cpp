@@ -182,22 +182,22 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto lambdas = result.get_eigenvalues();
     constexpr auto converged = result.get_converged();
     STATIC_REQUIRE(converged);
-    std::cout << lambdas(0) << " " << lambdas(1) << " " << lambdas(2) << std::endl;
-    //STATIC_REQUIRE(all_equal(make_diag(lambdas), make_diag(diag)));
+    STATIC_REQUIRE(lambdas(0).real() == diag(0));
+    STATIC_REQUIRE(lambdas(1).real() == diag(1));
+    STATIC_REQUIRE(lambdas(2).real() == diag(2));
   }
 
-#if 0
   SECTION("Symmetric A") {
     constexpr auto x1 = Vectord<2>{2.0, 1.0};
     constexpr auto x2 = Vectord<2>{1.0, 2.0};
     constexpr auto A = Matrixd<2, 2>{x1, x2};
     constexpr auto result = EigenDecomposition(A);
     constexpr auto lambdas = result.get_eigenvalues();
-    constexpr auto expected = make_diag(Vectord<2>{3.0, 1.0});
+    constexpr auto expected =
+        make_diag(Vectorcd<2>{std::complex(3.0, 0.0), std::complex(1.0, 0.0)});
     constexpr auto converged = result.get_converged();
     STATIC_REQUIRE(converged);
-    std::cout << lambdas(0) << " " << lambdas(1) << std::endl;
-    //STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
+    STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
   }
 
   SECTION("Complex hermitian A") {
@@ -207,6 +207,8 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto x1 = Vectorcd<2>{a, b};
     constexpr auto x2 = Vectorcd<2>{std::conj(b), c};
     constexpr auto A = Matrixcd<2, 2>{x1, x2};
+    STATIC_REQUIRE(is_hermitian(A));
+
     constexpr auto res = EigenDecomposition(A);
     constexpr auto lambdas = res.get_eigenvalues();
     constexpr auto converged = res.get_converged();
@@ -216,12 +218,8 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto e = std::complex<double>(3 - constexpr_sqrt(11.0));
     constexpr auto expected = make_diag(Vectorcd<2>{d, e});
     constexpr auto result = make_diag(lambdas);
-    STATIC_REQUIRE(is_hermitian(A));
-    std::cout << result(0)(0) << " " << result(1)(1) << std::endl;
-    std::cout << expected(0)(0) << " " << expected(1)(1) << std::endl;
-    // STATIC_REQUIRE(all_equal(result, expected));
+    STATIC_REQUIRE(all_equal(result, expected));
   }
-#endif
 }
 
 #if 0

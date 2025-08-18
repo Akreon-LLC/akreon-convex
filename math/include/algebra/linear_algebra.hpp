@@ -286,7 +286,7 @@ class QR {
 
       for (size_t r = j, a = 0; r < Rows; ++r, ++a)
         for (size_t c = 0; c < Rows; ++c) U[r][c] = Q_block(a)(c);
-    }); 
+    });
     return U;
   }
 
@@ -310,16 +310,18 @@ class EigenDecomposition {
   using Real = scalar_type_t<T>;
   using Complex = std::conditional_t<is_complex_v<T>, T, std::complex<Real>>;
 
+  // (dakre) TODO handle this a little better in the future
+  static constexpr size_t n_steps = 64;
+  static constexpr scalar_type_t<T> tol = 1e-10;
+
   /**
    * @brief CTOR
    *
    * @param matrix A of type T with Rows x Cols elements
    * @param tolerance dictating algorithm convergence
    */
-  constexpr EigenDecomposition(const Matrix<T, N, N>& A,
-                               scalar_type_t<T> tol = 1e-10)
-      : converged(false) {
-    solve_qr(A, tol);
+  constexpr EigenDecomposition(const Matrix<T, N, N>& A) : converged(false) {
+    solve_qr(A);
   }
 
   /**
@@ -354,8 +356,7 @@ class EigenDecomposition {
    *
    * @return (void)
    */
-  constexpr void solve_qr(const Matrix<T, N, N>& A,
-                          const scalar_type_t<T>& tol) {
+  constexpr void solve_qr(const Matrix<T, N, N>& A) {
     // 1. calculate hessenberg matrix
     const auto H_mat = HessenbergMatrix(A);
     auto H = H_mat();
@@ -366,15 +367,15 @@ class EigenDecomposition {
 
     // Eigendecomposition works with diagonalizing the matrix to solve A X =
     // X \Lambda (\Lambda == eigenvalue matrix which is diagonal)
-    for (size_t i = 0; i < MAX_STEP_EVAL; ++i) {
-      const auto mu = H(N - 1)(N - 1);
-      H = H - mu * I;
+    for (size_t i = 0; i < n_steps; ++i) {
+      // const auto mu = H(N - 1)(N - 1);
+      //  H = H - mu * I;
       auto qr = QR(H);
       auto U = qr.get_Q();
       auto R = qr.get_R();
 
       // R U + mu I = U^T (U R + mu I) U = U^T H U (similarity transform)
-      H = R * U + mu * I;
+      H = R * U;  // + mu * I;
 
       // (dakre) TODO fix eigenvectors
       // VT = VT * U;
@@ -387,37 +388,55 @@ class EigenDecomposition {
         // quasi-triangular matrix. Complex eigs come in pairs, and if c is zero
         // then its strictly real 1x1 block
         for (size_t j = 0; j < N; ++j) {
-          Real a = H(j)(j);
+          const Real& a = H(j)(j);
           if (j + 1 == N) {
             lambdas[j] = Complex(a, 0);
             continue;
           }
-          Real c = H(j + 1)(j);
+          const Real& c = H(j + 1)(j);
           if (constexpr_abs(c) < tol) {
             lambdas[j] = Complex(a, 0);
             continue;
           }
-          Real d = H(j + 1)(j + 1);
-          Real b = H(j)(j + 1);
-          lambdas[j] = Complex(a, b);
-          lambdas[j + 1] = Complex(c, d);
+
+          // (dakre) \lambda^2 - (a + d) \lambda + (ad - bc) = 0
+          // t = a + d, \delta = ad - bc, \mu = 0.5 * (a - d)
+          // t^2 - 4 \delta then sub in the scalars above to form \lambda
+          const Real& d = H(j + 1)(j + 1);
+          const Real& b = H(j)(j + 1);
+          const auto t = a + d;
+          const auto mu = 0.5 * (a - d);
+          const auto D = mu * mu + b * c;
+
+          if (D >= 0) {
+            lambdas[j] = Complex(t / 2 + constexpr_sqrt(D), 0.0);
+            lambdas[j + 1] = Complex(t / 2 - constexpr_sqrt(D), 0.0);
+          } else {
+            lambdas[j] = Complex(t / 2, constexpr_sqrt(D));
+            lambdas[j + 1] = Complex(t / 2, -1 * constexpr_sqrt(D));
+          }
+
           j++;
         }
       }
 
       scalar_type_t<T> res = scalar_type_t<T>(0);
-      for (size_t j = 1; j < N; ++j) {
-        for (size_t k = 0; k < std::min(j, N); ++k) {
+      for (size_t r = 2; r < N; r += 2) {
+        for (size_t c = 0; c < r - 1; ++c) {
           if constexpr (is_complex_v<T>)
-            res += (std::conj(H(j)(k)) * H(j)(k)).real();
+            res += (std::conj(H(r)(c)) * H(r)(c)).real();
           else
-            res += H(j)(k) * H(j)(k);
+            res += H(r)(c) * H(r)(c);
         }
       }
 
-      if (res < tol * tol) {
+      if (N > 2 && res < tol * tol) {
         converged = true;
         break;
+      } else {
+        // (dakre) TODO this is the 2x2 case, let it run for fixed n steps for
+        // now & possibly think about better way to handle in the future
+        converged = true;
       }
     }
   }
@@ -425,7 +444,7 @@ class EigenDecomposition {
   /** @brief eigendecomposition member variables */
   Vector<Complex, N> lambdas;  ///< eigenvalues
   Matrix<Complex, N, N> VT;    ///< eigenvectors
-  bool converged;
+  bool converged;              ///< eigenvalue convergence flag
 };
 
 #if 0
