@@ -329,14 +329,14 @@ class EigenDecomposition {
    *
    * @return vector of eigenvalues
    */
-  constexpr auto get_eigenvalues() const { return lambdas; }
+  constexpr auto get_eigenvalues() const { return lambda; }
 
   /**
    * @brief basic get eigenvectors function
    *
    * @return matrix of eigenvectors
    */
-  constexpr auto get_eigenvectors() const { return VT; }
+  constexpr auto get_eigenvectors() const { return V; }
 
   /**
    * @brief basic get for convergence flag
@@ -361,28 +361,26 @@ class EigenDecomposition {
     const auto H_mat = HessenbergMatrix(A);
     auto H = H_mat();
 
-    // 2. perform shifted QR iteration on H
-    const auto I = make_identity<T, N>();
-    // VT = I;
+    // 2. setup unitary basis for eigenvectors
+    auto U = H_mat.get_U();
 
-    // Eigendecomposition works with diagonalizing the matrix to solve A X =
-    // X \Lambda (\Lambda == eigenvalue matrix which is diagonal)
+    // 3. the practical QR iteration on H -- form quasi triangular matrix in
+    // real schur form and extract eigenvalues depending on real / complex form
+    // of 2x2 or 1x1 schur blocks
     for (size_t i = 0; i < n_steps; ++i) {
-      // const auto mu = H(N - 1)(N - 1);
-      //  H = H - mu * I;
       auto qr = QR(H);
-      auto U = qr.get_Q();
+      auto Q = qr.get_Q();
       auto R = qr.get_R();
 
-      // R U + mu I = U^T (U R + mu I) U = U^T H U (similarity transform)
-      H = R * U;  // + mu * I;
+      // R U = U^T (U R) U = U^T H U (similarity transform)
+      H = R * Q;
 
-      // (dakre) TODO fix eigenvectors
-      // VT = VT * U;
+      // continue to map orthogonal basis Q onto unitary coords from orig H
+      U = U * Q;
 
       // (dakre) iterate through the upper hessenberg to acquire eigenvalues
       if constexpr (is_complex_v<T>) {
-        for (size_t j = 0; j < N; ++j) lambdas[j] = H(j)(j);
+        for (size_t j = 0; j < N; ++j) lambda[j] = H(j)(j);
       } else {
         // (dakre) Hessenberg forms Real Schur Decomposition on the
         // quasi-triangular matrix. Complex eigs come in pairs, and if c is zero
@@ -390,12 +388,12 @@ class EigenDecomposition {
         for (size_t j = 0; j < N; ++j) {
           const Real& a = H(j)(j);
           if (j + 1 == N) {
-            lambdas[j] = Complex(a, 0);
+            lambda[j] = Complex(a, 0);
             continue;
           }
           const Real& c = H(j + 1)(j);
           if (constexpr_abs(c) < tol) {
-            lambdas[j] = Complex(a, 0);
+            lambda[j] = Complex(a, 0);
             continue;
           }
 
@@ -409,11 +407,11 @@ class EigenDecomposition {
           const auto D = mu * mu + b * c;
 
           if (D >= 0) {
-            lambdas[j] = Complex(t / 2 + constexpr_sqrt(D), 0.0);
-            lambdas[j + 1] = Complex(t / 2 - constexpr_sqrt(D), 0.0);
+            lambda[j] = Complex(t / 2 + constexpr_sqrt(D), 0.0);
+            lambda[j + 1] = Complex(t / 2 - constexpr_sqrt(D), 0.0);
           } else {
-            lambdas[j] = Complex(t / 2, constexpr_sqrt(D));
-            lambdas[j + 1] = Complex(t / 2, -1 * constexpr_sqrt(D));
+            lambda[j] = Complex(t / 2, constexpr_sqrt(D));
+            lambda[j + 1] = Complex(t / 2, -1 * constexpr_sqrt(D));
           }
 
           j++;
@@ -439,12 +437,71 @@ class EigenDecomposition {
         converged = true;
       }
     }
+
+    // 4. back substitute now for solving eigenvectors
+    // a. (H - \lambda I) x = 0
+    // b. project x onto unitary basis U to get it aligned in A
+    for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
+      Vector<Complex, N> x;
+      if (is_real(lambda[i])) {
+        x = back_sub_1x1_block(H, i);
+      } else {
+        // TODO solve 2x2 block (complex)
+      }
+      const auto v = map_to_A(U, x);
+      for (size_t j = 0; j < N; ++j) V[i][j] = v(j);
+    }
+  }
+
+  /**
+   * @brief back substitution for the real 1x1 block from Schur Form
+   *
+   * @param real schur upper triangular matrix H
+   * @param index of eigenvalue to back solve
+   *
+   * @return eigenvector for eigenvalue at index
+   */
+  constexpr auto back_sub_1x1_block(const Matrix<T, N, N>& H, const int& idx) {
+    Vector<Complex, N> x;
+    x[idx] = Complex(1);
+
+    // 1. solve (H - \lambda I) x = 0 by way of back sub from idx to top
+    // (H_rr - \Lambda) x_r + \sum_0^idx H_rc * x_c = 0 ... isolate x_r and
+    // solve
+    for (int r = idx - 1; r >= 0; --r) {
+      Complex sum(0);
+      for (int c = r + 1; c <= idx; ++c) sum += Complex(H(r)(c)) * x[c];
+      x[r] = -sum / (Complex(H(r)(r)) - lambda(idx));
+    }
+
+    return x;
+  }
+
+  /**
+   * @brief map eigenvector from H to A
+   *
+   * @param unitary basis U from real schur upper triangular form on H
+   * @param eigenvector v
+   *
+   * @return eigenvector in basis A
+   */
+  constexpr auto map_to_A(const Matrix<T, N, N>& U,
+                          const Vector<Complex, N>& x) {
+    Vector<Complex, N> v;
+
+    for (size_t j = 0; j < N; ++j) {
+      Complex sum(0);
+      for (size_t k = 0; k < N; ++k) sum += Complex(U(j)(k)) * x(k);
+      v[j] = sum;
+    }
+
+    return normalize(v, L2<Complex, N>);
   }
 
   /** @brief eigendecomposition member variables */
-  Vector<Complex, N> lambdas;  ///< eigenvalues
-  Matrix<Complex, N, N> VT;    ///< eigenvectors
-  bool converged;              ///< eigenvalue convergence flag
+  Vector<Complex, N> lambda;  ///< eigenvalues
+  Matrix<Complex, N, N> V;    ///< eigenvectors
+  bool converged;             ///< eigenvalue convergence flag
 };
 
 #if 0

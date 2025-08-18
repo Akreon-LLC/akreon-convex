@@ -11,6 +11,8 @@
 
 #define TRIALS 10000
 
+#define N_ROWS 4
+
 using namespace algebra;
 
 template <typename T, size_t Rows, size_t Cols>
@@ -133,15 +135,22 @@ void fuzz_test(const scalar_type_t<T>& tol) {
 
 int main() {
   try {
-    constexpr_for<2, 10>([&]<size_t i>(std::integral_constant<size_t, i>) {
+    constexpr_for<2, N_ROWS>([&]<size_t i>(std::integral_constant<size_t, i>) {
       std::cout << "Starting double symmetric test for " << i << std::endl;
       fuzz_test<double, i, i>(1e-10);
 
       std::cout << "Starting float symmetric test for " << i << std::endl;
       fuzz_test<float, i, i>(1e-3);
     });
-    std::cout << "Starting double 3x2 test" << std::endl;
-    fuzz_test<double, 3, 2>(1e-10);
+    constexpr_for<3, N_ROWS>([&]<size_t i>(std::integral_constant<size_t, i>) {
+      std::cout << "Starting double tall skinny test " << i << " rows by 2 cols"
+                << std::endl;
+      fuzz_test<double, i, 2>(1e-10);
+
+      std::cout << "Starting float tall skinny test " << i << " rows by 2 cols"
+                << std::endl;
+      fuzz_test<double, i, 2>(1e-10);
+    });
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
     return -1;

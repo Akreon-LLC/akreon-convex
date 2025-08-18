@@ -179,12 +179,16 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto diag = Vectord<3>{1.0, 2.0, 3.0};
     constexpr auto A = make_diag<double, 3>(diag);
     constexpr auto result = EigenDecomposition(A);
-    constexpr auto lambdas = result.get_eigenvalues();
     constexpr auto converged = result.get_converged();
     STATIC_REQUIRE(converged);
+
+    constexpr auto lambdas = result.get_eigenvalues();
     STATIC_REQUIRE(lambdas(0).real() == diag(0));
     STATIC_REQUIRE(lambdas(1).real() == diag(1));
     STATIC_REQUIRE(lambdas(2).real() == diag(2));
+
+    constexpr auto V = result.get_eigenvectors();
+    STATIC_REQUIRE(all_equal(V, make_identity<std::complex<double>, 3>()));
   }
 
   SECTION("Symmetric A") {
@@ -192,12 +196,20 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto x2 = Vectord<2>{1.0, 2.0};
     constexpr auto A = Matrixd<2, 2>{x1, x2};
     constexpr auto result = EigenDecomposition(A);
-    constexpr auto lambdas = result.get_eigenvalues();
     constexpr auto expected =
         make_diag(Vectorcd<2>{std::complex(3.0, 0.0), std::complex(1.0, 0.0)});
     constexpr auto converged = result.get_converged();
     STATIC_REQUIRE(converged);
+
+    constexpr auto lambdas = result.get_eigenvalues();
     STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
+
+    constexpr auto V = result.get_eigenvectors();
+    constexpr auto V1 = as_col_vector(V(0));
+    constexpr auto V2 = as_col_vector(V(1));
+    constexpr auto V1TV2 = transpose(V1) * V2;
+    STATIC_REQUIRE(V1TV2(0)(0).imag() == 0.0);
+    STATIC_REQUIRE(V1TV2(0)(0).real() < eps);
   }
 
   SECTION("Complex hermitian A") {
