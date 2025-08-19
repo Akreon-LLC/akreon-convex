@@ -392,7 +392,8 @@ class EigenDecomposition {
             continue;
           }
           const Real& c = H(j + 1)(j);
-          if (constexpr_abs(c) < tol) {
+          const Real& d = H(j + 1)(j + 1);
+          if (constexpr_abs(c) < tol * (constexpr_abs(c) + constexpr_abs(d))) {
             lambda[j] = Complex(a, 0);
             continue;
           }
@@ -400,7 +401,6 @@ class EigenDecomposition {
           // (dakre) \lambda^2 - (a + d) \lambda + (ad - bc) = 0
           // t = a + d, \delta = ad - bc, \mu = 0.5 * (a - d)
           // t^2 - 4 \delta then sub in the scalars above to form \lambda
-          const Real& d = H(j + 1)(j + 1);
           const Real& b = H(j)(j + 1);
           const auto t = a + d;
           const auto mu = 0.5 * (a - d);
@@ -443,13 +443,21 @@ class EigenDecomposition {
     // b. project x onto unitary basis U to get it aligned in A
     for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
       Vector<Complex, N> x;
-      if (is_real(lambda[i])) {
-        x = back_sub_1x1_block(H, i);
-      } else {
-        // TODO solve 2x2 block (complex)
-      }
-      const auto v = map_to_A(U, x);
+      if (is_real(lambda[i]))
+        x[i] = Complex(1);
+      else
+        seed_complex_block(H, i, x);
+
+      back_sub_1x1_block(H, i, x);
+
+      auto v = map_to_A(U, x);
       for (size_t j = 0; j < N; ++j) V[i][j] = v(j);
+
+      if (!is_real(lambda[i])) {
+        v = map_to_A(U, conjugate(x));
+        i--;
+        for (size_t j = 0; j < N; ++j) V[i][j] = v(j);
+      }
     }
   }
 
@@ -458,14 +466,13 @@ class EigenDecomposition {
    *
    * @param real schur upper triangular matrix H
    * @param index of eigenvalue to back solve
+   * @param mutable eigenvector x
    *
-   * @return eigenvector for eigenvalue at index
+   * @return (void)
    */
-  constexpr auto back_sub_1x1_block(const Matrix<T, N, N>& H, const int& idx) {
-    Vector<Complex, N> x;
-    x[idx] = Complex(1);
-
-    // 1. solve (H - \lambda I) x = 0 by way of back sub from idx to top
+  constexpr void back_sub_1x1_block(const Matrix<T, N, N>& H, const int& idx,
+                                    Vector<Complex, N>& x) {
+    // (dakre) solve (H - \lambda I) x = 0 by way of back sub from idx to top
     // (H_rr - \Lambda) x_r + \sum_0^idx H_rc * x_c = 0 ... isolate x_r and
     // solve
     for (int r = idx - 1; r >= 0; --r) {
@@ -473,8 +480,44 @@ class EigenDecomposition {
       for (int c = r + 1; c <= idx; ++c) sum += Complex(H(r)(c)) * x[c];
       x[r] = -sum / (Complex(H(r)(r)) - lambda(idx));
     }
+  }
 
-    return x;
+  /**
+   * @brief seed the complex 2x2 block from Schur Form
+   *
+   * @param real schur upper triangular matrix H
+   * @param index of eigenvalue to back solve
+   * @param mutable eigenvector x
+   *
+   * @return (void)
+   */
+  constexpr void seed_complex_block(const Matrix<T, N, N>& H, const int& idx,
+                                    Vector<Complex, N>& x) {
+    const auto& a = H(idx - 1)(idx - 1);
+    const auto& b = H(idx - 1)(idx);
+    const auto& c = H(idx)(idx - 1);
+    const auto& d = H(idx)(idx);
+
+    // seed eigenvector at position idx to kick of back substitution
+    const Complex la = lambda[idx] - Complex(a);
+    Complex z0, z1;
+    if (L2<T, 1>(Vector<T, 1>{b}) >= L2<Complex, 1>(la)) {
+      // Use [b; lambda - a]
+      z0 = Complex(b);
+      z1 = la;
+    } else {
+      // Use [lambda - d; c]
+      z0 = lambda[idx] - Complex(d);
+      z1 = Complex(c);
+    }
+    Real s = constexpr_sqrt(L2<Complex, 1>(z0) + L2<Complex, 1>(z1));
+    if (s > Real(0)) {
+      z0 /= s;
+      z1 /= s;
+    }
+
+    x[idx - 1] = z0;
+    x[idx] = z1;
   }
 
   /**

@@ -212,6 +212,33 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     STATIC_REQUIRE(V1TV2(0)(0).real() < eps);
   }
 
+  SECTION("Real A") {
+    constexpr auto x1 = Vectord<3>{1.0, 2.0, 3.0};
+    constexpr auto x2 = Vectord<3>{4.0, 5.0, 6.0};
+    constexpr auto x3 = Vectord<3>{7.0, 8.0, 9.0};
+    constexpr auto A = Matrixd<3, 3>{x1, x2, x3};
+    constexpr auto result = EigenDecomposition(A);
+    constexpr auto converged = result.get_converged();
+    STATIC_REQUIRE(converged);
+
+    constexpr auto expected = make_diag(
+        Vectorcd<3>{std::complex(1.61168440e+01), std::complex(-1.11684397e+00),
+                    std::complex(0.0)});
+    constexpr auto lambdas = result.get_eigenvalues();
+    STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
+
+    constexpr auto V = result.get_eigenvectors();
+    constexpr auto V1 = as_col_vector(V(0));
+    constexpr auto V2 = as_col_vector(V(1));
+    constexpr auto V3 = as_col_vector(V(2));
+    constexpr auto V1TV2 = transpose(V1) * V2;
+    STATIC_REQUIRE(V1TV2(0)(0).imag() == 0.0);
+    STATIC_REQUIRE(V1TV2(0)(0).real() < eps);
+    constexpr auto V1TV2TV3 = transpose(V1TV2) * V3;
+    STATIC_REQUIRE(V1TV2TV3(0)(0).imag() == 0.0);
+    STATIC_REQUIRE(V1TV2TV3(0)(0).real() < eps);
+  }
+
   SECTION("Complex hermitian A") {
     constexpr auto a = std::complex<double>(2.0, 0.0);
     constexpr auto b = std::complex<double>(3.0, 1.0);
@@ -231,6 +258,13 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto expected = make_diag(Vectorcd<2>{d, e});
     constexpr auto result = make_diag(lambdas);
     STATIC_REQUIRE(all_equal(result, expected));
+
+    constexpr auto V = res.get_eigenvectors();
+    constexpr auto V1 = as_col_vector(V(0));
+    constexpr auto V2 = as_col_vector(V(1));
+    constexpr auto V1TV2 = conjugate_transpose(V1) * V2;
+    STATIC_REQUIRE((V1TV2*V1TV2)(0)(0).real() < eps);
+    STATIC_REQUIRE((V1TV2*V1TV2)(0)(0).imag() < eps);
   }
 }
 
