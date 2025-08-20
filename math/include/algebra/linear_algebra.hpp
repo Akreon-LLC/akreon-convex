@@ -445,8 +445,10 @@ class EigenDecomposition {
       Vector<Complex, N> x;
       if (is_real(lambda[i]))
         x[i] = Complex(1);
-      else
+      else if (i > 0)
         seed_complex_block(H, i, x);
+      else
+        break;
 
       back_sub_1x1_block(H, i, x);
 
@@ -455,7 +457,6 @@ class EigenDecomposition {
 
       if (!is_real(lambda[i])) {
         v = map_to_A(U, conjugate(x));
-        i--;
         for (size_t j = 0; j < N; ++j) V[i][j] = v(j);
       }
     }
