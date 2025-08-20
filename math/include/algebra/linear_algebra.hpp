@@ -607,6 +607,7 @@ class SVD {
    * @return (void)
    */
   constexpr void svd(const Matrix<T, Rows, Cols>& A) {
+    // 1. compute A^T A then solve eigen decomposition
     Matrix<T, Cols, Cols> M;
     if constexpr (!is_complex_v<T>)
       M = transpose(A) * A;
@@ -616,6 +617,7 @@ class SVD {
     const auto result = EigenDecomposition(M);
     converged = result.get_converged();
 
+    // 2. convert eigenvalues to singular values
     const auto tmp_lambdas = result.get_eigenvalues();
     Vector<Real, Cols> lambdas;
     for (size_t i = 0; i < Cols; ++i) {
@@ -631,6 +633,7 @@ class SVD {
     for (size_t i = 0; i < Cols; ++i)
       sigmas[i] = constexpr_sqrt(std::max<Real>(0, lambdas(i)));
 
+    // 3. back-solve for U with VT & sigmas
     // \Sigma^{-1} A V = U
     U = make_identity<Complex, Rows>();
 
@@ -642,12 +645,14 @@ class SVD {
 
     U = conjugate_transpose(U);
 
-    // (dakre) re-orthonormalize U and VT to ensure vectors form an orthonormal
+    // 4. re-orthonormalize U and VT to ensure vectors form an orthonormal
     // basis
     const auto qr_U = QR(U);
     U = qr_U.get_Q();
     const auto qr_VT = QR(VT);
     VT = qr_VT.get_Q();
+
+    // 5. TODO sort singular values & vectors largest -> smallest
   }
 
   /** @brief SVD member variables */

@@ -205,11 +205,11 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
 
     constexpr auto V = result.get_eigenvectors();
-    constexpr auto V1 = as_col_vector(V(0));
-    constexpr auto V2 = as_col_vector(V(1));
-    constexpr auto V1TV2 = transpose(V1) * V2;
-    STATIC_REQUIRE(V1TV2(0)(0).imag() == 0.0);
-    STATIC_REQUIRE(V1TV2(0)(0).real() < eps);
+    constexpr auto VTV = conjugate_transpose(V) * V;
+    STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
+
+    constexpr auto VAVT = V * (as_complex_matrix(A) * conjugate_transpose(V));
+    STATIC_REQUIRE(all_equal(make_diag(lambdas), VAVT));
   }
 
   SECTION("Real A") {
@@ -265,6 +265,17 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto V1TV2 = conjugate_transpose(V1) * V2;
     STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).real() < eps);
     STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).imag() < eps);
+
+    constexpr auto VTV = conjugate_transpose(V) * V;
+    STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
+
+    // (dakre) TODO sign on off-diagonal is opposite for some reason, need to
+    // look into it
+#if 0
+    constexpr auto VAVT = V * (result * conjugate_transpose(V));
+    std::cout << VAVT(0)(0) << " " << VAVT(0)(1) << std::endl;
+    std::cout << VAVT(1)(0) << " " << VAVT(1)(1) << std::endl;
+#endif
   }
 }
 
@@ -284,12 +295,26 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
     STATIC_REQUIRE(euclidean_distance(sigmas, Vectord<2>{1.0, 2.0}) <= eps);
 
-    constexpr auto I3 = make_identity<std::complex<double>, 3>();
     constexpr auto UTU = transpose(U) * U;
-    STATIC_REQUIRE(all_equal(UTU, I3));
+    STATIC_REQUIRE(all_equal(UTU, make_identity<std::complex<double>, 3>()));
 
     constexpr auto VTV = VT * transpose(VT);
     STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
+
+    // (dakre) TODO sign on off-diagonal is opposite for some reason, need to
+    // look into it
+#if 0
+    constexpr auto z = std::complex<double>(0.0);
+    constexpr auto v1 = Vectorcd<2>{sigmas(0), z};
+    constexpr auto v2 = Vectorcd<2>{z, sigmas(1)};
+    constexpr auto v3 = Vectorcd<2>{z, z};
+    constexpr Matrix<std::complex<double>, 3, 2> S{v1, v2, v3};
+
+    constexpr auto USVT = U * (S * VT);
+    std::cout << USVT(0)(0) << " " << USVT(0)(1) << std::endl;
+    std::cout << USVT(1)(0) << " " << USVT(1)(1) << std::endl;
+    std::cout << USVT(2)(0) << " " << USVT(2)(1) << std::endl;
+#endif
   }
 
   SECTION("Zeros case") {
