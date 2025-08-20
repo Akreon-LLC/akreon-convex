@@ -440,24 +440,28 @@ class EigenDecomposition {
 
     // 4. back substitute now for solving eigenvectors
     // a. (H - \lambda I) x = 0
-    // b. project x onto unitary basis U to get it aligned in A
+    // b. apply coordinate map to x from unitary basis U to get it aligned in A
     for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
       Vector<Complex, N> x;
-      if (is_real(lambda[i]))
-        x[i] = Complex(1);
-      else if (i > 0)
+      if (!is_real(lambda[i]) && i > 0) {
         seed_complex_block(H, i, x);
-      else
-        break;
 
-      back_sub_1x1_block(H, i, x);
+        back_sub_1x1_block(H, i, x);
 
-      auto v = map_to_A(U, x);
-      for (size_t j = 0; j < N; ++j) V[i][j] = v(j);
+        auto v = map_to_A(U, x);
+        for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
 
-      if (!is_real(lambda[i])) {
+        i--;
+
         v = map_to_A(U, conjugate(x));
-        for (size_t j = 0; j < N; ++j) V[i][j] = v(j);
+        for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
+      } else {
+        x[i] = Complex(1);
+
+        back_sub_1x1_block(H, i, x);
+
+        auto v = map_to_A(U, x);
+        for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
       }
     }
   }
@@ -589,7 +593,7 @@ class SVD {
    *
    * @return matrix of singular values
    */
-  constexpr auto get_singular_values() const { return sigmas; }
+  constexpr auto get_singular_values() const { return S; }
 
   /**
    * @brief basic get for convergence flag
@@ -626,39 +630,31 @@ class SVD {
     }
 
     // (dakre) these eigenvectors are projected onto the row space thus
-    // resembling the right singular vectors of the row space of Lambda above U
-    // (A^T A) VT -> U \Sigma VT
-    VT = result.get_eigenvectors();
+    // resembling the right singular vectors of the row space of Lambda above
+    // U (A^T A) VT -> U \Sigma VT
+    auto V = result.get_eigenvectors();
 
     for (size_t i = 0; i < Cols; ++i)
-      sigmas[i] = constexpr_sqrt(std::max<Real>(0, lambdas(i)));
+      S[i][i] = constexpr_sqrt(std::max<Real>(0, lambdas(i)));
 
     // 3. back-solve for U with VT & sigmas
     // \Sigma^{-1} A V = U
     U = make_identity<Complex, Rows>();
 
-    const auto V = conjugate_transpose(VT);
+    for (size_t i = 0; i < Cols; ++i) {
+      const auto u_i = (1 / S(i)(i)) * as_complex_matrix(A) * get_col(V, i);
+      for (size_t j = 0; j < Rows; ++j) U[j][i] = u_i(j);
+    }
 
-    constexpr auto mn = std::min(Rows, Cols);
-    for (size_t i = 0; i < mn; ++i)
-      U[i] = (1 / sigmas(i)) * as_complex_matrix(A) * get_col(V, i);
+    VT = conjugate_transpose(V);
 
-    U = conjugate_transpose(U);
-
-    // 4. re-orthonormalize U and VT to ensure vectors form an orthonormal
-    // basis
-    const auto qr_U = QR(U);
-    U = qr_U.get_Q();
-    const auto qr_VT = QR(VT);
-    VT = qr_VT.get_Q();
-
-    // 5. TODO sort singular values & vectors largest -> smallest
+    // 4. TODO sort singular values & vectors largest -> smallest
   }
 
   /** @brief SVD member variables */
   Matrix<Complex, Cols, Cols> VT;  ///< right singular vectors
   Matrix<Complex, Rows, Rows> U;   ///< left singular vectors
-  Vector<Real, Cols> sigmas;       ///< singular values
+  Matrix<Real, Rows, Cols> S;      ///< singular values
   bool converged;                  ///< converged
 };
 

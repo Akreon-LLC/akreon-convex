@@ -81,19 +81,19 @@ void fuzz_test(const scalar_type_t<T>& tol) {
 
     const auto svd = SVD(A);
     const auto U = svd.get_left_singular_vectors();
-    const auto sigmas = svd.get_singular_values();
+    const auto S = svd.get_singular_values();
     const auto VT = svd.get_right_singular_vectors();
     static_assert(
         std::same_as<decltype(U), const Matrix<std::complex<T>, Rows, Rows>>);
     static_assert(
         std::same_as<decltype(VT), const Matrix<std::complex<T>, Cols, Cols>>);
-    static_assert(std::same_as<decltype(sigmas), const Vector<T, Cols>>);
+    static_assert(std::same_as<decltype(S), const Matrix<T, Rows, Cols>>);
 
     if (!svd.get_converged()) {
       std::cerr << "A" << std::endl;
       print_mat(A);
       std::cerr << "Singular values" << std::endl;
-      print_vec(sigmas);
+      print_mat(S);
       std::cerr << "U" << std::endl;
       print_mat(U);
       std::cerr << "VT" << std::endl;
@@ -102,9 +102,11 @@ void fuzz_test(const scalar_type_t<T>& tol) {
     }
 
     T min_sv = 1000, max_sv = 0;
-    for (const auto& x : sigmas) {
-      min_sv = x < min_sv ? x : min_sv;
-      max_sv = x > max_sv ? x : max_sv;
+    for (const auto& row : S) {
+      for (const auto& x : row) {
+        min_sv = x < min_sv ? x : min_sv;
+        max_sv = x > max_sv ? x : max_sv;
+      }
     }
     T k = max_sv / min_sv;
 

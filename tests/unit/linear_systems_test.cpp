@@ -208,8 +208,11 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto VTV = conjugate_transpose(V) * V;
     STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
 
-    constexpr auto VAVT = V * (as_complex_matrix(A) * conjugate_transpose(V));
-    STATIC_REQUIRE(all_equal(make_diag(lambdas), VAVT));
+    constexpr auto VTAV = conjugate_transpose(V) * (as_complex_matrix(A) * V);
+    STATIC_REQUIRE(all_equal(make_diag(lambdas), VTAV));
+
+    constexpr auto VLVT = V * (make_diag(lambdas) * conjugate_transpose(V));
+    STATIC_REQUIRE(all_equal(as_complex_matrix(A), VLVT));
   }
 
   SECTION("Real A") {
@@ -226,17 +229,6 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
                     std::complex(0.0)});
     constexpr auto lambdas = result.get_eigenvalues();
     STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
-
-    constexpr auto V = result.get_eigenvectors();
-    constexpr auto V1 = as_col_vector(V(0));
-    constexpr auto V2 = as_col_vector(V(1));
-    constexpr auto V3 = as_col_vector(V(2));
-    constexpr auto V1TV2 = transpose(V1) * V2;
-    STATIC_REQUIRE(V1TV2(0)(0).imag() == 0.0);
-    STATIC_REQUIRE(V1TV2(0)(0).real() < eps);
-    constexpr auto V1TV2TV3 = transpose(V1TV2) * V3;
-    STATIC_REQUIRE(V1TV2TV3(0)(0).imag() == 0.0);
-    STATIC_REQUIRE(V1TV2TV3(0)(0).real() < eps);
   }
 
   SECTION("Complex hermitian A") {
@@ -269,13 +261,11 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto VTV = conjugate_transpose(V) * V;
     STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
 
-    // (dakre) TODO sign on off-diagonal is opposite for some reason, need to
-    // look into it
-#if 0
-    constexpr auto VAVT = V * (result * conjugate_transpose(V));
-    std::cout << VAVT(0)(0) << " " << VAVT(0)(1) << std::endl;
-    std::cout << VAVT(1)(0) << " " << VAVT(1)(1) << std::endl;
-#endif
+    constexpr auto VTAV = conjugate_transpose(V) * (as_complex_matrix(A) * V);
+    STATIC_REQUIRE(all_equal(make_diag(lambdas), VTAV));
+
+    constexpr auto VLVT = V * (result * conjugate_transpose(V));
+    STATIC_REQUIRE(all_equal(A, VLVT));
   }
 }
 
@@ -288,33 +278,23 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto result = SVD(A);
 
     constexpr auto U = result.get_left_singular_vectors();
-    constexpr auto sigmas = result.get_singular_values();
+    constexpr auto S = result.get_singular_values();
     constexpr auto VT = result.get_right_singular_vectors();
     STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<3, 3>>);
-    STATIC_REQUIRE(std::same_as<decltype(sigmas), const Vectord<2>>);
+    STATIC_REQUIRE(std::same_as<decltype(S), const Matrixd<3, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
-    STATIC_REQUIRE(euclidean_distance(sigmas, Vectord<2>{1.0, 2.0}) <= eps);
+    STATIC_REQUIRE(euclidean_distance(get_diag(S), Vectord<2>{1.0, 2.0}) <=
+                   eps);
 
-    constexpr auto UTU = transpose(U) * U;
-    STATIC_REQUIRE(all_equal(UTU, make_identity<std::complex<double>, 3>()));
+    constexpr auto UTU = conjugate_transpose(U) * U;
+    STATIC_REQUIRE(all_equal(get_n_rows<0, 2>(get_n_cols<0, 2>(UTU)),
+                             make_identity<std::complex<double>, 2>()));
 
-    constexpr auto VTV = VT * transpose(VT);
+    constexpr auto VTV = VT * conjugate_transpose(VT);
     STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
 
-    // (dakre) TODO sign on off-diagonal is opposite for some reason, need to
-    // look into it
-#if 0
-    constexpr auto z = std::complex<double>(0.0);
-    constexpr auto v1 = Vectorcd<2>{sigmas(0), z};
-    constexpr auto v2 = Vectorcd<2>{z, sigmas(1)};
-    constexpr auto v3 = Vectorcd<2>{z, z};
-    constexpr Matrix<std::complex<double>, 3, 2> S{v1, v2, v3};
-
-    constexpr auto USVT = U * (S * VT);
-    std::cout << USVT(0)(0) << " " << USVT(0)(1) << std::endl;
-    std::cout << USVT(1)(0) << " " << USVT(1)(1) << std::endl;
-    std::cout << USVT(2)(0) << " " << USVT(2)(1) << std::endl;
-#endif
+    constexpr auto USVT = U * (as_complex_matrix(S) * VT);
+    STATIC_REQUIRE(all_equal(as_complex_matrix(A), USVT));
   }
 
   SECTION("Zeros case") {
@@ -328,12 +308,13 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     STATIC_REQUIRE(all_zeros(Z1));
     constexpr auto result = SVD(Z1);
     constexpr auto U = result.get_left_singular_vectors();
-    constexpr auto sigmas = result.get_singular_values();
+    constexpr auto S = result.get_singular_values();
     constexpr auto VT = result.get_right_singular_vectors();
     STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<2, 2>>);
-    STATIC_REQUIRE(std::same_as<decltype(sigmas), const Vectord<2>>);
+    STATIC_REQUIRE(std::same_as<decltype(S), const Matrixd<2, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
-    STATIC_REQUIRE(euclidean_distance(sigmas, Vectord<2>{0.0, 0.0}) <= eps);
+    STATIC_REQUIRE(euclidean_distance(get_diag(S), Vectord<2>{0.0, 0.0}) <=
+                   eps);
 
     constexpr auto V1 = as_col_vector(VT(0));
     constexpr auto V2 = as_col_vector(VT(1));
@@ -363,15 +344,15 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto result = SVD(A);
     STATIC_REQUIRE(is_hermitian(A));
     constexpr auto U = result.get_left_singular_vectors();
-    constexpr auto sigmas = result.get_singular_values();
+    constexpr auto S = result.get_singular_values();
     constexpr auto VT = result.get_right_singular_vectors();
     STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<2, 2>>);
-    STATIC_REQUIRE(std::same_as<decltype(sigmas), const Vectord<2>>);
+    STATIC_REQUIRE(std::same_as<decltype(S), const Matrixd<2, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
 
     // (dakre) since A is hermitian its singular values are equivalent to the
     // abs value of the eigenvalues of A
-    STATIC_REQUIRE(all_equal(make_diag(sigmas), expected));
+    STATIC_REQUIRE(all_equal(S, expected));
 
     constexpr auto I = make_identity<std::complex<double>, 2>();
 
@@ -380,5 +361,8 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
 
     constexpr auto VTV = VT * conjugate_transpose(VT);
     STATIC_REQUIRE(all_equal(VTV, I));
+
+    constexpr auto USVT = U * (as_complex_matrix(S) * VT);
+    STATIC_REQUIRE(all_equal(A, USVT));
   }
 }
