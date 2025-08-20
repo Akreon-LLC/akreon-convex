@@ -68,6 +68,26 @@ constexpr auto as_row_vector(const Vector<T, N>& X) {
 }
 
 /**
+ * @brief express matrix as complex one
+ *
+ * @param Matrix A type T with Rows x Cols elements
+ *
+ * @return A \in C
+ */
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
+constexpr auto as_complex_matrix(const Matrix<T, Rows, Cols>& A) {
+  Matrix<std::complex<scalar_type_t<T>>, Rows, Cols> result;
+  if constexpr (!is_complex_v<T>) {
+    for (size_t i = 0; i < Rows; ++i)
+      for (size_t j = 0; j < Cols; ++j) result[i][j] = std::complex<T>(A(i)(j));
+  } else {
+    result = A;
+  }
+  return result;
+}
+
+/**
  * @brief get the column of matrix A based on given index
  *
  * @param matrix A of size Rows x Cols of type T

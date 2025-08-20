@@ -68,39 +68,6 @@ void fuzz_test(const scalar_type_t<T>& tol) {
       throw std::runtime_error("A_prime != A");
     }
 
-#if 0
-    const auto svd = SVD(A);
-    const auto U = svd.get_left_singular_vectors();
-    const auto sigmas = svd.get_singular_values();
-    const auto VT = svd.get_right_singular_vectors();
-    static_assert(std::same_as<decltype(U), const Matrix<T, Rows, Rows>>);
-    static_assert(std::same_as<decltype(VT), const Matrix<T, Cols, Cols>>);
-    static_assert(std::same_as<decltype(sigmas), const Vector<T, Cols>>);
-
-    T min_sv = 1000, max_sv = 0;
-    for (const auto& x : sigmas) {
-      min_sv = x < min_sv ? x : min_sv;
-      max_sv = x > max_sv ? x : max_sv;
-    }
-    T k = max_sv / min_sv;
-
-    const auto UTU = U * transpose(U);
-    const auto VTV = transpose(VT) * VT;
-    if (!all_equal(UTU, make_identity<T, Rows>()) ||
-        !all_equal(VTV, make_identity<T, Cols>())) {
-      std::cerr << "SVD test case failed to form orthonormal basis vectors"
-                << std::endl;
-      std::cerr << "Matrix rank " << r << std::endl;
-      std::cerr << "Matrix condition number " << k << std::endl;
-      print_mat(A);
-      std::cerr << "Left singular vectors" << std::endl;
-      print_mat(U);
-      std::cerr << "Right singular vectors" << std::endl;
-      print_mat(VT);
-      throw std::runtime_error("Failed to perform SVD on A");
-    }
-#endif
-
     if constexpr (Rows == Cols) {
       const auto eig_decomp = EigenDecomposition(A);
       if (!eig_decomp.get_converged()) {
@@ -112,6 +79,35 @@ void fuzz_test(const scalar_type_t<T>& tol) {
       }
     }
 
+    const auto svd = SVD(A);
+    const auto U = svd.get_left_singular_vectors();
+    const auto sigmas = svd.get_singular_values();
+    const auto VT = svd.get_right_singular_vectors();
+    static_assert(
+        std::same_as<decltype(U), const Matrix<std::complex<T>, Rows, Rows>>);
+    static_assert(
+        std::same_as<decltype(VT), const Matrix<std::complex<T>, Cols, Cols>>);
+    static_assert(std::same_as<decltype(sigmas), const Vector<T, Cols>>);
+
+    if (!svd.get_converged()) {
+      std::cerr << "A" << std::endl;
+      print_mat(A);
+      std::cerr << "Singular values" << std::endl;
+      print_vec(sigmas);
+      std::cerr << "U" << std::endl;
+      print_mat(U);
+      std::cerr << "VT" << std::endl;
+      print_mat(VT);
+      throw std::runtime_error("svd failed to find solution");
+    }
+
+    T min_sv = 1000, max_sv = 0;
+    for (const auto& x : sigmas) {
+      min_sv = x < min_sv ? x : min_sv;
+      max_sv = x > max_sv ? x : max_sv;
+    }
+    T k = max_sv / min_sv;
+
     const auto x = make_vec<T, Cols>(rng, dist);
     const auto b = A * x;
 
@@ -122,7 +118,7 @@ void fuzz_test(const scalar_type_t<T>& tol) {
       std::cerr << "LSQ test case failed for tolerance " << tol << std::endl;
       std::cerr << "Residual " << residual << std::endl;
       std::cerr << "Matrix rank " << r << std::endl;
-      // std::cerr << "Matrix condition number " << k << std::endl;
+      std::cerr << "Matrix condition number " << k << std::endl;
       print_mat(A);
       std::cerr << "Vector b" << std::endl;
       print_vec(b);

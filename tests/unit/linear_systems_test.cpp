@@ -263,12 +263,11 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto V1 = as_col_vector(V(0));
     constexpr auto V2 = as_col_vector(V(1));
     constexpr auto V1TV2 = conjugate_transpose(V1) * V2;
-    STATIC_REQUIRE((V1TV2*V1TV2)(0)(0).real() < eps);
-    STATIC_REQUIRE((V1TV2*V1TV2)(0)(0).imag() < eps);
+    STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).real() < eps);
+    STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).imag() < eps);
   }
 }
 
-#if 0
 TEST_CASE("SVD", "[A = U Sigma VT]") {
   SECTION("Known SVD") {
     constexpr auto x1 = Vectord<2>{1.0, 0.0};
@@ -280,17 +279,17 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto U = result.get_left_singular_vectors();
     constexpr auto sigmas = result.get_singular_values();
     constexpr auto VT = result.get_right_singular_vectors();
-    STATIC_REQUIRE(std::same_as<decltype(U), const Matrixd<3, 3>>);
+    STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<3, 3>>);
     STATIC_REQUIRE(std::same_as<decltype(sigmas), const Vectord<2>>);
-    STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixd<2, 2>>);
+    STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
     STATIC_REQUIRE(euclidean_distance(sigmas, Vectord<2>{1.0, 2.0}) <= eps);
 
-    constexpr auto I3 = make_identity<double, 3>();
+    constexpr auto I3 = make_identity<std::complex<double>, 3>();
     constexpr auto UTU = transpose(U) * U;
     STATIC_REQUIRE(all_equal(UTU, I3));
 
     constexpr auto VTV = VT * transpose(VT);
-    STATIC_REQUIRE(all_equal(VTV, make_identity<double, 2>()));
+    STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
   }
 
   SECTION("Zeros case") {
@@ -306,14 +305,22 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto U = result.get_left_singular_vectors();
     constexpr auto sigmas = result.get_singular_values();
     constexpr auto VT = result.get_right_singular_vectors();
-    STATIC_REQUIRE(std::same_as<decltype(U), const Matrixd<2, 2>>);
+    STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<2, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(sigmas), const Vectord<2>>);
-    STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixd<2, 2>>);
+    STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
     STATIC_REQUIRE(euclidean_distance(sigmas, Vectord<2>{0.0, 0.0}) <= eps);
 
-    constexpr auto I = make_identity<double, 2>();
-    STATIC_REQUIRE(all_equal(VT, I));
-    STATIC_REQUIRE(all_equal(U, I));
+    constexpr auto V1 = as_col_vector(VT(0));
+    constexpr auto V2 = as_col_vector(VT(1));
+    constexpr auto V1TV2 = conjugate_transpose(V1) * V2;
+    STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).real() < eps);
+    STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).imag() < eps);
+
+    constexpr auto U1 = as_col_vector(U(0));
+    constexpr auto U2 = as_col_vector(U(1));
+    constexpr auto U1TU2 = conjugate_transpose(U1) * U2;
+    STATIC_REQUIRE((U1TU2 * U1TU2)(0)(0).real() < eps);
+    STATIC_REQUIRE((U1TU2 * U1TU2)(0)(0).imag() < eps);
   }
 
   SECTION("Complex hermitian A") {
@@ -350,4 +357,3 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     STATIC_REQUIRE(all_equal(VTV, I));
   }
 }
-#endif

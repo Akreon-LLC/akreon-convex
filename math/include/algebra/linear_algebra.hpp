@@ -548,7 +548,6 @@ class EigenDecomposition {
   bool converged;             ///< eigenvalue convergence flag
 };
 
-#if 0
 /**
  * @brief Singular value decomposition class definition
  *
@@ -560,15 +559,17 @@ template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
 class SVD {
  public:
+  // @brief aliasing complex and real types for eigen decomposition
+  using Real = scalar_type_t<T>;
+  using Complex = std::conditional_t<is_complex_v<T>, T, std::complex<Real>>;
+
   /**
    * @brief CTOR
    *
    * @param matrix A of type T with Rows x Cols elements
    * @param tolerance dictating algorithm convergence
    */
-  constexpr SVD(const Matrix<T, Rows, Cols>& A, scalar_type_t<T> tol = 1e-10) {
-    svd(A, tol);
-  }
+  constexpr SVD(const Matrix<T, Rows, Cols>& A) : converged(false) { svd(A); }
   /**
    * @brief basic get for left singular vectors
    *
@@ -590,34 +591,36 @@ class SVD {
    */
   constexpr auto get_singular_values() const { return sigmas; }
 
+  /**
+   * @brief basic get for convergence flag
+   *
+   * @return T/F
+   */
+  constexpr auto get_converged() const { return converged; }
+
  private:
   /**
    * @brief solve A = U \Sigma V^T
    *
    * @param matrix A of type T with Rows x Cols elements
-   * @param tolerance dictating algorithm convergence
    *
    * @return (void)
    */
-  constexpr void svd(const Matrix<T, Rows, Cols>& A,
-                     const scalar_type_t<T>& tol = 1e-10) {
+  constexpr void svd(const Matrix<T, Rows, Cols>& A) {
     Matrix<T, Cols, Cols> M;
     if constexpr (!is_complex_v<T>)
       M = transpose(A) * A;
     else
       M = conjugate_transpose(A) * A;
 
-    const auto result = EigenDecomposition(M, tol);
+    const auto result = EigenDecomposition(M);
+    converged = result.get_converged();
 
     const auto tmp_lambdas = result.get_eigenvalues();
-    Vector<scalar_type_t<T>, Cols> lambdas;
-    if constexpr (!is_complex_v<T>)
-      lambdas = tmp_lambdas;
-    else {
-      for (size_t i = 0; i < Cols; ++i) {
-        assert(is_real(tmp_lambdas(i)));
-        lambdas[i] = tmp_lambdas(i).real();
-      }
+    Vector<Real, Cols> lambdas;
+    for (size_t i = 0; i < Cols; ++i) {
+      assert(is_real(tmp_lambdas(i)));
+      lambdas[i] = tmp_lambdas(i).real();
     }
 
     // (dakre) these eigenvectors are projected onto the row space thus
@@ -626,17 +629,18 @@ class SVD {
     VT = result.get_eigenvectors();
 
     for (size_t i = 0; i < Cols; ++i)
-      sigmas[i] = constexpr_sqrt(std::max<scalar_type_t<T>>(0, lambdas(i)));
+      sigmas[i] = constexpr_sqrt(std::max<Real>(0, lambdas(i)));
 
     // \Sigma^{-1} A V = U
-    U = make_identity<T, Rows>();
+    U = make_identity<Complex, Rows>();
 
-    const auto V = transpose(VT);
+    const auto V = conjugate_transpose(VT);
 
     constexpr auto mn = std::min(Rows, Cols);
-    for (size_t i = 0; i < mn; ++i) U[i] = (1 / sigmas(i)) * A * get_col(V, i);
+    for (size_t i = 0; i < mn; ++i)
+      U[i] = (1 / sigmas(i)) * as_complex_matrix(A) * get_col(V, i);
 
-    U = transpose(U);
+    U = conjugate_transpose(U);
 
     // (dakre) re-orthonormalize U and VT to ensure vectors form an orthonormal
     // basis
@@ -647,10 +651,10 @@ class SVD {
   }
 
   /** @brief SVD member variables */
-  Matrix<T, Cols, Cols> VT;               ///< right singular vectors
-  Matrix<T, Rows, Rows> U;                ///< left singular vectors
-  Vector<scalar_type_t<T>, Cols> sigmas;  ///< singular values
+  Matrix<Complex, Cols, Cols> VT;  ///< right singular vectors
+  Matrix<Complex, Rows, Rows> U;   ///< left singular vectors
+  Vector<Real, Cols> sigmas;       ///< singular values
+  bool converged;                  ///< converged
 };
-#endif
 
 }  // namespace algebra
