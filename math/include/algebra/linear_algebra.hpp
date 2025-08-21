@@ -648,7 +648,36 @@ class SVD {
 
     VT = conjugate_transpose(V);
 
-    // 4. TODO sort singular values & vectors largest -> smallest
+    // 4. sort singular values & vectors largest -> smallest
+    sort_svd_desc();
+  }
+
+  /**
+   * @brief sort SVD result in descending manner
+   *
+   * @return (void)
+   */
+  constexpr void sort_svd_desc() {
+    // 1. acquire permutation indices
+    const auto P = argsort_desc(get_diag(S));
+
+    // 2. pemute singular vectors and values
+    Matrix<Real, Rows, Cols> S_tmp;
+    Matrix<Complex, Rows, Rows> U_tmp;
+    Matrix<Complex, Cols, Cols> VT_tmp;
+    for (size_t i = 0; i < Cols; ++i) {
+      const auto idx = P[i];
+      S_tmp[i][i] = S(idx)(idx);
+
+      for (size_t r = 0; r < Rows; ++r) U_tmp[r][i] = U(r)(idx);
+
+      for (size_t c = 0; c < Cols; ++c) VT_tmp[i][c] = VT(idx)(c);
+    }
+
+    // 3. store result
+    S = S_tmp;
+    U = U_tmp;
+    VT = VT_tmp;
   }
 
   /** @brief SVD member variables */

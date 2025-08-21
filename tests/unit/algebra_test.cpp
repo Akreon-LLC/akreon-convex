@@ -51,6 +51,10 @@ TEST_CASE("Test constexpr math", "[math]") {
   constexpr auto b = std::complex<double>(1.0, -2.0);
   constexpr auto expected = 2.3607;
   STATIC_REQUIRE(L2<std::complex<double>, 1>(b) - expected < eps);
+
+  constexpr auto V = Vectord<5>{1.0, 2.0, 3.0, 4.0, 5.0};
+  constexpr auto P = argsort_desc(V);
+  STATIC_REQUIRE(P == std::array<size_t, 5>{4, 3, 2, 1, 0});
 }
 
 TEST_CASE("Test vector space types", "[vector_space]") {

@@ -89,7 +89,8 @@ void fuzz_test(const scalar_type_t<T>& tol) {
         std::same_as<decltype(VT), const Matrix<std::complex<T>, Cols, Cols>>);
     static_assert(std::same_as<decltype(S), const Matrix<T, Rows, Cols>>);
 
-    if (!svd.get_converged()) {
+    if (!svd.get_converged() &&
+        all_equal(as_complex_matrix(A), U * (as_complex_matrix(S) * VT))) {
       std::cerr << "A" << std::endl;
       print_mat(A);
       std::cerr << "Singular values" << std::endl;

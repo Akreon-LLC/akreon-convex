@@ -238,4 +238,25 @@ constexpr void constexpr_for(Func&& f) {
   }
 }
 
+/**
+ * @brief argsort in descending manner
+ *
+ * @param Vector type T size N x 1
+ *
+ * @return Vector of indices
+ */
+template <typename T, size_t N>
+  requires(!is_complex_v<T>)
+constexpr auto argsort_desc(const Vector<T, N>& x) {
+  std::array<size_t, N> p;
+  for (size_t i = 0; i < N; ++i) p[i] = i;
+  for (size_t i = 0; i + 1 < N; ++i) {
+    size_t largest = i;
+    for (size_t j = i + 1; j < N; ++j)
+      if (x(p[j]) > x(p[largest])) largest = j;
+    if (largest != i) std::swap(p[i], p[largest]);
+  }
+  return p;
+}
+
 }  // namespace algebra

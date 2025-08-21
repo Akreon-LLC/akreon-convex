@@ -283,7 +283,7 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<3, 3>>);
     STATIC_REQUIRE(std::same_as<decltype(S), const Matrixd<3, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
-    STATIC_REQUIRE(euclidean_distance(get_diag(S), Vectord<2>{1.0, 2.0}) <=
+    STATIC_REQUIRE(euclidean_distance(get_diag(S), Vectord<2>{2.0, 1.0}) <=
                    eps);
 
     constexpr auto UTU = conjugate_transpose(U) * U;
