@@ -11,3 +11,4 @@
 
 ## Test
 1. ```cd build && ctest```
+1. ```./linalg_fuzz_test``` to run many randomly generated cases for various matrix sizes to compute different linalg functions

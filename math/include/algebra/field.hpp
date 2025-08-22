@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <complex>
 #include <type_traits>
 
