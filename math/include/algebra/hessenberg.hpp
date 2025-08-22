@@ -9,12 +9,27 @@
 #include "matrix_ops.hpp"
 
 namespace algebra {
-
+/**
+ * @brief Hessenberg Matrix
+ *
+ * H is an upper right triangular matrix formed by successive Householder
+ * reductions creating the similarity transform: H = U_0^T A U_0.
+ */
 template <typename T, size_t N>
 class HessenbergMatrix {
  public:
+  /**
+   * @brief CTOR
+   *
+   * @param Matrix A of type T with N x N elements
+   */
   constexpr HessenbergMatrix(const Matrix<T, N, N>& A) { make_hessenberg(A); }
 
+  /**
+   * @brief operator override to acquire H from HessenbergMatrix object
+   *
+   * @return Matrix of type T with N x N elements (upper right triangular)
+   */
   constexpr auto operator()() const {
     Matrix<T, N, N> res;
     for (size_t i = 0; i < N; ++i) {
@@ -26,8 +41,18 @@ class HessenbergMatrix {
     return res;
   }
 
+  /**
+   * @brief simple getter for unitar matrix
+   *
+   * @return U of type T N x N
+   */
   constexpr auto get_U() const { return get_unitary_matrix(); }
 
+  /**
+   * @brief get beta vector
+   *
+   * @return beta vector of type T with N elements
+   */
   constexpr auto get_beta() const { return beta; }
 
  private:
@@ -109,8 +134,9 @@ class HessenbergMatrix {
     return U;
   }
 
-  Matrix<T, N, N> H;
-  Vector<T, N> beta;
+  /** @brief Vector member variables */
+  Matrix<T, N, N> H; ///< Hessenberg matrix
+  Vector<T, N> beta; ///< beta vector from householder reflections
 };
 
 }  // namespace algebra

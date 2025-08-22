@@ -21,7 +21,7 @@ struct HouseholderVector {
   /**
    * @brief CTOR to compute householder vector
    *
-   * P = I - beta v v^T is \perp and Px = ||x||_2 e_1
+   * Householder reflector: P = I - beta v v^T is \perp and Px = ||x||_2 e_1
    * beta = 2 / v^T v
    *
    * @param vector x to be transformed into householder
@@ -31,11 +31,32 @@ struct HouseholderVector {
     make_householder(x, std::integral_constant<size_t, N>{});
   }
 
+  /**
+   * @brief simple getter for beta scalar
+   *
+   * @return beta scalar
+   */
   constexpr auto get_beta() const { return beta; }
 
+  /**
+   * @brief simple getter for v vector
+   *
+   * @return v vector of type T with N elements
+   */
   constexpr auto get_v() const { return v; }
 
  private:
+  /**
+   * @brief from a vector X create a householder vector
+   *
+   * The whole idea of householder vectors is to generate orthogonal vectors
+   * such that Q^T Q = I or Q^* Q = I \in C from the householder reflectors
+   * described above
+   *
+   * @param vector x with type T and N elements
+   *
+   * @return (void)
+   */
   constexpr void make_householder(const Vector<T, N>& x, auto) {
     if constexpr (is_complex_v<T>) {
       const auto norm_x = L2(x);
@@ -78,6 +99,15 @@ struct HouseholderVector {
     }
   }
 
+  /**
+   * @brief handles edge case where N = 1 return degenerate householder vector
+   * beta = 0 & v = [1 ... 0]
+   *
+   * @param vector type T with N elements (null)
+   * @param integral constant of 1 of type size_t
+   *
+   * @return (void)
+   */
   constexpr void make_householder(const Vector<T, N>&,
                                   std::integral_constant<std::size_t, 1>) {
     beta = scalar_type_t<T>(0);

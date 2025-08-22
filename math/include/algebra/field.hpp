@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <algorithm>
-#include <array>
 #include <complex>
 #include <type_traits>
 
