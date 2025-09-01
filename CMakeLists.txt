@@ -14,7 +14,10 @@ option(BUILD_TESTING "Enable building test code" ON)
 
 include(FetchContent)
 
-include_directories(math/include)
+include_directories(
+  math/include
+  physics/include
+)
 
 if(BUILD_TESTING)
   FetchContent_Declare(
@@ -46,4 +49,9 @@ if(BUILD_TESTING)
 
   add_executable(linalg_fuzz_test tests/functional/linalg_fuzz_test.cpp)
   target_include_directories(linalg_fuzz_test PRIVATE ../math/include)
+
+  add_executable(dynamical_system_test tests/unit/dynamical_system_test.cpp)
+  add_test(NAME dynamical_system_test COMMAND dynamical_system_test)
+  target_link_libraries(dynamical_system_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(dynamical_system_test PRIVATE ../physics/include)
 endif()
