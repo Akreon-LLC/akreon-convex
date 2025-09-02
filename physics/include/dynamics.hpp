@@ -5,4 +5,5 @@
 
 #pragma once
 
+#include "dynamics/del.hpp"
 #include "dynamics/dynamical_system.hpp"
