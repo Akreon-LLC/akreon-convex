@@ -172,6 +172,18 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto x_tilde = qr.solve(y);
     STATIC_REQUIRE(euclidean_distance(x_tilde, Vectorcd<2>{1.0, 2.0}) <= eps);
   }
+
+  SECTION("1x1 case") {
+    constexpr auto X = Vector<double, 1>{0.0};
+    constexpr auto A = Matrix<double, 1, 1>{X};
+    constexpr auto qr = QR(A);
+    constexpr auto Q = qr.get_Q();
+    constexpr auto R = qr.get_R();
+    STATIC_REQUIRE(Q(0)(0) == 1.0);
+    STATIC_REQUIRE(R(0)(0) == 0.0);
+
+    //constexpr auto x = qr.solve();
+  }
 }
 
 TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {

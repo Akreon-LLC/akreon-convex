@@ -35,9 +35,9 @@ class DynamicalSystem {
     return static_cast<const DerivedSystem*>(this)->V_impl(q);
   }
 
-  constexpr ScalarT Qnc(const algebra::Vector<ScalarT, DoF>& q0,
-                        const algebra::Vector<ScalarT, DoF>& q1,
-                        const ScalarT& h) const {
+  constexpr algebra::Vector<ScalarT, DoF> Qnc(
+      const algebra::Vector<ScalarT, DoF>& q0,
+      const algebra::Vector<ScalarT, DoF>& q1, const ScalarT& h) const {
     return static_cast<const DerivedSystem*>(this)->Qnc_impl(q0, q1, h);
   }
 
@@ -45,7 +45,6 @@ class DynamicalSystem {
 
  protected:
   algebra::Matrix<ScalarT, DoF, 3> Q;
-  const ScalarT G = 9.80665;
 };
 
 }  // namespace dynamics
