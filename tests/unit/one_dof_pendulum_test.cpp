@@ -4,6 +4,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+
 #include "dynamics.hpp"
 #include "unit_test_helpers.hpp"
 
@@ -14,12 +15,6 @@ using namespace algebra;
 template <typename ScalarT, size_t DoF = 1>
 class Pendulum : public DynamicalSystem<ScalarT, DoF, Pendulum<ScalarT, DoF>> {
  public:
-  constexpr explicit Pendulum(const Vector<ScalarT, DoF>& thetas,
-                              const ScalarT& len, const ScalarT& m)
-      : DynamicalSystem<ScalarT, DoF, Pendulum<ScalarT, DoF>>(thetas),
-        length(len),
-        mass(m) {}
-
   constexpr explicit Pendulum(const Matrix<ScalarT, DoF, 3>& coords,
                               const ScalarT& len, const ScalarT& m)
       : DynamicalSystem<ScalarT, DoF, Pendulum<ScalarT, DoF>>(coords),
