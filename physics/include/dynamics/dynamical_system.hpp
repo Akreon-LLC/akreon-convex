@@ -17,14 +17,10 @@ class DynamicalSystem {
       const algebra::Matrix<ScalarT, DoF, 3>& coords)
       : Q(coords) {}
 
-  constexpr explicit DynamicalSystem(const algebra::Vector<ScalarT, DoF>& ic,
-                                     ScalarT perturbation = 1e-4) {
-    for (size_t i = 0; i < DoF; ++i) {
-      Q[i][0] = ic(i);
-      Q[i][1] = ic(i) + perturbation;
-      Q[i][2] = Q(i)(1) + (Q(i)(1) - Q(i)(0));
-    }
-  }
+  DynamicalSystem(const DynamicalSystem& system) = delete;
+  DynamicalSystem(DynamicalSystem&& system) = delete;
+  DynamicalSystem& operator=(const DynamicalSystem& system) = delete;
+  DynamicalSystem& operator=(DynamicalSystem&& system) = delete;
 
   constexpr ScalarT T(const algebra::Vector<ScalarT, DoF>& q0,
                       const algebra::Vector<ScalarT, DoF>& q1) const {
@@ -46,5 +42,17 @@ class DynamicalSystem {
  protected:
   algebra::Matrix<ScalarT, DoF, 3> Q;
 };
+
+template <typename ScalarT, size_t DoF>
+constexpr auto seed_Q(const algebra::Vector<ScalarT, DoF>& ic,
+                      ScalarT perturbation = 1e-4) {
+  algebra::Matrix<ScalarT, DoF, 3> Q;
+  for (size_t i = 0; i < DoF; ++i) {
+    Q[i][0] = ic(i);
+    Q[i][1] = ic(i) + perturbation;
+    Q[i][2] = Q(i)(1) + (Q(i)(1) - Q(i)(0));
+  }
+  return Q;
+}
 
 }  // namespace dynamics
