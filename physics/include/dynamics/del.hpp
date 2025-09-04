@@ -75,12 +75,10 @@ constexpr auto Solve(const DynamicalSystem<ScalarT, DoF, DerivedSystem>& system,
   algebra::Matrix<ScalarT, DoF, 3> Q;
 
   for (size_t i = 0; i < MAX_STEP_EVAL; ++i) {
-    algebra::Vector<ScalarT, DoF> F, Q_delta;
-
     J = algebra::make_zeros<ScalarT, DoF, DoF>();
     Q = system.get_Q();
 
-    F = DEL(Q);
+    const auto R = DEL(Q);
     for (size_t j = 0; j < DoF; ++j) {
       Q[j][2] += eps;
       const auto pos = DEL(Q);
@@ -90,13 +88,11 @@ constexpr auto Solve(const DynamicalSystem<ScalarT, DoF, DerivedSystem>& system,
 
       Q[j][2] += eps;
       const auto grad = (1 / (2 * eps)) * (pos - neg);
-      for (size_t k = 0; k < DoF; ++k) J[j][k] = grad(k);
+      for (size_t k = 0; k < DoF; ++k) J[k][j] = grad(k);
     }
 
-    // std::cout << F(0) << std::endl;
-
-    // Qkp1 = J^{-1} F where -F = J * (Qkp1 - Qk)... Q_delta = Qkp1 - Qk
-    Q_delta = algebra::QR(J).solve(-1 * F);
+    // Qkp1 = J^{-1} R where -R = J * (Qkp1 - Qk)... Q_delta = Qkp1 - Qk
+    const auto Q_delta = algebra::QR(J).solve(-1 * R);
 
     // Update Qkp1 column for next timestep
     for (size_t j = 0; j < DoF; ++j) Q[j][2] += Q_delta(j);
