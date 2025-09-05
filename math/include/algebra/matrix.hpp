@@ -185,6 +185,45 @@ constexpr auto get_n_cols(const Matrix<T, Rows, Cols>& A) {
 }
 
 /**
+ * @brief get block from matrix
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return matrix
+ */
+template <size_t StartRow, size_t EndRow, size_t StartCol, size_t EndCol,
+          typename T, size_t Rows, size_t Cols>
+  requires(EndRow - StartRow <= Rows && StartRow < Rows &&
+           EndCol - StartCol <= Cols && StartCol < Cols)
+constexpr auto get_block(const Matrix<T, Rows, Cols>& A) {
+  Matrix<T, EndRow - StartRow, EndCol - StartCol> result;
+  for (size_t i = StartRow, a = 0; i < EndRow; ++i, ++a)
+    for (size_t j = StartCol, b = 0; j < EndCol; ++j, ++b)
+      result[a][b] = A(i)(j);
+  return result;
+}
+
+/**
+ * @brief set block of matrix from matrix
+ *
+ * @param matrix A of type T Rows x Cols elements
+ * @param matrix B of type T (EndRow - StartRow) x (EndCol - StartCol)
+ *
+ * @return matrix A
+ */
+template <size_t StartRow, size_t EndRow, size_t StartCol, size_t EndCol,
+          typename T, size_t Rows, size_t Cols>
+  requires(EndRow - StartRow <= Rows && StartRow < Rows &&
+           EndCol - StartCol <= Cols && StartCol < Cols)
+constexpr auto set_block(
+    Matrix<T, Rows, Cols> A,
+    const Matrix<T, EndRow - StartRow, EndCol - StartCol>& B) {
+  for (size_t i = StartRow, a = 0; i < EndRow; ++i, ++a)
+    for (size_t j = StartCol, b = 0; j < EndCol; ++j, ++b) A[i][j] = B(a)(b);
+  return A;
+}
+
+/**
  * @brief get upper right triangular matrix from A
  *
  * @param matrix A of type T Rows x Cols elements

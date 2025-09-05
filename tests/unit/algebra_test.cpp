@@ -147,6 +147,16 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto C = B + B;
     constexpr auto D = add(B, B);
 
+    constexpr auto B_11 = get_block<0, 1, 0, 1>(B);
+    STATIC_REQUIRE(B_11(0)(0) == 1.0);
+
+    constexpr auto B_new =
+        set_block<0, 1, 0, 1>(B, Matrix<double, 1, 1>{Vector<double, 1>{-2.0}});
+    STATIC_REQUIRE(B_new(0)(0) == -2.0);
+    STATIC_REQUIRE(B_new(0)(1) == 2.0);
+    STATIC_REQUIRE(B_new(1)(0) == 1.0);
+    STATIC_REQUIRE(B_new(1)(1) == 2.0);
+
     STATIC_REQUIRE(all_equal(C, D));
     STATIC_REQUIRE(C(0)(0) == 2.0);
     STATIC_REQUIRE(C(0)(1) == 4.0);

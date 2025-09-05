@@ -90,7 +90,7 @@ class HessenbergMatrix {
         for (size_t j = k, b = 0; j < N; ++j, ++b) H[i][j] = H_block_kn(a)(b);
 
       // (P1...Pk)^T A (P1...Pk) -- handling case when Pk is of order N - k
-      auto H_zn_kn = get_n_cols<k + 1, N>(get_n_rows<0, N>(H));
+      auto H_zn_kn = get_block<0, N, k+1, N>(H);
       if constexpr (is_complex_v<T>)
         H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * conjugate_transpose(v));
       else
