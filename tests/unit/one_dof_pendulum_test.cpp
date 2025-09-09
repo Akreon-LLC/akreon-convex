@@ -12,12 +12,13 @@ using namespace dynamics;
 using namespace unit_test;
 using namespace algebra;
 
-template <typename ScalarT, size_t DoF = 1>
-class Pendulum : public DynamicalSystem<ScalarT, DoF, Pendulum<ScalarT, DoF>> {
+template <typename ScalarT, size_t DoF = 1, size_t Nu = 0>
+class Pendulum
+    : public DynamicalSystem<ScalarT, DoF, Nu, Pendulum<ScalarT, DoF, Nu>> {
  public:
   constexpr explicit Pendulum(const Matrix<ScalarT, DoF, 3>& coords,
                               const ScalarT& len, const ScalarT& m)
-      : DynamicalSystem<ScalarT, DoF, Pendulum<ScalarT, DoF>>(coords),
+      : DynamicalSystem<ScalarT, DoF, Nu, Pendulum<ScalarT, DoF, Nu>>(coords),
         length(len),
         mass(m) {}
 
@@ -33,8 +34,9 @@ class Pendulum : public DynamicalSystem<ScalarT, DoF, Pendulum<ScalarT, DoF>> {
 
   constexpr Vector<ScalarT, DoF> Qnc_impl(const Vector<ScalarT, DoF>& q0,
                                           const Vector<ScalarT, DoF>& q1,
+                                          const Vector<ScalarT, Nu>& U,
                                           const ScalarT& h) const {
-    (void)q0, (void)q1, (void)h;
+    (void)q0, (void)q1, (void)h, (void)U;
     return Vector<ScalarT, DoF>();
   }
 
@@ -58,7 +60,7 @@ TEST_CASE("Test Pendulum", "[pendulum]") {
         pendulum.T(Vector<double, 1>{0.0}, Vector<double, 1>{0.0});
     constexpr auto V = pendulum.V(Vector<double, 1>{0.0});
     constexpr auto Qnc =
-        pendulum.Qnc(Vector<double, 1>{0.0}, Vector<double, 1>{0.0}, 0.1);
+        pendulum.Qnc(Vector<double, 1>{0.0}, Vector<double, 1>{0.0}, Vector<double, 0>{}, 0.1);
     STATIC_REQUIRE(T == 0.0);
     STATIC_REQUIRE(V == 0.0);
     STATIC_REQUIRE(Qnc == Vector<double, 1>{});

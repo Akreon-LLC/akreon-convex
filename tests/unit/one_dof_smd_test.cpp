@@ -12,12 +12,12 @@ using namespace dynamics;
 using namespace unit_test;
 using namespace algebra;
 
-template <typename ScalarT, size_t DoF = 1>
-class SMD : public DynamicalSystem<ScalarT, DoF, SMD<ScalarT, DoF>> {
+template <typename ScalarT, size_t DoF = 1, size_t Nu = 0>
+class SMD : public DynamicalSystem<ScalarT, DoF, Nu, SMD<ScalarT, DoF, Nu>> {
  public:
   constexpr explicit SMD(const Matrix<ScalarT, DoF, 3>& coords,
                          const ScalarT& k, const ScalarT& c, const ScalarT& m)
-      : DynamicalSystem<ScalarT, DoF, SMD<ScalarT, DoF>>(coords),
+      : DynamicalSystem<ScalarT, DoF, Nu, SMD<ScalarT, DoF, Nu>>(coords),
         K(k),
         C(c),
         mass(m) {}
@@ -34,7 +34,9 @@ class SMD : public DynamicalSystem<ScalarT, DoF, SMD<ScalarT, DoF>> {
 
   constexpr Vector<ScalarT, DoF> Qnc_impl(const Vector<ScalarT, DoF>& q0,
                                           const Vector<ScalarT, DoF>& q1,
+                                          const Vector<ScalarT, Nu>& U,
                                           const ScalarT& h) const {
+    (void)U;
     return Vector<ScalarT, 1>{(-1 * C * (q1(0) - q0(0))) / (2 * h)};
   }
 
@@ -55,8 +57,8 @@ TEST_CASE("Test SMD", "[smd]") {
 
     constexpr auto T = smd.T(Vector<double, 1>{0.0}, Vector<double, 1>{0.0});
     constexpr auto V = smd.V(Vector<double, 1>{0.0});
-    constexpr auto Qnc =
-        smd.Qnc(Vector<double, 1>{0.0}, Vector<double, 1>{0.0}, 0.1);
+    constexpr auto Qnc = smd.Qnc(Vector<double, 1>{0.0}, Vector<double, 1>{0.0},
+                                 Vector<double, 0>{}, 0.1);
     STATIC_REQUIRE(T == 0.0);
     STATIC_REQUIRE(V == 0.0);
     STATIC_REQUIRE(Qnc == Vector<double, 1>{});
