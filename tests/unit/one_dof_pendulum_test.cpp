@@ -10,7 +10,7 @@
 
 using namespace dynamics;
 using namespace unit_test;
-using namespace algebra;
+using namespace linalg;
 
 template <typename ScalarT, size_t DoF = 1, size_t Nu = 0>
 class Pendulum
@@ -60,7 +60,8 @@ TEST_CASE("Test Pendulum", "[pendulum]") {
         pendulum.T(Vector<double, 1>{0.0}, Vector<double, 1>{0.0});
     constexpr auto V = pendulum.V(Vector<double, 1>{0.0});
     constexpr auto Qnc =
-        pendulum.Qnc(Vector<double, 1>{0.0}, Vector<double, 1>{0.0}, Vector<double, 0>{}, 0.1);
+        pendulum.Qnc(Vector<double, 1>{0.0}, Vector<double, 1>{0.0},
+                     Vector<double, 0>{}, 0.1);
     STATIC_REQUIRE(T == 0.0);
     STATIC_REQUIRE(V == 0.0);
     STATIC_REQUIRE(Qnc == Vector<double, 1>{});

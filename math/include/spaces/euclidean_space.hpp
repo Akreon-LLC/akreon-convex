@@ -18,7 +18,7 @@ constexpr bool all_finite(const T& X) {
 }
 
 template <typename T, size_t N>
-concept LocallyEuclidean = MetricSpace<T, N, decltype(algebra::L2<T, N>)>;
+concept LocallyEuclidean = MetricSpace<T, N, decltype(linalg::L2<T, N>)>;
 
 template <typename T, size_t N>
 concept TopologicalManifold =
@@ -37,9 +37,9 @@ concept RnSpace = TopologicalManifold<T, N> && requires(const T& X) {
 template <typename Derived>
   requires(Derived::value_type::s_size > 0)
 struct EuclideanSpace {
-  using T = std::conditional_t<algebra::is_complex_v<Derived>,
-                               std::complex<algebra::scalar_type_t<Derived>>,
-                               algebra::scalar_type_t<Derived>>;
+  using T = std::conditional_t<linalg::is_complex_v<Derived>,
+                               std::complex<linalg::scalar_type_t<Derived>>,
+                               linalg::scalar_type_t<Derived>>;
   static const size_t N = Derived::s_size;
   static const size_t M = Derived::value_type::s_size;
 
@@ -59,17 +59,17 @@ struct EuclideanSpace {
   {
     const auto derived = static_cast<Derived&>(*this);
     if constexpr (std::is_same_v<decltype(derived),
-                                 algebra::Vector<algebra::Vector<T, M>, N>>)
+                                 linalg::Vector<linalg::Vector<T, M>, N>>)
       return derived;
     return to_vector_space(derived);
   }
 
  private:
   // (dakre) TODO - this would be MapToRn chart func
-  constexpr algebra::Vector<T, N> to_vector_space(
+  constexpr linalg::Vector<T, N> to_vector_space(
       const topology::Topology<T, N>& tau) {
-    using InnerT = algebra::Vector<T, M>;
-    algebra::Vector<InnerT, N> X;
+    using InnerT = linalg::Vector<T, M>;
+    linalg::Vector<InnerT, N> X;
     for (size_t i = 0; i < N; ++i)
       for (size_t j = 0; j < M; ++j)
         X.coordinates[i].coordinates[j] = tau(i)(j);
@@ -78,8 +78,8 @@ struct EuclideanSpace {
 
   // (dakre) TODO - this would be MapFromRn chart func
   constexpr topology::Topology<T, N> to_topological_space(
-      const algebra::Vector<T, N>& X) {
-    const auto num_rows = algebra::number_of_rows_v<decltype(X)>;
+      const linalg::Vector<T, N>& X) {
+    const auto num_rows = linalg::number_of_rows_v<decltype(X)>;
     using InnerT = topology::OpenSet<T, M>;
     topology::Topology<InnerT, N> tau;
     for (size_t i = 0; i < N; ++i)

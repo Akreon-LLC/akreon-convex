@@ -13,7 +13,7 @@
 
 #define N_ROWS 4
 
-using namespace algebra;
+using namespace linalg;
 
 template <typename T, size_t Rows, size_t Cols>
 void print_mat(const Matrix<T, Rows, Cols>& A) {

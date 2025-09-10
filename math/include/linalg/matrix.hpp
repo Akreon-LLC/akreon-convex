@@ -8,7 +8,7 @@
 #include "vector.hpp"
 #include "vector_ops.hpp"
 
-namespace algebra {
+namespace linalg {
 
 /**
  * @brief create an identity matrix of size N type T
@@ -257,4 +257,4 @@ constexpr auto get_lower_left_triangular_matrix(
   return L;
 }
 
-}  // namespace algebra
+}  // namespace linalg

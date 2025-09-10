@@ -32,10 +32,10 @@ if(BUILD_TESTING)
 
   enable_testing()
 
-  add_executable(algebra_test tests/unit/algebra_test.cpp)
-  add_test(NAME algebra_test COMMAND algebra_test)
-  target_link_libraries(algebra_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(algebra_test PRIVATE ../math/include)
+  add_executable(linalg_test tests/unit/linalg_test.cpp)
+  add_test(NAME linalg_test COMMAND linalg_test)
+  target_link_libraries(linalg_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(linalg_test PRIVATE ../math/include)
 
   add_executable(topology_test tests/unit/topology_test.cpp)
   add_test(NAME topology_test COMMAND topology_test)

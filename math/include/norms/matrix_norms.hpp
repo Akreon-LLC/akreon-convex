@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "matrix_ops.hpp"
+#include "../linalg/matrix_ops.hpp"
 
-namespace algebra {
+namespace linalg {
 
 /**
  * @brief compute the frobenius norm of a matrix
@@ -32,4 +32,4 @@ constexpr auto frobenius_norm(const Matrix<T, Rows, Cols>& A) {
   return constexpr_sqrt(result);
 }
 
-}  // namespace algebra
+}  // namespace linalg

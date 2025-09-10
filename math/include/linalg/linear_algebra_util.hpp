@@ -5,17 +5,17 @@
 
 #pragma once
 
-#include "field.hpp"
+#include "../algebra/field.hpp"
 
 /// @brief macro for capping compile step eval (default max is ~512)
 #define MAX_STEP_EVAL 512
 
-namespace algebra {
+namespace linalg {
 
 /** \struct Vector
  *  \brief Structure that deals with vector types \in vector spaces
  *  \details See vector struct definition for more details
- *  \ingroup algebra
+ *  \ingroup linalg
  */
 template <typename T, size_t N>
 struct Vector;
@@ -65,7 +65,7 @@ using Matrixcf = Vector<Vectorcf<Cols>, Rows>;
  *  \brief Structure that stores the number of rows of a matrix type (default 0)
  *  \details base case for meta-templating type traits for number_of_rows based
  * on template deduction
- *  \ingroup algebra
+ *  \ingroup linalg
  */
 template <typename T>
 struct number_of_rows {
@@ -88,7 +88,7 @@ constexpr size_t number_of_rows_v =
  *  \brief Structure that stores the number of cols of a matrix type (default 0)
  *  \details base case for meta-templating type traits for number_of_cols based
  * on template deduction
- *  \ingroup algebra
+ *  \ingroup linalg
  */
 template <typename T>
 struct number_of_cols {
@@ -112,7 +112,7 @@ constexpr size_t number_of_cols_v =
  * iterable (false initially)
  *  \details scalar_type is an overloaded type that strips away meta-templates
  * to see if the type is iterable
- *  \ingroup algebra
+ *  \ingroup linalg
  */
 template <typename T, typename = void>
 struct is_iterable : std::false_type {};
@@ -259,4 +259,4 @@ constexpr auto argsort_desc(const Vector<T, N>& x) {
   return p;
 }
 
-}  // namespace algebra
+}  // namespace linalg

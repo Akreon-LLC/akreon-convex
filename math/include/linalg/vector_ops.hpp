@@ -7,7 +7,7 @@
 
 #include "vector.hpp"
 
-namespace algebra {
+namespace linalg {
 
 /**
  * @brief add two vectors together to get a third
@@ -152,4 +152,4 @@ constexpr Vector<T, 3> cross(const Vector<T, 3>& X, const Vector<T, 3>& Y) {
   return result;
 }
 
-}  // namespace algebra
+}  // namespace linalg

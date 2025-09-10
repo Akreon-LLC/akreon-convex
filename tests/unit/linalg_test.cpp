@@ -10,7 +10,7 @@
 #include "math.hpp"
 #include "unit_test_helpers.hpp"
 
-using namespace algebra;
+using namespace linalg;
 using namespace topology;
 using namespace unit_test;
 

@@ -11,7 +11,7 @@
 #include "unit_test_helpers.hpp"
 
 using namespace topology;
-using namespace algebra;
+using namespace linalg;
 using namespace spaces;
 using namespace unit_test;
 

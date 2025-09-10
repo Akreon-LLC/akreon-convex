@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "../algebra/linear_algebra.hpp"
+#include "../linalg/linear_algebra.hpp"
 
 namespace spaces {
 
-using namespace algebra;
+using namespace linalg;
 
 template <typename T, size_t N>
 concept InnerProductSpace =

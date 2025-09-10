@@ -8,7 +8,7 @@
 #include "matrix.hpp"
 #include "vector_ops.hpp"
 
-namespace algebra {
+namespace linalg {
 
 /**
  * @brief outer product between two matrices A & B
@@ -123,4 +123,4 @@ constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
   return result;
 }
 
-}  // namespace algebra
+}  // namespace linalg

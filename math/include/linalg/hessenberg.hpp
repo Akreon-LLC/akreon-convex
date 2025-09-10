@@ -8,7 +8,7 @@
 #include "householder.hpp"
 #include "matrix_ops.hpp"
 
-namespace algebra {
+namespace linalg {
 /**
  * @brief Hessenberg Matrix
  *
@@ -90,7 +90,7 @@ class HessenbergMatrix {
         for (size_t j = k, b = 0; j < N; ++j, ++b) H[i][j] = H_block_kn(a)(b);
 
       // (P1...Pk)^T A (P1...Pk) -- handling case when Pk is of order N - k
-      auto H_zn_kn = get_block<0, N, k+1, N>(H);
+      auto H_zn_kn = get_block<0, N, k + 1, N>(H);
       if constexpr (is_complex_v<T>)
         H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * conjugate_transpose(v));
       else
@@ -135,8 +135,8 @@ class HessenbergMatrix {
   }
 
   /** @brief Vector member variables */
-  Matrix<T, N, N> H; ///< Hessenberg matrix
-  Vector<T, N> beta; ///< beta vector from householder reflections
+  Matrix<T, N, N> H;  ///< Hessenberg matrix
+  Vector<T, N> beta;  ///< beta vector from householder reflections
 };
 
-}  // namespace algebra
+}  // namespace linalg

@@ -10,7 +10,7 @@
 
 using namespace dynamics;
 using namespace unit_test;
-using namespace algebra;
+using namespace linalg;
 
 template <typename ScalarT, size_t DoF = 2, size_t Nu = 0>
 class Pendulum

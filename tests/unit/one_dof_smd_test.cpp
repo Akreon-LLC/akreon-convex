@@ -10,7 +10,7 @@
 
 using namespace dynamics;
 using namespace unit_test;
-using namespace algebra;
+using namespace linalg;
 
 template <typename ScalarT, size_t DoF = 1, size_t Nu = 0>
 class SMD : public DynamicalSystem<ScalarT, DoF, Nu, SMD<ScalarT, DoF, Nu>> {

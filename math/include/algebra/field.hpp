@@ -30,12 +30,12 @@ struct OpenSet;
 
 }  // namespace topology
 
-namespace algebra {
+namespace linalg {
 
 /** \struct Vector
  *  \brief Structure that deals with vector types \in vector spaces
  *  \details See vector struct definition for more details
- *  \ingroup algebra
+ *  \ingroup linalg
  */
 template <typename T, size_t N>
 struct Vector;
@@ -44,7 +44,7 @@ struct Vector;
  *  \brief Structure that deals in type_trait deduction for a scalar type
  *  \details scalar_type is an overloaded type that strips away meta-templates
  * to the final primitive scalar type
- *  \ingroup algebra
+ *  \ingroup linalg
  */
 template <typename T>
 struct scalar_type {
@@ -107,7 +107,7 @@ concept FloatingPoint = std::floating_point<scalar_type_t<T>>;
  * complex (false initially)
  *  \details scalar_type is an overloaded type that strips away meta-templates
  * to see if the type is complex
- *  \ingroup algebra
+ *  \ingroup linalg
  */
 template <typename T>
 struct is_complex_t : public std::false_type {};
@@ -183,4 +183,4 @@ concept FieldLike = FloatingPoint<T> || (RingLike<T> && requires(T a, T b) {
                       { a * T{1} } -> std::same_as<T>;
                     });
 
-}  // namespace algebra
+}  // namespace linalg

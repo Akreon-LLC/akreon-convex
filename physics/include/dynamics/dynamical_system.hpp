@@ -10,17 +10,17 @@
 namespace dynamics {
 
 template <typename ScalarT, size_t DoF, size_t Nu, typename DerivedSystem>
-  requires(algebra::FieldLike<ScalarT>)
+  requires(linalg::FieldLike<ScalarT>)
 class DynamicalSystem {
  public:
   constexpr explicit DynamicalSystem(
-      const algebra::Matrix<ScalarT, DoF, 3>& coords)
+      const linalg::Matrix<ScalarT, DoF, 3>& coords)
     requires(Nu == 0)
       : Q(coords) {}
 
   constexpr explicit DynamicalSystem(
-      const algebra::Matrix<ScalarT, DoF, 3>& coords,
-      const algebra::Vector<ScalarT, Nu>& inputs)
+      const linalg::Matrix<ScalarT, DoF, 3>& coords,
+      const linalg::Vector<ScalarT, Nu>& inputs)
     requires(Nu > 0)
       : Q(coords), U(inputs) {}
 
@@ -29,19 +29,19 @@ class DynamicalSystem {
   DynamicalSystem& operator=(const DynamicalSystem& system) = delete;
   DynamicalSystem& operator=(DynamicalSystem&& system) = delete;
 
-  constexpr ScalarT T(const algebra::Vector<ScalarT, DoF>& q0,
-                      const algebra::Vector<ScalarT, DoF>& q1) const {
+  constexpr ScalarT T(const linalg::Vector<ScalarT, DoF>& q0,
+                      const linalg::Vector<ScalarT, DoF>& q1) const {
     return static_cast<const DerivedSystem*>(this)->T_impl(q0, q1);
   }
 
-  constexpr ScalarT V(const algebra::Vector<ScalarT, DoF>& q) const {
+  constexpr ScalarT V(const linalg::Vector<ScalarT, DoF>& q) const {
     return static_cast<const DerivedSystem*>(this)->V_impl(q);
   }
 
-  constexpr algebra::Vector<ScalarT, DoF> Qnc(
-      const algebra::Vector<ScalarT, DoF>& q0,
-      const algebra::Vector<ScalarT, DoF>& q1,
-      const algebra::Vector<ScalarT, Nu>& U, const ScalarT& h) const {
+  constexpr linalg::Vector<ScalarT, DoF> Qnc(
+      const linalg::Vector<ScalarT, DoF>& q0,
+      const linalg::Vector<ScalarT, DoF>& q1,
+      const linalg::Vector<ScalarT, Nu>& U, const ScalarT& h) const {
     return static_cast<const DerivedSystem*>(this)->Qnc_impl(q0, q1, U, h);
   }
 
@@ -50,14 +50,14 @@ class DynamicalSystem {
   constexpr auto get_U() const { return U; }
 
  protected:
-  algebra::Matrix<ScalarT, DoF, 3> Q;
-  algebra::Vector<ScalarT, Nu> U;
+  linalg::Matrix<ScalarT, DoF, 3> Q;
+  linalg::Vector<ScalarT, Nu> U;
 };
 
 template <typename ScalarT, size_t DoF>
-constexpr auto seed_Q(const algebra::Vector<ScalarT, DoF>& ic,
+constexpr auto seed_Q(const linalg::Vector<ScalarT, DoF>& ic,
                       ScalarT perturbation = 1e-4) {
-  algebra::Matrix<ScalarT, DoF, 3> Q;
+  linalg::Matrix<ScalarT, DoF, 3> Q;
   for (size_t i = 0; i < DoF; ++i) {
     Q[i][0] = ic(i);
     Q[i][1] = ic(i) + perturbation;

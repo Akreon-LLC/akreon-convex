@@ -10,10 +10,10 @@
 #include <ranges>
 #include <span>
 
-#include "field.hpp"
+#include "../algebra/field.hpp"
 #include "linear_algebra_util.hpp"
 
-namespace algebra {
+namespace linalg {
 
 /**
  * @brief Vector structure definition
@@ -156,4 +156,4 @@ constexpr auto get_elements(const Vector<T, N>& x) {
   return result;
 }
 
-}  // namespace algebra
+}  // namespace linalg

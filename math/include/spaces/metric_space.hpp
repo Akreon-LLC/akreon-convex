@@ -23,7 +23,7 @@ constexpr bool distance_metric_is_valid_on_space(
       if (dxy < 0) return false;
       if (x == y && dxy != 0) return false;
       if (x != y && dxy == 0) return false;
-      if (algebra::constexpr_abs(dxy - dyx) > 1e-9) return false;
+      if (linalg::constexpr_abs(dxy - dyx) > 1e-9) return false;
       for (const auto& z : universe)
         if (d(x, z) > d(x, y) + d(y, z) + 1e-9) return false;
     }

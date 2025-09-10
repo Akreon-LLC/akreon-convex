@@ -10,7 +10,7 @@
 #include <iterator>
 #include <span>
 
-#include "../algebra/linear_algebra_util.hpp"
+#include "../linalg/linear_algebra_util.hpp"
 
 namespace topology {
 
@@ -40,13 +40,13 @@ struct OpenSet {
 
   constexpr bool is_open(const auto& r) const {
     bool rv = true;
-    if constexpr (!algebra::is_iterable_v<T>) {
-      for (size_t i = 0; i < sz; ++i) rv &= algebra::constexpr_abs(data[i]) < r;
+    if constexpr (!linalg::is_iterable_v<T>) {
+      for (size_t i = 0; i < sz; ++i) rv &= linalg::constexpr_abs(data[i]) < r;
     } else {
       for (const auto& y : data) {
         const auto size = y.size();
         for (size_t i = 0; i < size; ++i)
-          rv &= algebra::constexpr_abs(y(i)) < r;
+          rv &= linalg::constexpr_abs(y(i)) < r;
       }
     }
     return rv;
@@ -105,7 +105,7 @@ struct OpenSet {
   }
 
   constexpr std::optional<size_t> find(const T& x) const {
-    if constexpr (!algebra::is_iterable_v<T>) {
+    if constexpr (!linalg::is_iterable_v<T>) {
       for (size_t i = 0; i < data.size(); ++i)
         if (data[i] == x) return i;
     } else {

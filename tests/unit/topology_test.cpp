@@ -9,7 +9,7 @@
 #include "math.hpp"
 
 using namespace topology;
-using namespace algebra;
+using namespace linalg;
 using namespace spaces;
 
 TEST_CASE("Test open set properties", "[topology]") {

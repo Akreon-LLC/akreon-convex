@@ -8,7 +8,7 @@
 #include "matrix.hpp"
 #include "vector_ops.hpp"
 
-namespace algebra {
+namespace linalg {
 /**
  * @brief Householder Vector
  *
@@ -119,4 +119,4 @@ struct HouseholderVector {
   scalar_type_t<T> beta;  ///< scalar to form P
 };
 
-}  // namespace algebra
+}  // namespace linalg

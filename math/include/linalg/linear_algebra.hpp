@@ -5,10 +5,10 @@
 
 #pragma once
 
+#include "../norms/matrix_norms.hpp"
+#include "../norms/vector_norms.hpp"
 #include "hessenberg.hpp"
 #include "householder.hpp"
-#include "matrix_norms.hpp"
-#include "vector_norms.hpp"
 
 /* (dakre) Global TODO
  * 1. punting on cholesky and LDL right now, with current approach and checking
@@ -16,7 +16,7 @@
  * perhaps later on integrating it would make sense
  */
 
-namespace algebra {
+namespace linalg {
 
 /**
  * @brief Normalize a vector given a norm function
@@ -75,8 +75,8 @@ constexpr auto manhattan_distance(const Vector<T, N>& X,
  */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
-constexpr bool all_equal(const algebra::Matrix<T, Rows, Cols>& A,
-                         const algebra::Matrix<T, Rows, Cols>& B,
+constexpr bool all_equal(const linalg::Matrix<T, Rows, Cols>& A,
+                         const linalg::Matrix<T, Rows, Cols>& B,
                          scalar_type_t<T> tol = 1e-10) {
   bool rv = true;
   for (size_t i = 0; i < Rows; ++i) rv &= euclidean_distance(A(i), B(i)) <= tol;
@@ -687,4 +687,4 @@ class SVD {
   bool converged;                  ///< converged
 };
 
-}  // namespace algebra
+}  // namespace linalg

@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "vector_ops.hpp"
+#include "../linalg/vector_ops.hpp"
 
-namespace algebra {
+namespace linalg {
 
 /**
  * @brief compute the L2 norm of a vector
@@ -66,4 +66,4 @@ constexpr auto max_norm(const Vector<T, N>& X) {
   return mx;
 }
 
-}  // namespace algebra
+}  // namespace linalg
