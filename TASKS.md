@@ -11,7 +11,7 @@
 - [x] qr decomposition via householder & hessenberg
 - [x] lsq via QR & back-solve with R
 - [x] svd via QR & back-solve (U \Sigma V)
-- [] inverse operation (QR + backsolve for I)
+- [x] inverse operation (QR + backsolve for I)
 - [] matrix exponential
 - [] LDL^T / Cholesky Decomposition
 ### Operators & Morphisms 

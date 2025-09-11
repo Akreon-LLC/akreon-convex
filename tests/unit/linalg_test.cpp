@@ -147,6 +147,21 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto C = B + B;
     constexpr auto D = add(B, B);
 
+    constexpr auto B_inv = inverse(B);
+    constexpr auto B_B_inv = B * B_inv;
+    // (dakre) this case is acting like pseudoinverse since B is degenerate
+    STATIC_REQUIRE(B_B_inv(0)(0) == 0.5);
+    STATIC_REQUIRE(B_B_inv(0)(1) == 0.5);
+    STATIC_REQUIRE(B_B_inv(1)(0) == 0.5);
+    STATIC_REQUIRE(B_B_inv(1)(1) == 0.5);
+
+    // (dakre) this case acts like true inverse where Z is unique
+    constexpr auto Z =
+        Matrixd<2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{3.0, 4.0}};
+    constexpr auto Z_inv = inverse(Z);
+    constexpr auto Z_Z_inv = Z * Z_inv;
+    STATIC_REQUIRE(all_equal(Z_Z_inv, make_identity<double, 2>()));
+
     constexpr auto B_11 = get_block<0, 1, 0, 1>(B);
     STATIC_REQUIRE(B_11(0)(0) == 1.0);
 

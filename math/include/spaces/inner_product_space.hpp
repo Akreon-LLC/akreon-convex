@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../linalg/linear_algebra.hpp"
+#include "../linalg/matrix_inverse.hpp"
 
 namespace spaces {
 
@@ -26,7 +27,7 @@ concept InnerProductSpace =
       { constexpr_abs(alpha) * L2(X) == L2(constexpr_abs(alpha) * X) };
       {
         constexpr_abs(dot(X, Y)) <= L2(X) + L2(Y)
-      };                               // cauchy-schwarz inequality
+      };  // cauchy-schwarz inequality
       { L2(X + Y) <= L2(X) + L2(Y) };  // triangle inequality
     };
 
