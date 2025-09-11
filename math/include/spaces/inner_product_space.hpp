@@ -7,6 +7,7 @@
 
 #include "../linalg/linear_algebra.hpp"
 #include "../linalg/matrix_inverse.hpp"
+#include "../linalg/matrix_exp.hpp"
 
 namespace spaces {
 

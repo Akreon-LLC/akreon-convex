@@ -10,7 +10,7 @@
 #include <iterator>
 #include <span>
 
-#include "../linalg/linear_algebra_util.hpp"
+#include "../algebra/util.hpp"
 
 namespace topology {
 

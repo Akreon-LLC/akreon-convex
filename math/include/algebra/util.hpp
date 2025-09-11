@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../algebra/field.hpp"
+#include "field.hpp"
 
 /// @brief macro for capping compile step eval (default max is ~512)
 #define MAX_STEP_EVAL 512
@@ -219,6 +219,38 @@ template <typename T>
 constexpr auto constexpr_expi(const T& theta, int terms = 12) {
   return std::complex<T>(constexpr_cos(theta, terms),
                          constexpr_sin(theta, terms));
+}
+
+/**
+ * @brief exp on real value
+ *
+ * @param x \in R
+ *
+ * @return real number
+ */
+template <typename T>
+  requires(FieldLike<T> && !is_complex_v<T>)
+constexpr auto constexpr_exp(const T& x, int terms = 12) {
+  T sum = 1;
+  T term = 1;
+  for (int k = 1; k < terms; ++k) {
+    term *= x / k;
+    sum += term;
+  }
+  return sum;
+}
+
+/**
+ * @brief perform exp on eigenvalue : \lambda = \alpha + j \omega
+ *
+ * @param lambda \in C
+ *
+ * @return complex number
+ */
+template <typename T>
+  requires(FieldLike<T> && is_complex_v<T>)
+constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 12) {
+  return constexpr_exp(lambda.real()) * constexpr_expi(lambda.imag(), terms);
 }
 
 /*

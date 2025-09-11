@@ -11,7 +11,7 @@
 #include <span>
 
 #include "../algebra/field.hpp"
-#include "linear_algebra_util.hpp"
+#include "../algebra/util.hpp"
 
 namespace linalg {
 

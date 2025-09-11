@@ -26,6 +26,12 @@ TEST_CASE("Test euclidean space", "[E]") {
   STATIC_REQUIRE(DefaultConstructible<EuclideanSpace<Derived2>>);
 }
 
+TEST_CASE("Test linear ODE", "[dot(x) = Ax]") {
+  constexpr auto Z = Matrixd<2, 2>{};
+  constexpr auto res = matrix_exp(Z);
+  STATIC_REQUIRE(all_equal(res, make_identity<std::complex<double>, 2>()));
+}
+
 TEST_CASE("Test linear system", "[y=Ax]") {
   constexpr auto x = Vectord<3>{3.0, -2.0, 1.0};
   constexpr auto A = Vector<Vectord<3>, 3>{x, x, x};
@@ -182,7 +188,7 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     STATIC_REQUIRE(Q(0)(0) == 1.0);
     STATIC_REQUIRE(R(0)(0) == 0.0);
 
-    //constexpr auto x = qr.solve();
+    // constexpr auto x = qr.solve();
   }
 }
 
