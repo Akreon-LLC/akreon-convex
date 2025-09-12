@@ -27,9 +27,31 @@ TEST_CASE("Test euclidean space", "[E]") {
 }
 
 TEST_CASE("Test linear ODE", "[dot(x) = Ax]") {
-  constexpr auto Z = Matrixd<2, 2>{};
-  constexpr auto res = matrix_exp(Z);
-  STATIC_REQUIRE(all_equal(res, make_identity<std::complex<double>, 2>()));
+  SECTION("Zero matrix -> Identity") {
+    constexpr auto Z = Matrix<double, 2, 2>{};
+    constexpr auto res = matrix_exp(Z);
+    constexpr auto I = make_identity<std::complex<double>, 2>();
+    STATIC_REQUIRE(all_equal(res, I));
+  }
+
+  SECTION("Identity matrix -> e * I") {
+    constexpr auto I = make_identity<std::complex<double>, 2>();
+    constexpr auto res = matrix_exp(I);
+    constexpr auto expected = constexpr_exp(1.0) * I;
+    STATIC_REQUIRE(all_equal(res, expected));
+  }
+
+  // (dakre) TODO here - complex number generating naan in constexpr case
+  // so need to look at this more... complex may not be friendly as i thought
+  SECTION("Matrix exponential of Jordan block") {
+    constexpr auto A =
+        Matrix<double, 2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{0.0, 2.0}};
+    constexpr double e2 = constexpr_exp(2.0);
+    constexpr auto expected = Matrix<std::complex<double>, 2, 2>{
+        Vectorcd<2>{e2, e2}, Vectorcd<2>{0.0, e2}};
+    const auto res = matrix_exp(A);
+    REQUIRE(all_equal(res, expected));
+  }
 }
 
 TEST_CASE("Test linear system", "[y=Ax]") {

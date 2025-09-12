@@ -12,7 +12,7 @@
 - [x] lsq via QR & back-solve with R
 - [x] svd via QR & back-solve (U \Sigma V)
 - [x] inverse operation (QR + backsolve for I)
-- [] matrix exponential
+- [x] matrix exponential
 - [] LDL^T / Cholesky Decomposition
 ### Operators & Morphisms 
 - [] linear map abstraction
