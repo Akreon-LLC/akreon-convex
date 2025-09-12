@@ -27,7 +27,7 @@
 - [] operator norm bounds
 ### Functional analysis
 - [] lyapnuov eq solver
-- [] spectral radius
+- [x] spectral radius
 - [] hurwitz stability classification
 - [] system gain computations
 ### Polynomials

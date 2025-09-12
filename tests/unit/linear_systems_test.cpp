@@ -229,6 +229,9 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
 
     constexpr auto V = result.get_eigenvectors();
     STATIC_REQUIRE(all_equal(V, make_identity<std::complex<double>, 3>()));
+
+    constexpr auto rho = result.get_spectral_radius();
+    STATIC_REQUIRE(rho == std::complex<double>(3.0));
   }
 
   SECTION("Symmetric A") {
@@ -253,6 +256,9 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
 
     constexpr auto VLVT = V * (make_diag(lambdas) * conjugate_transpose(V));
     STATIC_REQUIRE(all_equal(as_complex_matrix(A), VLVT));
+
+    constexpr auto rho = result.get_spectral_radius();
+    STATIC_REQUIRE(rho == expected(0)(0));
   }
 
   SECTION("Real A") {
@@ -269,6 +275,9 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
                     std::complex(0.0)});
     constexpr auto lambdas = result.get_eigenvalues();
     STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
+
+    constexpr auto rho = result.get_spectral_radius();
+    STATIC_REQUIRE(rho == lambdas(0));
   }
 
   SECTION("Complex hermitian A") {
@@ -306,6 +315,9 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
 
     constexpr auto VLVT = V * (result * conjugate_transpose(V));
     STATIC_REQUIRE(all_equal(A, VLVT));
+
+    constexpr auto rho = res.get_spectral_radius();
+    STATIC_REQUIRE(rho == lambdas(0));
   }
 }
 

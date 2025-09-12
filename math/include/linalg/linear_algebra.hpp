@@ -345,6 +345,26 @@ class EigenDecomposition {
    */
   constexpr auto get_converged() const { return converged; }
 
+  /**
+   * @brief get spectral radius
+   *
+   * AKA maximum magnitude of a matrix as dictated by its max abs eigenvalue
+   *
+   * @return \rho
+   */
+  constexpr auto get_spectral_radius() const {
+    std::complex<Real> rho(0.0);
+    for (size_t i = 0; i < N; ++i) {
+      const auto mag_rho =
+          constexpr_sqrt(rho.real() * rho.real() + rho.imag() * rho.imag());
+      const auto mag_lambda =
+          constexpr_sqrt(lambda(i).real() * lambda(i).real() +
+                         lambda(i).imag() * lambda(i).imag());
+      rho = mag_lambda > mag_rho ? lambda(i) : rho;
+    }
+    return rho;
+  }
+
  private:
   /**
    * @brief solve A X = \Lambda X via QR
