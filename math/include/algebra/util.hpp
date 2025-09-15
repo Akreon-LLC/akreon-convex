@@ -180,7 +180,7 @@ constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0) {
  */
 template <typename T>
   requires(FieldLike<T> && !is_complex_v<T>)
-constexpr auto constexpr_sin(const T& x, int terms = 12) {
+constexpr auto constexpr_sin(const T& x, int terms = 16) {
   T sum = x, term = x;
   for (int k = 1; k < terms; ++k) {
     term *= (-(x * x)) / (T(2 * k - 1) * T(2 * k));
@@ -198,7 +198,7 @@ constexpr auto constexpr_sin(const T& x, int terms = 12) {
  */
 template <typename T>
   requires(FieldLike<T> && !is_complex_v<T>)
-constexpr auto constexpr_cos(const T& x, int terms = 12) {
+constexpr auto constexpr_cos(const T& x, int terms = 16) {
   T sum = T(1), term = T(1);
   for (int k = 1; k < terms; ++k) {
     term *= (-(x * x)) / (T(2 * k - 1) * T(2 * k));
@@ -216,7 +216,7 @@ constexpr auto constexpr_cos(const T& x, int terms = 12) {
  */
 template <typename T>
   requires(FieldLike<T> && !is_complex_v<T>)
-constexpr auto constexpr_expi(const T& theta, int terms = 12) {
+constexpr auto constexpr_expi(const T& theta, int terms = 16) {
   return std::complex<T>(constexpr_cos(theta, terms),
                          constexpr_sin(theta, terms));
 }
@@ -230,7 +230,7 @@ constexpr auto constexpr_expi(const T& theta, int terms = 12) {
  */
 template <typename T>
   requires(FieldLike<T> && !is_complex_v<T>)
-constexpr auto constexpr_exp(const T& x, int terms = 12) {
+constexpr auto constexpr_exp(const T& x, int terms = 16) {
   T sum = 1;
   T term = 1;
   for (int k = 1; k < terms; ++k) {
@@ -249,7 +249,7 @@ constexpr auto constexpr_exp(const T& x, int terms = 12) {
  */
 template <typename T>
   requires(FieldLike<T> && is_complex_v<T>)
-constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 12) {
+constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
   return constexpr_exp(lambda.real()) * constexpr_expi(lambda.imag(), terms);
 }
 

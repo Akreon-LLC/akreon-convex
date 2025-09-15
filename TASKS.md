@@ -39,7 +39,7 @@
 ## Controls 
 ** All of the below are constexpr safe **
 Modern MIMO Control
-- [] state space structure with A & B 
+- [x] state space structure with A & B + C & D
 - [] minimal realization
 - [] gramians
 - [] reachability analysis
