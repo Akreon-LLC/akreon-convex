@@ -14,9 +14,9 @@
 - [x] inverse operation (QR + backsolve for I)
 - [x] matrix exponential
 - [] LDL^T / Cholesky Decomposition
-### Operators & Morphisms 
+### Operators & Morphisms
 - [] linear map abstraction
-- [] composition, identity, inverse 
+- [] composition, identity, inverse
 - [] adjoint + dual map
 - [] kronecker product
 - [] block structures
@@ -36,7 +36,7 @@
 - [] arithmetic on polynomials
 - [] evaluation (horner's rule)
 
-## Controls 
+## Controls
 ** All of the below are constexpr safe **
 
 Modern MIMO Control
@@ -46,9 +46,9 @@ Modern MIMO Control
 - [x] gramians (sort of done with SVD A^T A... PBH test vs. Wr / Wo mats too)
 - [x] reachability analysis
 - [] pole placement state feedback
-- [] lqr 
+- [] lqr
 - [] integral action
-- [] observability analysis
+- [x] observability analysis
 - [] luenberger observer
 - [] kalman filtering
 - [] lqg
@@ -64,7 +64,7 @@ Classic SISO Control
 - [] bode plots (gain & phase... minimum phase)
 - [] nyquist criterion and plots
 - [] stability margins
-- [] PID 
+- [] PID
 - [] sensitivity functions
 - [] feedfoward control
 - [] loop shaping
@@ -75,7 +75,7 @@ Robust Control
 ** All of the below are constexpr safe **
 - [x] DEL operator
 - [x] Dynamical System CRTP
-- [x] VI (central differencing) 
+- [x] VI (central differencing)
 - [x] tests for various systems (1DoF to 2DoF Pendulum and SMD)
 - [] form A & B matrices (linearized from jacobian via DEL) -- Use controls state space ??
 - [] \dot{x} = A x test reconstruction
@@ -84,4 +84,4 @@ Robust Control
 - [] autodiff to replace central differencing?
 
 ## UX
-** TODO ** 
+** TODO **

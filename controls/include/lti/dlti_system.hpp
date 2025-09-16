@@ -47,7 +47,7 @@ class LTIDiscreteSystem
     return marginal ? Stability::Marginal : Stability::Asymptotic;
   }
 
-  constexpr bool is_reachable() const {
+  constexpr bool is_reachable_impl() const {
     // (dakre) there's two ways to do this:
     // then ss is reachable
     // 1. form cayley hamilton Wr = [B AB A^2B ...], rank(Wr) == n ? yes : no
@@ -67,6 +67,28 @@ class LTIDiscreteSystem
       if constexpr (P > 0)
         M = linalg::set_block<0, N, N, N + P>(M, as_complex_matrix(this->B));
       const auto qr_M = linalg::QR(linalg::transpose(M));
+      if (qr_M.get_rank() != N) return false;
+    }
+    return true;
+  }
+
+  constexpr bool is_observable_impl() const {
+    // (dakre) following the similar process as is reachable
+    const auto eig_decomp = linalg::EigenDecomposition(this->A);
+    const auto lambda_A = eig_decomp.get_eigenvalues();
+
+    using ST = std::conditional_t<linalg::is_complex_v<ScalarT>, ScalarT,
+                                  std::complex<linalg::scalar_type_t<ScalarT>>>;
+
+    const auto I = linalg::make_identity<ST, N>();
+    linalg::Matrix<ST, N + Q, N> M;
+    for (size_t i = 0; i < N; ++i) {
+      const auto lambda_I = lambda_A(i) * I - as_complex_matrix(this->A);
+      M = linalg::set_block<0, N, 0, N>(M, lambda_I);
+      if constexpr (Q > 0)
+        M = linalg::set_block<N, N + Q, 0, N>(M, as_complex_matrix(this->C));
+
+      const auto qr_M = linalg::QR(M);
       if (qr_M.get_rank() != N) return false;
     }
     return true;
