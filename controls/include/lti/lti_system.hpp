@@ -46,11 +46,17 @@ class LTISystem {
     return static_cast<const DerivedSystem*>(this)->is_stable_impl(tol);
   }
 
+  constexpr int is_reachable() const {
+    return static_cast<const DerivedSystem*>(this)->is_reachable_impl();
+  }
+
  protected:
   linalg::Matrix<ScalarT, N, N> A;
   linalg::Matrix<ScalarT, N, P> B;
   linalg::Matrix<ScalarT, Q, N> C;
   linalg::Matrix<ScalarT, Q, P> D;
+  linalg::Vector<ScalarT, N> lambda_A;
+  linalg::Matrix<ScalarT, N, N> evecs_A;
 };
 
 }  // namespace lti

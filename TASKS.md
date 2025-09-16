@@ -38,11 +38,13 @@
 
 ## Controls 
 ** All of the below are constexpr safe **
+
 Modern MIMO Control
+
 - [x] state space structure with A & B + C & D
 - [] minimal realization
-- [] gramians
-- [] reachability analysis
+- [x] gramians (sort of done with SVD A^T A... PBH test vs. Wr / Wo mats too)
+- [x] reachability analysis
 - [] pole placement state feedback
 - [] lqr 
 - [] integral action
@@ -50,10 +52,13 @@ Modern MIMO Control
 - [] luenberger observer
 - [] kalman filtering
 - [] lqg
+
 Classic SISO Control
+
 - [] add transfer functions in s-domain
 - [] step response
 - [] freq response
+- [] convolution operator
 - [] laplace transforms
 - [] block diagrams
 - [] bode plots (gain & phase... minimum phase)

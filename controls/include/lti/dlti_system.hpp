@@ -32,12 +32,12 @@ class LTIDiscreteSystem
   }
 
   constexpr int is_stable_impl(const ScalarT& tol) const {
-    const auto eig_decomp = linalg::EigenDecomposition(this->A);
-    const auto eigs = eig_decomp.get_eigenvalues();
     bool marginal = false;
+    const auto eig_decomp = linalg::EigenDecomposition(this->A);
+    const auto lambda_A = eig_decomp.get_eigenvalues();
     for (size_t i = 0; i < N; ++i) {
-      const auto re = eigs(i).real();
-      const auto im = eigs(i).imag();
+      const auto re = lambda_A(i).real();
+      const auto im = lambda_A(i).imag();
       const auto modulus = linalg::constexpr_sqrt(re * re + im * im);
       // (dakre) TODO scrutinize this a little more... tol 1e-8 is okay for now
       // though
@@ -45,6 +45,31 @@ class LTIDiscreteSystem
       if (linalg::constexpr_abs(modulus - ScalarT(1)) < tol) marginal = true;
     }
     return marginal ? Stability::Marginal : Stability::Asymptotic;
+  }
+
+  constexpr bool is_reachable() const {
+    // (dakre) there's two ways to do this:
+    // then ss is reachable
+    // 1. form cayley hamilton Wr = [B AB A^2B ...], rank(Wr) == n ? yes : no
+    // 2. PBH test: rank([\lambda * I - A B]) == n ? yes : no
+    // The numerical properties are better suited for PBH (below)
+    const auto eig_decomp = linalg::EigenDecomposition(this->A);
+    const auto lambda_A = eig_decomp.get_eigenvalues();
+
+    using ST = std::conditional_t<linalg::is_complex_v<ScalarT>, ScalarT,
+                                  std::complex<linalg::scalar_type_t<ScalarT>>>;
+
+    const auto I = linalg::make_identity<ST, N>();
+    linalg::Matrix<ST, N, N + P> M;
+    for (size_t i = 0; i < N; ++i) {
+      const auto lambda_I = lambda_A(i) * I - as_complex_matrix(this->A);
+      M = linalg::set_block<0, N, 0, N>(M, lambda_I);
+      if constexpr (P > 0)
+        M = linalg::set_block<0, N, N, N + P>(M, as_complex_matrix(this->B));
+      const auto qr_M = linalg::QR(linalg::transpose(M));
+      if (qr_M.get_rank() != N) return false;
+    }
+    return true;
   }
 
  private:
