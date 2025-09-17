@@ -1,4 +1,12 @@
-# Project Management (Spiral)
+# Project Management
+
+Core development tasklist for MVP (alpha release) which can move and is flexible. Implicitly all functions need to include tests and mostly all core functionality will be constexpr safe.
+
+TODO to scope:
+- dynamic CRTP wrapper
+- python UX
+- GUI block diag & plots
+- ** simulator visualization **
 
 ## Math
 ### Linear Algebra
@@ -14,6 +22,11 @@
 - [x] inverse operation (QR + backsolve for I)
 - [x] matrix exponential
 - [] LDL^T / Cholesky Decomposition
+### Convex Analysis
+- [] Affine sets & space
+- [] Convex sets & space
+- [] Convex functions & analysis
+- [] Duality & KKT 
 ### Operators & Morphisms
 - [] linear map abstraction
 - [] composition, identity, inverse
@@ -36,10 +49,23 @@
 - [] arithmetic on polynomials
 - [] evaluation (horner's rule)
 
+## Optimization
+** All of the below are constexpr safe **
+
+### Convex Optimization
+- [] convex problem formulations & modeling
+- [] convex opt newton solver
+- [] convex opt interior point solver
+
+### Differentiable Optimization
+
+** TODO ** 
+
+
 ## Controls
 ** All of the below are constexpr safe **
 
-Modern MIMO Control
+## Modern MIMO Control
 
 - [x] state space structure with A & B + C & D
 - [] minimal realization
@@ -53,7 +79,7 @@ Modern MIMO Control
 - [] kalman filtering
 - [] lqg
 
-Classic SISO Control
+## Classic SISO Control
 
 - [] add transfer functions in s-domain
 - [] step response
