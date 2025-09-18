@@ -12,7 +12,6 @@
 
 using namespace topology;
 using namespace linalg;
-using namespace spaces;
 using namespace unit_test;
 
 TEST_CASE("Test linear ODE", "[dot(x) = Ax]") {

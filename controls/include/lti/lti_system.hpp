@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../../math/include/spaces/inner_product_space.hpp"
+#include "../../math/include/linalg/inner_product_space.hpp"
 
 namespace lti {
 
@@ -13,10 +13,7 @@ enum Stability : int { Unstable = 0, Asymptotic, Marginal };
 
 template <typename ScalarT, size_t N, size_t P, size_t Q,
           typename DerivedSystem>
-  requires(linalg::FieldLike<ScalarT> &&
-           spaces::InnerProductSpace<ScalarT, N> &&
-           spaces::InnerProductSpace<ScalarT, P> &&
-           spaces::InnerProductSpace<ScalarT, Q>)
+  requires(linalg::FieldLike<ScalarT>)
 class LTISystem {
  public:
   constexpr explicit LTISystem(const linalg::Matrix<ScalarT, N, N>& A_in,

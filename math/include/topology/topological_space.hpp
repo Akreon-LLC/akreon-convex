@@ -9,11 +9,12 @@
 
 namespace topology {
 
-template <typename T, size_t N>
-struct TopologicalSpace : Topology<T, N, TopologicalSpace<T, N>> {
+template <typename T, size_t N, typename Derived>
+struct TopologicalSpace : Topology<T, N, TopologicalSpace<T, N, Derived>> {
   template <typename... Sets>
   constexpr explicit TopologicalSpace(Sets... sets)
-      : Topology<T, N, TopologicalSpace<T, N>>(std::forward<Sets>(sets)...) {}
+      : Topology<T, N, TopologicalSpace<T, N, Derived>>(
+            std::forward<Sets>(sets)...) {}
 
   constexpr bool is_valid() const {
     return this->contains(T{}) && this->s_size > 0 &&

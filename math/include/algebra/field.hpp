@@ -22,6 +22,12 @@ struct Space;
 template <typename T, size_t N, typename Derived = Space>
 struct Topology;
 
+template <typename T, size_t N, typename Derived = Space>
+struct TopologicalSpace;
+
+template <typename T, size_t N, typename DistanceFn>
+struct MetricSpace;
+
 /** \struct OpenSet
  *  \brief Structure that deals with open sets
  *  \details See open set struct definition for more details
@@ -78,6 +84,26 @@ struct scalar_type<topology::OpenSet<T, N>> {
 /// @tparam value_type is \equiv to the deduced scalar type value
 template <typename T, size_t N, size_t M>
 struct scalar_type<topology::Topology<topology::OpenSet<T, N>, M>> {
+  using value_type = typename scalar_type<T>::value_type;
+};
+
+// Topology: include Derived!
+template <typename T, size_t N, size_t M, typename Derived>
+struct scalar_type<topology::Topology<topology::OpenSet<T, N>, M, Derived>> {
+  using value_type = typename scalar_type<T>::value_type;  // e.g., double
+};
+
+// TopologicalSpace: include Derived of MetricSpace (your CRTP chain)
+template <typename T, size_t N, typename Derived>
+struct scalar_type<
+    topology::TopologicalSpace<topology::OpenSet<T, N>, N, Derived>> {
+  using value_type = typename scalar_type<T>::value_type;
+};
+
+// MetricSpace (you already had DistanceFn; keep it)
+template <typename T, size_t N, size_t M, typename DistanceFn>
+struct scalar_type<
+    topology::MetricSpace<topology::OpenSet<T, N>, M, DistanceFn>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
@@ -159,30 +185,28 @@ constexpr bool is_ones_like(const topology::OpenSet<T, N>& set) {
                      [](const auto& x) { return x == 1; });
 }
 
-/// @brief GroupLike concept requires the type to fullfill group axioms
+/**
+ * @brief FieldLike concept is obtained by floating point values
+ *
+ * ** Group axioms **
+ * 0. a + b \exists
+ * 1. (a + b) + c == a + (b + c)
+ * 2. -1 * a \exists
+ * 3. a + b == b + a
+ *
+ * ** Ring axioms **
+ * Group plus the following
+ * 0. a * b \exists
+ * 1. (a * b) * c == a * (b * c)
+ * 2. a * (b + c) == a * b + a * c
+ * 3. a * b == b * a
+ *
+ * ** Field axioms **
+ * 0. a / a == 1
+ * 1. a + 0 == a
+ * 2. a * 1 == a
+ */
 template <typename T>
-concept GroupLike = requires(T a, T b, T c) {
-  { a + b } -> std::same_as<T>;
-  { (a + b) + c == a + (a + c) };
-  { -a } -> std::same_as<T>;
-  { a + b == b + a };
-};
-
-/// @brief RingLike concept requires the type to fullfill ring axioms
-template <typename T>
-concept RingLike = GroupLike<T> && requires(T a, T b, T c) {
-  { a * b } -> std::same_as<T>;
-  { (a * b) * c == a * (b * c) };
-  { a * (b + c) == a * b + a * c };
-  { a * b == b * a };
-};
-
-/// @brief FieldLike concept requires the type to fullfill field axioms
-template <typename T>
-concept FieldLike = FloatingPoint<T> || (RingLike<T> && requires(T a, T b) {
-                      { is_ones_like(a / a) };
-                      { a + T{0} } -> std::same_as<T>;
-                      { a * T{1} } -> std::same_as<T>;
-                    });
+concept FieldLike = FloatingPoint<T>;
 
 }  // namespace linalg

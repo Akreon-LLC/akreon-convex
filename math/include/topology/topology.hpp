@@ -20,16 +20,10 @@ template <typename T, size_t N, typename Derived>
 struct Topology {
   using value_type = T;
 
-  static constexpr size_t s_size = N;
-
-  OpenSet<T, N> open_sets;
-
   template <typename... Sets>
   constexpr explicit Topology(Sets&&... sets)
     requires(sizeof...(Sets) <= N)
       : open_sets{{std::forward<Sets>(sets)...}} {}
-
-  Topology() = delete;
 
   constexpr bool contains(const T& set) const { return open_sets.count(set); }
 
@@ -38,8 +32,8 @@ struct Topology {
     using Vt = linalg::scalar_type_t<Topology<T, N, Derived>>;
     OpenSet<Vt, K> universe;
 
-    for (const auto& U : open_sets)
-      for (const auto& v : U) universe.insert(v);
+    for (size_t i = 0; i < open_sets.size(); ++i)
+      for (const Vt& v : open_sets(i)) universe.insert(v);
 
     return universe;
   }
@@ -185,6 +179,10 @@ struct Topology {
     // topology's open sets are indeed finite is okay for now
     return open_sets.size() < std::numeric_limits<size_t>::max();
   }
+
+  static constexpr size_t s_size = N;
+
+  OpenSet<T, N> open_sets;
 };
 
 }  // namespace topology

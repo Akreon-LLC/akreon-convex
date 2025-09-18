@@ -5,6 +5,5 @@
 
 #pragma once
 
-#include "spaces/euclidean_space.hpp"
-#include "spaces/inner_product_space.hpp"
-#include "spaces/metric_space.hpp"
+#include "linalg/inner_product_space.hpp"
+#include "topology/metric_space.hpp"

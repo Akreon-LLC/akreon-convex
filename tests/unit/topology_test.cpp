@@ -10,7 +10,6 @@
 
 using namespace topology;
 using namespace linalg;
-using namespace spaces;
 
 TEST_CASE("Test open set properties", "[topology]") {
   using T = OpenSet<int, 2>;
@@ -140,10 +139,7 @@ TEST_CASE("Test topologcal space construction", "[topology]") {
 
 TEST_CASE("Test metric space", "[topology]") {
   using T = OpenSet<double, 2>;
-  constexpr Topology<T, 3> tau{T{}, T{3.0, 4.0}, T{1.0, 5.0}};
-
   auto d = [](const double& x, const double& y) { return (x - y) * (x - y); };
-
-  // STATIC_REQUIRE(MetricSpace<double, 3, decltype(d)>);
-  STATIC_REQUIRE(distance_metric_is_valid_on_space(tau, d));
+  constexpr MetricSpace<T, 3, decltype(d)> space{T{}, T{3.0, 4.0}, T{1.0, 5.0}};
+  STATIC_REQUIRE(space.is_valid());
 }
