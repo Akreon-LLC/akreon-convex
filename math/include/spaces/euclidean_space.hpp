@@ -18,20 +18,21 @@ constexpr bool all_finite(const T& X) {
 }
 
 template <typename T, size_t N>
-concept LocallyEuclidean = MetricSpace<T, N, decltype(linalg::L2<T, N>)>;
+concept LocallyEuclidean = MetricAPI<T, N, decltype(linalg::L2<T, N>)>;
 
 template <typename T, size_t N>
-concept TopologicalManifold =
+concept TopologicalManifoldAPI =
     LocallyEuclidean<T, N> && requires(const topology::Topology<T, N>& tau) {
       { is_hausdorff(tau) } -> std::same_as<bool>;
       { is_second_countable(tau) } -> std::same_as<bool>;
     };
 
 template <typename T, size_t N>
-concept RnSpace = TopologicalManifold<T, N> && requires(const T& X) {
+concept RnAPI = TopologicalManifoldAPI<T, N> && requires(const T& X) {
   { all_finite(X) } -> std::same_as<bool>;
 };
 
+#if 0
 // (dakre) TODO - This is prime for refactor / update to incorporate MapToRn and
 // MapFromRn chart functions
 template <typename Derived>
@@ -88,5 +89,6 @@ struct EuclideanSpace {
     return tau;
   }
 };
+#endif
 
 }  // namespace spaces

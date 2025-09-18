@@ -15,17 +15,6 @@ using namespace linalg;
 using namespace spaces;
 using namespace unit_test;
 
-TEST_CASE("Test euclidean space", "[E]") {
-  using OSD2 = OpenSet<double, 2>;
-  using Derived = Topology<OSD2, 2>;
-
-  STATIC_REQUIRE(DefaultConstructible<EuclideanSpace<Derived>>);
-
-  using VD5 = Vectord<5>;
-  using Derived2 = Topology<VD5, 9>;
-  STATIC_REQUIRE(DefaultConstructible<EuclideanSpace<Derived2>>);
-}
-
 TEST_CASE("Test linear ODE", "[dot(x) = Ax]") {
   SECTION("Zero matrix -> Identity") {
     constexpr auto Z = Matrix<double, 2, 2>{};

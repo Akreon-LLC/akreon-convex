@@ -12,12 +12,14 @@
 // Forward declarations
 namespace topology {
 
+struct Space;
+
 /** \struct Topology
  *  \brief Structure that deals with topological sets
  *  \details See Topology struct definition for more details
  *  \ingroup topology
  */
-template <typename T, size_t N>
+template <typename T, size_t N, typename Derived = Space>
 struct Topology;
 
 /** \struct OpenSet
