@@ -29,20 +29,24 @@ class DynamicalSystem {
   DynamicalSystem& operator=(const DynamicalSystem& system) = delete;
   DynamicalSystem& operator=(DynamicalSystem&& system) = delete;
 
+  constexpr const DerivedSystem& self() const {
+    return static_cast<const DerivedSystem&>(*this);
+  }
+
   constexpr ScalarT T(const linalg::Vector<ScalarT, DoF>& q0,
                       const linalg::Vector<ScalarT, DoF>& q1) const {
-    return static_cast<const DerivedSystem*>(this)->T_impl(q0, q1);
+    return self().T_impl(q0, q1);
   }
 
   constexpr ScalarT V(const linalg::Vector<ScalarT, DoF>& q) const {
-    return static_cast<const DerivedSystem*>(this)->V_impl(q);
+    return self().V_impl(q);
   }
 
   constexpr linalg::Vector<ScalarT, DoF> Qnc(
       const linalg::Vector<ScalarT, DoF>& q0,
       const linalg::Vector<ScalarT, DoF>& q1,
       const linalg::Vector<ScalarT, Nu>& U, const ScalarT& h) const {
-    return static_cast<const DerivedSystem*>(this)->Qnc_impl(q0, q1, U, h);
+    return self().Qnc_impl(q0, q1, U, h);
   }
 
   constexpr auto get_Q() const { return Q; }

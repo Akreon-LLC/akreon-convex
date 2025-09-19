@@ -128,6 +128,30 @@ constexpr bool is_hermitian(const Matrix<T, N, N>& A) {
 }
 
 /**
+ * @brief back solve linear systems of equations
+ *
+ * R x = rhs
+ *
+ * @param upper right triangular R matrix
+ * @param rhs vector to be solved
+ *
+ * @return solved x vector
+ */
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
+constexpr auto back_solve(const Matrix<T, Rows, Cols>& R,
+                          const Vector<T, Rows>& rhs) {
+  Vector<T, Cols> x;
+  constexpr auto mn = std::min(Rows, Cols);
+  for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
+    T sum = 0;
+    for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
+    x[i] = (rhs(i) - sum) / R(i)(i);
+  }
+  return x;
+}
+
+/**
  * @brief QR decomposition class definition
  *
  * Orthonormalizes a given Matrix into an orthogonal basis Q and upper right
@@ -193,7 +217,6 @@ class QR {
    */
   constexpr auto solve(const Vector<T, Rows>& b) const {
     Vector<T, Rows> c;
-    Vector<T, Cols> x;
 
     const auto Q = get_Q();
     const auto R = get_R();
@@ -203,14 +226,7 @@ class QR {
     else
       c = transpose(Q) * b;
 
-    constexpr auto mn = std::min(Rows, Cols);
-    for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
-      T sum = 0;
-      for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
-      x[i] = (c(i) - sum) / R(i)(i);
-    }
-
-    return x;
+    return back_solve(R, c);
   }
 
  private:

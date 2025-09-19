@@ -7,3 +7,5 @@
 
 #include "linalg/inner_product_space.hpp"
 #include "topology/metric_space.hpp"
+#include "convex/affine_set.hpp"
+#include "convex/affine_transforms.hpp"

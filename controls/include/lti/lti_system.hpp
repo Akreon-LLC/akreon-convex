@@ -27,29 +27,29 @@ class LTISystem {
   LTISystem& operator=(const LTISystem& system) = delete;
   LTISystem& operator=(LTISystem&& system) = delete;
 
+  constexpr const DerivedSystem& self() const {
+    return static_cast<const DerivedSystem&>(*this);
+  }
+
   constexpr auto step(
       const linalg::Vector<ScalarT, N>& x,
       linalg::Vector<ScalarT, P> u = linalg::Vector<ScalarT, P>{}) const {
-    return static_cast<const DerivedSystem*>(this)->step_impl(x, u);
+    return self().step_impl(x, u);
   }
 
   constexpr auto output(
       const linalg::Vector<ScalarT, N>& x,
       linalg::Vector<ScalarT, P> u = linalg::Vector<ScalarT, P>{}) const {
-    return static_cast<const DerivedSystem*>(this)->output_impl(x, u);
+    return self().output_impl(x, u);
   }
 
   constexpr int is_stable(ScalarT tol = 1e-8) const {
-    return static_cast<const DerivedSystem*>(this)->is_stable_impl(tol);
+    return self().is_stable_impl(tol);
   }
 
-  constexpr bool is_reachable() const {
-    return static_cast<const DerivedSystem*>(this)->is_reachable_impl();
-  }
+  constexpr bool is_reachable() const { return self().is_reachable_impl(); }
 
-  constexpr bool is_observable() const {
-    return static_cast<const DerivedSystem*>(this)->is_observable_impl();
-  }
+  constexpr bool is_observable() const { return self().is_observable_impl(); }
 
  protected:
   linalg::Matrix<ScalarT, N, N> A;
