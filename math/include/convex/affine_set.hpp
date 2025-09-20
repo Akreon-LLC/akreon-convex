@@ -33,6 +33,10 @@ class AffineSet {
     return self().transfrom_impl(map);
   }
 
+  constexpr bool contains(const linalg::Vector<T, M>& x, T tol = 1e-8) const {
+    return self().contains_impl(x, tol);
+  }
+
  private:
   friend Derived;
   linalg::Vector<T, M> x0;
@@ -90,6 +94,12 @@ class ImplicitAffineSet
                              b + (Q * R) * map.translation());
   }
 
+  constexpr bool contains_impl(const linalg::Vector<T, M>& x,
+                               const T& tol) const {
+    const auto residual = (Q * R) * x - b;
+    return linalg::L2(residual) < tol;
+  }
+
  private:
   linalg::Matrix<T, N, N> Q;
   linalg::Matrix<T, N, M> R;
@@ -117,6 +127,14 @@ class ParametricAffineSet
   constexpr auto transform_impl(const AffineMap<T, N, M>& map) const {
     return ParametricAffineSet(map.linear_part() * U,
                                this->x0 + map.transform());
+  }
+
+  constexpr bool contains_impl(const linalg::Vector<T, M>& x,
+                               const T& tol) const {
+    const auto r = x - this->x0;
+    const auto t = this->project(r);
+    const auto residual = U * t - r;
+    return linalg::L2(residual) < tol;
   }
 
  private:
