@@ -9,6 +9,10 @@
 
 namespace convex {
 
+template <typename T, size_t N, size_t M>
+  requires(linalg::FieldLike<T>)
+class AffineMap;
+
 template <typename T, size_t N, size_t M, typename Derived>
   requires(linalg::FieldLike<T> && M >= N)
 class AffineSet {
@@ -25,8 +29,8 @@ class AffineSet {
     return self().project_impl(x);
   }
 
-  constexpr auto translate(const linalg::Vector<T, N>& d) const {
-    return self().translate_impl(d);
+  constexpr auto transform(const AffineMap<T, N, M>& map) const {
+    return self().transfrom_impl(map);
   }
 
  private:
@@ -81,8 +85,9 @@ class ImplicitAffineSet
    *
    * @return translated affine set
    */
-  constexpr auto translate_impl(const linalg::Vector<T, N>& d) const {
-    return ImplicitAffineSet(Q * R, b + (Q * R) * d);
+  constexpr auto transform_impl(const AffineMap<T, N, M>& map) const {
+    return ImplicitAffineSet(map.linear_part() * (Q * R),
+                             b + (Q * R) * map.translation());
   }
 
  private:
@@ -109,8 +114,9 @@ class ParametricAffineSet
     return this->x0 + U * t;
   }
 
-  constexpr auto translate_impl(const linalg::Vector<T, N>& d) const {
-    return ParametricAffineSet(U, this->x0 + d);
+  constexpr auto transform_impl(const AffineMap<T, N, M>& map) const {
+    return ParametricAffineSet(map.linear_part() * U,
+                               this->x0 + map.transform());
   }
 
  private:

@@ -5,6 +5,4 @@
 
 #pragma once
 
-#include "affine_set.hpp"
-
-namespace convex {}  // namespace convex
+#include "affine_map.hpp"
