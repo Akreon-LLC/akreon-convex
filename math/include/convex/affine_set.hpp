@@ -21,7 +21,7 @@ class AffineMap;
  * Implicit or Parametric forms of an AffineSet via CRTP design.
  */
 template <typename T, size_t N, size_t M, typename Derived>
-  requires(linalg::FieldLike<T> && M >= N)
+  requires(linalg::FieldLike<T> && N >= M)
 class AffineSet {
  public:
   /**
@@ -32,6 +32,15 @@ class AffineSet {
   constexpr const Derived& self() const {
     return static_cast<const Derived&>(*this);
   }
+
+  /**
+   * @brief is_valid
+   *
+   * Checks to see if basis is full column rank
+   *
+   * @return T/F
+   */
+  constexpr auto is_valid() const { return self().is_valid_impl(); }
 
   /**
    * @brief return reference point in set
@@ -144,6 +153,20 @@ class ImplicitAffineSet
   constexpr auto basis_impl() const { return Q; }
 
   /**
+   * @brief is_valid_impl
+   *
+   * Checks to see if the basis is full column rank
+   *
+   * @return T/F
+   */
+  constexpr bool is_valid_impl(T tol = 1e-8) const {
+    size_t rank = 0;
+    for (size_t i = 0; i < M; ++i)
+      if (linalg::L2(linalg::Vector<T, 1>{R(i)(i)}) > tol) rank += 1;
+    return rank == M;
+  }
+
+  /**
    * @brief project a vector x onto the affine set
    *
    * To do this we need to perform the following steps:
@@ -229,6 +252,15 @@ class ParametricAffineSet
   }
 
   /**
+   * @brief is_valid_impl
+   *
+   * Checks to see if the basis is full column rank
+   *
+   * @return T/F
+   */
+  constexpr bool is_valid_impl() const { return linalg::QR(U).get_rank() == M; }
+
+  /**
    * @brief simple basis return
    *
    * @return U
@@ -289,7 +321,7 @@ class ParametricAffineSet
 
  private:
   /** @brief member variables in the base class */
-  linalg::Matrix<T, N, M> U; //< basis matrix for the affine set
+  linalg::Matrix<T, N, M> U;  //< basis matrix for the affine set
 };
 
 }  // namespace convex

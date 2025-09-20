@@ -36,6 +36,7 @@ TEST_CASE("Test affine set", "[affine sets]") {
 
   SECTION("Implicit affine set creation check", "[Ax = b]") {
     constexpr auto set = ImplicitAffineSet<double, 3, 3>(I, b);
+    STATIC_REQUIRE(set.is_valid());
     STATIC_REQUIRE(all_equal(set.basis(), I));
     STATIC_REQUIRE(all_equal(as_col_vector(set.point()), as_col_vector(b)));
     STATIC_REQUIRE(set.contains(b));
@@ -55,6 +56,7 @@ TEST_CASE("Test affine set", "[affine sets]") {
 
   SECTION("Parametric affine set creation check", "[x0 + U t]") {
     constexpr auto set = ParametricAffineSet<double, 3, 3>(I, b);
+    STATIC_REQUIRE(set.is_valid());
     STATIC_REQUIRE(all_equal(set.basis(), I));
     STATIC_REQUIRE(all_equal(as_col_vector(set.point()), as_col_vector(b)));
     STATIC_REQUIRE(set.contains(b));
