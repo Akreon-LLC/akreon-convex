@@ -76,4 +76,12 @@ TEST_CASE("Test affine set", "[affine sets]") {
     constexpr auto set_two = set.transform(I_map);
     STATIC_REQUIRE(all_equal(set_two.basis(), set.basis()));
   }
+
+  SECTION("Invalid parametric affine set creation") {
+    constexpr auto a = Vectord<2>{1.0, 0.0};
+    constexpr auto A = Matrixd<2, 2>{a, a};
+    constexpr auto z = Vectord<2>{0.0, 0.0};
+    constexpr auto set = ParametricAffineSet<double, 2, 2>(A, z);
+    STATIC_REQUIRE(!set.is_valid());
+  }
 }
