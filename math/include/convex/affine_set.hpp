@@ -155,15 +155,12 @@ class ImplicitAffineSet
   /**
    * @brief is_valid_impl
    *
-   * Checks to see if the basis is full column rank
+   * Checks to see if b \in CS(A) by checking if A x - b == 0
    *
    * @return T/F
    */
   constexpr bool is_valid_impl(T tol = 1e-8) const {
-    size_t rank = 0;
-    for (size_t i = 0; i < M; ++i)
-      if (linalg::L2(linalg::Vector<T, 1>{R(i)(i)}) > tol) rank += 1;
-    return rank == M;
+    return L2((Q * R * this->x0) - b) < tol;
   }
 
   /**
