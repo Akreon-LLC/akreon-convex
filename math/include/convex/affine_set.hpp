@@ -30,7 +30,7 @@ class AffineSet {
   }
 
   constexpr auto transform(const AffineMap<T, N, M>& map) const {
-    return self().transfrom_impl(map);
+    return self().transform_impl(map);
   }
 
   constexpr bool contains(const linalg::Vector<T, M>& x, T tol = 1e-8) const {
@@ -62,22 +62,25 @@ class ImplicitAffineSet
    * @brief project a vector x onto the column space of the basis spanning the
    * affine set
    *
-   * 1. project (x - x0) on basis Q
-   * 2. back solve for t (R t = projection)
-   * 3. form and return affine projection (x0 + Q * t)
+   * 1. Form the residual in the constraint space r = A x - b
+   * 2. Compute the left psuedo inverse of A to find the minimum norm solution
+   * for x^* (maps constraint residual back into dom(A))
+   * (a) z = A^+ r
+   * 3. Apply correction x - Q * z (i.e., projection of x onto the affine set)
    *
    * @param vector of type T with M elements
    *
    * @return projected vector on this set
    */
   constexpr auto project_impl(const linalg::Vector<T, M>& x) const {
-    linalg::Vector<T, N> c;
+    const auto x_proj = (Q * R) * x;
+    const auto r = x_proj - b;
+    linalg::Vector<T, M> z;
     if constexpr (linalg::is_complex_v<T>)
-      c = linalg::conjugate_transpose(Q) * (x - this->x0);
+      z = linalg::inverse(linalg::conjugate_transpose(R)) * r;
     else
-      c = linalg::transpose(Q) * (x - this->x0);
-    const auto t = linalg::back_solve(R, c);
-    return this->x0 + Q * t;
+      z = linalg::inverse(linalg::transpose(R)) * r;
+    return x - Q * z;
   }
 
   /**
@@ -126,13 +129,13 @@ class ParametricAffineSet
 
   constexpr auto transform_impl(const AffineMap<T, N, M>& map) const {
     return ParametricAffineSet(map.linear_part() * U,
-                               this->x0 + map.transform());
+                               this->x0 + map.translation());
   }
 
   constexpr bool contains_impl(const linalg::Vector<T, M>& x,
                                const T& tol) const {
     const auto r = x - this->x0;
-    const auto t = this->project(r);
+    const auto t = linalg::QR(U).solve(r);
     const auto residual = U * t - r;
     return linalg::L2(residual) < tol;
   }
