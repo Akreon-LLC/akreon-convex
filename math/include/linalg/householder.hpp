@@ -59,20 +59,20 @@ struct HouseholderVector {
    */
   constexpr void make_householder(const Vector<T, N>& x, auto) {
     if constexpr (is_complex_v<T>) {
-      const auto norm_x = L2(x);
+      const auto norm_x = L2<T, N>()(x);
       if (norm_x == scalar_type_t<T>(0)) {
         // (dakre) no reflector required
         return;
       }
 
       T alpha = T(1);
-      if (x(0) != T(0)) alpha = x(0) / L2<T, 1>(Vector<T, 1>{x(0)});
+      if (x(0) != T(0)) alpha = x(0) / L2<T, 1>()(Vector<T, 1>{x(0)});
 
       v = x;
       v[0] += alpha * norm_x;
       // (dakre) normalize v like reals otherwise hosueholder mat wont
       // orthogonalize correctly!!
-      v = (scalar_type_t<T>(1) / L2<T, 1>(Vector<T, 1>{v(0)})) * v;
+      v = (scalar_type_t<T>(1) / L2<T, 1>()(Vector<T, 1>{v(0)})) * v;
       const auto vv = dot(conjugate(v), v);
       assert(is_real(vv));
       beta = scalar_type_t<T>(2) / vv.real();

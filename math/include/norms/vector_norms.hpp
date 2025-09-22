@@ -20,17 +20,19 @@ namespace linalg {
  */
 template <typename T, size_t N>
   requires(FieldLike<T>)
-constexpr auto L2(const Vector<T, N>& X) {
-  scalar_type_t<T> result = 0;
-  if constexpr (!is_complex_v<T>)
-    result = dot(X, X);
-  else {
-    const auto tmp = dot(conjugate(X), X);
-    assert(is_real(tmp));
-    result = tmp.real();
+struct L2 {
+  constexpr auto operator()(const Vector<T, N>& x) const {
+    scalar_type_t<T> result = 0;
+    if constexpr (!is_complex_v<T>)
+      result = dot(x, x);
+    else {
+      const auto tmp = dot(conjugate(x), x);
+      assert(is_real(tmp));
+      result = tmp.real();
+    }
+    return constexpr_sqrt(result);
   }
-  return constexpr_sqrt(result);
-}
+};
 
 /**
  * @brief compute the L1 norm of a vector
@@ -43,11 +45,13 @@ constexpr auto L2(const Vector<T, N>& X) {
  */
 template <typename T, size_t N>
   requires(FieldLike<T>)
-constexpr auto L1(const Vector<T, N>& X) {
-  T sum = 0;
-  for (const auto& x : X) sum += constexpr_abs(x);
-  return sum;
-}
+struct L1 {
+  constexpr T operator()(const Vector<T, N>& x) const {
+    T sum = 0;
+    for (const auto& _x : x) sum += constexpr_abs(_x);
+    return sum;
+  }
+};
 
 /**
  * @brief compute the max norm of a vector
@@ -60,10 +64,12 @@ constexpr auto L1(const Vector<T, N>& X) {
  */
 template <typename T, size_t N>
   requires(FieldLike<T>)
-constexpr auto max_norm(const Vector<T, N>& X) {
-  T mx = 0;
-  for (const auto& x : X) mx = std::max(mx, constexpr_abs(x));
-  return mx;
-}
+struct Linf {
+  constexpr T operator()(const Vector<T, N>& x) const {
+    T mx = 0;
+    for (const auto& _x : x) mx = std::max(mx, constexpr_abs(_x));
+    return mx;
+  }
+};
 
 }  // namespace linalg

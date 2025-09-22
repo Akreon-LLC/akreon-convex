@@ -12,6 +12,38 @@
 namespace linalg {
 
 /**
+ * @brief InnerProductLike API requirements
+ *
+ * concept for constraining a valid inner product space
+ */
+template <class VectorLike>
+concept InnerProductLike =
+    FieldLike<typename VectorLike::value_type> &&
+    requires(const VectorLike::value_type& alpha,
+             const VectorLike::value_type& beta, const VectorLike& x,
+             const VectorLike& y) {
+      { alpha * x } -> std::same_as<VectorLike>;
+      { alpha * (x + y) } -> std::same_as<VectorLike>;
+      { alpha * x + alpha * y } -> std::same_as<VectorLike>;
+      { (alpha + beta) * x } -> std::same_as<VectorLike>;
+      { dot(x, y) } -> std::same_as<typename VectorLike::value_type>;
+      {
+        L2<typename VectorLike::value_type, VectorLike::s_size>()(x)
+      } -> std::same_as<scalar_type_t<typename VectorLike::value_type>>;
+      {
+        L2<typename VectorLike::value_type, 1>()(
+            Vector<typename VectorLike::value_type, 1>(alpha)) *
+            L2<typename VectorLike::value_type, VectorLike::s_size>()(x)
+      } -> std::same_as<scalar_type_t<typename VectorLike::value_type>>;
+      {
+        constexpr_abs(dot(x, y))
+      } -> std::same_as<typename VectorLike::value_type>;
+      {
+        L2<typename VectorLike::value_type, VectorLike::s_size>()(x + y)
+      } -> std::same_as<typename VectorLike::value_type>;
+    };
+
+/**
  * @brief InnerProductSpace alias
  *
  * Inner Product Space axioms
@@ -25,7 +57,9 @@ namespace linalg {
  * 7. |X*Y| <= L2(X) + L2(Y)
  * 8. L2(X + Y) <= L2(X) + L2(Y)
  */
-template <typename T, size_t N>
-using InnerProductSpace = topology::MetricSpace<T, N, decltype(L2<T, N>)>;
+template <class VectorLike, size_t M>
+  requires(InnerProductLike<VectorLike>)
+using InnerProductSpace = topology::MetricSpace<
+    VectorLike, M, L2<typename VectorLike::value_type, VectorLike::s_size>>;
 
 }  // namespace linalg

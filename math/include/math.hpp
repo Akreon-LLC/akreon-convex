@@ -8,3 +8,4 @@
 #include "linalg/inner_product_space.hpp"
 #include "topology/metric_space.hpp"
 #include "convex/convex.hpp"
+#include "geometry/euclidean_space.hpp"

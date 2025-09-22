@@ -81,8 +81,7 @@ constexpr auto Solve(
                        std::placeholders::_3, std::placeholders::_4);
 
   // (dakre) solve DEL via root finding (newton's method)
-  auto DEL = [&](const auto& Q,
-                 const auto& U) -> linalg::Vector<ScalarT, DoF> {
+  auto DEL = [&](const auto& Q, const auto& U) -> linalg::Vector<ScalarT, DoF> {
     return DLd<0>(Q, T, V, h, eps) + DLd<1>(Q, T, V, h, eps) +
            Fd<0>(Q, U, Qnc, h) + Fd<1>(Q, U, Qnc, h);
   };
@@ -103,8 +102,8 @@ constexpr auto Solve(
     return J;
   };
 
-  auto calc_J_wrt_U =
-      [&eps, &DEL](const auto& Q, auto U) -> linalg::Matrix<ScalarT, DoF, Nu> {
+  auto calc_J_wrt_U = [&eps, &DEL](const auto& Q,
+                                   auto U) -> linalg::Matrix<ScalarT, DoF, Nu> {
     linalg::Matrix<ScalarT, DoF, Nu> J;
     for (size_t j = 0; j < Nu; ++j) {
       U[j] += eps;
@@ -118,8 +117,7 @@ constexpr auto Solve(
     return J;
   };
 
-  auto solve_ss = [&](const auto& Q, const auto& U,
-                                           const auto& J_qr)
+  auto solve_ss = [&](const auto& Q, const auto& U, const auto& J_qr)
       -> std::tuple<linalg::Matrix<ScalarT, 2 * DoF, 2 * DoF>,
                     linalg::Matrix<ScalarT, 2 * DoF, Nu>> {
     const auto R_qkm1 = calc_J(Q, U, 0);
@@ -142,8 +140,8 @@ constexpr auto Solve(
     }
 
     linalg::Matrix<ScalarT, 2 * DoF, 2 * DoF> A;
-    A = linalg::set_block<0, DoF, 0, DoF>(
-        A, linalg::get_block<0, DoF, 0, DoF>(S));
+    A = linalg::set_block<0, DoF, 0, DoF>(A,
+                                          linalg::get_block<0, DoF, 0, DoF>(S));
     A = linalg::set_block<0, DoF, DoF, 2 * DoF>(
         A, linalg::get_block<0, DoF, DoF, 2 * DoF>(S));
     A = linalg::set_block<DoF, 2 * DoF, 0, DoF>(
@@ -183,7 +181,7 @@ constexpr auto Solve(
     // Update Qkp1 column for next timestep
     for (size_t j = 0; j < DoF; ++j) Q[j][2] += Q_delta(j);
 
-    if (linalg::L2(Q_delta) < tol) break;
+    if (linalg::L2<ScalarT, DoF>()(Q_delta) < tol) break;
   }
 
   for (size_t i = 0; i < DoF; ++i) {

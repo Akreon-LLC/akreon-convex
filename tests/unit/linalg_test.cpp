@@ -49,7 +49,7 @@ TEST_CASE("Test constexpr math", "[math]") {
 
   constexpr auto b = std::complex<double>(1.0, -2.0);
   constexpr auto expected = 2.3607;
-  STATIC_REQUIRE(L2<std::complex<double>, 1>(b) - expected < eps);
+  STATIC_REQUIRE(L2<std::complex<double>, 1>()(b) - expected < eps);
 
   constexpr auto V = Vectord<5>{1.0, 2.0, 3.0, 4.0, 5.0};
   constexpr auto P = argsort_desc(V);
@@ -85,17 +85,17 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(G(0) == 2.0);
     STATIC_REQUIRE(G(1) == -3.0);
     STATIC_REQUIRE(dot(G, G) == 13.0);
-    STATIC_REQUIRE(L2(G) > 0);
-    STATIC_REQUIRE(L2(G) == euclidean_distance(A, B));
-    STATIC_REQUIRE(L1(G) > 0);
-    STATIC_REQUIRE(L1(G) == manhattan_distance(A, B));
-    STATIC_REQUIRE(max_norm(G) == 3.0);
+    STATIC_REQUIRE(L2<double, 2>()(G) > 0);
+    STATIC_REQUIRE(L2<double, 2>()(G) == euclidean_distance(A, B));
+    STATIC_REQUIRE(L1<double, 2>()(G) > 0);
+    STATIC_REQUIRE(L1<double, 2>()(G) == manhattan_distance(A, B));
+    STATIC_REQUIRE(Linf<double, 2>()(G) == 3.0);
 
-    constexpr auto normalized_A = normalize(A, L2<double, 2>);
-    constexpr auto norm_A = L2(A);
+    constexpr auto normalized_A = normalize(A, L2<double, 2>());
+    constexpr auto norm_A = L2<double, 2>()(A);
     STATIC_REQUIRE((1 / norm_A) * A == normalized_A);
-    constexpr auto normalized_B = normalize(B, max_norm<double, 2>);
-    constexpr auto norm_B = max_norm(B);
+    constexpr auto normalized_B = normalize(B, Linf<double, 2>());
+    constexpr auto norm_B = Linf<double, 2>()(B);
     STATIC_REQUIRE((1 / norm_B) * B == normalized_B);
 
     constexpr auto all_lt_one = [](const auto& vec) {
@@ -245,7 +245,8 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(L(0)(1) == c * c_conj + d * d_conj);
     STATIC_REQUIRE(L(1)(0) == c * c_conj + d * d_conj);
     STATIC_REQUIRE(L(1)(1) == c * c_conj + d * d_conj);
-    STATIC_REQUIRE(frobenius_norm(K) == constexpr_sqrt(trace(L).real()));
+    STATIC_REQUIRE(Fro<std::complex<double>, 2>()(K) ==
+                   constexpr_sqrt(trace(L).real()));
 
     constexpr auto I = make_identity<double, 3>();
     constexpr auto I_diag = get_diag(I);
@@ -256,7 +257,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 
     STATIC_REQUIRE(I * I == I);
 
-    STATIC_REQUIRE(frobenius_norm(I) == constexpr_sqrt<double>(3));
+    STATIC_REQUIRE(Fro<double, 3>()(I) == constexpr_sqrt<double>(3));
 
     STATIC_REQUIRE(is_symmetric(I));
 

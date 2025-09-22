@@ -72,7 +72,8 @@ TEST_CASE("Test SMD", "[smd]") {
     for (size_t i = 0; i < 10; ++i) {
       const auto result = Solve(SMD<double>(Q, 1.0, 0.5, 2.0), h);
       Q = std::get<0>(result);
-      REQUIRE(L2<double, 1>(Vector<double, 1>{Q(0)(2) - expected(i)}) <= 1e-4);
+      REQUIRE(L2<double, 1>()(Vector<double, 1>{Q(0)(2) - expected(i)}) <=
+              1e-4);
     }
   }
 }

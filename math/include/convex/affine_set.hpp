@@ -160,7 +160,7 @@ class ImplicitAffineSet
    * @return T/F
    */
   constexpr bool is_valid_impl(T tol = 1e-8) const {
-    return L2((Q * R * this->x0) - b) < tol;
+    return linalg::L2<T, N>()((Q * R * this->x0) - b) < tol;
   }
 
   /**
@@ -213,7 +213,7 @@ class ImplicitAffineSet
   constexpr bool contains_impl(const linalg::Vector<T, M>& x,
                                const T& tol) const {
     const auto residual = (Q * R) * x - b;
-    return linalg::L2(residual) < tol;
+    return linalg::L2<T, N>()(residual) < tol;
   }
 
  private:
@@ -313,7 +313,7 @@ class ParametricAffineSet
     const auto r = x - this->x0;
     const auto t = linalg::QR(U).solve(r);
     const auto residual = U * t - r;
-    return linalg::L2(residual) < tol;
+    return linalg::L2<T, N>()(residual) < tol;
   }
 
  private:

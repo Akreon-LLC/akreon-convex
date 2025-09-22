@@ -87,20 +87,17 @@ struct scalar_type<topology::Topology<topology::OpenSet<T, N>, M>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
-// Topology: include Derived!
 template <typename T, size_t N, size_t M, typename Derived>
 struct scalar_type<topology::Topology<topology::OpenSet<T, N>, M, Derived>> {
   using value_type = typename scalar_type<T>::value_type;  // e.g., double
 };
 
-// TopologicalSpace: include Derived of MetricSpace (your CRTP chain)
 template <typename T, size_t N, typename Derived>
 struct scalar_type<
     topology::TopologicalSpace<topology::OpenSet<T, N>, N, Derived>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
-// MetricSpace (you already had DistanceFn; keep it)
 template <typename T, size_t N, size_t M, typename DistanceFn>
 struct scalar_type<
     topology::MetricSpace<topology::OpenSet<T, N>, M, DistanceFn>> {

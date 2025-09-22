@@ -10,6 +10,7 @@
 
 using namespace topology;
 using namespace linalg;
+using namespace geometry;
 
 TEST_CASE("Test open set properties", "[topology]") {
   using T = OpenSet<int, 2>;
@@ -138,8 +139,21 @@ TEST_CASE("Test topologcal space construction", "[topology]") {
 }
 
 TEST_CASE("Test metric space", "[topology]") {
-  using T = OpenSet<double, 2>;
-  auto d = [](const double& x, const double& y) { return (x - y) * (x - y); };
-  constexpr MetricSpace<T, 3, decltype(d)> space{T{}, T{3.0, 4.0}, T{1.0, 5.0}};
-  STATIC_REQUIRE(space.is_valid());
+  SECTION("Simple metric space") {
+    using T = OpenSet<double, 2>;
+    auto d = [](const double& x, const double& y) { return (x - y) * (x - y); };
+    constexpr MetricSpace<T, 3, decltype(d)> space{T{}, T{3.0, 4.0},
+                                                   T{1.0, 5.0}};
+    STATIC_REQUIRE(space.is_valid());
+  }
+
+  SECTION("Metric space as inner product space") {
+    constexpr auto a = EuclideanSpace<double, 3, 2>{Vectord<3>{0.0, 1.0, 2.0},
+                                                    Vectord<3>{1.0, 2.0, 3.0}};
+    STATIC_REQUIRE(a.is_valid());
+
+    constexpr auto b = EuclideanSpace<double, 3, 2>{Vectord<3>{0.1, 1.1, 2.1},
+                                                    Vectord<3>{1.2, 2.2, 3.2}};
+    STATIC_REQUIRE(b.is_valid());
+  }
 }
