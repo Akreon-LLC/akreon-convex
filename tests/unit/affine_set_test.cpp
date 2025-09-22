@@ -84,4 +84,21 @@ TEST_CASE("Test affine set", "[affine sets]") {
     constexpr auto set = ParametricAffineSet<double, 2, 2>(A, z);
     STATIC_REQUIRE(!set.is_valid());
   }
+
+  SECTION("Set affine set with 4x4 mat") {
+    auto H = make_zeros<double, 4, 4>();
+    H = set_block<0, 3, 0, 3>(H, I);
+    const auto map = AffineMap<double, 3, 3>(H);
+
+    auto A = Matrix<double, 3, 3>{};
+    A[0][0] = 1.0, A[1][1] = 2.5, A[2][2] = 5.0;
+    auto x0 = Vector<double, 3>{0.1, 0.1, 0.1};
+    const auto set = ParametricAffineSet<double, 3, 3>(A, x0);
+
+    const auto set_two = set.transform(map);
+    REQUIRE(set_two.is_valid());
+    REQUIRE(all_equal(set_two.basis(), set.basis()));
+    REQUIRE(
+        all_equal(as_col_vector(set_two.point()), as_col_vector(set.point())));
+  }
 }

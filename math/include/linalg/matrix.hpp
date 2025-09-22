@@ -88,6 +88,36 @@ constexpr auto as_complex_matrix(const Matrix<T, Rows, Cols>& A) {
 }
 
 /**
+ * @brief express col vector as vector
+ *
+ * @param Matrix A type T with N x 1 elements
+ *
+ * @return vector
+ */
+template <typename T, size_t N>
+  requires(FieldLike<T>)
+constexpr auto as_vector(const Matrix<T, N, 1>& A) {
+  Vector<T, N> res;
+  for (size_t i = 0; i < N; ++i) res[i] = A(i)(0);
+  return res;
+}
+
+/**
+ * @brief express row vector as vector
+ *
+ * @param Matrix A type T with 1 x N elements
+ *
+ * @return vector
+ */
+template <typename T, size_t N>
+  requires(FieldLike<T>)
+constexpr auto as_vector(const Matrix<T, 1, N>& A) {
+  Vector<T, N> res;
+  for (size_t i = 0; i < N; ++i) res[i] = A(0)(i);
+  return res;
+}
+
+/**
  * @brief get the column of matrix A based on given index
  *
  * @param matrix A of size Rows x Cols of type T

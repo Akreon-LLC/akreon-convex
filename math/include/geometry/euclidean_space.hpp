@@ -11,7 +11,11 @@ namespace geometry {
 
 template <typename T>
   requires(linalg::FieldLike<T>)
-using PointXYZ = linalg::Vector<T, 3>;
+using Point2d = linalg::Vector<T, 2>;
+
+template <typename T>
+  requires(linalg::FieldLike<T>)
+using Point3d = linalg::Vector<T, 3>;
 
 template <typename T, size_t N, size_t M>
   requires(linalg::InnerProductLike<linalg::Vector<T, N>>)

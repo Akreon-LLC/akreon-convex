@@ -33,6 +33,15 @@ class AffineMap {
       : U(U_in), c(c_in) {}
 
   /**
+   * @brief CTOR
+   *
+   * @param matrix of type T N x (M + 1) elements
+   */
+  constexpr explicit AffineMap(const linalg::Matrix<T, N + 1, M + 1>& H)
+      : U(get_block<0, N, 0, M>(H)),
+        c(as_vector(get_block<0, N, M, M + 1>(H))) {}
+
+  /**
    * @brief compose function
    *
    * Compose a sequence of affine maps as such:
