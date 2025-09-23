@@ -9,6 +9,16 @@
 
 namespace convex {
 
+/// @brief general affine map thats 2D
+template <typename T>
+  requires(linalg::FieldLike<T>)
+using AffineMap2d = AffineMap<T, 2, 2>;
+
+/// @brief general affine map thats 3D
+template <typename T>
+  requires(linalg::FieldLike<T>)
+using AffineMap3d = AffineMap<T, 3, 3>;
+
 /**
  * @brief AffineMap class definition
  *

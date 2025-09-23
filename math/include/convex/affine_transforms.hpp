@@ -10,11 +10,21 @@
 namespace convex {
 
 template <typename T>
-  requires(FieldLike<T>)
-using AffineMap2d = AffineMap<T, 2>;
+  requires(linalg::FieldLike<T> && !linalg::is_complex_v<T>)
+struct Rotation2d {
+  constexpr auto operator()(const T& phi) const {
+    return linalg::Matrix<T, 2, 2>{
+      linalg::Vector<T, 2>{linalg::constexpr_cos(phi),
+                     -1 * linalg::constexpr_sin(phi)},
+        linalg::Vector<T, 2>{linalg::constexpr_sin(phi), linalg::constexpr_cos(phi)}};
+  }
+};
 
+#if 0
 template <typename T>
-  requires(FieldLike<T>)
-using AffineMap3d = AffineMap<T, 3>;
+  requires(linalg::FieldLike<T> && !linalg::is_complex_v<T>)
+class AffineTransform2d : public AffineMap2d<T> {
+};
+#endif
 
 }  // namespace convex

@@ -103,11 +103,21 @@ class AffineSet {
     return self().contains_impl(x, tol);
   }
 
+  constexpr bool operator==(const AffineSet<T, N, M, Derived>& other) const {
+    return is_equal(other);
+  }
+
  private:
   /** @brief member variables in the base class */
   friend Derived;  ///< friend declaration for derived to reference base class
                    ///< member vars
   linalg::Vector<T, M> x0;  ///< reference point that lies in the affine set
+
+  constexpr bool is_equal(const AffineSet<T, N, M, Derived>& other) const {
+    const auto basis_equal = all_equal(other.basis(), basis());
+    const auto x0_equal = all_equal(other.x0, x0);
+    return basis_equal && x0_equal;
+  }
 };
 
 /**
@@ -293,8 +303,9 @@ class ParametricAffineSet
    * @return parametric affine set object
    */
   constexpr auto transform_impl(const AffineMap<T, N, M>& map) const {
-    return ParametricAffineSet(map.linear_part() * U,
-                               this->x0 + map.translation());
+    return ParametricAffineSet(
+        map.linear_part() * U,
+        map.linear_part() * this->x0 + map.translation());
   }
 
   /**

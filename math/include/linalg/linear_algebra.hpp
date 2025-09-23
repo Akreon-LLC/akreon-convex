@@ -65,6 +65,23 @@ constexpr auto manhattan_distance(const Vector<T, N>& X,
 }
 
 /**
+ * @brief checks if two vectors are equivalent to a given tolerance (different
+ * than == operator on vector which must be exactly equal
+ *
+ * @param vector X of type T N elements
+ * @param vector Y of type T N elements
+ *
+ * @return T/F
+ */
+template <typename T, size_t N>
+  requires(FieldLike<T>)
+constexpr bool all_equal(const linalg::Vector<T, N>& X,
+                         const linalg::Vector<T, N>& Y,
+                         scalar_type_t<T> tol = 1e-10) {
+  return euclidean_distance(X, Y) <= tol;
+}
+
+/**
  * @brief checks if two given matrix are equivalent
  *
  * @param matrix A of type T with Rows x Cols elements
@@ -79,7 +96,7 @@ constexpr bool all_equal(const linalg::Matrix<T, Rows, Cols>& A,
                          const linalg::Matrix<T, Rows, Cols>& B,
                          scalar_type_t<T> tol = 1e-10) {
   bool rv = true;
-  for (size_t i = 0; i < Rows; ++i) rv &= euclidean_distance(A(i), B(i)) <= tol;
+  for (size_t i = 0; i < Rows; ++i) rv &= all_equal(A(i), B(i), tol);
   return rv;
 }
 
