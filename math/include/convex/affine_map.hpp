@@ -57,8 +57,9 @@ class AffineMap {
    * Compose a sequence of affine maps as such:
    * f \circ g = f(g(x))
    *
-   * g(x) = Ax + b
-   * f(g(x)) = A(Ax + b)x + b = A A' x + A b' x + b
+   * g(x) = A_g x + b_g
+   * f(x) = A_f x + b_f
+   * f(g(x)) = A_f (A_g x + b_g) + b_f = (A_f A_g) x + (A_f b_g + b_f)
    *
    * @param valid reference to an affine map object
    *
@@ -99,11 +100,47 @@ class AffineMap {
    */
   constexpr auto translation() const { return c; }
 
+  /**
+   * @brief equality comparison overload
+   *
+   * @param affine set
+   *
+   * @return T/F
+   */
+  constexpr bool operator==(const AffineMap<T, N, M>& other) const {
+    return is_equal(other);
+  }
+
+  /**
+   * @brief inequality comparison overload
+   *
+   * @param affine set
+   *
+   * @return T/F
+   */
+  constexpr bool operator!=(const AffineMap<T, N, M>& other) const {
+    return !is_equal(other);
+  }
+
  private:
   /** @brief member variables for affine map */
   linalg::Matrix<T, N, M> U;  //<  valid linear transformation mapping
   linalg::Vector<T, N> c;  //< c bias vector that translates the linear part to
                            // a valid affine subspace
+
+  /**
+   * @brief equality comparison
+   *
+   * @param affine set
+   *
+   * @return T/F
+   */
+  constexpr bool is_equal(const AffineMap<T, N, M>& other) const {
+    const auto linear_equal = all_equal(other.linear_part(), linear_part());
+    const auto translation_equal =
+        all_equal(other.translation(), translation());
+    return linear_equal && translation_equal;
+  }
 };
 
 }  // namespace convex

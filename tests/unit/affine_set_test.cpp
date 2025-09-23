@@ -29,6 +29,27 @@ TEST_CASE("Test affine set", "[affine sets]") {
     constexpr auto I_composed = I_map.compose(I_map_inv);
     STATIC_REQUIRE(all_equal(I_composed.linear_part(), I_map.linear_part()));
     STATIC_REQUIRE(all_equal(I_composed.translation(), I_map.translation()));
+
+    constexpr auto F =
+        Matrix<double, 2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{4.2, -2.0}};
+    constexpr auto f_b = Vectord<2>{1.0, 1.0};
+    constexpr auto G =
+        Matrix<double, 2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{4.2, -2.0}};
+    constexpr auto g_b = Vectord<2>{-1.0, 2.0};
+    constexpr auto F_map = AffineMap2d(F, f_b);
+    constexpr auto G_map = AffineMap2d(G, g_b);
+    constexpr auto I_map2 =
+        AffineMap<double, 2, 2>(make_identity<double, 2>(), Vectord<2>{});
+    STATIC_REQUIRE(F_map.compose(I_map2) == I_map2.compose(F_map));
+    STATIC_REQUIRE(G_map.compose(I_map2) == I_map2.compose(G_map));
+    constexpr auto res1 = F_map.compose(G_map);
+    constexpr auto res2 = G_map.compose(F_map);
+    STATIC_REQUIRE(all_equal(res1.linear_part(), F * G));
+    STATIC_REQUIRE(all_equal(res2.linear_part(), G * F));
+    STATIC_REQUIRE(all_equal(res1.translation(), F * g_b + f_b));
+    STATIC_REQUIRE(all_equal(res2.translation(), G * f_b + g_b));
+    STATIC_REQUIRE(F_map.compose(G_map).compose(I_map2) ==
+                   F_map.compose(G_map.compose(I_map2)));
   }
 
   SECTION("Implicit affine set creation check", "[Ax = b]") {
@@ -117,7 +138,7 @@ TEST_CASE("Test 2d Space Operations", "[affine_sets]") {
     STATIC_REQUIRE(set_id == set);
   }
 
-    constexpr auto x1 = Vectord<2>{1.0, 2.0};
+  constexpr auto x1 = Vectord<2>{1.0, 2.0};
   SECTION("2d translation") {
     constexpr auto map = AffineMap2d<double>(I, x1);
     constexpr auto set_translated = set.transform(map);
@@ -165,7 +186,7 @@ TEST_CASE("Test 2d Space Operations", "[affine_sets]") {
   }
 }
 
-TEST_CASE("Test Rotations & Translations in Affine 3d Space", "[affine_sets]") {
+TEST_CASE("Test 3d Affine Space Operations", "[affine_sets]") {
   constexpr auto I = make_identity<double, 3>();
   constexpr auto x0 = Vectord<3>{0.0, 0.0, 0.0};
   constexpr auto set = ParametricAffineSet<double, 3, 3>(I, x0);
@@ -243,5 +264,24 @@ TEST_CASE("Test Rotations & Translations in Affine 3d Space", "[affine_sets]") {
     STATIC_REQUIRE(all_equal(set_sheared.point(), x0));
     constexpr auto set_id = set_sheared.transform(map.inverse());
     STATIC_REQUIRE(set_id == set);
+  }
+
+  SECTION("Rigid body transformation") {
+    constexpr double psi = M_PI / 2;
+    constexpr double theta = M_PI / 4;
+    constexpr double phi = -M_PI / 8;
+    constexpr auto x1 = Vector<double, 3>{2.0, -3.1, 1.2};
+    constexpr auto R_mat = R.x(phi) * (R.y(theta) * R.z(psi));
+    constexpr auto rigid_body_map_T = AffineMap3d<double>(R_mat, x1);
+    constexpr auto set_rigid_body_T = set.transform(rigid_body_map_T);
+    STATIC_REQUIRE(all_equal(set_rigid_body_T.basis(), R_mat));
+    STATIC_REQUIRE(all_equal(set_rigid_body_T.point(), R_mat * x0 + x1));
+    constexpr auto set_id =
+        set_rigid_body_T.transform(rigid_body_map_T.inverse());
+    STATIC_REQUIRE(set_id == set);
+    constexpr auto rigid_body_map_id =
+        rigid_body_map_T.compose(rigid_body_map_T.inverse());
+    STATIC_REQUIRE(set_rigid_body_T.transform(rigid_body_map_id) ==
+                   set_rigid_body_T);
   }
 }

@@ -53,7 +53,7 @@ struct Rotation3d {
     const auto cz = linalg::constexpr_cos(psi);
     const auto sz = linalg::constexpr_sin(psi);
     return linalg::Matrix<T, 3, 3>{linalg::Vector<T, 3>{cz, T(-1) * sz, T(0)},
-                                   linalg::Vector<T, 3>{sz, sz, T(0)},
+                                   linalg::Vector<T, 3>{sz, cz, T(0)},
                                    linalg::Vector<T, 3>{T(0), T(0), T(1)}};
   }
 };
@@ -83,7 +83,8 @@ struct Scale {
 template <typename T, size_t N>
   requires(linalg::FieldLike<T> && !linalg::is_complex_v<T> && N > 0)
 struct Shear {
-  constexpr auto operator()(const size_t& i, const size_t& j, const T& s) const {
+  constexpr auto operator()(const size_t& i, const size_t& j,
+                            const T& s) const {
     assert(i < N && j < N);
     auto H = linalg::make_identity<T, N>();
     H[i][j] = s;
