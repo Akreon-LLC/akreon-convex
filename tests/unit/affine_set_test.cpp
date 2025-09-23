@@ -98,7 +98,7 @@ TEST_CASE("Test affine set", "[affine sets]") {
   }
 }
 
-TEST_CASE("Test Rotations & Translations in Affine 2d Space", "[affine_sets]") {
+TEST_CASE("Test 2d Space Operations", "[affine_sets]") {
   constexpr auto I = make_identity<double, 2>();
   constexpr auto x0 = Vectord<2>{0.0, 0.0};
   constexpr auto set = ParametricAffineSet<double, 2, 2>(I, x0);
@@ -117,8 +117,8 @@ TEST_CASE("Test Rotations & Translations in Affine 2d Space", "[affine_sets]") {
     STATIC_REQUIRE(set_id == set);
   }
 
-  SECTION("2d translation") {
     constexpr auto x1 = Vectord<2>{1.0, 2.0};
+  SECTION("2d translation") {
     constexpr auto map = AffineMap2d<double>(I, x1);
     constexpr auto set_translated = set.transform(map);
     STATIC_REQUIRE(all_equal(set_translated.basis(), I));
@@ -139,6 +139,17 @@ TEST_CASE("Test Rotations & Translations in Affine 2d Space", "[affine_sets]") {
     STATIC_REQUIRE(all_equal(set_Rt.basis(), R_mat * I));
     STATIC_REQUIRE(all_equal(set_Rt.point(), R_mat * x0 + x1));
     constexpr auto set_id = set_Rt.transform(map.inverse());
+    STATIC_REQUIRE(set_id == set);
+  }
+
+  SECTION("2d scale") {
+    constexpr auto S = Scale<double, 2>();
+    constexpr auto S_mat = S(2.0, 3.0);
+    constexpr auto map = AffineMap2d<double>(S_mat, x1);
+    constexpr auto set_scaled = set.transform(map);
+    STATIC_REQUIRE(all_equal(set_scaled.basis(), S_mat * I));
+    STATIC_REQUIRE(all_equal(set_scaled.point(), S_mat * x0 + x1));
+    constexpr auto set_id = set_scaled.transform(map.inverse());
     STATIC_REQUIRE(set_id == set);
   }
 }
@@ -198,6 +209,17 @@ TEST_CASE("Test Rotations & Translations in Affine 3d Space", "[affine_sets]") {
     STATIC_REQUIRE(all_equal(set_Rt.basis(), R_mat * I));
     STATIC_REQUIRE(all_equal(set_Rt.point(), R_mat * x0 + x1));
     constexpr auto set_id = set_Rt.transform(map.inverse());
+    STATIC_REQUIRE(set_id == set);
+  }
+
+  SECTION("3d scale x & y and reflection with scale on z") {
+    constexpr auto S = Scale<double, 3>();
+    constexpr auto S_mat = S(2.0, 3.0, -4.0);
+    constexpr auto map = AffineMap3d<double>(S_mat, x0);
+    constexpr auto set_scaled = set.transform(map);
+    STATIC_REQUIRE(all_equal(set_scaled.basis(), S_mat * I));
+    STATIC_REQUIRE(all_equal(set_scaled.point(), x0));
+    constexpr auto set_id = set_scaled.transform(map.inverse());
     STATIC_REQUIRE(set_id == set);
   }
 }

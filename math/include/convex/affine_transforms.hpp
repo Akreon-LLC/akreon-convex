@@ -10,6 +10,10 @@
 namespace convex {
 
 /**
+ * @TODO (dakre) add quaternions and SO(3) reps
+ */
+
+/**
  * @brief Euler angle rotation about 2d plane
  */
 template <typename T>
@@ -51,6 +55,25 @@ struct Rotation3d {
     return linalg::Matrix<T, 3, 3>{linalg::Vector<T, 3>{cz, T(-1) * sz, T(0)},
                                    linalg::Vector<T, 3>{sz, sz, T(0)},
                                    linalg::Vector<T, 3>{T(0), T(0), T(1)}};
+  }
+};
+
+/**
+ * @brief Scale directions spanning N dim space
+ */
+template <typename T, size_t N>
+  requires(linalg::FieldLike<T> && !linalg::is_complex_v<T> && N > 0)
+struct Scale {
+  template <typename... Scalars>
+  constexpr auto operator()(Scalars... scalars) const {
+    auto S = linalg::make_identity<T, N>();
+    int i = 0;
+    auto set_elem = [&](const auto& s) {
+      S[i][i] *= s;
+      i++;
+    };
+    ((void)set_elem(std::forward<Scalars>(scalars)), ...);
+    return S;
   }
 };
 
