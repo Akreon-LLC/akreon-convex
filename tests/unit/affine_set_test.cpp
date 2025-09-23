@@ -152,6 +152,17 @@ TEST_CASE("Test 2d Space Operations", "[affine_sets]") {
     constexpr auto set_id = set_scaled.transform(map.inverse());
     STATIC_REQUIRE(set_id == set);
   }
+
+  SECTION("2d shear x dir by y") {
+    constexpr auto H = Shear<double, 2>();
+    constexpr auto H_mat = H(0, 1, 5.0);
+    constexpr auto map = AffineMap2d<double>(H_mat, x1);
+    constexpr auto set_sheared = set.transform(map);
+    STATIC_REQUIRE(all_equal(set_sheared.basis(), H_mat * I));
+    STATIC_REQUIRE(all_equal(set_sheared.point(), H_mat * x0 + x1));
+    constexpr auto set_id = set_sheared.transform(map.inverse());
+    STATIC_REQUIRE(set_id == set);
+  }
 }
 
 TEST_CASE("Test Rotations & Translations in Affine 3d Space", "[affine_sets]") {
@@ -220,6 +231,17 @@ TEST_CASE("Test Rotations & Translations in Affine 3d Space", "[affine_sets]") {
     STATIC_REQUIRE(all_equal(set_scaled.basis(), S_mat * I));
     STATIC_REQUIRE(all_equal(set_scaled.point(), x0));
     constexpr auto set_id = set_scaled.transform(map.inverse());
+    STATIC_REQUIRE(set_id == set);
+  }
+
+  SECTION("2d shear y dir by z") {
+    constexpr auto H = Shear<double, 3>();
+    constexpr auto H_mat = H(1, 2, -1.5);
+    constexpr auto map = AffineMap3d<double>(H_mat, x0);
+    constexpr auto set_sheared = set.transform(map);
+    STATIC_REQUIRE(all_equal(set_sheared.basis(), H_mat * I));
+    STATIC_REQUIRE(all_equal(set_sheared.point(), x0));
+    constexpr auto set_id = set_sheared.transform(map.inverse());
     STATIC_REQUIRE(set_id == set);
   }
 }
