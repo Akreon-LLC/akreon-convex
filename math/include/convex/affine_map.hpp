@@ -57,6 +57,9 @@ class AffineMap {
    * Compose a sequence of affine maps as such:
    * f \circ g = f(g(x))
    *
+   * g(x) = Ax + b
+   * f(g(x)) = A(Ax + b)x + b = A A' x + A b' x + b
+   *
    * @param valid reference to an affine map object
    *
    * @return new affine map object with the new applied mapping

@@ -174,6 +174,8 @@ constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0) {
 /**
  * @brief perform sin via taylor series approximation
  *
+ * \sum_{k=0}^{\infty}\frac{(-1)^{k}x^{2k+1}}{(2k+1)!}
+ *
  * @param x as type T
  *
  * @return cosine approx of x
@@ -183,7 +185,7 @@ template <typename T>
 constexpr auto constexpr_sin(const T& x, int terms = 16) {
   T sum = x, term = x;
   for (int k = 1; k < terms; ++k) {
-    term *= (-(x * x)) / (T(2 * k - 1) * T(2 * k));
+    term *= (-(x * x)) / (T(2 * k) * T(2 * k + 1));
     sum += term;
   }
   return sum;
@@ -191,6 +193,8 @@ constexpr auto constexpr_sin(const T& x, int terms = 16) {
 
 /**
  * @brief perform sin via taylor series approximation
+ *
+ * \sum_{k=0}^{\inf}\frac{(-1)^{k}x^{2k}}{(2k)!} = cos x
  *
  * @param x as type T
  *

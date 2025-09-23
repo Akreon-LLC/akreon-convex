@@ -103,8 +103,26 @@ class AffineSet {
     return self().contains_impl(x, tol);
   }
 
+  /**
+   * @brief equality comparison overload
+   *
+   * @param affine set
+   *
+   * @return T/F
+   */
   constexpr bool operator==(const AffineSet<T, N, M, Derived>& other) const {
     return is_equal(other);
+  }
+
+  /**
+   * @brief inequality comparison overload
+   *
+   * @param affine set
+   *
+   * @return T/F
+   */
+  constexpr bool operator!=(const AffineSet<T, N, M, Derived>& other) const {
+    return !is_equal(other);
   }
 
  private:
@@ -113,6 +131,13 @@ class AffineSet {
                    ///< member vars
   linalg::Vector<T, M> x0;  ///< reference point that lies in the affine set
 
+  /**
+   * @brief equality comparison
+   *
+   * @param affine set
+   *
+   * @return T/F
+   */
   constexpr bool is_equal(const AffineSet<T, N, M, Derived>& other) const {
     const auto basis_equal = all_equal(other.basis(), basis());
     const auto x0_equal = all_equal(other.x0, x0);

@@ -37,7 +37,11 @@ TEST_CASE("Test constexpr math", "[math]") {
 
   STATIC_REQUIRE(constexpr_abs(-2.0) == 2.0);
 
+  STATIC_REQUIRE(constexpr_abs(constexpr_cos(0.0) - 1.0) < eps);
+  STATIC_REQUIRE(constexpr_sin(0.0) < eps);
+
   STATIC_REQUIRE(constexpr_cos(M_PI / 2) < eps);
+  STATIC_REQUIRE(constexpr_abs(constexpr_sin(M_PI / 2) - 1.0) < eps);
 
   STATIC_REQUIRE(constexpr_sin(M_PI) < eps);
 

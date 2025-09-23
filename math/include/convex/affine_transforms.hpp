@@ -9,22 +9,49 @@
 
 namespace convex {
 
+/**
+ * @brief Euler angle rotation about 2d plane
+ */
 template <typename T>
   requires(linalg::FieldLike<T> && !linalg::is_complex_v<T>)
 struct Rotation2d {
   constexpr auto operator()(const T& phi) const {
-    return linalg::Matrix<T, 2, 2>{
-      linalg::Vector<T, 2>{linalg::constexpr_cos(phi),
-                     -1 * linalg::constexpr_sin(phi)},
-        linalg::Vector<T, 2>{linalg::constexpr_sin(phi), linalg::constexpr_cos(phi)}};
+    const auto cz = linalg::constexpr_cos(phi);
+    const auto sz = linalg::constexpr_sin(phi);
+    return linalg::Matrix<T, 2, 2>{linalg::Vector<T, 2>{cz, T(-1) * sz},
+                                   linalg::Vector<T, 2>{sz, cz}};
   }
 };
 
-#if 0
+/**
+ * @brief Euler angle rotation about 3d roll, pitch, and yaw angles
+ */
 template <typename T>
   requires(linalg::FieldLike<T> && !linalg::is_complex_v<T>)
-class AffineTransform2d : public AffineMap2d<T> {
+struct Rotation3d {
+  constexpr auto x(const T& phi) const {
+    const auto cx = linalg::constexpr_cos(phi);
+    const auto sx = linalg::constexpr_sin(phi);
+    return linalg::Matrix<T, 3, 3>{linalg::Vector<T, 3>{T(1), T(0), T(0)},
+                                   linalg::Vector<T, 3>{T(0), cx, T(-1) * sx},
+                                   linalg::Vector<T, 3>{T(0), sx, cx}};
+  }
+
+  constexpr auto y(const T& theta) const {
+    const auto cy = linalg::constexpr_cos(theta);
+    const auto sy = linalg::constexpr_sin(theta);
+    return linalg::Matrix<T, 3, 3>{linalg::Vector<T, 3>{cy, T(0), sy},
+                                   linalg::Vector<T, 3>{T(0), T(1), T(0)},
+                                   linalg::Vector<T, 3>{T(-1) * sy, T(0), cy}};
+  }
+
+  constexpr auto z(const T& psi) const {
+    const auto cz = linalg::constexpr_cos(psi);
+    const auto sz = linalg::constexpr_sin(psi);
+    return linalg::Matrix<T, 3, 3>{linalg::Vector<T, 3>{cz, T(-1) * sz, T(0)},
+                                   linalg::Vector<T, 3>{sz, sz, T(0)},
+                                   linalg::Vector<T, 3>{T(0), T(0), T(1)}};
+  }
 };
-#endif
 
 }  // namespace convex

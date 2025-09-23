@@ -142,3 +142,62 @@ TEST_CASE("Test Rotations & Translations in Affine 2d Space", "[affine_sets]") {
     STATIC_REQUIRE(set_id == set);
   }
 }
+
+TEST_CASE("Test Rotations & Translations in Affine 3d Space", "[affine_sets]") {
+  constexpr auto I = make_identity<double, 3>();
+  constexpr auto x0 = Vectord<3>{0.0, 0.0, 0.0};
+  constexpr auto set = ParametricAffineSet<double, 3, 3>(I, x0);
+  constexpr Rotation3d<double> R;
+  SECTION("3d rotation about x") {
+    constexpr auto R_mat = R.x(M_PI / 2);
+    constexpr auto map = AffineMap3d<double>(R_mat, x0);
+    constexpr auto set_rotated = set.transform(map);
+    STATIC_REQUIRE(all_equal(set_rotated.basis(), R_mat * I));
+    STATIC_REQUIRE(all_equal(set_rotated.point(), x0));
+    constexpr auto set_id = set_rotated.transform(map.inverse());
+    STATIC_REQUIRE(set_id == set);
+  }
+
+  SECTION("3d rotation about y") {
+    constexpr auto R_mat = R.y(-M_PI / 2);
+    constexpr auto map = AffineMap3d<double>(R_mat, x0);
+    constexpr auto set_rotated = set.transform(map);
+    STATIC_REQUIRE(all_equal(set_rotated.basis(), R_mat * I));
+    STATIC_REQUIRE(all_equal(set_rotated.point(), x0));
+    constexpr auto set_id = set_rotated.transform(map.inverse());
+    STATIC_REQUIRE(set_id == set);
+  }
+
+  SECTION("3d rotation about z") {
+    constexpr auto R_mat = R.z(3 * M_PI / 2);
+    constexpr auto map = AffineMap3d<double>(R_mat, x0);
+    constexpr auto set_rotated = set.transform(map);
+    STATIC_REQUIRE(all_equal(set_rotated.basis(), R_mat * I));
+    STATIC_REQUIRE(all_equal(set_rotated.point(), x0));
+    constexpr auto set_id = set_rotated.transform(map.inverse());
+    STATIC_REQUIRE(set_id == set);
+  }
+
+  SECTION("3d translation") {
+    constexpr auto x1 = Vectord<3>{1.0, 2.0, -5.0};
+    constexpr auto map = AffineMap3d<double>(I, x1);
+    constexpr auto set_translated = set.transform(map);
+    STATIC_REQUIRE(all_equal(set_translated.basis(), I));
+    STATIC_REQUIRE(all_equal(set_translated.point(), x1));
+    constexpr auto set_id = set_translated.transform(map.inverse());
+    STATIC_REQUIRE(all_equal(set_id.basis(), I));
+    STATIC_REQUIRE(all_equal(set_id.point(), x0));
+    STATIC_REQUIRE(set_id == set);
+  }
+
+  SECTION("3d [R | t]") {
+    constexpr auto R_mat = R.z(-M_PI / 6);
+    constexpr auto x1 = Vectord<3>{0.0, 0.2, -10.0};
+    constexpr auto map = AffineMap3d<double>(R_mat, x1);
+    constexpr auto set_Rt = set.transform(map);
+    STATIC_REQUIRE(all_equal(set_Rt.basis(), R_mat * I));
+    STATIC_REQUIRE(all_equal(set_Rt.point(), R_mat * x0 + x1));
+    constexpr auto set_id = set_Rt.transform(map.inverse());
+    STATIC_REQUIRE(set_id == set);
+  }
+}
