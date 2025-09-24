@@ -25,15 +25,6 @@ template <typename T, size_t N, size_t M, typename Derived>
 class AffineSet {
  public:
   /**
-   * @brief self function which returns a const ref to the derived object
-   *
-   * @return const reference to the derived object
-   */
-  constexpr const Derived& self() const {
-    return static_cast<const Derived&>(*this);
-  }
-
-  /**
    * @brief is_valid
    *
    * Checks to see if basis is full column rank
@@ -130,6 +121,15 @@ class AffineSet {
   friend Derived;  ///< friend declaration for derived to reference base class
                    ///< member vars
   linalg::Vector<T, M> x0;  ///< reference point that lies in the affine set
+
+  /**
+   * @brief self function which returns a const ref to the derived object
+   *
+   * @return const reference to the derived object
+   */
+  constexpr const Derived& self() const {
+    return static_cast<const Derived&>(*this);
+  }
 
   /**
    * @brief equality comparison

@@ -27,10 +27,6 @@ class LTISystem {
   LTISystem& operator=(const LTISystem& system) = delete;
   LTISystem& operator=(LTISystem&& system) = delete;
 
-  constexpr const DerivedSystem& self() const {
-    return static_cast<const DerivedSystem&>(*this);
-  }
-
   constexpr auto step(
       const linalg::Vector<ScalarT, N>& x,
       linalg::Vector<ScalarT, P> u = linalg::Vector<ScalarT, P>{}) const {
@@ -56,6 +52,11 @@ class LTISystem {
   linalg::Matrix<ScalarT, N, P> B;
   linalg::Matrix<ScalarT, Q, N> C;
   linalg::Matrix<ScalarT, Q, P> D;
+
+ private:
+  constexpr const DerivedSystem& self() const {
+    return static_cast<const DerivedSystem&>(*this);
+  }
 };
 
 }  // namespace lti

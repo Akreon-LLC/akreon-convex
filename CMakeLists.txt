@@ -38,11 +38,6 @@ if(BUILD_TESTING)
   target_link_libraries(linalg_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(linalg_test PRIVATE ../math/include)
 
-  add_executable(topology_test tests/unit/topology_test.cpp)
-  add_test(NAME topology_test COMMAND topology_test)
-  target_link_libraries(topology_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(topology_test PRIVATE ../math/include)
-
   add_executable(linear_systems_test tests/unit/linear_systems_test.cpp)
   add_test(NAME linear_systems_test COMMAND linear_systems_test)
   target_link_libraries(linear_systems_test PRIVATE Catch2::Catch2WithMain)

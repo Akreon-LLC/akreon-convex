@@ -29,10 +29,6 @@ class DynamicalSystem {
   DynamicalSystem& operator=(const DynamicalSystem& system) = delete;
   DynamicalSystem& operator=(DynamicalSystem&& system) = delete;
 
-  constexpr const DerivedSystem& self() const {
-    return static_cast<const DerivedSystem&>(*this);
-  }
-
   constexpr ScalarT T(const linalg::Vector<ScalarT, DoF>& q0,
                       const linalg::Vector<ScalarT, DoF>& q1) const {
     return self().T_impl(q0, q1);
@@ -56,6 +52,11 @@ class DynamicalSystem {
  protected:
   linalg::Matrix<ScalarT, DoF, 3> Q;
   linalg::Vector<ScalarT, Nu> U;
+
+ private:
+  constexpr const DerivedSystem& self() const {
+    return static_cast<const DerivedSystem&>(*this);
+  }
 };
 
 template <typename ScalarT, size_t DoF>
