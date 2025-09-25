@@ -10,8 +10,7 @@
 namespace convex {
 
 /// @brief forward declaration for AffineMap class definition
-template <typename T, size_t N, size_t M>
-  requires(linalg::FieldLike<T>)
+template <linalg::MatrixLike Mat>
 class AffineMap;
 
 /**
@@ -20,10 +19,25 @@ class AffineMap;
  * Base class that holds a template definition for the derived implementations:
  * Implicit or Parametric forms of an AffineSet via CRTP design.
  */
-template <typename T, size_t N, size_t M, typename Derived>
-  requires(linalg::FieldLike<T> && N >= M)
+template <linalg::MatrixLike Mat, typename Derived>
 class AffineSet {
  public:
+  /// @brief alias to extract underlying type of affine set
+  using T = linalg::mat_type_t<Mat>;
+
+  /// @brief helpers to extracting M x N matrix
+  static constexpr size_t M = linalg::mat_rows_v<Mat>;
+  static constexpr size_t N = linalg::mat_cols_v<Mat>;
+
+  /// @brief alias for underlying vector spanning R^n (domain)
+  using DomVec = linalg::Vector<T, N>;
+
+  /// @brief alias for underlying vector spanning R^m (codomain)
+  using AmbientVec = linalg::Vector<T, M>;
+
+  /// @brief static assertion to check that the system is over determined
+  static_assert(N >= M);
+
   /**
    * @brief is_valid
    *
@@ -52,7 +66,7 @@ class AffineSet {
    *
    * @return projection vector
    */
-  constexpr auto project(const linalg::Vector<T, M>& x) const {
+  constexpr auto project(const AmbientVec& x) const {
     return self().project_impl(x);
   }
 
@@ -78,7 +92,7 @@ class AffineSet {
    *
    * @return transformed affine set
    */
-  constexpr auto transform(const AffineMap<T, N, M>& map) const {
+  constexpr auto transform(const AffineMap<Mat>& map) const {
     return self().transform_impl(map);
   }
 
@@ -90,7 +104,7 @@ class AffineSet {
    *
    * @return T/F
    */
-  constexpr bool contains(const linalg::Vector<T, M>& x, T tol = 1e-8) const {
+  constexpr bool contains(const AmbientVec& x, T tol = 1e-8) const {
     return self().contains_impl(x, tol);
   }
 
@@ -101,7 +115,7 @@ class AffineSet {
    *
    * @return T/F
    */
-  constexpr bool operator==(const AffineSet<T, N, M, Derived>& other) const {
+  constexpr bool operator==(const AffineSet<Mat, Derived>& other) const {
     return is_equal(other);
   }
 
@@ -112,7 +126,7 @@ class AffineSet {
    *
    * @return T/F
    */
-  constexpr bool operator!=(const AffineSet<T, N, M, Derived>& other) const {
+  constexpr bool operator!=(const AffineSet<Mat, Derived>& other) const {
     return !is_equal(other);
   }
 
@@ -120,7 +134,7 @@ class AffineSet {
   /** @brief member variables in the base class */
   friend Derived;  ///< friend declaration for derived to reference base class
                    ///< member vars
-  linalg::Vector<T, M> x0;  ///< reference point that lies in the affine set
+  AmbientVec x0;  ///< reference point that lies in the affine set S \subset R^m
 
   /**
    * @brief self function which returns a const ref to the derived object
@@ -138,7 +152,7 @@ class AffineSet {
    *
    * @return T/F
    */
-  constexpr bool is_equal(const AffineSet<T, N, M, Derived>& other) const {
+  constexpr bool is_equal(const AffineSet<Mat, Derived>& other) const {
     const auto basis_equal = all_equal(other.basis(), basis());
     const auto x0_equal = all_equal(other.x0, x0);
     return basis_equal && x0_equal;
@@ -154,11 +168,19 @@ class AffineSet {
  * can have many solutions, and its projection error is minimized by the
  * pseudoinverse.
  */
-template <typename T, size_t N, size_t M>
-  requires(linalg::FieldLike<T>)
-class ImplicitAffineSet
-    : public AffineSet<T, N, M, ImplicitAffineSet<T, N, M>> {
+template <linalg::MatrixLike Mat>
+class ImplicitAffineSet : public AffineSet<Mat, ImplicitAffineSet<Mat>> {
  public:
+  ///@brief bring into scope the type traits from the base class
+  using AffineBase = AffineSet<Mat, ImplicitAffineSet<Mat>>;
+  using typename AffineBase::AmbientVec;
+  using typename AffineBase::DomVec;
+  using typename AffineBase::T;
+
+  ///@brief bring into scope the data members (consts)
+  using AffineBase::M;
+  using AffineBase::N;
+
   /**
    * @brief CTOR for implicit affine set
    *
@@ -166,16 +188,16 @@ class ImplicitAffineSet
    * stores basis Q, upper right triangular matrix R, and b as member vars in
    * the derived class.
    *
-   * @param matrix A of type T with N x M elements
-   * @param vector b of type T with N elements
+   * @param matrix A of type T with M x N elements
+   * @param vector b of type T with M elements
    */
-  constexpr explicit ImplicitAffineSet(const linalg::Matrix<T, N, M>& A_in,
-                                       const linalg::Vector<T, N>& b_in) {
+  constexpr explicit ImplicitAffineSet(const Mat& A_in,
+                                       const AmbientVec& b_in) {
     const auto qr = linalg::QR(A_in);
     Q = qr.get_Q();
     R = qr.get_R();
-    this->x0 = qr.solve(b_in);
-    b = b_in;
+    x_lsq = qr.solve(b_in);
+    this->x0 = b_in;
   }
 
   /**
@@ -195,7 +217,7 @@ class ImplicitAffineSet
    * @return T/F
    */
   constexpr bool is_valid_impl(T tol = 1e-8) const {
-    return linalg::L2<T, N>()((Q * R * this->x0) - b) < tol;
+    return linalg::L2<T, N>()((Q * R * x_lsq) - this->x0) < tol;
   }
 
   /**
@@ -207,14 +229,14 @@ class ImplicitAffineSet
    * for x^* (maps constraint residual back into dom(A))... z = A^+ r
    * 3. Apply correction x - Q * z (i.e., projection of x onto the affine set)
    *
-   * @param vector of type T with M elements
+   * @param vector of type T with N elements
    *
    * @return projected vector on this set
    */
-  constexpr auto project_impl(const linalg::Vector<T, M>& x) const {
+  constexpr auto project_impl(const DomVec& x) const {
     const auto x_proj = (Q * R) * x;
-    const auto r = x_proj - b;
-    linalg::Vector<T, M> z;
+    const auto r = x_proj - this->x0;
+    AmbientVec z;
     if constexpr (linalg::is_complex_v<T>)
       z = linalg::inverse(linalg::conjugate_transpose(R)) * r;
     else
@@ -232,9 +254,9 @@ class ImplicitAffineSet
    *
    * @return transformed affine set
    */
-  constexpr auto transform_impl(const AffineMap<T, N, M>& map) const {
+  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     return ImplicitAffineSet(map.linear_part() * (Q * R),
-                             b + (Q * R) * map.translation());
+                             this->x0 + (Q * R) * map.translation());
   }
 
   /**
@@ -245,19 +267,17 @@ class ImplicitAffineSet
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const linalg::Vector<T, M>& x,
-                               const T& tol) const {
-    const auto residual = (Q * R) * x - b;
+  constexpr bool contains_impl(const AmbientVec& x, const T& tol) const {
+    const auto residual = (Q * R) * x - this->x0;
     return linalg::L2<T, N>()(residual) < tol;
   }
 
  private:
   /** @brief member variables in the base class */
-  linalg::Matrix<T, N, N>
-      Q;  //< Q basis matrix spanning the space of the affine set
-  linalg::Matrix<T, N, M>
-      R;  //< R upper right triangular matrix factored from QR(A)
-  linalg::Vector<T, N> b;  //< b bias vector which lives in the CS(A)
+  linalg::Matrix<T, M, M>
+      Q;         //< Q basis matrix spanning the space of the affine set
+  Mat R;         //< R upper right triangular matrix factored from QR(A)
+  DomVec x_lsq;  //< x \in dom of U found via lsq
 };
 
 /**
@@ -266,19 +286,27 @@ class ImplicitAffineSet
  * The set takes the form x0 + span(U1, U2,...Un) where Us are valid column
  * vectors that form a basis for the affine set S = {x0 + U t}
  */
-template <typename T, size_t N, size_t M>
-  requires(linalg::FieldLike<T>)
-class ParametricAffineSet
-    : public AffineSet<T, N, M, ParametricAffineSet<T, N, M>> {
+template <linalg::MatrixLike Mat>
+class ParametricAffineSet : public AffineSet<Mat, ParametricAffineSet<Mat>> {
  public:
+  ///@brief bring into scope the type traits from the base class
+  using AffineBase = AffineSet<Mat, ParametricAffineSet<Mat>>;
+  using typename AffineBase::AmbientVec;
+  using typename AffineBase::DomVec;
+  using typename AffineBase::T;
+
+  ///@brief bring into scope the data members (consts)
+  using AffineBase::M;
+  using AffineBase::N;
+
   /**
    * @brief CTOR for parametric affine set
    *
    * @param matrix of type T with N x M elements
    * @param vector of type T with M elements
    */
-  constexpr explicit ParametricAffineSet(const linalg::Matrix<T, N, M>& U_in,
-                                         const linalg::Vector<T, M> x0_in)
+  constexpr explicit ParametricAffineSet(const Mat& U_in,
+                                         const AmbientVec& x0_in)
       : U(U_in) {
     this->x0 = x0_in;
   }
@@ -311,7 +339,7 @@ class ParametricAffineSet
    *
    * @return projected x on affine set
    */
-  constexpr auto project_impl(const linalg::Vector<T, M>& x) const {
+  constexpr auto project_impl(const DomVec& x) const {
     const auto t = linalg::QR(U).solve(x - this->x0);
     return this->x0 + U * t;
   }
@@ -327,7 +355,7 @@ class ParametricAffineSet
    *
    * @return parametric affine set object
    */
-  constexpr auto transform_impl(const AffineMap<T, N, M>& map) const {
+  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     return ParametricAffineSet(
         map.linear_part() * U,
         map.linear_part() * this->x0 + map.translation());
@@ -344,8 +372,7 @@ class ParametricAffineSet
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const linalg::Vector<T, M>& x,
-                               const T& tol) const {
+  constexpr bool contains_impl(const AmbientVec& x, const T& tol) const {
     const auto r = x - this->x0;
     const auto t = linalg::QR(U).solve(r);
     const auto residual = U * t - r;
@@ -354,7 +381,7 @@ class ParametricAffineSet
 
  private:
   /** @brief member variables in the base class */
-  linalg::Matrix<T, N, M> U;  //< basis matrix for the affine set
+  Mat U;  //< basis matrix for the affine set
 };
 
 }  // namespace convex

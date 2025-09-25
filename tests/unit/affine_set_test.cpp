@@ -19,7 +19,7 @@ TEST_CASE("Test affine set", "[affine sets]") {
   constexpr auto ones = Vector<double, 3>{1.0, 1.0, 1.0};
   constexpr auto zeros = Vector<double, 3>{0.0, 0.0, 0.0};
 
-  constexpr auto I_map = AffineMap<double, 3, 3>(I, zeros);
+  constexpr auto I_map = AffineMap3d<double>(I, zeros);
   SECTION("Quick test on affine map properties") {
     STATIC_REQUIRE(all_equal(I_map.linear_part(), I));
     STATIC_REQUIRE(all_equal(I_map.translation(), zeros));
@@ -36,10 +36,10 @@ TEST_CASE("Test affine set", "[affine sets]") {
     constexpr auto G =
         Matrix<double, 2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{4.2, -2.0}};
     constexpr auto g_b = Vectord<2>{-1.0, 2.0};
-    constexpr auto F_map = AffineMap2d(F, f_b);
-    constexpr auto G_map = AffineMap2d(G, g_b);
+    constexpr auto F_map = AffineMap2d<double>(F, f_b);
+    constexpr auto G_map = AffineMap2d<double>(G, g_b);
     constexpr auto I_map2 =
-        AffineMap<double, 2, 2>(make_identity<double, 2>(), Vectord<2>{});
+        AffineMap2d<double>(make_identity<double, 2>(), Vectord<2>{});
     STATIC_REQUIRE(F_map.compose(I_map2) == I_map2.compose(F_map));
     STATIC_REQUIRE(G_map.compose(I_map2) == I_map2.compose(G_map));
     constexpr auto res1 = F_map.compose(G_map);
@@ -53,7 +53,7 @@ TEST_CASE("Test affine set", "[affine sets]") {
   }
 
   SECTION("Implicit affine set creation check", "[Ax = b]") {
-    constexpr auto set = ImplicitAffineSet<double, 3, 3>(I, b);
+    constexpr auto set = ImplicitAffineSet(I, b);
     STATIC_REQUIRE(set.is_valid());
     STATIC_REQUIRE(all_equal(set.basis(), I));
     STATIC_REQUIRE(all_equal(set.point(), b));
@@ -72,7 +72,7 @@ TEST_CASE("Test affine set", "[affine sets]") {
   }
 
   SECTION("Parametric affine set creation check", "[x0 + U t]") {
-    constexpr auto set = ParametricAffineSet<double, 3, 3>(I, b);
+    constexpr auto set = ParametricAffineSet(I, b);
     STATIC_REQUIRE(set.is_valid());
     STATIC_REQUIRE(all_equal(set.basis(), I));
     STATIC_REQUIRE(all_equal(set.point(), b));
@@ -98,19 +98,19 @@ TEST_CASE("Test affine set", "[affine sets]") {
     constexpr auto a = Vectord<2>{1.0, 0.0};
     constexpr auto A = Matrixd<2, 2>{a, a};
     constexpr auto z = Vectord<2>{0.0, 0.0};
-    constexpr auto set = ParametricAffineSet<double, 2, 2>(A, z);
+    constexpr auto set = ParametricAffineSet(A, z);
     STATIC_REQUIRE(!set.is_valid());
   }
 
   SECTION("Set affine set with 4x4 mat") {
     auto H = make_zeros<double, 4, 4>();
     H = set_block<0, 3, 0, 3>(H, I);
-    const auto map = AffineMap<double, 3, 3>(H);
+    const auto map = AffineMap3d<double>(H);
 
     auto A = Matrix<double, 3, 3>{};
     A[0][0] = 1.0, A[1][1] = 2.5, A[2][2] = 5.0;
     auto x0 = Vector<double, 3>{0.1, 0.1, 0.1};
-    const auto set = ParametricAffineSet<double, 3, 3>(A, x0);
+    const auto set = ParametricAffineSet(A, x0);
 
     const auto set_two = set.transform(map);
     REQUIRE(set_two.is_valid());
@@ -122,7 +122,7 @@ TEST_CASE("Test affine set", "[affine sets]") {
 TEST_CASE("Test 2d Space Operations", "[affine_sets]") {
   constexpr auto I = make_identity<double, 2>();
   constexpr auto x0 = Vectord<2>{0.0, 0.0};
-  constexpr auto set = ParametricAffineSet<double, 2, 2>(I, x0);
+  constexpr auto set = ParametricAffineSet(I, x0);
   constexpr Rotation2d<double> R;
   SECTION("2d rotation") {
     constexpr auto R_mat = R(M_PI / 4.0);
@@ -189,7 +189,7 @@ TEST_CASE("Test 2d Space Operations", "[affine_sets]") {
 TEST_CASE("Test 3d Affine Space Operations", "[affine_sets]") {
   constexpr auto I = make_identity<double, 3>();
   constexpr auto x0 = Vectord<3>{0.0, 0.0, 0.0};
-  constexpr auto set = ParametricAffineSet<double, 3, 3>(I, x0);
+  constexpr auto set = ParametricAffineSet(I, x0);
   constexpr Rotation3d<double> R;
   SECTION("3d rotation about x") {
     constexpr auto R_mat = R.x(M_PI / 2);

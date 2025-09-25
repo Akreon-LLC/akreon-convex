@@ -10,14 +10,12 @@
 namespace convex {
 
 /// @brief general affine map thats 2D
-template <typename T>
-  requires(linalg::FieldLike<T>)
-using AffineMap2d = AffineMap<T, 2, 2>;
+template <linalg::FieldLike T>
+using AffineMap2d = AffineMap<linalg::Matrix<T, 2, 2>>;
 
 /// @brief general affine map thats 3D
-template <typename T>
-  requires(linalg::FieldLike<T>)
-using AffineMap3d = AffineMap<T, 3, 3>;
+template <linalg::FieldLike T>
+using AffineMap3d = AffineMap<linalg::Matrix<T, 3, 3>>;
 
 /**
  * @brief AffineMap class definition
@@ -28,28 +26,42 @@ using AffineMap3d = AffineMap<T, 3, 3>;
  *
  * Applies linear transform via U and then translation by vector c
  */
-template <typename T, size_t N, size_t M>
-  requires(linalg::FieldLike<T>)
+template <linalg::MatrixLike Mat>
 class AffineMap {
  public:
+  /// @brief alias to extract underlying type of affine set
+  using T = linalg::mat_type_t<Mat>;
+
+  /// @brief helpers to extracting M x N matrix
+  static constexpr size_t M = linalg::mat_rows_v<Mat>;
+  static constexpr size_t N = linalg::mat_cols_v<Mat>;
+
+  /// @brief alias for underlying vector spanning R^n (domain)
+  using DomVec = linalg::Vector<T, N>;
+
+  /// @brief alias for underlying vector spanning R^m (codomain)
+  using AmbientVec = linalg::Vector<T, M>;
+
+  /// @brief static assertion to check that the system is over determined
+  static_assert(N >= M);
+
   /**
    * @brief CTOR
    *
-   * @param matrix of type T N x M elements
-   * @param vector of type T N elements
+   * @param matrix of type T M x N elements
+   * @param vector of type T M elements
    */
-  constexpr explicit AffineMap(const linalg::Matrix<T, N, M>& U_in,
-                               const linalg::Vector<T, N>& c_in)
+  constexpr explicit AffineMap(const Mat& U_in, const AmbientVec& c_in)
       : U(U_in), c(c_in) {}
 
   /**
    * @brief CTOR
    *
-   * @param matrix of type T N x (M + 1) elements
+   * @param matrix of type T (M + 1) x (N + 1) elements
    */
-  constexpr explicit AffineMap(const linalg::Matrix<T, N + 1, M + 1>& H)
-      : U(get_block<0, N, 0, M>(H)),
-        c(as_vector(get_block<0, N, M, M + 1>(H))) {}
+  constexpr explicit AffineMap(const linalg::Matrix<T, M + 1, N + 1>& H)
+      : U(get_block<0, M, 0, N>(H)),
+        c(as_vector(get_block<0, M, N, N + 1>(H))) {}
 
   /**
    * @brief compose function
@@ -65,7 +77,7 @@ class AffineMap {
    *
    * @return new affine map object with the new applied mapping
    */
-  constexpr auto compose(const AffineMap<T, M, N>& other) const {
+  constexpr auto compose(const AffineMap<Mat>& other) const {
     return AffineMap(U * other.U, U * other.c + c);
   }
 
@@ -107,7 +119,7 @@ class AffineMap {
    *
    * @return T/F
    */
-  constexpr bool operator==(const AffineMap<T, N, M>& other) const {
+  constexpr bool operator==(const AffineMap<Mat>& other) const {
     return is_equal(other);
   }
 
@@ -118,15 +130,15 @@ class AffineMap {
    *
    * @return T/F
    */
-  constexpr bool operator!=(const AffineMap<T, N, M>& other) const {
+  constexpr bool operator!=(const AffineMap<Mat>& other) const {
     return !is_equal(other);
   }
 
  private:
   /** @brief member variables for affine map */
-  linalg::Matrix<T, N, M> U;  //<  valid linear transformation mapping
-  linalg::Vector<T, N> c;  //< c bias vector that translates the linear part to
-                           // a valid affine subspace
+  Mat U;         //<  valid linear transformation mapping
+  AmbientVec c;  //< c bias vector that translates the linear part to
+                 // a valid affine subspace
 
   /**
    * @brief equality comparison
@@ -135,7 +147,7 @@ class AffineMap {
    *
    * @return T/F
    */
-  constexpr bool is_equal(const AffineMap<T, N, M>& other) const {
+  constexpr bool is_equal(const AffineMap<Mat>& other) const {
     const auto linear_equal = all_equal(other.linear_part(), linear_part());
     const auto translation_equal =
         all_equal(other.translation(), translation());
