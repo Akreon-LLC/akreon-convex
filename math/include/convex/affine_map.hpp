@@ -83,7 +83,7 @@ class AffineMap {
    */
   constexpr auto inverse() const {
     const auto U_inv = linalg::inverse(U);
-    return AffineMap(U_inv, -1 * U_inv * c);
+    return AffineMap(U_inv, T(-1) * U_inv * c);
   }
 
   /**

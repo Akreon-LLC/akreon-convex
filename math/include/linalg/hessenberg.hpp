@@ -16,6 +16,7 @@ namespace linalg {
  * reductions creating the similarity transform: H = U_0^T A U_0.
  */
 template <typename T, size_t N>
+  requires(FieldLike<T> && N > 0)
 class HessenbergMatrix {
  public:
   /**
@@ -123,10 +124,10 @@ class HessenbergMatrix {
 
       auto U_block = get_n_cols<k + 1, N>(U);
       if constexpr (is_complex_v<T>)
-        U_block =
-            U_block - (beta(k) * v_col * conjugate_transpose(v_col)) * U_block;
+        U_block = U_block -
+                  beta(k) * (U_block * (v_col * conjugate_transpose(v_col)));
       else
-        U_block = U_block - (beta(k) * v_col * transpose(v_col)) * U_block;
+        U_block = U_block - beta(k) * (U_block * (v_col * transpose(v_col)));
 
       for (size_t r = 0; r < N; ++r)
         for (size_t c = k + 1, a = 0; c < N; ++c, ++a) U[r][c] = U_block(r)(a);

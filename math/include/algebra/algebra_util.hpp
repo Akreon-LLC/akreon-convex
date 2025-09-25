@@ -5,20 +5,12 @@
 
 #pragma once
 
-#include "field.hpp"
+#include "algebra_traits.hpp"
 
 /// @brief macro for capping compile step eval (default max is ~512)
 #define MAX_STEP_EVAL 512
 
 namespace linalg {
-
-/** \struct Vector
- *  \brief Structure that deals with vector types \in vector spaces
- *  \details See vector struct definition for more details
- *  \ingroup linalg
- */
-template <typename T, size_t N>
-struct Vector;
 
 /// @brief alias for deducing vector of doubles with N elements
 template <size_t N>
@@ -35,11 +27,6 @@ using Vectorcd = Vector<std::complex<double>, N>;
 /// @brief alias for deducing vector of complex floats with N elements
 template <size_t N>
 using Vectorcf = Vector<std::complex<float>, N>;
-
-/// @brief alias for deducing matrix as vector of vectors of type T with Rows x
-/// Cols elements
-template <typename T, size_t Rows, size_t Cols>
-using Matrix = Vector<Vector<T, Cols>, Rows>;
 
 /// @brief alias for deducing matrix as vector of vectors of type double with
 /// Rows x Cols elements
@@ -106,27 +93,6 @@ struct number_of_cols<Matrix<T, Rows, Cols>> {
 template <typename T>
 constexpr size_t number_of_cols_v =
     number_of_cols<std::remove_cvref_t<T>>::value;
-
-/** \struct is_iterable
- *  \brief Structure that deals in type_trait deduction for checking if type is
- * iterable (false initially)
- *  \details scalar_type is an overloaded type that strips away meta-templates
- * to see if the type is iterable
- *  \ingroup linalg
- */
-template <typename T, typename = void>
-struct is_iterable : std::false_type {};
-
-/// @brief True if type is iterable satisfying begin / end functions
-template <typename T>
-struct is_iterable<T, std::void_t<decltype(std::begin(std::declval<T>())),
-                                  decltype(std::end(std::declval<T>()))>>
-    : std::true_type {};
-
-/// @brief is_iterable_v is a variable holding the value of iterable result
-template <typename T>
-constexpr bool is_iterable_v = is_iterable<T>::value;
-
 /**
  * @brief Checks if the complex variable is imaginary to a tolerance
  *

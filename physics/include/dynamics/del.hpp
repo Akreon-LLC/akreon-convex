@@ -126,11 +126,12 @@ constexpr auto Solve(
     constexpr size_t RHS_COLS = (Nu > 0) ? 2 * DoF + Nu : 2 * DoF;
 
     linalg::Matrix<ScalarT, DoF, RHS_COLS> RHS;
-    RHS = linalg::set_block<0, DoF, 0, DoF>(RHS, -1 * R_qk);
-    RHS = linalg::set_block<0, DoF, DoF, 2 * DoF>(RHS, -1 * R_qkm1);
+    RHS = linalg::set_block<0, DoF, 0, DoF>(RHS, ScalarT(-1) * R_qk);
+    RHS = linalg::set_block<0, DoF, DoF, 2 * DoF>(RHS, ScalarT(-1) * R_qkm1);
     if constexpr (0 < Nu) {
       const auto R_u = calc_J_wrt_U(Q, U);
-      RHS = linalg::set_block<0, DoF, 2 * DoF, RHS_COLS>(RHS, -1 * R_u);
+      RHS =
+          linalg::set_block<0, DoF, 2 * DoF, RHS_COLS>(RHS, ScalarT(-1) * R_u);
     }
 
     linalg::Matrix<ScalarT, DoF, RHS_COLS> S;
@@ -172,7 +173,7 @@ constexpr auto Solve(
     // Qkp1 = J^{-1} R where -R = J * (Qkp1 - Qk)... Q_delta = Qkp1 - Qk
     const auto J_qr = linalg::QR(R_qkp1);
     const auto R = DEL(Q, U);
-    const auto Q_delta = J_qr.solve(-1 * R);
+    const auto Q_delta = J_qr.solve(ScalarT(-1) * R);
 
     const auto ss = solve_ss(Q, U, J_qr);
     A = std::get<0>(ss);

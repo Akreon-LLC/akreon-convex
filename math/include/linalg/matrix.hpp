@@ -16,7 +16,6 @@ namespace linalg {
  * @return I
  */
 template <typename T, size_t N>
-  requires(FieldLike<T>)
 constexpr Matrix<T, N, N> make_identity() {
   Matrix<T, N, N> I;
   for (size_t i = 0; i < N; ++i) I[i][i] = T(1);
@@ -29,7 +28,6 @@ constexpr Matrix<T, N, N> make_identity() {
  * @return Zeros
  */
 template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
 constexpr Matrix<T, Rows, Cols> make_zeros() {
   Matrix<T, Rows, Cols> Z;
   for (size_t i = 0; i < Rows; ++i)
@@ -44,9 +42,10 @@ constexpr Matrix<T, Rows, Cols> make_zeros() {
  *
  * @return (N x 1) matrix
  */
-template <typename T, size_t N>
-  requires(FieldLike<T> && !is_iterable_v<T>)
-constexpr auto as_col_vector(const Vector<T, N>& X) {
+template <VectorLike Vec>
+constexpr auto as_col_vector(const Vec& X) {
+  using T = vec_type_t<Vec>;
+  constexpr auto N = vec_size_v<Vec>;
   Matrix<T, N, 1> A;
   for (size_t i = 0; i < N; ++i) A[i] = X(i);
   return A;
@@ -59,9 +58,10 @@ constexpr auto as_col_vector(const Vector<T, N>& X) {
  *
  * @return (1 x N) matrix
  */
-template <typename T, size_t N>
-  requires(FieldLike<T> && !is_iterable_v<T>)
-constexpr auto as_row_vector(const Vector<T, N>& X) {
+template <VectorLike Vec>
+constexpr auto as_row_vector(const Vec& X) {
+  using T = vec_type_t<Vec>;
+  constexpr auto N = vec_size_v<Vec>;
   Matrix<T, 1, N> A;
   for (size_t i = 0; i < N; ++i) A[0][i] = X(i);
   return A;
@@ -74,9 +74,11 @@ constexpr auto as_row_vector(const Vector<T, N>& X) {
  *
  * @return A \in C
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto as_complex_matrix(const Matrix<T, Rows, Cols>& A) {
+template <MatrixLike Mat>
+constexpr auto as_complex_matrix(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
   Matrix<std::complex<scalar_type_t<T>>, Rows, Cols> result;
   if constexpr (!is_complex_v<T>) {
     for (size_t i = 0; i < Rows; ++i)
@@ -125,10 +127,11 @@ constexpr auto as_vector(const Matrix<T, 1, N>& A) {
  *
  * @return vector X
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto get_col(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
-  assert(idx < Cols);
+template <MatrixLike Mat>
+constexpr auto get_col(const Mat& A, const size_t& idx) {
+  using T = mat_type_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
+  assert(idx < mat_cols_v<Mat>);
   Vector<T, Rows> X;
   for (size_t i = 0; i < Rows; ++i) X[i] = A(i)(idx);
   return X;
@@ -142,10 +145,9 @@ constexpr auto get_col(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
  *
  * @return vector X
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto get_row(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
-  assert(idx < Rows);
+template <MatrixLike Mat>
+constexpr auto get_row(const Mat& A, const size_t& idx) {
+  assert(idx < mat_rows_v<Mat>);
   return A(idx);
 }
 
@@ -156,9 +158,11 @@ constexpr auto get_row(const Matrix<T, Rows, Cols>& A, const size_t& idx) {
  *
  * @return diagonal vector
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto get_diag(const Matrix<T, Rows, Cols>& A) {
+template <MatrixLike Mat>
+constexpr auto get_diag(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
   constexpr size_t mn = std::min(Rows, Cols);
   Vector<T, mn> diag;
   for (size_t i = 0; i < mn; ++i) diag[i] = A(i)(i);
@@ -188,9 +192,11 @@ constexpr auto make_diag(const Vector<T, N>& X) {
  *
  * @return matrix
  */
-template <size_t Start, size_t End, typename T, size_t Rows, size_t Cols>
-  requires(End - Start <= Rows && Start < Rows)
-constexpr auto get_n_rows(const Matrix<T, Rows, Cols>& A) {
+template <size_t Start, size_t End, MatrixLike Mat>
+  requires(End - Start <= mat_rows_v<Mat> && Start < mat_rows_v<Mat>)
+constexpr auto get_n_rows(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
   Matrix<T, End - Start, Cols> result;
   for (size_t i = Start, idx = 0; i < End; ++i, ++idx)
     result[idx] = get_row(A, i);
@@ -205,9 +211,11 @@ constexpr auto get_n_rows(const Matrix<T, Rows, Cols>& A) {
  *
  * @return matrix
  */
-template <size_t Start, size_t End, typename T, size_t Rows, size_t Cols>
-  requires(End - Start <= Cols && Start < Cols)
-constexpr auto get_n_cols(const Matrix<T, Rows, Cols>& A) {
+template <size_t Start, size_t End, MatrixLike Mat>
+  requires(End - Start <= mat_cols_v<Mat> && Start < mat_cols_v<Mat>)
+constexpr auto get_n_cols(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
   Matrix<T, End - Start, Rows> result;
   for (size_t i = Start, idx = 0; i < End; ++i, ++idx)
     result[idx] = get_col(A, i);
@@ -222,10 +230,11 @@ constexpr auto get_n_cols(const Matrix<T, Rows, Cols>& A) {
  * @return matrix
  */
 template <size_t StartRow, size_t EndRow, size_t StartCol, size_t EndCol,
-          typename T, size_t Rows, size_t Cols>
-  requires(EndRow - StartRow <= Rows && StartRow < Rows &&
-           EndCol - StartCol <= Cols && StartCol < Cols)
-constexpr auto get_block(const Matrix<T, Rows, Cols>& A) {
+          MatrixLike Mat>
+  requires(EndRow - StartRow <= mat_rows_v<Mat> && StartRow < mat_rows_v<Mat> &&
+           EndCol - StartCol <= mat_cols_v<Mat> && StartCol < mat_cols_v<Mat>)
+constexpr auto get_block(const Mat& A) {
+  using T = mat_type_t<Mat>;
   Matrix<T, EndRow - StartRow, EndCol - StartCol> result;
   for (size_t i = StartRow, a = 0; i < EndRow; ++i, ++a)
     for (size_t j = StartCol, b = 0; j < EndCol; ++j, ++b)
@@ -242,12 +251,12 @@ constexpr auto get_block(const Matrix<T, Rows, Cols>& A) {
  * @return matrix A
  */
 template <size_t StartRow, size_t EndRow, size_t StartCol, size_t EndCol,
-          typename T, size_t Rows, size_t Cols>
-  requires(EndRow - StartRow <= Rows && StartRow < Rows &&
-           EndCol - StartCol <= Cols && StartCol < Cols)
+          MatrixLike Mat>
+  requires(EndRow - StartRow <= mat_rows_v<Mat> && StartRow < mat_rows_v<Mat> &&
+           EndCol - StartCol <= mat_cols_v<Mat> && StartCol < mat_cols_v<Mat>)
 constexpr auto set_block(
-    Matrix<T, Rows, Cols> A,
-    const Matrix<T, EndRow - StartRow, EndCol - StartCol>& B) {
+    Mat A,
+    const Matrix<mat_type_t<Mat>, EndRow - StartRow, EndCol - StartCol>& B) {
   for (size_t i = StartRow, a = 0; i < EndRow; ++i, ++a)
     for (size_t j = StartCol, b = 0; j < EndCol; ++j, ++b) A[i][j] = B(a)(b);
   return A;
@@ -260,11 +269,11 @@ constexpr auto set_block(
  *
  * @return matrix
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto get_upper_right_triangular_matrix(
-    const Matrix<T, Rows, Cols>& A) {
-  Matrix<T, Rows, Cols> R;
+template <MatrixLike Mat>
+constexpr auto get_upper_right_triangular_matrix(const Mat& A) {
+  constexpr auto Rows = mat_rows_v<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
+  Mat R;
   for (size_t i = 0; i < Rows; ++i)
     for (size_t j = i; j < Cols; ++j) R[i][j] = A(i)(j);
   return R;
@@ -277,11 +286,11 @@ constexpr auto get_upper_right_triangular_matrix(
  *
  * @return matrix
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto get_lower_left_triangular_matrix(
-    const Matrix<T, Rows, Cols>& A) {
-  Matrix<T, Rows, Cols> L;
+template <MatrixLike Mat>
+constexpr auto get_lower_left_triangular_matrix(const Mat& A) {
+  constexpr auto Rows = mat_rows_v<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
+  Mat L;
   for (size_t i = 0; i < Cols; ++i)
     for (size_t j = i; j < Rows; ++j) L[j][i] = A(j)(i);
   return L;

@@ -10,6 +10,22 @@
 namespace linalg {
 
 /**
+ * @brief get n elements based on start to end indices
+ *
+ * @param vector of type T with N elements
+ *
+ * @return vector of type T with End - Start elements
+ */
+template <size_t Start, size_t End, VectorLike Vec>
+  requires(End - Start < vec_size_v<Vec> && Start < vec_size_v<Vec>)
+constexpr auto get_elements(const Vec& x) {
+  using T = vec_type_t<Vec>;
+  Vector<T, End - Start> result;
+  for (size_t i = Start, idx = 0; i < End; ++i, ++idx) result[idx] = x(i);
+  return result;
+}
+
+/**
  * @brief add two vectors together to get a third
  *
  * A + B = C
@@ -19,12 +35,12 @@ namespace linalg {
  *
  * @return vector
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
-constexpr auto add(const Vector<T, N>& A, const Vector<T, N>& B) {
+template <VectorLike Vec>
+constexpr auto add(const Vec& A, const Vec& B) {
   // (dakre) below is safeguard against non-square matrix acting as vector with
   // duck type T as Vector<Vector<...>>
-  static_assert(number_of_rows_v<decltype(A)> == number_of_rows_v<decltype(B)>);
+  using T = vec_type_t<Vec>;
+  constexpr auto N = vec_size_v<Vec>;
   Vector<T, N> C;
   for (size_t i = 0; i < N; ++i) C[i] = A(i) + B(i);
   return C;
@@ -35,9 +51,8 @@ constexpr auto add(const Vector<T, N>& A, const Vector<T, N>& B) {
  *
  * @see add
  */
-template <typename T, size_t N1, size_t N2>
-  requires(FieldLike<T>)
-constexpr auto operator+(const Vector<T, N1>& A, const Vector<T, N2>& B) {
+template <VectorLike Vec>
+constexpr auto operator+(const Vec& A, const Vec& B) {
   return add(A, B);
 }
 
@@ -51,9 +66,10 @@ constexpr auto operator+(const Vector<T, N1>& A, const Vector<T, N2>& B) {
  *
  * @return vector
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
-constexpr auto scalar_multiplication(const auto& alpha, const Vector<T, N>& A) {
+template <VectorLike Vec, FieldLike Alpha>
+constexpr auto scalar_multiplication(const Alpha& alpha, const Vec& A) {
+  using T = vec_type_t<Vec>;
+  constexpr auto N = vec_size_v<Vec>;
   Vector<T, N> C;
   for (size_t i = 0; i < N; ++i) C[i] = alpha * A(i);
   return C;
@@ -64,9 +80,8 @@ constexpr auto scalar_multiplication(const auto& alpha, const Vector<T, N>& A) {
  *
  * @see scalar_multiplication
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
-constexpr auto operator*(const auto& alpha, const Vector<T, N>& A) {
+template <VectorLike Vec, FieldLike Alpha>
+constexpr auto operator*(const Alpha& alpha, const Vec& A) {
   return scalar_multiplication(alpha, A);
 }
 
@@ -76,9 +91,9 @@ constexpr auto operator*(const auto& alpha, const Vector<T, N>& A) {
  * @see add
  * @see scalar_multiplication
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
-constexpr auto operator-(const Vector<T, N>& A, const Vector<T, N>& B) {
+template <VectorLike Vec>
+constexpr auto operator-(const Vec& A, const Vec& B) {
+  using T = vec_type_t<Vec>;
   return A + scalar_type_t<T>(-1) * B;
 }
 
@@ -92,13 +107,11 @@ constexpr auto operator-(const Vector<T, N>& A, const Vector<T, N>& B) {
  *
  * @return scalar
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
-constexpr auto dot(const Vector<T, N>& A, const Vector<T, N>& B) {
-  static_assert(number_of_cols_v<decltype(A)> == number_of_rows_v<decltype(B)>);
-  using ST = std::conditional_t<is_complex_v<T>, std::complex<scalar_type_t<T>>,
-                                scalar_type_t<T>>;
-  ST value = ST(0);
+template <VectorLike Vec>
+constexpr auto dot(const Vec& A, const Vec& B) {
+  using T = vec_type_t<Vec>;
+  constexpr auto N = vec_size_v<Vec>;
+  T value = T(0);
   for (size_t i = 0; i < N; ++i) value += A(i) * B(i);
   return value;
 }
@@ -113,12 +126,13 @@ constexpr auto dot(const Vector<T, N>& A, const Vector<T, N>& B) {
  *
  * @return (N x 1) matrix
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
-constexpr auto transpose(const Vector<T, N>& X) {
-  Matrix<T, N, 1> XT;
-  for (size_t i = 0; i < N; ++i) XT[i][0] = X(i);
-  return XT;
+template <VectorLike Vec>
+constexpr auto transpose(const Vec& X) {
+  using T = vec_type_t<Vec>;
+  constexpr auto N = vec_size_v<Vec>;
+  Matrix<T, N, 1> X_t;
+  for (size_t i = 0; i < N; ++i) X_t[i][0] = X(i);
+  return X_t;
 }
 
 /**
@@ -128,9 +142,11 @@ constexpr auto transpose(const Vector<T, N>& X) {
  *
  * @return conjugated vector
  */
-template <typename T, size_t N>
-  requires(FieldLike<T> && is_complex_v<T>)
-constexpr auto conjugate(const Vector<T, N>& X) {
+template <VectorLike Vec>
+  requires(is_complex_v<vec_type_t<Vec>>)
+constexpr auto conjugate(const Vec& X) {
+  using T = vec_type_t<Vec>;
+  constexpr auto N = vec_size_v<Vec>;
   Vector<T, N> result;
   for (size_t i = 0; i < N; ++i) result[i] = std::conj(X(i));
   return result;
@@ -144,12 +160,11 @@ constexpr auto conjugate(const Vector<T, N>& X) {
  *
  * @return (3x1) vector
  */
-template <typename T>
-  requires(FieldLike<T>)
-constexpr Vector<T, 3> cross(const Vector<T, 3>& X, const Vector<T, 3>& Y) {
-  Vector<T, 3> result{X(1) * Y(2) - X(2) * Y(1), -(X(0) * Y(2) - X(2) * Y(0)),
-                      X(0) * Y(1) - X(1) * Y(0)};
-  return result;
+template <VectorLike Vec>
+  requires(vec_size_v<Vec> == 3)
+constexpr auto cross(const Vec& X, const Vec& Y) {
+  return Vec{X(1) * Y(2) - X(2) * Y(1), -(X(0) * Y(2) - X(2) * Y(0)),
+             X(0) * Y(1) - X(1) * Y(0)};
 }
 
 }  // namespace linalg

@@ -16,9 +16,12 @@ namespace linalg {
  *
  * @return resuting matrix
  */
-template <typename T, size_t N>
-  requires(FieldLike<T> && N >= 1)
-constexpr auto matrix_exp(const Matrix<T, N, N>& A) {
+template <SquareMatrixLike Mat>
+constexpr auto matrix_exp(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  constexpr auto N = mat_rows_v<Mat>;
+  static_assert(N >= 1);
+
   const auto eig_decomp = EigenDecomposition(A);
 
   // (dakre) TODO - global determine optional like way to do this that is
@@ -31,8 +34,7 @@ constexpr auto matrix_exp(const Matrix<T, N, N>& A) {
   const auto V = eig_decomp.get_eigenvectors();
   const auto D = eig_decomp.get_eigenvalues();
 
-  for (size_t i = 0; i < N; ++i)
-    exp_lambda[i][i] = constexpr_exp_lambda(D(i));
+  for (size_t i = 0; i < N; ++i) exp_lambda[i][i] = constexpr_exp_lambda(D(i));
 
   return as_complex_matrix(V) * exp_lambda * as_complex_matrix(inverse(V));
 }

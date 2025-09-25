@@ -20,15 +20,15 @@ namespace linalg {
  *
  * @return matrix
  */
-template <typename T, size_t Rows1, size_t Cols1, size_t Cols2>
-  requires(FieldLike<T>)
-constexpr auto outer_product(const Matrix<T, Rows1, Cols1>& A,
-                             const Matrix<T, Cols1, Cols2>& B) {
-  using ST = std::conditional_t<is_complex_v<T>, std::complex<scalar_type_t<T>>,
-                                scalar_type_t<T>>;
-  Matrix<ST, Rows1, Cols2> result;
-  for (size_t i = 0; i < Rows1; ++i)
-    for (size_t j = 0; j < Cols2; ++j) result[i][j] = A(i)(0) * B(0)(j);
+template <MatrixLike MatA, MatrixLike MatB>
+  requires(MatMulCompatible<MatA, MatB>)
+constexpr auto outer_product(const MatA& A, const MatB& B) {
+  using T = mat_type_t<MatA>;
+  constexpr auto Rows = mat_rows_v<MatA>;
+  constexpr auto Cols = mat_cols_v<MatB>;
+  Matrix<T, Rows, Cols> result;
+  for (size_t i = 0; i < Rows; ++i)
+    for (size_t j = 0; j < Cols; ++j) result[i][j] = A(i)(0) * B(0)(j);
   return result;
 }
 
@@ -47,7 +47,6 @@ constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
   Matrix<T, Cols, Rows> result;
   for (size_t i = 0; i < Rows; ++i)
     for (size_t j = 0; j < Cols; ++j) result[j][i] = A(i)(j);
-
   return result;
 }
 
@@ -60,9 +59,11 @@ constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
  *
  * @return sum
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T> && Rows == Cols && Rows > 0)
-constexpr auto trace(const Matrix<T, Rows, Cols>& A) {
+template <SquareMatrixLike Mat>
+  requires(mat_rows_v<Mat> > 0)
+constexpr auto trace(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
   T sum = 0;
   for (size_t i = 0; i < Rows; ++i) sum += A(i)(i);
   return sum;
@@ -77,14 +78,16 @@ constexpr auto trace(const Matrix<T, Rows, Cols>& A) {
  *
  * @return A^*
  */
-template <typename T, size_t Rows, size_t Cols>
-constexpr auto conjugate_transpose(const Matrix<T, Rows, Cols>& A)
-  requires(is_complex_v<T>)
+template <MatrixLike Mat>
+constexpr auto conjugate_transpose(const Mat& A)
+  requires(is_complex_v<mat_type_t<Mat>>)
 {
-  auto AT = transpose(A);
+  constexpr auto Rows = mat_rows_v<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
+  auto A_t = transpose(A);
   for (size_t i = 0; i < Cols; ++i)
-    for (size_t j = 0; j < Rows; ++j) AT[i][j] = std::conj(AT[i][j]);
-  return AT;
+    for (size_t j = 0; j < Rows; ++j) A_t[i][j] = std::conj(A_t[i][j]);
+  return A_t;
 }
 
 /**
@@ -95,14 +98,16 @@ constexpr auto conjugate_transpose(const Matrix<T, Rows, Cols>& A)
  *
  * @return A*B
  */
-template <typename T, size_t Rows, size_t Cols1, size_t Cols2>
-  requires(FieldLike<T>)
-constexpr auto operator*(const Matrix<T, Rows, Cols1>& A,
-                         const Matrix<T, Cols1, Cols2>& B) {
-  Matrix<T, Rows, Cols2> result;
-  const auto BT = transpose(B);
+template <MatrixLike MatA, MatrixLike MatB>
+  requires(MatMulCompatible<MatA, MatB>)
+constexpr auto operator*(const MatA& A, const MatB& B) {
+  using T = mat_type_t<MatA>;
+  constexpr auto Rows = mat_rows_v<MatA>;
+  constexpr auto Cols = mat_cols_v<MatB>;
+  Matrix<T, Rows, Cols> result;
+  const auto B_t = transpose(B);
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols2; ++j) result[i][j] = dot(A(i), BT(j));
+    for (size_t j = 0; j < Cols; ++j) result[i][j] = dot(A(i), B_t(j));
   return result;
 }
 
@@ -114,10 +119,11 @@ constexpr auto operator*(const Matrix<T, Rows, Cols1>& A,
  *
  * @return A*X
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto operator*(const Matrix<T, Rows, Cols>& A,
-                         const Vector<T, Cols>& X) {
+template <MatrixLike Mat, VectorLike Vec>
+  requires(MatVecCompatible<Mat, Vec>)
+constexpr auto operator*(const Mat& A, const Vec& X) {
+  using T = mat_type_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
   Vector<T, Rows> result;
   for (size_t i = 0; i < Rows; ++i) result[i] = dot(A(i), X);
   return result;

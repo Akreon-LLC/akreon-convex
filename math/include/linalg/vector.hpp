@@ -10,8 +10,7 @@
 #include <ranges>
 #include <span>
 
-#include "../algebra/field.hpp"
-#include "../algebra/util.hpp"
+#include "../algebra/algebra_util.hpp"
 
 namespace linalg {
 
@@ -23,16 +22,6 @@ namespace linalg {
  */
 template <typename T, size_t N>
 struct Vector {
-  ///< value_type = T
-  using value_type = T;
-
-  ///@brief type T must satisfy axioms of a proper field
-  static_assert(FieldLike<T>);
-
-  ///@brief s_size holds the size of the elements N within the scope of the
-  /// vector
-  static constexpr size_t s_size = N;
-
   /**
    * @brief CTOR with initializer list taking in variadic argument list of
    * coordinates
@@ -140,20 +129,5 @@ struct Vector {
   /** @brief Vector member variables */
   std::array<T, N> coordinates;  ///< coordinates of vector
 };
-
-/**
- * @brief get n elements based on start to end indices
- *
- * @param vector of type T with N elements
- *
- * @return vector of type T with End - Start elements
- */
-template <size_t Start, size_t End, typename T, size_t N>
-  requires(FieldLike<T> && End - Start < N && Start < N)
-constexpr auto get_elements(const Vector<T, N>& x) {
-  Vector<T, End - Start> result;
-  for (size_t i = Start, idx = 0; i < End; ++i, ++idx) result[idx] = x(i);
-  return result;
-}
 
 }  // namespace linalg

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../algebra/util.hpp"
+#include "../algebra/algebra_util.hpp"
 
 namespace convex {
 

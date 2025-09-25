@@ -18,9 +18,12 @@ namespace linalg {
  *
  * @return matrix
  */
-template <typename T, size_t N>
-  requires(FieldLike<T> && N >= 1)
-constexpr auto inverse(const Matrix<T, N, N>& A) {
+template <SquareMatrixLike Mat>
+constexpr auto inverse(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  constexpr auto N = mat_rows_v<Mat>;
+  static_assert(N >= 1);
+
   const auto I = make_identity<T, N>();
   Matrix<T, N, N> res;
   const auto qr_A = QR(A);
@@ -34,13 +37,15 @@ constexpr auto inverse(const Matrix<T, N, N>& A) {
 /**
  * @brief operator overload for matrix inverse
  *
- * @param matrix A of type T N x N elements
+ * @param matrix A of type T
+ * @param matrix B of type T
  *
  * @return matrix
  */
-template <typename T, size_t N>
-  requires(FieldLike<T> && N >= 1)
-constexpr auto operator/(const Matrix<T, N, N>& A, const Matrix<T, N, N>& B) {
+template <MatrixLike MatA, MatrixLike MatB>
+  requires(std::same_as<mat_type_t<MatA>, mat_type_t<MatB>>)
+constexpr auto operator/(const MatA& A, const MatB& B) {
+  static_assert(mat_cols_v<MatB> == mat_cols_v<MatA>);
   return A * inverse(B);
 }
 

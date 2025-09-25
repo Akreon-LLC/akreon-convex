@@ -16,7 +16,7 @@ namespace linalg {
  * Algorithms by Golub & Van Loan
  */
 template <typename T, size_t N>
-  requires(FieldLike<T> && !is_iterable_v<T>)
+  requires(FieldLike<T> && N > 0)
 struct HouseholderVector {
   /**
    * @brief CTOR to compute householder vector
@@ -59,7 +59,7 @@ struct HouseholderVector {
    */
   constexpr void make_householder(const Vector<T, N>& x, auto) {
     if constexpr (is_complex_v<T>) {
-      const auto norm_x = L2<T, N>()(x);
+      const T norm_x = L2<T, N>()(x);
       if (norm_x == scalar_type_t<T>(0)) {
         // (dakre) no reflector required
         return;
