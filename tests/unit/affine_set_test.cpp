@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
-#include <iostream>
 
 #include "math.hpp"
 #include "unit_test_helpers.hpp"
@@ -13,7 +12,7 @@
 using namespace linalg;
 using namespace convex;
 
-TEST_CASE("Test affine set", "[affine sets]") {
+TEST_CASE("Test affine set", "[affine_sets]") {
   constexpr auto I = make_identity<double, 3>();
   constexpr auto b = Vector<double, 3>{1.0, 2.0, 3.0};
   constexpr auto ones = Vector<double, 3>{1.0, 1.0, 1.0};
@@ -50,6 +49,11 @@ TEST_CASE("Test affine set", "[affine sets]") {
     STATIC_REQUIRE(all_equal(res2.translation(), G * f_b + g_b));
     STATIC_REQUIRE(F_map.compose(G_map).compose(I_map2) ==
                    F_map.compose(G_map.compose(I_map2)));
+  }
+
+  SECTION("Quick test on signature to mat set like") {
+    STATIC_REQUIRE(SetLike<ImplicitAffineSet<Matrix<double, 2, 2>>>);
+    STATIC_REQUIRE(SetLike<ParametricAffineSet<Matrix<double, 6, 6>>>);
   }
 
   SECTION("Implicit affine set creation check", "[Ax = b]") {

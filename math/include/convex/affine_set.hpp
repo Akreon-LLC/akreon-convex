@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../algebra/algebra_util.hpp"
+#include "convex_set.hpp"
 
 namespace convex {
 
@@ -130,12 +130,20 @@ class AffineSet {
     return !is_equal(other);
   }
 
- private:
+  /**
+   * @brief to conic form to satisfy set like properties
+   *
+   * For affine acts like noop
+   */
+  constexpr void to_conic_form() const {}
+
+ protected:
   /** @brief member variables in the base class */
   friend Derived;  ///< friend declaration for derived to reference base class
                    ///< member vars
   AmbientVec x0;  ///< reference point that lies in the affine set S \subset R^m
 
+ private:
   /**
    * @brief self function which returns a const ref to the derived object
    *

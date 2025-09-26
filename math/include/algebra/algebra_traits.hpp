@@ -11,6 +11,10 @@
 
 namespace linalg {
 
+/// @brief remove cv ref from type
+template <typename T>
+using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
 /// @brief forward declaration for vector
 template <typename T, size_t N>
 struct Vector;
@@ -83,6 +87,30 @@ inline constexpr size_t mat_rows_v = mat_traits<Mat>::ROWS;
 /// @brief helper for size of matrix cols
 template <class Mat>
 inline constexpr size_t mat_cols_v = mat_traits<Mat>::COLS;
+
+/// @brief base type traits definition for vector
+template <class Vec>
+struct space_traits;
+
+/// @brief type traits definition for vector space
+template <typename T, size_t M, size_t N>
+struct space_traits<Vector<Vector<T, N>, M>> {
+  using value_type = T;
+  using Point = Vector<T, N>;
+  static constexpr size_t DIM = M;
+};
+
+/// @brief alias for space type
+template <class Space>
+using space_type_t = typename space_traits<Space>::value_type;
+
+/// @brief alias for point type in vector space
+template <class Space>
+using space_point_t = typename space_traits<Space>::Point;
+
+/// @helper for dimension of vector space
+template <class Space>
+inline constexpr size_t space_dim_v = space_traits<Space>::DIM;
 
 /** \struct scalar_type
  *  \brief Structure that deals in type_trait deduction for a scalar type
@@ -157,6 +185,42 @@ struct is_complex_t<Vector<Vector<T, M>, N>> {
 template <typename T>
 inline constexpr bool is_complex_v = is_complex_t<T>::value;
 
+/// @brief alias for deducing vector of doubles with N elements
+template <size_t N>
+using Vectord = Vector<double, N>;
+
+/// @brief alias for deducing vector of floats with N elements
+template <size_t N>
+using Vectorf = Vector<float, N>;
+
+/// @brief alias for deducing vector of complex doubles with N elements
+template <size_t N>
+using Vectorcd = Vector<std::complex<double>, N>;
+
+/// @brief alias for deducing vector of complex floats with N elements
+template <size_t N>
+using Vectorcf = Vector<std::complex<float>, N>;
+
+/// @brief alias for deducing matrix as vector of vectors of type double with
+/// Rows x Cols elements
+template <size_t Rows, size_t Cols>
+using Matrixd = Vector<Vectord<Cols>, Rows>;
+
+/// @brief alias for deducing matrix as vector of vectors of type float with
+/// Rows x Cols elements
+template <size_t Rows, size_t Cols>
+using Matrixf = Vector<Vectorf<Cols>, Rows>;
+
+/// @brief alias for deducing matrix as vector of vectors of type complex double
+/// with Rows x Cols elements
+template <size_t Rows, size_t Cols>
+using Matrixcd = Vector<Vectorcd<Cols>, Rows>;
+
+/// @brief alias for deducing matrix as vector of vectors of type complex float
+/// with Rows x Cols elements
+template <size_t Rows, size_t Cols>
+using Matrixcf = Vector<Vectorcf<Cols>, Rows>;
+
 /**
  * @brief FieldLike concept is obtained by floating point values
  *
@@ -195,6 +259,27 @@ concept VecVecCompatible = VectorLike<VecA> && VectorLike<VecB> && requires {
   std::same_as<vec_type_t<VecA>, vec_type_t<VecB>> &&
       vec_size_v<VecA> == vec_size_v<VecB>;
 };
+
+/// @brief vector space concept
+template <class Space>
+concept VectorSpace =
+    VectorLike<Space> &&
+    requires(const typename space_traits<Space>::Point& x,
+             const typename space_traits<Space>::Point& y,
+             const typename space_traits<Space>::value_type& alpha) {
+      { x + y } -> std::convertible_to<typename space_traits<Space>::Point>;
+      { x - y } -> std::convertible_to<typename space_traits<Space>::Point>;
+      { alpha * x } -> std::convertible_to<typename space_traits<Space>::Point>;
+      {
+        alpha * (x + y)
+      } -> std::convertible_to<typename space_traits<Space>::Point>;
+      {
+        alpha * x + alpha * y
+      } -> std::convertible_to<typename space_traits<Space>::Point>;
+      {
+        typename space_traits<Space>::value_type(1) * x
+      } -> std::convertible_to<typename space_traits<Space>::Point>;
+    };
 
 /// @brief concept definition for matrix like
 template <class Mat>

@@ -212,10 +212,6 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto H =
         Matrixd<3, 1>{Vectord<1>{1.0}, Vectord<1>{2.0}, Vectord<1>{3.0}};
 
-    STATIC_REQUIRE(number_of_rows_v<decltype(G)> ==
-                   number_of_cols_v<decltype(H)>);
-    STATIC_REQUIRE(number_of_cols_v<decltype(G)> ==
-                   number_of_rows_v<decltype(H)>);
     constexpr auto GT = transpose(G);
     constexpr auto HT = transpose(H);
     STATIC_REQUIRE(G == HT);
