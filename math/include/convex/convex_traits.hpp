@@ -27,6 +27,7 @@ class ConvexSet;
 
 /// @brief forward declaration of halfspace
 template <linalg::VectorSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
 class Halfspace;
 
 /// @brief set traits

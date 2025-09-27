@@ -22,6 +22,7 @@ enum struct HalfspaceType { CLH, OLH, CUH, OUH };
  * {x | a^T x > b}... open upper halfspace
  */
 template <linalg::VectorSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
 class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
  public:
   /// @brief bring into scope the type traits from the base class
