@@ -25,6 +25,10 @@ class ParametricAffineSet;
 template <linalg::VectorSpace Space, typename Derived>
 class ConvexSet;
 
+/// @brief forward declaration of halfspace
+template <linalg::VectorSpace Space>
+class Halfspace;
+
 /// @brief set traits
 template <class Set>
 struct set_traits;
@@ -56,6 +60,14 @@ struct set_traits<ParametricAffineSet<Mat>> {
 /// @brief derived set type traits - convex sets
 template <linalg::VectorSpace Space, typename Derived>
 struct set_traits<ConvexSet<Space, Derived>> {
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t Dim = linalg::space_dim_v<Space>;
+};
+
+/// @brief derived set type traints - halfspaces
+template <linalg::VectorSpace Space>
+struct set_traits<Halfspace<Space>> {
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
   static constexpr size_t Dim = linalg::space_dim_v<Space>;

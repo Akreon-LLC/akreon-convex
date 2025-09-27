@@ -10,6 +10,11 @@
 
 namespace convex {
 
+/**
+ * @brief Base convex set class CRTP
+ *
+ * Templated by a vector space and derived class
+ */
 template <linalg::VectorSpace Space, typename Derived>
 class ConvexSet {
  public:
@@ -29,7 +34,7 @@ class ConvexSet {
    *
    * @return T/F
    */
-  constexpr auto is_valid() const { return true; }
+  constexpr auto is_valid() const { return self().is_valid_impl(); }
 
   /**
    * @brief contains to check if the point lies in the convex set
@@ -40,9 +45,7 @@ class ConvexSet {
    * @return T/F
    */
   constexpr bool contains(const Point& x, T tol = 1e-8) const {
-    (void)x;
-    (void)tol;
-    return true;
+    return self().contains_impl(x, tol);
   }
 
   /**
@@ -50,7 +53,7 @@ class ConvexSet {
    *
    * @return conic form
    */
-  constexpr auto to_conic_form() const { return true; }
+  constexpr auto to_conic_form() const { return self().to_conic_form_impl(); }
 
  private:
   /**

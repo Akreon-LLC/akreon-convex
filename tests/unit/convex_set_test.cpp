@@ -15,7 +15,7 @@ using namespace convex;
 
 TEST_CASE("Test convex set", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
-    struct Null;
-    STATIC_REQUIRE(SetLike<ConvexSet<Matrix<double, 2, 2>, Null>>);
+    STATIC_REQUIRE(SetLike<Halfspace<Matrix<double, 2, 2>>>);
+    STATIC_REQUIRE(SetLike<Halfspace<Matrix<float, 1, 1>>>);
   }
 }

@@ -167,4 +167,22 @@ constexpr auto cross(const Vec& X, const Vec& Y) {
              X(0) * Y(1) - X(1) * Y(0)};
 }
 
+/**
+ * @brief simple function that checks if a vector contains only zeros (hence
+ * spans nullspace)
+ *
+ * @param vector of type T with N elements
+ *
+ * @return T/F
+ */
+template <VectorLike Vec>
+  requires(vec_size_v<Vec> > 0)
+constexpr bool all_zero(const Vec& X) {
+  using T = vec_type_t<Vec>;
+  constexpr auto N = vec_size_v<Vec>;
+  int cnt = 0;
+  for (size_t i = 0; i < N; ++i) cnt += X(i) == T(0);
+  return cnt == N;
+}
+
 }  // namespace linalg
