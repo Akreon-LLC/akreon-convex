@@ -27,8 +27,15 @@ class ConvexSet;
 
 /// @brief forward declaration of halfspace
 template <linalg::VectorSpace Space>
-  requires(linalg::space_dim_v<Space> == 1)
+  requires(linalg::space_dim_v<Space> ==
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
 class Halfspace;
+
+/// @brief forward declaration of norm ball set
+template <linalg::VectorSpace Space>
+  requires(linalg::space_dim_v<Space> ==
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
+class NormBall;
 
 /// @brief set traits
 template <class Set>
@@ -69,6 +76,14 @@ struct set_traits<ConvexSet<Space, Derived>> {
 /// @brief derived set type traints - halfspaces
 template <linalg::VectorSpace Space>
 struct set_traits<Halfspace<Space>> {
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t Dim = linalg::space_dim_v<Space>;
+};
+
+/// @brief derived set type traints - norm ball
+template <linalg::VectorSpace Space>
+struct set_traits<NormBall<Space>> {
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
   static constexpr size_t Dim = linalg::space_dim_v<Space>;

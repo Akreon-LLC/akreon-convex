@@ -13,7 +13,7 @@
 using namespace linalg;
 using namespace convex;
 
-TEST_CASE("Test convex set", "[convex_sets]") {
+TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
     STATIC_REQUIRE(SetLike<Halfspace<Matrix<double, 1, 2>>>);
@@ -70,5 +70,15 @@ TEST_CASE("Test convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace.contains(Vectord<1>{0.1}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<1>{5.0}));
     STATIC_REQUIRE(halfspace.contains(Vectord<1>{6.0}));
+  }
+}
+
+TEST_CASE("Test norm ball convex set", "[convex_sets]") {
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
+    STATIC_REQUIRE(SetLike<NormBall<Matrix<double, 1, 2>>>);
+    STATIC_REQUIRE(SetLike<NormBall<Matrix<std::complex<double>, 1, 5>>>);
+    STATIC_REQUIRE(SetLike<NormBall<Matrix<float, 1, 10>>>);
+    STATIC_REQUIRE(SetLike<NormBall<Matrix<std::complex<float>, 1, 1>>>);
   }
 }
