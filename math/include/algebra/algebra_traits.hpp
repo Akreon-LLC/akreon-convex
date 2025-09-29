@@ -78,15 +78,15 @@ struct mat_traits<Matrix<T, Rows, Cols>> {
 
 /// @brief alias for matrix type
 template <class Mat>
-using mat_type_t = typename mat_traits<Mat>::value_type;
+using mat_type_t = typename mat_traits<remove_cvref_t<Mat>>::value_type;
 
 /// @brief helper for size of matrix rows
 template <class Mat>
-inline constexpr size_t mat_rows_v = mat_traits<Mat>::ROWS;
+inline constexpr size_t mat_rows_v = mat_traits<remove_cvref_t<Mat>>::ROWS;
 
 /// @brief helper for size of matrix cols
 template <class Mat>
-inline constexpr size_t mat_cols_v = mat_traits<Mat>::COLS;
+inline constexpr size_t mat_cols_v = mat_traits<remove_cvref_t<Mat>>::COLS;
 
 /// @brief base type traits definition for vector
 template <class Vec>

@@ -10,3 +10,4 @@
 #include "convex_set.hpp"
 #include "halfspace.hpp"
 #include "norm_ball.hpp"
+#include "ellipsoid.hpp"

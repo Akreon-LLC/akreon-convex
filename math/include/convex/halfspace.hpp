@@ -41,6 +41,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
    * @brief CTOR for halfspace set
    *
    * @param Point (i.e., n-dim vector of type T)
+   * @param b bias scalar
+   * @param enumer type describing halfspace
    */
   constexpr explicit Halfspace(const Point& a_in, const T& b_in,
                                const HalfspaceType& type_in)

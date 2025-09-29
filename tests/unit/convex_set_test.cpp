@@ -156,3 +156,29 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
   }
 }
+
+TEST_CASE("Test ellipsoid set", "[convex_sets]") {
+  SECTION("Test open ellipsoid set") {
+    constexpr auto c = Vector<double, 2>{1.5, 2.0};
+    constexpr auto P = make_identity<double, 2>();
+    constexpr auto ellipsoid =
+        Ellipsoid<Matrix<double, 1, 2>>(c, P, EllipsoidType::OE);
+    REQUIRE(ellipsoid.is_valid());
+    STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
+    STATIC_REQUIRE(ellipsoid.contains(c));
+    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
+    STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{1.5, 1.0}));
+  }
+
+  SECTION("Test closed ellipsoid set") {
+    constexpr auto c = Vector<double, 2>{1.5, 2.0};
+    constexpr auto P = make_identity<double, 2>();
+    constexpr auto ellipsoid =
+        Ellipsoid<Matrix<double, 1, 2>>(c, P, EllipsoidType::CE);
+    REQUIRE(ellipsoid.is_valid());
+    STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
+    STATIC_REQUIRE(ellipsoid.contains(c));
+    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
+    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
+  }
+}
