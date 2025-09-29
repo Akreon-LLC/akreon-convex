@@ -8,6 +8,7 @@
 #include "linear_algebra.hpp"
 #include "matrix_exp.hpp"
 #include "matrix_inverse.hpp"
+#include "matrix_types.hpp"
 
 namespace linalg {
 

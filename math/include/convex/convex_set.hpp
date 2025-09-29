@@ -24,6 +24,9 @@ class ConvexSet {
   /// @brief alias for point
   using Point = linalg::space_point_t<Space>;
 
+  /// @briaf alias for scalar type of undering set type
+  using ScalarT = linalg::scalar_type_t<T>;
+
   /// @brief helper to extract dimension of convex set
   static constexpr size_t Dim = linalg::space_traits<Space>::Dim;
 

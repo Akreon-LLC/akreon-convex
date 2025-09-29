@@ -252,7 +252,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
   }
 
-  SECTION("Test closed Linf norm ball") {
+  SECTION("Test closed Linf norm cone") {
     constexpr auto c = Vector<float, 2>{1.f, 2.f};
     constexpr auto t = 2.f;
     constexpr auto cone =
@@ -261,5 +261,24 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
+  }
+}
+
+TEST_CASE("PSD cone", "[convex_sets]") {
+  SECTION("PSD Cones") {
+    //constexpr auto A =
+    //    Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
+    //constexpr auto B =
+    //    Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
+    //constexpr auto I = make_identity<double, 3>();
+    //constexpr auto Z = Matrixd<2, 2>{};
+    constexpr auto cone = PsdCone<Matrix<double, 2, 2>>();
+    REQUIRE(cone.is_valid());
+#if 0
+    REQUIRE(cone.contains(A));
+    REQUIRE(cone.contains(B));
+    REQUIRE(cone.contains(I));
+    REQUIRE(cone.contains(Z));
+#endif
   }
 }

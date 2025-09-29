@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <iostream>
 
 #include "math.hpp"
 #include "unit_test_helpers.hpp"
@@ -13,7 +14,6 @@ using namespace linalg;
 using namespace unit_test;
 
 TEST_CASE("Test field types", "[field]") {
-
   SECTION("Field check") {
     STATIC_REQUIRE(FieldLike<double>);
     STATIC_REQUIRE(FieldLike<float>);
@@ -339,5 +339,26 @@ TEST_CASE("Hessenberg matrices", "[hessenberg]") {
     STATIC_REQUIRE(all_equal(UTU, make_identity<double, 3>()));
 
     STATIC_REQUIRE(all_equal(H, transpose(U) * A * U));
+  }
+}
+
+TEST_CASE("Matrix types", "[matrix_types]") {
+  constexpr auto A = Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
+  constexpr auto B =
+      Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
+  constexpr auto I = make_identity<double, 3>();
+  constexpr auto Z = Matrixd<2, 2>{};
+  SECTION("Positive Definite Matrices") {
+    REQUIRE(is_positive_definite(A));
+    REQUIRE(is_positive_definite(B));
+    REQUIRE(is_positive_definite(I));
+    REQUIRE(!is_positive_definite(Z));
+  }
+
+  SECTION("Positive Semidefinite Matrices") {
+    REQUIRE(is_positive_semidefinite(A));
+    REQUIRE(is_positive_semidefinite(B));
+    REQUIRE(is_positive_semidefinite(I));
+    REQUIRE(is_positive_semidefinite(Z));
   }
 }

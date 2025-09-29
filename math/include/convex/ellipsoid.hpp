@@ -27,13 +27,11 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, Ellipsoid<Space>>;
   using typename ConvexBase::Point;
+  using typename ConvexBase::ScalarT;
   using typename ConvexBase::T;
 
   /// @brief bring into scope the const data members
   using ConvexBase::Dim;
-
-  /// @briaf alias for scalar type of undering set type
-  using ScalarT = linalg::scalar_type_t<T>;
 
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
@@ -53,7 +51,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
   /**
    * @brief contains function to see if x is in the ellipsoid (x - c)^T P (x -
    * c) <= 1
-   *
+
    * @param point x of type T with n elements
    * @param tolerance of tyep T (ignored)
    *
@@ -83,18 +81,13 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
    * @return T/F
    */
   constexpr bool is_valid_impl() const {
-    const auto eig_decomp = linalg::EigenDecomposition(P);
-    if (!eig_decomp.get_converged()) return false;
-    const auto lambdas = eig_decomp.get_eigenvalues();
-    for (const auto& lambda : lambdas)
-      if (lambda.real() <= 0) return false;
-    return true;
+    return linalg::is_positive_definite(P);
   }
 
   /**
    * @brief to conic form helper
    *
-   * @return conic form of halfspace
+   * @return conic form
    */
   constexpr auto to_conic_form_impl() const {
     // (dakre) TODO implement
