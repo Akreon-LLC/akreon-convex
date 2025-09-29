@@ -8,7 +8,7 @@
 #include "algebra_traits.hpp"
 
 /// @brief macro for capping compile step eval (default max is ~512)
-#define MAX_STEP_EVAL 512
+#define MAX_STEP_EVAL 256
 
 namespace linalg {
 
@@ -54,6 +54,19 @@ constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0) {
   if (depth + 1 < MAX_STEP_EVAL && constexpr_abs(guess * guess - x) > 1e-10)
     return constexpr_sqrt(x, T(0.5) * (guess + x / guess), depth + 1);
   return guess;
+}
+
+/**
+ * @brief perform abs on complex var
+ *
+ * @param some type T var x
+ *
+ * @return |x|
+ */
+template <typename T>
+  requires(is_complex_v<T>)
+constexpr auto constexpr_absc(const T& x) {
+  return constexpr_sqrt(x.real() * x.real() + x.imag() * x.imag());
 }
 
 /**

@@ -81,4 +81,78 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(SetLike<NormBall<Matrix<float, 1, 10>>>);
     STATIC_REQUIRE(SetLike<NormBall<Matrix<std::complex<float>, 1, 1>>>);
   }
+
+  SECTION("Test open L2 norm ball") {
+    constexpr auto c = Vector<double, 2>{1.0, 3.0};
+    constexpr auto r = 2.0;
+    constexpr auto ball =
+        NormBall<Matrix<double, 1, 2>>(c, r, NormBallType::L2OB);
+    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(!ball.contains(Vector<double, 2>{}));
+    STATIC_REQUIRE(ball.contains(c));
+    STATIC_REQUIRE(ball.contains(Vector<double, 2>{c(0) + 0.1, c(1) - 0.2}));
+    STATIC_REQUIRE(!ball.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+  }
+
+  SECTION("Test closed L2 norm ball") {
+    constexpr auto c = Vector<float, 2>{1.f, 3.f};
+    constexpr auto r = 2.f;
+    constexpr auto ball =
+        NormBall<Matrix<float, 1, 2>>(c, r, NormBallType::L2CB);
+    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(!ball.contains(Vector<float, 2>{}));
+    STATIC_REQUIRE(ball.contains(c));
+    STATIC_REQUIRE(ball.contains(Vector<float, 2>{c(0) + 0.1f, c(1) - 0.2f}));
+    STATIC_REQUIRE(ball.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
+  }
+
+  SECTION("Test open L1 norm ball") {
+    constexpr auto c = Vector<std::complex<double>, 4>{0.0, 1.2, -0.8, 2.0};
+    constexpr auto r = 1.0;
+    constexpr auto ball =
+        NormBall<Matrix<std::complex<double>, 1, 4>>(c, r, NormBallType::L1OB);
+    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.contains(c));
+    STATIC_REQUIRE(!ball.contains(Vectorcd<4>{}));
+    STATIC_REQUIRE(ball.contains(
+        Vectorcd<4>{c(0), c(1), c(2), c(3) + std::complex<double>{0.1, 0.2}}));
+    STATIC_REQUIRE(!ball.contains(
+        Vectorcd<4>{c(0) + std::complex<double>(1.0), c(1), c(2), c(3)}));
+  }
+
+  SECTION("Test closed L1 norm ball") {
+    constexpr auto c = Vector<std::complex<float>, 4>{0.f, 1.2f, -0.8f, 2.f};
+    constexpr auto r = 1.f;
+    constexpr auto ball =
+        NormBall<Matrix<std::complex<float>, 1, 4>>(c, r, NormBallType::L1CB);
+    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.contains(c));
+    STATIC_REQUIRE(!ball.contains(Vectorcf<4>{}));
+    STATIC_REQUIRE(ball.contains(
+        Vectorcf<4>{c(0), c(1), c(2), c(3) + std::complex<float>{0.1f, 0.2f}}));
+    STATIC_REQUIRE(ball.contains(
+        Vectorcf<4>{c(0) + std::complex<float>(1.f), c(1), c(2), c(3)}));
+  }
+
+  SECTION("Test open Linf norm ball") {
+    constexpr auto c = Vector<double, 3>{1.0, 2.0, 3.0};
+    constexpr auto r = 2.0;
+    constexpr auto ball =
+        NormBall<Matrix<double, 1, 3>>(c, r, NormBallType::LinfOB);
+    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.contains(c));
+    STATIC_REQUIRE(!ball.contains(Vectord<3>{}));
+    STATIC_REQUIRE(ball.contains(Vectord<3>{c(0) + 1.0, c(1), c(2)}));
+  }
+
+  SECTION("Test closed  Linf norm ball") {
+    constexpr auto c = Vector<float, 3>{1.f, 2.f, 3.f};
+    constexpr auto r = 2.f;
+    constexpr auto ball =
+        NormBall<Matrix<float, 1, 3>>(c, r, NormBallType::LinfCB);
+    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.contains(c));
+    STATIC_REQUIRE(!ball.contains(Vectorf<3>{}));
+    STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
+  }
 }

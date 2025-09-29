@@ -21,8 +21,9 @@ namespace linalg {
 template <typename T, size_t N>
   requires(FieldLike<T>)
 struct L2 {
+  using ScalarT = scalar_type_t<T>;
   constexpr auto operator()(const Vector<T, N>& x) const {
-    scalar_type_t<T> result = 0;
+    ScalarT result = 0;
     if constexpr (!is_complex_v<T>)
       result = dot(x, x);
     else {
@@ -46,9 +47,13 @@ struct L2 {
 template <typename T, size_t N>
   requires(FieldLike<T>)
 struct L1 {
-  constexpr T operator()(const Vector<T, N>& x) const {
-    T sum = 0;
-    for (const auto& _x : x) sum += constexpr_abs(_x);
+  using ScalarT = scalar_type_t<T>;
+  constexpr auto operator()(const Vector<T, N>& x) const {
+    ScalarT sum = 0;
+    if constexpr (!is_complex_v<T>)
+      for (const auto& _x : x) sum += constexpr_abs(_x);
+    else
+      for (const auto& _x : x) sum += constexpr_absc(_x);
     return sum;
   }
 };
@@ -65,9 +70,13 @@ struct L1 {
 template <typename T, size_t N>
   requires(FieldLike<T>)
 struct Linf {
-  constexpr T operator()(const Vector<T, N>& x) const {
-    T mx = 0;
-    for (const auto& _x : x) mx = std::max(mx, constexpr_abs(_x));
+  using ScalarT = scalar_type_t<T>;
+  constexpr auto operator()(const Vector<T, N>& x) const {
+    ScalarT mx = 0;
+    if constexpr (!is_complex_v<T>)
+      for (const auto& _x : x) mx = std::max(mx, constexpr_abs(_x));
+    else
+      for (const auto& _x : x) mx = std::max(mx, constexpr_absc(_x));
     return mx;
   }
 };

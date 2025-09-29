@@ -31,12 +31,15 @@ class NormBall : public ConvexSet<Space, NormBall<Space>> {
   /// @brief bring into scope the const data members
   using ConvexBase::Dim;
 
+  /// @briaf alias for scalar type of undering set type
+  using ScalarT = linalg::scalar_type_t<T>;
+
   /**
    * @brief CTOR for NormBall set
    *
    * @param Point (i.e., n-dim vector of type T)
    */
-  constexpr explicit NormBall(const Point& c_in, const T& r_in,
+  constexpr explicit NormBall(const Point& c_in, const ScalarT& r_in,
                               const NormBallType& type_in)
       : c(c_in), r(r_in), type(type_in) {}
 
@@ -49,21 +52,23 @@ class NormBall : public ConvexSet<Space, NormBall<Space>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
+    using T = linalg::vec_type_t<Point>;
+    constexpr auto N = linalg::vec_size_v<Point>;
     (void)tol;
     switch (type) {
       case NormBallType::L2OB:
-        return L2(x - c) < r;
+        return linalg::L2<T, N>()(x - c) < r;
       case NormBallType::L2CB:
-        return L2(x - c) <= r;
+        return linalg::L2<T, N>()(x - c) <= r;
       case NormBallType::L1OB:
-        return L1(x - c) < r;
+        return linalg::L1<T, N>()(x - c) < r;
       case NormBallType::L1CB:
-        return L1(x - c) <= r;
+        return linalg::L1<T, N>()(x - c) <= r;
       case NormBallType::LinfOB:
-        return Linf(x - c) < r;
+        return linalg::Linf<T, N>()(x - c) < r;
       case NormBallType::LinfCB:
       default:
-        return Linf(x - c) <= r;
+        return linalg::Linf<T, N>()(x - c) <= r;
     }
   }
 
@@ -72,7 +77,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space>> {
    *
    * @return T/F
    */
-  constexpr bool is_valid_impl() const { return true; }
+  constexpr bool is_valid_impl() const { return r > 0; }
 
   /**
    * @brief to conic form helper
@@ -87,7 +92,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space>> {
  private:
   /** @brief member variables in the norm ball */
   Point c;            //< n-dim vector of type T representing center of ball
-  T r;                //< scalar of type T representing radius
+  ScalarT r;          //< scalar of type T representing radius
   NormBallType type;  //< holds value of norm ball type
 };
 
