@@ -37,6 +37,19 @@ template <linalg::VectorSpace Space>
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class NormBall;
 
+/// @brief forward declaration of ellipsoid set
+template <linalg::VectorSpace Space>
+  requires(linalg::space_dim_v<Space> ==
+               linalg::vec_size_v<linalg::space_point_t<Space>> &&
+           !linalg::is_complex_v<linalg::space_point_t<Space>>)
+class Ellipsoid;
+
+/// @brief forward declaration of norm cone set
+template <linalg::VectorSpace Space>
+  requires(linalg::space_dim_v<Space> ==
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
+class NormCone;
+
 /// @brief set traits
 template <class Set>
 struct set_traits;
@@ -84,6 +97,22 @@ struct set_traits<Halfspace<Space>> {
 /// @brief derived set type traints - norm ball
 template <linalg::VectorSpace Space>
 struct set_traits<NormBall<Space>> {
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t Dim = linalg::space_dim_v<Space>;
+};
+
+/// @brief derived set type traints - ellipsoid
+template <linalg::VectorSpace Space>
+struct set_traits<Ellipsoid<Space>> {
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t Dim = linalg::space_dim_v<Space>;
+};
+
+/// @brief derived set type traints - norm cone
+template <linalg::VectorSpace Space>
+struct set_traits<NormCone<Space>> {
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
   static constexpr size_t Dim = linalg::space_dim_v<Space>;

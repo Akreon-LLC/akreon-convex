@@ -158,6 +158,15 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
 }
 
 TEST_CASE("Test ellipsoid set", "[convex_sets]") {
+  // (dakre) TODO current issue with eig decomp and static compile time checking
+  // effecting this
+#if 0
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(SetLike<Ellipsoid<Matrix<double, 1, 5>>>);
+    STATIC_REQUIRE(SetLike<Ellipsoid<Matrix<float, 1, 1>>>);
+  }
+#endif
+
   SECTION("Test open ellipsoid set") {
     constexpr auto c = Vector<double, 2>{1.5, 2.0};
     constexpr auto P = make_identity<double, 2>();
@@ -180,5 +189,77 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid.contains(c));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
+  }
+}
+
+TEST_CASE("Test norm cone", "[convex_sets]") {
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
+    STATIC_REQUIRE(SetLike<NormCone<Matrix<double, 1, 2>>>);
+    STATIC_REQUIRE(SetLike<NormCone<Matrix<std::complex<double>, 1, 5>>>);
+    STATIC_REQUIRE(SetLike<NormCone<Matrix<float, 1, 10>>>);
+    STATIC_REQUIRE(SetLike<NormCone<Matrix<std::complex<float>, 1, 1>>>);
+  }
+
+  SECTION("Test open L2 norm cone") {
+    constexpr auto c = Vector<double, 2>{1.0, 2.0};
+    constexpr auto t = constexpr_sqrt(5.0);
+    constexpr auto cone = NormCone<Matrix<double, 1, 2>>(t, NormBallType::L2OB);
+    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
+    STATIC_REQUIRE(!cone.contains(c));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+  }
+
+  SECTION("Test closed L2 norm ball") {
+    constexpr auto c = Vector<float, 2>{1.f, 2.f};
+    constexpr auto t = constexpr_sqrt(5.f);
+    constexpr auto cone = NormCone<Matrix<float, 1, 2>>(t, NormBallType::L2CB);
+    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
+    STATIC_REQUIRE(cone.contains(c));
+    STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
+  }
+
+  SECTION("Test open L1 norm cone") {
+    constexpr auto c = Vector<double, 2>{1.0, 2.0};
+    constexpr auto t = 3.0;
+    constexpr auto cone = NormCone<Matrix<double, 1, 2>>(t, NormBallType::L1OB);
+    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
+    STATIC_REQUIRE(!cone.contains(c));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+  }
+
+  SECTION("Test closed L1 norm ball") {
+    constexpr auto c = Vector<float, 2>{1.f, 2.f};
+    constexpr auto t = 3.f;
+    constexpr auto cone = NormCone<Matrix<float, 1, 2>>(t, NormBallType::L1CB);
+    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
+    STATIC_REQUIRE(cone.contains(c));
+    STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
+  }
+
+  SECTION("Test open Linf norm cone") {
+    constexpr auto c = Vector<double, 2>{1.0, 2.0};
+    constexpr auto t = 2.0;
+    constexpr auto cone =
+        NormCone<Matrix<double, 1, 2>>(t, NormBallType::LinfOB);
+    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
+    STATIC_REQUIRE(!cone.contains(c));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+  }
+
+  SECTION("Test closed Linf norm ball") {
+    constexpr auto c = Vector<float, 2>{1.f, 2.f};
+    constexpr auto t = 2.f;
+    constexpr auto cone =
+        NormCone<Matrix<float, 1, 2>>(t, NormBallType::LinfCB);
+    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
+    STATIC_REQUIRE(cone.contains(c));
+    STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
   }
 }

@@ -52,9 +52,9 @@ class NormBall : public ConvexSet<Space, NormBall<Space>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
+    (void)tol;
     using T = linalg::vec_type_t<Point>;
     constexpr auto N = linalg::vec_size_v<Point>;
-    (void)tol;
     switch (type) {
       case NormBallType::L2OB:
         return linalg::L2<T, N>()(x - c) < r;

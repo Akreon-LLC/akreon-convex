@@ -11,3 +11,4 @@
 #include "halfspace.hpp"
 #include "norm_ball.hpp"
 #include "ellipsoid.hpp"
+#include "norm_cone.hpp"
