@@ -377,7 +377,7 @@ TEST_CASE("Matrix types", "[matrix_types]") {
 
     Matrix<double, 2, 2> C{Vectord<2>{1.0, 1.0}, Vectord<2>{1.0, 1.0}};
     auto C_smat = SymmetricMatrix(C);
-    REQUIRE(C_smat.type == SymmetricMatrixType::PD);
+    REQUIRE(C_smat.type == SymmetricMatrixType::PSD);
     REQUIRE(C_smat(0, 0) == 1.0);
     REQUIRE(C_smat(0, 1) == 1.0);
     REQUIRE(C_smat(1, 0) == 1.0);

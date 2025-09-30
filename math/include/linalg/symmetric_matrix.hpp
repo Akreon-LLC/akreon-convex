@@ -59,12 +59,8 @@ struct SymmetricMatrix {
 
     type = SymmetricMatrixType::IND;
 
-    for (size_t i = 0; i < N; ++i) {
-      for (size_t j = i; j < N; ++j) {
-        const size_t idx = (N * i) + j;
-        data[idx] = A(i)(j);
-      }
-    }
+    for (size_t i = 0; i < N; ++i)
+      for (size_t j = i; j < N; ++j) data[index(i, j)] = A(i)(j);
 
     // (2) Next calculate the eigenvalues of the matrix and check signs of the
     // eigenvalues by running count
@@ -73,9 +69,9 @@ struct SymmetricMatrix {
 
     size_t psd = 0, pd = 0, nsd = 0, nd = 0;
     for (const auto& lambda : eig_decomp.get_eigenvalues()) {
-      pd += lambda.real() > ScalarT(0);
+      pd += lambda.real() > tol;
       psd += lambda.real() >= -tol;
-      nd += lambda.real() < ScalarT(0);
+      nd += lambda.real() < -tol;
       nsd += lambda.real() <= tol;
     }
 
@@ -99,10 +95,22 @@ struct SymmetricMatrix {
    * @return data element
    */
   constexpr auto operator()(size_t i, size_t j) const {
+    return data(index(i, j));
+  }
+
+  /**
+   * @brief index from (row, col)
+   *
+   * @param size_t i = row index
+   * @param size_t j = col index
+   *
+   * @return index
+   */
+  constexpr size_t index(size_t i, size_t j) const {
     assert(j < N && i < N);
     if (j < i) std::swap(i, j);
-    const size_t idx = (N * i) + j;
-    return data(idx);
+    const size_t idx = (j * (j + 1)) / 2 + i;
+    return idx;
   }
 
   /** @brief member variables */

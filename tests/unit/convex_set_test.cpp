@@ -268,17 +268,15 @@ TEST_CASE("PSD cone", "[convex_sets]") {
   SECTION("PSD Cones") {
     constexpr auto A =
         Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
-    // constexpr auto B =
-    //     Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
-    // constexpr auto I = make_identity<double, 3>();
-    // constexpr auto Z = Matrixd<2, 2>{};
+    constexpr auto B =
+        Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
+    constexpr auto I = make_identity<double, 2>();
+    constexpr auto Z = Matrixd<2, 2>{};
     constexpr auto cone = PsdCone<SymmetricMatrix<Matrix<double, 2, 2>>>();
     REQUIRE(cone.is_valid());
     REQUIRE(cone.contains(A));
-#if 0
     REQUIRE(cone.contains(B));
     REQUIRE(cone.contains(I));
     REQUIRE(cone.contains(Z));
-#endif
   }
 }

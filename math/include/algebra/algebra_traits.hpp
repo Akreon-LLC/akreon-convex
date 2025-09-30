@@ -251,17 +251,17 @@ concept FieldLike =
 
 /// @brief concept definition for vector like
 template <class Vec>
-concept VectorLike = requires {
-  FieldLike<typename vec_traits<Vec>::value_type>;
-  { vec_traits<Vec>::SIZE } -> std::convertible_to<size_t>;
-};
+concept VectorLike = (FieldLike<typename vec_traits<Vec>::value_type> ||
+                      FieldLike<typename mat_traits<Vec>::value_type>) &&
+                     requires {
+                       { vec_traits<Vec>::SIZE } -> std::convertible_to<size_t>;
+                     };
 
 /// @brief vector vector compatability
 template <class VecA, class VecB>
-concept VecVecCompatible = VectorLike<VecA> && VectorLike<VecB> && requires {
-  std::same_as<vec_type_t<VecA>, vec_type_t<VecB>> &&
-      vec_size_v<VecA> == vec_size_v<VecB>;
-};
+concept VecVecCompatible = VectorLike<VecA> && VectorLike<VecB> &&
+                           std::same_as<vec_type_t<VecA>, vec_type_t<VecB>> &&
+                           vec_size_v<VecA> == vec_size_v<VecB>;
 
 /// @brief vector space concept
 template <class Space>
@@ -286,11 +286,11 @@ concept VectorSpace =
 
 /// @brief concept definition for matrix like
 template <class Mat>
-concept MatrixLike = requires {
-  FieldLike<typename mat_traits<Mat>::value_type>;
-  { mat_traits<Mat>::ROWS } -> std::convertible_to<size_t>;
-  { mat_traits<Mat>::COLS } -> std::convertible_to<size_t>;
-};
+concept MatrixLike =
+    FieldLike<typename mat_traits<Mat>::value_type> && requires {
+      { mat_traits<Mat>::ROWS } -> std::convertible_to<size_t>;
+      { mat_traits<Mat>::COLS } -> std::convertible_to<size_t>;
+    };
 
 /// @brief concept square matrix like
 template <class Mat>

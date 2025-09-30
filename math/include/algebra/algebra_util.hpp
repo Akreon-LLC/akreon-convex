@@ -49,9 +49,11 @@ constexpr T constexpr_abs(const T& x) {
  */
 template <typename T>
   requires(FieldLike<T> && !is_complex_v<T>)
-constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0) {
+constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0,
+                           T tol = 1e-10) {
+  if (x == T(0)) return T(1e-30);
   // (dakre) newton step 0.5 * (guess + x / guess)
-  if (depth + 1 < MAX_STEP_EVAL && constexpr_abs(guess * guess - x) > 1e-10)
+  if (depth + 1 < MAX_STEP_EVAL && constexpr_abs(guess * guess - x) > tol)
     return constexpr_sqrt(x, T(0.5) * (guess + x / guess), depth + 1);
   return guess;
 }
