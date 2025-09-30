@@ -32,6 +32,14 @@ struct SymmetricMatrix {
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t DIM = (N * (N + 1)) / 2;
 
+  /**
+   * @brief CTOR
+   *
+   * Creates symmetric matrix with matrix A type T N x N elements
+   * - Checks if A is symmetric and sets data elements to vector with N * (N +
+   * 1) / 2 elements
+   * - Checks eigenvalue signs and sets type
+   */
   constexpr explicit SymmetricMatrix(const Mat& A, ScalarT tol = 1e-10) {
     // (0) First see if the incoming matrix is symmetric
     bool valid = false;
@@ -50,8 +58,12 @@ struct SymmetricMatrix {
 
     type = SymmetricMatrixType::IND;
 
-    for (size_t i = 0; i < N; ++i)
-      for (size_t j = i; j < N; ++j) data[i] = A(i)(j);
+    for (size_t i = 0; i < N; ++i) {
+      for (size_t j = i; j < N; ++j) {
+        const size_t idx = (N * i) + j;
+        data[idx] = A(i)(j);
+      }
+    }
 
     // (2) Next calculate the eigenvalues of the matrix and check signs of the
     // eigenvalues by running count
@@ -77,19 +89,25 @@ struct SymmetricMatrix {
       type = SymmetricMatrixType::NSD;
   }
 
-  constexpr size_t idx(size_t i, size_t j) const {
-    if (j > N || i > N) return size_t(-1);
+  /**
+   * @brief overload for accessor (provide row col pair and get value)
+   *
+   * @param size_t i = row index
+   * @param size_t j = col index
+   *
+   * @return data element
+   */
+  constexpr auto operator()(size_t i, size_t j) const {
+    assert(j < N && i < N);
     if (j < i) std::swap(i, j);
-    return (N * i) + j;
-  }
-
-  constexpr auto operator()(size_t idx) const {
-    if (idx >= DIM) return NULL;
+    const size_t idx = (N * i) + j;
     return data(idx);
   }
 
-  SymmetricMatrixType type;
-  Vector<T, DIM> data;
+  /** @brief member variables */
+  SymmetricMatrixType type;  //< SymmetricMatrixType value
+  Vector<T, DIM>
+      data;  //< Data stored from input square matrix as flattened n-dim vector
 };
 
 }  // namespace linalg
