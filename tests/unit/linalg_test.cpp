@@ -346,42 +346,43 @@ TEST_CASE("Matrix types", "[matrix_types]") {
   SECTION("Positive Definite Matrices") {
     constexpr auto A =
         Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
-    auto A_smat = SymmetricMatrix(A);
-    REQUIRE(A_smat.type == SymmetricMatrixType::PD);
-    REQUIRE(A_smat(0, 0) == 2.0);
-    REQUIRE(A_smat(0, 1) == 1.0);
-    REQUIRE(A_smat(1, 0) == 1.0);
-    REQUIRE(A_smat(1, 1) == 2.0);
+    constexpr auto A_smat = SymmetricMatrix(A);
+    STATIC_REQUIRE(A_smat.type == SymmetricMatrixType::PD);
+    STATIC_REQUIRE(A_smat(0, 0) == 2.0);
+    STATIC_REQUIRE(A_smat(0, 1) == 1.0);
+    STATIC_REQUIRE(A_smat(1, 0) == 1.0);
+    STATIC_REQUIRE(A_smat(1, 1) == 2.0);
 
     constexpr auto B =
         Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
-    auto B_smat = SymmetricMatrix(B);
-    REQUIRE(B_smat.type == SymmetricMatrixType::PD);
-    REQUIRE(B_smat(0, 0) == 4.0);
-    REQUIRE(B_smat(0, 1) == -1.0);
-    REQUIRE(B_smat(1, 0) == -1.0);
-    REQUIRE(B_smat(1, 1) == 3.0);
+    constexpr auto B_smat = SymmetricMatrix(B);
+    STATIC_REQUIRE(B_smat.type == SymmetricMatrixType::PD);
+    STATIC_REQUIRE(B_smat(0, 0) == 4.0);
+    STATIC_REQUIRE(B_smat(0, 1) == -1.0);
+    STATIC_REQUIRE(B_smat(1, 0) == -1.0);
+    STATIC_REQUIRE(B_smat(1, 1) == 3.0);
 
     constexpr auto I = make_identity<double, 3>();
-    auto I_smat = SymmetricMatrix(I);
-    REQUIRE(I_smat.type == SymmetricMatrixType::PD);
-    REQUIRE(I_smat(0, 0) == 1.0);
-    REQUIRE(I_smat(0, 1) == 0.0);
-    REQUIRE(I_smat(0, 2) == 0.0);
-    REQUIRE(I_smat(1, 0) == 0.0);
-    REQUIRE(I_smat(1, 1) == 1.0);
-    REQUIRE(I_smat(1, 2) == 0.0);
-    REQUIRE(I_smat(2, 0) == 0.0);
-    REQUIRE(I_smat(2, 0) == 0.0);
-    REQUIRE(I_smat(2, 2) == 1.0);
+    constexpr auto I_smat = SymmetricMatrix(I);
+    STATIC_REQUIRE(I_smat.type == SymmetricMatrixType::PD);
+    STATIC_REQUIRE(I_smat(0, 0) == 1.0);
+    STATIC_REQUIRE(I_smat(0, 1) == 0.0);
+    STATIC_REQUIRE(I_smat(0, 2) == 0.0);
+    STATIC_REQUIRE(I_smat(1, 0) == 0.0);
+    STATIC_REQUIRE(I_smat(1, 1) == 1.0);
+    STATIC_REQUIRE(I_smat(1, 2) == 0.0);
+    STATIC_REQUIRE(I_smat(2, 0) == 0.0);
+    STATIC_REQUIRE(I_smat(2, 0) == 0.0);
+    STATIC_REQUIRE(I_smat(2, 2) == 1.0);
 
-    Matrix<double, 2, 2> C{Vectord<2>{1.0, 1.0}, Vectord<2>{1.0, 1.0}};
-    auto C_smat = SymmetricMatrix(C);
-    REQUIRE(C_smat.type == SymmetricMatrixType::PSD);
-    REQUIRE(C_smat(0, 0) == 1.0);
-    REQUIRE(C_smat(0, 1) == 1.0);
-    REQUIRE(C_smat(1, 0) == 1.0);
-    REQUIRE(C_smat(1, 1) == 1.0);
+    constexpr Matrix<double, 2, 2> C{Vectord<2>{1.0, 1.0},
+                                     Vectord<2>{1.0, 1.0}};
+    constexpr auto C_smat = SymmetricMatrix(C);
+    STATIC_REQUIRE(C_smat.type == SymmetricMatrixType::PSD);
+    STATIC_REQUIRE(C_smat(0, 0) == 1.0);
+    STATIC_REQUIRE(C_smat(0, 1) == 1.0);
+    STATIC_REQUIRE(C_smat(1, 0) == 1.0);
+    STATIC_REQUIRE(C_smat(1, 1) == 1.0);
   }
 
   SECTION("Positive semidefinite Matrices") {
@@ -410,12 +411,12 @@ TEST_CASE("Matrix types", "[matrix_types]") {
   }
 
   SECTION("Negative definite Matrices") {
-    auto I = -1.0 * make_identity<double, 3>();
-    auto I_smat = SymmetricMatrix(I);
-    REQUIRE(I_smat.type == SymmetricMatrixType::ND);
-    REQUIRE(I_smat(0, 0) == -1.0);
-    REQUIRE(I_smat(1, 1) == -1.0);
-    REQUIRE(I_smat(2, 2) == -1.0);
+    constexpr auto I = -1.0 * make_identity<double, 3>();
+    constexpr auto I_smat = SymmetricMatrix(I);
+    STATIC_REQUIRE(I_smat.type == SymmetricMatrixType::ND);
+    STATIC_REQUIRE(I_smat(0, 0) == -1.0);
+    STATIC_REQUIRE(I_smat(1, 1) == -1.0);
+    STATIC_REQUIRE(I_smat(2, 2) == -1.0);
   }
 
   SECTION("Indefinite matrix") {
@@ -431,8 +432,9 @@ TEST_CASE("Matrix types", "[matrix_types]") {
   }
 
   SECTION("Invalid matrix") {
-    auto A = Matrix<double, 2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{3.0, 4.0}};
-    auto A_smat = SymmetricMatrix(A);
-    REQUIRE(A_smat.type == SymmetricMatrixType::INV);
+    constexpr auto A =
+        Matrix<double, 2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{3.0, 4.0}};
+    constexpr auto A_smat = SymmetricMatrix(A);
+    STATIC_REQUIRE(A_smat.type == SymmetricMatrixType::INV);
   }
 }

@@ -74,12 +74,10 @@ TEST_CASE("Test DLTI System", "[dot(x) = Ax + Bu]") {
     constexpr auto C = make_identity<double, 3>();
     constexpr auto ss = LTIDiscreteSystem(A, Matrix<double, 3, 0>{}, C);
 
-    // (dakre) TODO similar condition as before with complex value evaluated at
-    // compile time
-    REQUIRE(ss.is_stable() == Stability::Marginal);
+    STATIC_REQUIRE(ss.is_stable() == Stability::Marginal);
     // (dakre) \lambda I - A = [0 0] rank 0 => not reachable
-    REQUIRE(!ss.is_reachable());
-    REQUIRE(ss.is_observable());
+    STATIC_REQUIRE(!ss.is_reachable());
+    STATIC_REQUIRE(ss.is_observable());
 
     constexpr auto dot_x = ss.step(Vectord<3>{1.0, 2.0, 3.0});
     STATIC_REQUIRE(dot_x(0) == 1.0);
@@ -94,12 +92,12 @@ TEST_CASE("Test DLTI System", "[dot(x) = Ax + Bu]") {
   }
 
   SECTION("Marginally stable / reachable / unobservable") {
-    const auto A = make_identity<double, 3>();
-    const auto B = make_identity<double, 3>();
-    auto ss = LTIDiscreteSystem(A, B, make_zeros<double, 1, 3>());
-    REQUIRE(ss.is_stable() == Stability::Marginal);
-    REQUIRE(ss.is_reachable());
-    REQUIRE(!ss.is_observable());
+    constexpr auto A = make_identity<double, 3>();
+    constexpr auto B = make_identity<double, 3>();
+    constexpr auto ss = LTIDiscreteSystem(A, B, make_zeros<double, 1, 3>());
+    STATIC_REQUIRE(ss.is_stable() == Stability::Marginal);
+    STATIC_REQUIRE(ss.is_reachable());
+    STATIC_REQUIRE(!ss.is_observable());
   }
 
   SECTION("Marginally stable / unreachable / observable") {
@@ -123,13 +121,13 @@ TEST_CASE("Test DLTI System", "[dot(x) = Ax + Bu]") {
   }
 
   SECTION("Asymptotically stable / reachable / observable") {
-    auto A = 0.1 * make_identity<double, 4>();
-    auto B = make_identity<double, 4>();
-    auto C = make_identity<double, 4>();
-    auto ss = LTIDiscreteSystem(A, B, C);
-    REQUIRE(ss.is_stable() == Stability::Asymptotic);
-    REQUIRE(ss.is_reachable());
-    REQUIRE(ss.is_observable());
+    constexpr auto A = 0.1 * make_identity<double, 4>();
+    constexpr auto B = make_identity<double, 4>();
+    constexpr auto C = make_identity<double, 4>();
+    constexpr auto ss = LTIDiscreteSystem(A, B, C);
+    STATIC_REQUIRE(ss.is_stable() == Stability::Asymptotic);
+    STATIC_REQUIRE(ss.is_reachable());
+    STATIC_REQUIRE(ss.is_observable());
   }
 
   SECTION("Asymptotically stable / reachable / unobservable") {

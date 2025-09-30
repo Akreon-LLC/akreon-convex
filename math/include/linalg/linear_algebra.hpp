@@ -509,7 +509,7 @@ class EigenDecomposition {
         v = map_to_A(U, conjugate(x));
         for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
       } else {
-        x[i] = Complex(1);
+        seed_real_block(i, x);
 
         back_sub_1x1_block(H, i, x);
 
@@ -536,7 +536,12 @@ class EigenDecomposition {
     for (int r = idx - 1; r >= 0; --r) {
       Complex sum(0);
       for (int c = r + 1; c <= idx; ++c) sum += Complex(H(r)(c)) * x[c];
-      x[r] = -sum / (Complex(H(r)(r)) - lambda(idx));
+
+      const auto denom = Complex(H(r)(r)) - lambda(idx);
+      if (denom == Complex(0))
+        x[r] = Complex(0);
+      else
+        x[r] = -sum / denom;
     }
   }
 
@@ -576,6 +581,18 @@ class EigenDecomposition {
 
     x[idx - 1] = z0;
     x[idx] = z1;
+  }
+
+  /**
+   * @brief seed real eigenvector
+   *
+   * @param mutable eigenvector x
+   *
+   * @return (void)
+   */
+  constexpr void seed_real_block(const int& idx, Vector<Complex, N>& x) {
+    for (size_t i = 0; i < N; ++i) x[i] = Complex(0);
+    x[idx] = Complex(1);
   }
 
   /**
