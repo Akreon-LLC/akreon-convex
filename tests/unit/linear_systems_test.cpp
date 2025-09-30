@@ -281,7 +281,6 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto x1 = Vectorcd<2>{a, b};
     constexpr auto x2 = Vectorcd<2>{std::conj(b), c};
     constexpr auto A = Matrixcd<2, 2>{x1, x2};
-    STATIC_REQUIRE(is_hermitian(A));
 
     constexpr auto res = EigenDecomposition(A);
     constexpr auto lambdas = res.get_eigenvalues();
@@ -388,7 +387,6 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto expected = make_diag(Vectord<2>{d, e});
 
     constexpr auto result = SVD(A);
-    STATIC_REQUIRE(is_hermitian(A));
     constexpr auto U = result.get_left_singular_vectors();
     constexpr auto S = result.get_singular_values();
     constexpr auto VT = result.get_right_singular_vectors();

@@ -26,9 +26,8 @@ namespace linalg {
  *
  * @return normalized vector
  */
-template <typename T, size_t N, typename Norm>
-  requires(FieldLike<T>)
-constexpr auto normalize(const Vector<T, N>& X, const Norm& norm) {
+template <VectorLike Vec, typename Norm>
+constexpr auto normalize(const Vec& X, const Norm& norm) {
   const auto norm_val = norm(X);
   assert(norm_val > 0);
   return (1 / norm_val) * X;
@@ -42,10 +41,10 @@ constexpr auto normalize(const Vector<T, N>& X, const Norm& norm) {
  *
  * @return distance between two vectors as a scalar
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
-constexpr auto euclidean_distance(const Vector<T, N>& X,
-                                  const Vector<T, N>& Y) {
+template <VectorLike Vec>
+constexpr auto euclidean_distance(const Vec& X, const Vec& Y) {
+  using T = vec_type_t<Vec>;
+  constexpr size_t N = vec_size_v<Vec>;
   return L2<T, N>()(X - Y);
 }
 
@@ -57,10 +56,10 @@ constexpr auto euclidean_distance(const Vector<T, N>& X,
  *
  * @return distance between two vectors as a scalar
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
-constexpr auto manhattan_distance(const Vector<T, N>& X,
-                                  const Vector<T, N>& Y) {
+template <VectorLike Vec>
+constexpr auto manhattan_distance(const Vec& X, const Vec& Y) {
+  using T = vec_type_t<Vec>;
+  constexpr size_t N = vec_size_v<Vec>;
   return L1<T, N>()(X - Y);
 }
 
@@ -75,8 +74,7 @@ constexpr auto manhattan_distance(const Vector<T, N>& X,
  */
 template <typename T, size_t N>
   requires(FieldLike<T>)
-constexpr bool all_equal(const linalg::Vector<T, N>& X,
-                         const linalg::Vector<T, N>& Y,
+constexpr bool all_equal(const Vector<T, N>& X, const Vector<T, N>& Y,
                          scalar_type_t<T> tol = 1e-10) {
   return euclidean_distance(X, Y) <= tol;
 }
@@ -92,8 +90,8 @@ constexpr bool all_equal(const linalg::Vector<T, N>& X,
  */
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T>)
-constexpr bool all_equal(const linalg::Matrix<T, Rows, Cols>& A,
-                         const linalg::Matrix<T, Rows, Cols>& B,
+constexpr bool all_equal(const Matrix<T, Rows, Cols>& A,
+                         const Matrix<T, Rows, Cols>& B,
                          scalar_type_t<T> tol = 1e-10) {
   bool rv = true;
   for (size_t i = 0; i < Rows; ++i) rv &= all_equal(A(i), B(i), tol);
@@ -120,31 +118,6 @@ constexpr bool rows_equal_cols(const Matrix<T, Rows, Cols>& A,
 }
 
 /**
- * @brief checks if a given matrix is symmetric
- *
- * @param matrix A of type T with N x N elements
- *
- * @return T/F
- */
-template <typename T, size_t N>
-  requires(FieldLike<T> && !is_complex_v<T>)
-constexpr bool is_symmetric(const Matrix<T, N, N>& A) {
-  return all_equal(A, transpose(A));
-}
-
-/**
- * @brief checks if a given matrix is hermitian
- *
- * @param matrix A of type T with N x N elements
- * @return T/F
- */
-template <typename T, size_t N>
-  requires(FieldLike<T> && is_complex_v<T>)
-constexpr bool is_hermitian(const Matrix<T, N, N>& A) {
-  return all_equal(A, conjugate_transpose(A));
-}
-
-/**
  * @brief back solve linear systems of equations
  *
  * R x = rhs
@@ -154,10 +127,14 @@ constexpr bool is_hermitian(const Matrix<T, N, N>& A) {
  *
  * @return solved x vector
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto back_solve(const Matrix<T, Rows, Cols>& R,
-                          const Vector<T, Rows>& rhs) {
+template <MatrixLike Mat, VectorLike Vec>
+  requires(std::same_as<mat_type_t<Mat>, vec_type_t<Vec>> &&
+           mat_rows_v<Mat> == vec_size_v<Vec>)
+constexpr auto back_solve(const Mat& R, const Vec& rhs) {
+  using T = mat_type_t<Mat>;
+  constexpr size_t Rows = mat_rows_v<Mat>;
+  constexpr size_t Cols = mat_cols_v<Mat>;
+
   Vector<T, Cols> x;
   constexpr auto mn = std::min(Rows, Cols);
   for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
@@ -181,16 +158,25 @@ constexpr auto back_solve(const Matrix<T, Rows, Cols>& R,
  * For short and fat matrices just transpose A -> QR -> transpose result back
  * into A = L Q result
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(Rows >= Cols && Rows > 0 && FieldLike<T>)
+template <MatrixLike Mat>
 class QR {
  public:
+  // @brief alias for underlying type
+  using T = mat_type_t<Mat>;
+  using ScalarT = scalar_type_t<T>;
+
+  // @brief get rows and cols from matrix type
+  static constexpr size_t Rows = mat_rows_v<Mat>;
+  static constexpr size_t Cols = mat_cols_v<Mat>;
+
+  static_assert(Rows >= Cols && Rows > 0);
+
   /**
    * @brief CTOR
    *
    * @param matrix A of type T with Rows x Cols elements
    */
-  constexpr QR(const Matrix<T, Rows, Cols>& A) { solve_householder(A); }
+  constexpr QR(const Mat& A) { solve_householder(A); }
 
   /**
    * @brief get Q from compact householder Q
@@ -214,7 +200,7 @@ class QR {
    *
    * @return rank
    */
-  constexpr auto get_rank(scalar_type_t<T> tol = 1e-6) const {
+  constexpr auto get_rank(ScalarT tol = 1e-6) const {
     const auto& R = get_R();
     const size_t mn = std::min(Rows, Cols);
     size_t rank = 0;
@@ -269,7 +255,7 @@ class QR {
    *
    * @return (void)
    */
-  constexpr void solve_householder(Matrix<T, Rows, Cols> A) {
+  constexpr void solve_householder(Mat A) {
     H = A;
     constexpr_for<0, Cols>([&]<size_t j>(std::integral_constant<size_t, j>) {
       const auto& Q_jm = get_n_rows<j, Rows>(H);
@@ -324,9 +310,9 @@ class QR {
   }
 
   /** @brief QR decomposition for matrix input A */
-  Matrix<T, Rows, Cols> H;  ///< orthonormal basis Q (slighty different than GS
-                            ///< as its fully compact and can use straight up)
-  Vector<T, Rows> beta;     ///< beta scalars
+  Mat H;                 ///< orthonormal basis Q (slighty different than GS
+                         ///< as its fully compact and can use straight up)
+  Vector<T, Rows> beta;  ///< beta scalars
 };
 
 /**
@@ -335,10 +321,12 @@ class QR {
  * Solves the following equation A X = \Lambda X via QR and successive
  * similarity transforms to diagonalize A into eigenvalues.
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
+template <SquareMatrixLike Mat>
 class EigenDecomposition {
  public:
+  // @brief alias for underlying type
+  using T = mat_type_t<Mat>;
+
   // @brief aliasing complex and real types for eigen decomposition
   using Real = scalar_type_t<T>;
   using Complex = std::conditional_t<is_complex_v<T>, T, std::complex<Real>>;
@@ -346,6 +334,7 @@ class EigenDecomposition {
   // (dakre) TODO handle this a little better in the future
   static constexpr size_t n_steps = 64;
   static constexpr scalar_type_t<T> tol = 1e-10;
+  static constexpr size_t N = mat_rows_v<Mat>;
 
   /**
    * @brief CTOR
@@ -353,9 +342,7 @@ class EigenDecomposition {
    * @param matrix A of type T with Rows x Cols elements
    * @param tolerance dictating algorithm convergence
    */
-  constexpr EigenDecomposition(const Matrix<T, N, N>& A) : converged(false) {
-    solve_qr(A);
-  }
+  constexpr EigenDecomposition(const Mat& A) : converged(false) { solve_qr(A); }
 
   /**
    * @brief basic get eigenvalues function
@@ -409,7 +396,7 @@ class EigenDecomposition {
    *
    * @return (void)
    */
-  constexpr void solve_qr(const Matrix<T, N, N>& A) {
+  constexpr void solve_qr(const Mat& A) {
     // 1. calculate hessenberg matrix
     const auto H_mat = HessenbergMatrix(A);
     auto H = H_mat();
@@ -496,6 +483,15 @@ class EigenDecomposition {
     // b. apply coordinate map to x from unitary basis U to get it aligned in A
     for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
       Vector<Complex, N> x;
+      const int AM = std::count(lambda.begin(), lambda.end(), lambda(i));
+      int GM = 0, defect = 0;
+      if (AM > 1) {
+        const auto I = make_identity<Complex, N>();
+        GM = N - QR(as_complex_matrix(A) - lambda(i) * I).get_rank();
+        defect = AM - GM;
+      }
+
+      // (dakre) TODO solve jordan block if applicable
       if (!is_real(lambda[i]) && i > 0) {
         seed_complex_block(H, i, x);
 
@@ -528,7 +524,7 @@ class EigenDecomposition {
    *
    * @return (void)
    */
-  constexpr void back_sub_1x1_block(const Matrix<T, N, N>& H, const int& idx,
+  constexpr void back_sub_1x1_block(const Mat& H, const int& idx,
                                     Vector<Complex, N>& x) {
     // (dakre) solve (H - \lambda I) x = 0 by way of back sub from idx to top
     // (H_rr - \Lambda) x_r + \sum_0^idx H_rc * x_c = 0 ... isolate x_r and
@@ -554,7 +550,7 @@ class EigenDecomposition {
    *
    * @return (void)
    */
-  constexpr void seed_complex_block(const Matrix<T, N, N>& H, const int& idx,
+  constexpr void seed_complex_block(const Mat& H, const int& idx,
                                     Vector<Complex, N>& x) {
     const auto& a = H(idx - 1)(idx - 1);
     const auto& b = H(idx - 1)(idx);
@@ -603,8 +599,7 @@ class EigenDecomposition {
    *
    * @return eigenvector in basis A
    */
-  constexpr auto map_to_A(const Matrix<T, N, N>& U,
-                          const Vector<Complex, N>& x) {
+  constexpr auto map_to_A(const Mat& U, const Vector<Complex, N>& x) {
     Vector<Complex, N> v;
 
     for (size_t j = 0; j < N; ++j) {
@@ -629,13 +624,17 @@ class EigenDecomposition {
  * vectors, \Sigma are the singular values, and V^T are the right singular
  * vectors
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
+template <MatrixLike Mat>
 class SVD {
  public:
   // @brief aliasing complex and real types for eigen decomposition
+  using T = mat_type_t<Mat>;
   using Real = scalar_type_t<T>;
   using Complex = std::conditional_t<is_complex_v<T>, T, std::complex<Real>>;
+
+  // @brief helpers for Rows & Cols
+  static constexpr size_t Rows = mat_rows_v<Mat>;
+  static constexpr size_t Cols = mat_cols_v<Mat>;
 
   /**
    * @brief CTOR
@@ -643,7 +642,7 @@ class SVD {
    * @param matrix A of type T with Rows x Cols elements
    * @param tolerance dictating algorithm convergence
    */
-  constexpr SVD(const Matrix<T, Rows, Cols>& A) : converged(false) { svd(A); }
+  constexpr SVD(const Mat& A) : converged(false) { svd(A); }
   /**
    * @brief basic get for left singular vectors
    *
@@ -680,7 +679,7 @@ class SVD {
    *
    * @return (void)
    */
-  constexpr void svd(const Matrix<T, Rows, Cols>& A) {
+  constexpr void svd(const Mat& A) {
     // 1. compute A^T A then solve eigen decomposition
     Matrix<T, Cols, Cols> M;
     if constexpr (!is_complex_v<T>)

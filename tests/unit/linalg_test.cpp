@@ -250,15 +250,6 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(I * I == I);
 
     STATIC_REQUIRE(Fro<double, 3>()(I) == constexpr_sqrt<double>(3));
-
-    STATIC_REQUIRE(is_symmetric(I));
-
-    constexpr auto a = std::complex<double>(2.0, 0.0);
-    constexpr auto b = std::complex<double>(3.0, 1.0);
-    constexpr auto x1 = Vectorcd<2>{a, b};
-    constexpr auto x2 = Vectorcd<2>{std::conj(b), a};
-    constexpr auto M = Matrixcd<2, 2>{x1, x2};
-    STATIC_REQUIRE(is_hermitian(M));
   }
 }
 
