@@ -6,6 +6,7 @@
 #pragma once
 
 #include "linear_algebra.hpp"
+#include "matrix_traits.hpp"
 
 namespace linalg {
 
