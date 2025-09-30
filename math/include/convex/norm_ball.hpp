@@ -79,16 +79,6 @@ class NormBall : public ConvexSet<Space, NormBall<Space>> {
    */
   constexpr bool is_valid_impl() const { return r > 0; }
 
-  /**
-   * @brief to conic form helper
-   *
-   * @return conic form of halfspace
-   */
-  constexpr auto to_conic_form_impl() const {
-    // (dakre) TODO implement
-    return true;
-  }
-
  private:
   /** @brief member variables in the norm ball */
   Point c;            //< n-dim vector of type T representing center of ball

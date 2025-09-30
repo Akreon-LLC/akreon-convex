@@ -51,13 +51,6 @@ class ConvexSet {
     return self().contains_impl(x, tol);
   }
 
-  /**
-   * @brief convert convex set to conic form for solver
-   *
-   * @return conic form
-   */
-  constexpr auto to_conic_form() const { return self().to_conic_form_impl(); }
-
  private:
   /**
    * @brief self function which returns a const ref to the derived object

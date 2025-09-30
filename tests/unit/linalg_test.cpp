@@ -343,22 +343,61 @@ TEST_CASE("Hessenberg matrices", "[hessenberg]") {
 }
 
 TEST_CASE("Matrix types", "[matrix_types]") {
-  constexpr auto A = Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
-  constexpr auto B =
-      Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
-  constexpr auto I = make_identity<double, 3>();
-  constexpr auto Z = Matrixd<2, 2>{};
   SECTION("Positive Definite Matrices") {
-    REQUIRE(is_positive_definite(A));
-    REQUIRE(is_positive_definite(B));
-    REQUIRE(is_positive_definite(I));
-    REQUIRE(!is_positive_definite(Z));
+    constexpr auto A =
+        Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
+    auto A_smat = SymmetricMatrix(A);
+    REQUIRE(A_smat.type == SymmetricMatrixType::PD);
+
+    constexpr auto B =
+        Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
+    auto B_smat = SymmetricMatrix(B);
+    REQUIRE(B_smat.type == SymmetricMatrixType::PD);
+
+    constexpr auto I = make_identity<double, 3>();
+    auto I_smat = SymmetricMatrix(I);
+    REQUIRE(I_smat.type == SymmetricMatrixType::PD);
+
+    Matrix<double, 2, 2> C{Vectord<2>{1.0, 1.0}, Vectord<2>{1.0, 1.0}};
+    auto C_smat = SymmetricMatrix(C);
+    REQUIRE(C_smat.type == SymmetricMatrixType::PD);
   }
 
-  SECTION("Positive Semidefinite Matrices") {
-    REQUIRE(is_positive_semidefinite(A));
-    REQUIRE(is_positive_semidefinite(B));
-    REQUIRE(is_positive_semidefinite(I));
-    REQUIRE(is_positive_semidefinite(Z));
+  SECTION("Positive semidefinite Matrices") {
+    auto Z = Matrixd<2, 2>{};
+    auto Z_smat = SymmetricMatrix(Z);
+    REQUIRE(Z_smat.type != SymmetricMatrixType::PD);
+    REQUIRE(Z_smat.type == SymmetricMatrixType::PSD);
+
+    Z[0][0] = 1.0;
+    Z_smat = SymmetricMatrix(Z);
+    REQUIRE(Z_smat.type != SymmetricMatrixType::PD);
+    REQUIRE(Z_smat.type == SymmetricMatrixType::PSD);
+  }
+
+  SECTION("Negative semidefinite Matrices") {
+    auto Z = Matrixd<2, 2>{};
+    Z[0][0] = -1.0;
+    auto Z_smat = SymmetricMatrix(Z);
+    REQUIRE(Z_smat.type == SymmetricMatrixType::NSD);
+  }
+
+  SECTION("Negative definite Matrices") {
+    auto I = -1.0 * make_identity<double, 3>();
+    auto I_smat = SymmetricMatrix(I);
+    REQUIRE(I_smat.type == SymmetricMatrixType::ND);
+  }
+
+  SECTION("Indefinite matrix") {
+    auto I = -1.0 * make_identity<double, 3>();
+    I[0][1] = 2.0, I[1][0] = 2.0;
+    auto I_smat = SymmetricMatrix(I);
+    REQUIRE(I_smat.type == SymmetricMatrixType::IND);
+  }
+
+  SECTION("Invalid matrix") {
+    auto A = Matrix<double, 2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{3.0, 4.0}};
+    auto A_smat = SymmetricMatrix(A);
+    REQUIRE(A_smat.type == SymmetricMatrixType::INV);
   }
 }

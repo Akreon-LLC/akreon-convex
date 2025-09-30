@@ -81,17 +81,9 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
    * @return T/F
    */
   constexpr bool is_valid_impl() const {
-    return linalg::is_positive_definite(P);
-  }
-
-  /**
-   * @brief to conic form helper
-   *
-   * @return conic form
-   */
-  constexpr auto to_conic_form_impl() const {
-    // (dakre) TODO implement
-    return true;
+    linalg::SymmetricMatrix S(P);
+    return S.type == linalg::SymmetricMatrixType::PD ||
+           S.type == linalg::SymmetricMatrixType::PSD;
   }
 
  private:

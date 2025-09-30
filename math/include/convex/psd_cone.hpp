@@ -49,7 +49,10 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
    * @return T/F
    */
   constexpr auto contains_impl(const linalg::Matrix<T, N, N>& X) const {
-    return linalg::is_positive_semidefinite(X);
+    // (dakre) TODO refactor -- this set is kind of awkward
+    linalg::SymmetricMatrix S(X);
+    return S.type == linalg::SymmetricMatrixType::PD ||
+           S.type == linalg::SymmetricMatrixType::PSD;
   }
 
   /**

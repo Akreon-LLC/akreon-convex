@@ -137,7 +137,6 @@ concept SetLike =
     requires(const Set& set, const typename set_traits<Set>::Point& x) {
       { set.is_valid() } -> std::convertible_to<bool>;
       { set.contains(x) } -> std::convertible_to<bool>;
-      { set.to_conic_form() };
     };
 
 }  // namespace convex

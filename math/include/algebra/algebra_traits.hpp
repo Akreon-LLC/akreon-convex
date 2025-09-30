@@ -97,6 +97,7 @@ template <typename T, size_t M, size_t N>
 struct space_traits<Vector<Vector<T, N>, M>> {
   using value_type = T;
   using Point = Vector<T, N>;
+
   // (dakre) the dimension is the total number of independent scalar values
   // needed to define any vector in the space
   static constexpr size_t DIM = M * N;

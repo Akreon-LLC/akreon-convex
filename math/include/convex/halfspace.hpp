@@ -87,16 +87,6 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
     return true;
   }
 
-  /**
-   * @brief to conic form helper
-   *
-   * @return conic form of halfspace
-   */
-  constexpr auto to_conic_form_impl() const {
-    // (dakre) TODO implement
-    return true;
-  }
-
  private:
   /** @brief member variables in the halfspace */
   Point a;             //< n-dim vector of type T
