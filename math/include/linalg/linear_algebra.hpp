@@ -482,6 +482,32 @@ class EigenDecomposition {
       }
     }
 
+    // 3.a prepare back solve for eigenvectors via Jordan blocks
+    std::array<bool, N> used{false};
+
+    auto is_same = [](const Complex& a, const Complex& b) {
+      return constexpr_absc(a - b) < TOL;
+    };
+
+    auto indices_equal = [&](const Vector<Complex, N>& D,
+                             Complex val) -> std::array<int, N> {
+      std::array<int, N> idx;
+      idx.fill(-1);
+      for (int j = 0; j < int(N); ++j)
+        if (is_same(D(j), val)) idx[j] = j;
+      return idx;
+    };
+
+    auto take_last_unused = [&](std::array<int, N>& slots) -> int {
+      for (int j = 0; j < int(N); ++j) {
+        if (!used[j] && slots[j] != -1) {
+          used[j] = true;
+          return j;
+        }
+      }
+      return -1;
+    };
+
     // 4. back substitute now for solving eigenvectors
     // a. check for normal form (AM == 1)
     //  - solve for root (H - \lambda I) x = 0
@@ -489,6 +515,8 @@ class EigenDecomposition {
     //  aligned in A
     // b. solve jordan block (AM > 1)
     for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
+      if (used[i]) continue;
+
       // Jordan block
       // - AM = algebraic multiplicity (# of repeated \lambda)
       // - GM = geometric multiplicity (# of linearly independent
@@ -503,7 +531,7 @@ class EigenDecomposition {
       int GM = 0, defect = 0;
       if (AM > 1) {
         const auto I = make_identity<Complex, N>();
-        GM = N - QR(as_complex_matrix(A) - lambda(i) * I).get_rank();
+        GM = N - QR(as_complex_matrix(A) - eigs(i) * I).get_rank();
         defect = std::max(0, AM - GM);
       }
 
@@ -527,6 +555,8 @@ class EigenDecomposition {
 
           // (2) set eig to lambda
           lambda[i] = eigs(i);
+
+          used[i] = true;
         } else {
           // (0) seed & back solve homogenous case (H - \lambda I) x = 0
           seed_real_block(i, x);
@@ -538,6 +568,8 @@ class EigenDecomposition {
 
           // (2) set eig to lambda
           lambda[i] = eigs(i);
+
+          used[i] = true;
         }
       } else {
         // (b) solve for jordan block
@@ -556,27 +588,33 @@ class EigenDecomposition {
             back_sub_shifted_rhs(H, lambda(i), chain(k - 1), chain[k]);
 
           // (3) map back to A... [i, i-1, ...]
+          auto slots = indices_equal(eigs, eigs(i));
+
           for (int k = 0; k < chain_len; ++k) {
+            const auto slot_idx = take_last_unused(slots);
+            if (slot_idx < 0) break;
+
             auto v = map_to_A(U, chain[k]);
 
-            int col = i - k;
-            col = std::max(0, col);
-            for (size_t j = 0; j < N; ++j) V[j][col] = v(j);
+            for (size_t j = 0; j < N; ++j) V[j][slot_idx] = v(j);
 
             // (4) set lambda from eig
-            lambda[col] = eigs(col);
+            lambda[slot_idx] = eigs(i);
           }
 
           // (3.b) map complex conjugate pair onto A... [i - chain_len, ...]
+          auto slots_conj = indices_equal(eigs, std::conj(eigs(i)));
+
           for (int k = 0; k < chain_len; ++k) {
+            const auto slot_idx = take_last_unused(slots_conj);
+            if (slot_idx < 0) break;
+
             auto vbar = map_to_A(U, conjugate(chain(k)));
 
-            int col = i - chain_len - k;
-            col = std::max(0, col);
-            for (size_t j = 0; j < N; ++j) V[j][col] = vbar(j);
+            for (size_t j = 0; j < N; ++j) V[j][slot_idx] = vbar(j);
 
             // (4) set lambda from eig
-            lambda[col] = eigs(col);
+            lambda[slot_idx] = std::conj(eigs(i));
           }
         } else {
           // (0) setup jordan chain with padded dim to defect to ensure valid
@@ -593,15 +631,18 @@ class EigenDecomposition {
             back_sub_shifted_rhs(H, eigs(i), chain(k - 1), chain[k]);
 
           // (3) map back to A
+          auto slots = indices_equal(eigs, eigs(i));
+
           for (int k = 0; k < chain_len; ++k) {
+            const auto slot_idx = take_last_unused(slots);
+            if (slot_idx < 0) break;
+
             auto v = map_to_A(U, chain[k]);
 
-            int col = i - k;
-            col = std::max(0, col);
-            for (size_t j = 0; j < N; ++j) V[j][col] = v(j);
+            for (size_t j = 0; j < N; ++j) V[j][slot_idx] = v(j);
 
             // (4) set lambda from eig
-            lambda[col] = eigs(col);
+            lambda[slot_idx] = eigs(i);
           }
         }
       }
