@@ -237,7 +237,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(L(0)(1) == c * c_conj + d * d_conj);
     STATIC_REQUIRE(L(1)(0) == c * c_conj + d * d_conj);
     STATIC_REQUIRE(L(1)(1) == c * c_conj + d * d_conj);
-    STATIC_REQUIRE(Fro<std::complex<double>, 2>()(K) ==
+    STATIC_REQUIRE(Fro<Matrix<std::complex<double>, 2, 2>>()(K) ==
                    constexpr_sqrt(trace(L).real()));
 
     constexpr auto I = make_identity<double, 3>();
@@ -249,7 +249,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 
     STATIC_REQUIRE(I * I == I);
 
-    STATIC_REQUIRE(Fro<double, 3>()(I) == constexpr_sqrt<double>(3));
+    STATIC_REQUIRE(Fro<Matrix<double, 3, 3>>()(I) == constexpr_sqrt<double>(3));
   }
 }
 

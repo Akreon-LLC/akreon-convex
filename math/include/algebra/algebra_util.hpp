@@ -67,7 +67,7 @@ constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0,
  */
 template <typename T>
   requires(is_complex_v<T>)
-constexpr auto constexpr_absc(const T& x) {
+constexpr scalar_type_t<T> constexpr_absc(const T& x) {
   return constexpr_sqrt(x.real() * x.real() + x.imag() * x.imag());
 }
 

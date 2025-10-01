@@ -24,9 +24,6 @@ constexpr auto matrix_exp(const Mat& A) {
 
   const auto eig_decomp = EigenDecomposition(A);
 
-  // (dakre) TODO - global determine optional like way to do this that is
-  // constexpr friendly
-
   using ST = scalar_type_t<T>;
   Matrix<std::complex<ST>, N, N> exp_lambda;
   if (!eig_decomp.get_converged()) return exp_lambda;
@@ -38,4 +35,5 @@ constexpr auto matrix_exp(const Mat& A) {
 
   return as_complex_matrix(V) * exp_lambda * as_complex_matrix(inverse(V));
 }
+
 }  // namespace linalg

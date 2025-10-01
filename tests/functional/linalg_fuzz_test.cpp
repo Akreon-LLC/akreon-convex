@@ -148,7 +148,7 @@ int main() {
 
       std::cout << "Starting float tall skinny test " << i << " rows by 2 cols"
                 << std::endl;
-      fuzz_test<double, i, 2>(1e-10);
+      fuzz_test<float, i, 2>(1e-3);
     });
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;

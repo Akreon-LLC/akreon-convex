@@ -28,7 +28,7 @@ TEST_CASE("Test linear ODE", "[dot(x) = Ax]") {
     STATIC_REQUIRE(all_equal(res, expected));
   }
 
-  // (dakre) TODO fix jordan block case -- likewise evec might be off
+  // (dakre) TODO - matrix exp jordan block impl
 #if 0
   SECTION("Matrix exponential of Jordan block") {
     constexpr auto A =
@@ -252,7 +252,7 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     STATIC_REQUIRE(all_equal(as_complex_matrix(A), VLVT));
 
     constexpr auto rho = result.get_spectral_radius();
-    STATIC_REQUIRE(rho == expected(0)(0));
+    STATIC_REQUIRE(constexpr_absc(rho - expected(0)(0)) <= eps);
   }
 
   SECTION("Real A") {

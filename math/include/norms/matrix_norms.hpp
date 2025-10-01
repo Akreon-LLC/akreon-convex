@@ -18,10 +18,12 @@ namespace linalg {
  *
  * @return scalar
  */
-template <typename T, size_t N>
-  requires(FieldLike<T> && N > 0)
+template <SquareMatrixLike Mat>
 struct Fro {
-  constexpr auto operator()(const Matrix<T, N, N>& A) {
+  using T = mat_type_t<Mat>;
+  static constexpr size_t N = mat_rows_v<Mat>;
+
+  constexpr auto operator()(const Mat& A) {
     scalar_type_t<T> result = 0;
     if constexpr (!is_complex_v<T>) {
       result = trace(transpose(A) * A);

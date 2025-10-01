@@ -9,6 +9,7 @@
 #include "../norms/vector_norms.hpp"
 #include "hessenberg.hpp"
 #include "householder.hpp"
+#include "solver_traits.hpp"
 
 /* (dakre) Global TODO
  * 1. punting on cholesky and LDL right now, with current approach and checking
@@ -331,9 +332,8 @@ class EigenDecomposition {
   using Real = scalar_type_t<T>;
   using Complex = std::conditional_t<is_complex_v<T>, T, std::complex<Real>>;
 
-  // (dakre) TODO handle this a little better in the future
-  static constexpr size_t n_steps = 64;
-  static constexpr scalar_type_t<T> tol = 1e-10;
+  static constexpr size_t STEPS = SolverTraits<Real>().steps;
+  static constexpr Real TOL = SolverTraits<Real>().tol;
   static constexpr size_t N = mat_rows_v<Mat>;
 
   /**
@@ -404,13 +404,15 @@ class EigenDecomposition {
     // 2. setup unitary basis for eigenvectors
     auto U = H_mat.get_U();
 
+    Vector<Complex, N> eigs;
+
     // 3. the practical QR iteration on H -- form quasi triangular matrix in
     // real schur form and extract eigenvalues depending on real / complex form
     // of 2x2 or 1x1 schur blocks
-    for (size_t i = 0; i < n_steps; ++i) {
-      auto qr = QR(H);
-      auto Q = qr.get_Q();
-      auto R = qr.get_R();
+    for (size_t i = 0; i < STEPS; ++i) {
+      const auto qr = QR(H);
+      const auto Q = qr.get_Q();
+      const auto R = qr.get_R();
 
       // R U = U^T (U R) U = U^T H U (similarity transform)
       H = R * Q;
@@ -420,7 +422,7 @@ class EigenDecomposition {
 
       // (dakre) iterate through the upper hessenberg to acquire eigenvalues
       if constexpr (is_complex_v<T>) {
-        for (size_t j = 0; j < N; ++j) lambda[j] = H(j)(j);
+        for (size_t j = 0; j < N; ++j) eigs[j] = H(j)(j);
       } else {
         // (dakre) Hessenberg forms Real Schur Decomposition on the
         // quasi-triangular matrix. Complex eigs come in pairs, and if c is zero
@@ -428,13 +430,13 @@ class EigenDecomposition {
         for (size_t j = 0; j < N; ++j) {
           const Real& a = H(j)(j);
           if (j + 1 == N) {
-            lambda[j] = Complex(a, 0);
+            eigs[j] = Complex(a, 0);
             continue;
           }
           const Real& c = H(j + 1)(j);
           const Real& d = H(j + 1)(j + 1);
-          if (constexpr_abs(c) < tol * (constexpr_abs(c) + constexpr_abs(d))) {
-            lambda[j] = Complex(a, 0);
+          if (constexpr_abs(c) < TOL * (constexpr_abs(c) + constexpr_abs(d))) {
+            eigs[j] = Complex(a, 0);
             continue;
           }
 
@@ -447,70 +449,161 @@ class EigenDecomposition {
           const auto D = mu * mu + b * c;
 
           if (D >= 0) {
-            lambda[j] = Complex(t / 2 + constexpr_sqrt(D), 0.0);
-            lambda[j + 1] = Complex(t / 2 - constexpr_sqrt(D), 0.0);
+            eigs[j] = Complex(t / 2 + constexpr_sqrt(D), 0.0);
+            eigs[j + 1] = Complex(t / 2 - constexpr_sqrt(D), 0.0);
           } else {
-            lambda[j] = Complex(t / 2, constexpr_sqrt(D));
-            lambda[j + 1] = Complex(t / 2, -1 * constexpr_sqrt(D));
+            eigs[j] = Complex(t / 2, constexpr_sqrt(D));
+            eigs[j + 1] = Complex(t / 2, -1 * constexpr_sqrt(D));
           }
 
           j++;
         }
       }
 
-      scalar_type_t<T> res = scalar_type_t<T>(0);
-      for (size_t r = 2; r < N; r += 2) {
-        for (size_t c = 0; c < r - 1; ++c) {
-          if constexpr (is_complex_v<T>)
-            res += (std::conj(H(r)(c)) * H(r)(c)).real();
-          else
-            res += H(r)(c) * H(r)(c);
+      if (N > 2) {
+        Real res(0);
+        for (size_t r = 2; r < N; r += 2) {
+          for (size_t c = 0; c < r - 1; ++c) {
+            if constexpr (is_complex_v<T>)
+              res += (std::conj(H(r)(c)) * H(r)(c)).real();
+            else
+              res += H(r)(c) * H(r)(c);
+          }
         }
-      }
 
-      if (N > 2 && res < tol * tol) {
-        converged = true;
-        break;
+        if (res < TOL * TOL) {
+          converged = true;
+          break;
+        }
       } else {
-        // (dakre) TODO this is the 2x2 case, let it run for fixed n steps for
-        // now & possibly think about better way to handle in the future
+        // (dakre) TODO N = 2 keeps schur block form so need to determine
+        // appropriate way to say "converged"
         converged = true;
       }
     }
 
     // 4. back substitute now for solving eigenvectors
-    // a. (H - \lambda I) x = 0
-    // b. apply coordinate map to x from unitary basis U to get it aligned in A
+    // a. check for normal form (AM == 1)
+    //  - solve for root (H - \lambda I) x = 0
+    //  - apply coordinate map to x (evec) from unitary basis U to get it
+    //  aligned in A
+    // b. solve jordan block (AM > 1)
     for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
-      Vector<Complex, N> x;
-      const int AM = std::count(lambda.begin(), lambda.end(), lambda(i));
+      // Jordan block
+      // - AM = algebraic multiplicity (# of repeated \lambda)
+      // - GM = geometric multiplicity (# of linearly independent
+      // eigenvectors for \lambda)
+      // - Defect = # of extra generalized evecs to span the space the Jordan
+      // block lies in
+      int AM = 0;
+      std::for_each(eigs.begin(), eigs.end(),
+                    [&i, &eigs, &AM](const auto& val) {
+                      AM += constexpr_absc(eigs(i) - val) < TOL;
+                    });
       int GM = 0, defect = 0;
       if (AM > 1) {
         const auto I = make_identity<Complex, N>();
         GM = N - QR(as_complex_matrix(A) - lambda(i) * I).get_rank();
-        defect = AM - GM;
+        defect = std::max(0, AM - GM);
       }
 
-      // (dakre) TODO solve jordan block if applicable
-      if (!is_real(lambda[i]) && i > 0) {
-        seed_complex_block(H, i, x);
+      if (0 == defect) {
+        Vector<Complex, N> x;
 
-        back_sub_1x1_block(H, i, x);
+        // (a) solve normally
+        if (!is_real(eigs(i)) && i > 0) {
+          // (0) seed & back solve homogenous case (H - \lambda I) x = 0
+          seed_complex_block(H, i, x);
+          back_sub_1x1_block(H, i, x);
 
-        auto v = map_to_A(U, x);
-        for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
+          // (1) map vec(s)... conjugate pairs onto A
+          auto v = map_to_A(U, x);
+          for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
 
-        i--;
+          i--;
 
-        v = map_to_A(U, conjugate(x));
-        for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
+          v = map_to_A(U, conjugate(x));
+          for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
+
+          // (2) set eig to lambda
+          lambda[i] = eigs(i);
+        } else {
+          // (0) seed & back solve homogenous case (H - \lambda I) x = 0
+          seed_real_block(i, x);
+          back_sub_1x1_block(H, i, x);
+
+          // (1) map vec onto A
+          auto v = map_to_A(U, x);
+          for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
+
+          // (2) set eig to lambda
+          lambda[i] = eigs(i);
+        }
       } else {
-        seed_real_block(i, x);
+        // (b) solve for jordan block
+        if (!is_real(eigs(i)) && i > 0) {
+          // (0) setup jordan chain with padded dim to defect to ensure valid
+          // block creation
+          const int chain_len = std::min(1 + defect, (i + 1) / 2);
+          Vector<Vector<Complex, N>, N> chain;
 
-        back_sub_1x1_block(H, i, x);
+          // (1) seed and back solve for homogenous case (H - \lambda I) x = 0
+          seed_complex_block(H, i, chain[0]);
+          back_sub_1x1_block(H, i, chain[0]);
 
-        auto v = map_to_A(U, x);
-        for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
+          // (2) back solve for each (H - \lambda I) x_k = x_{k+1}
+          for (int k = 1; k < chain_len; ++k)
+            back_sub_shifted_rhs(H, lambda(i), chain(k - 1), chain[k]);
+
+          // (3) map back to A... [i, i-1, ...]
+          for (int k = 0; k < chain_len; ++k) {
+            auto v = map_to_A(U, chain[k]);
+
+            int col = i - k;
+            col = std::max(0, col);
+            for (size_t j = 0; j < N; ++j) V[j][col] = v(j);
+
+            // (4) set lambda from eig
+            lambda[col] = eigs(col);
+          }
+
+          // (3.b) map complex conjugate pair onto A... [i - chain_len, ...]
+          for (int k = 0; k < chain_len; ++k) {
+            auto vbar = map_to_A(U, conjugate(chain(k)));
+
+            int col = i - chain_len - k;
+            col = std::max(0, col);
+            for (size_t j = 0; j < N; ++j) V[j][col] = vbar(j);
+
+            // (4) set lambda from eig
+            lambda[col] = eigs(col);
+          }
+        } else {
+          // (0) setup jordan chain with padded dim to defect to ensure valid
+          // block creation
+          const int chain_len = std::min(1 + defect, 1 + i);
+          Vector<Vector<Complex, N>, N> chain;
+
+          // (1) seed and back solve for homogenous case (H - \lambda I) x = 0
+          seed_real_block(i, chain[0]);
+          back_sub_1x1_block(H, i, chain[0]);
+
+          // (2) back solve for each (H - \lambda I) x_k = x_{k+1}
+          for (int k = 1; k < chain_len; ++k)
+            back_sub_shifted_rhs(H, eigs(i), chain(k - 1), chain[k]);
+
+          // (3) map back to A
+          for (int k = 0; k < chain_len; ++k) {
+            auto v = map_to_A(U, chain[k]);
+
+            int col = i - k;
+            col = std::max(0, col);
+            for (size_t j = 0; j < N; ++j) V[j][col] = v(j);
+
+            // (4) set lambda from eig
+            lambda[col] = eigs(col);
+          }
+        }
       }
     }
   }
@@ -531,13 +624,38 @@ class EigenDecomposition {
     // solve
     for (int r = idx - 1; r >= 0; --r) {
       Complex sum(0);
-      for (int c = r + 1; c <= idx; ++c) sum += Complex(H(r)(c)) * x[c];
+      for (int c = r + 1; c <= idx; ++c) sum += Complex(H(r)(c)) * x(c);
 
       const auto denom = Complex(H(r)(r)) - lambda(idx);
       if (denom == Complex(0))
         x[r] = Complex(0);
       else
         x[r] = -sum / denom;
+    }
+  }
+
+  /**
+   * @brief back sub for shifted repeated \lambda case
+   *
+   * @param matrix of type T with N x N elements
+   * @param complex \lambda
+   * @param rhs v_{k-1} eigen vector
+   * @param mutable eigen vector (this stages update)
+   *
+   * @return (void)
+   */
+  constexpr void back_sub_shifted_rhs(const Mat& H, const Complex& lambda,
+                                      const Vector<Complex, N>& rhs,
+                                      Vector<Complex, N>& x) {
+    // (dakre) back solve (H - \lambda I) x = rhs
+    for (int r = int(N) - 1; r >= 0; --r) {
+      Complex sum(0);
+      for (int c = r + 1; c < int(N); ++c) sum += H(r)(c) * x(c);
+      const auto denom = Complex(H(r)(r)) - lambda;
+      if (denom == Complex(0))
+        x[r] = Complex(0);
+      else
+        x[r] = (rhs(r) - sum) / denom;
     }
   }
 
@@ -689,6 +807,7 @@ class SVD {
 
     const auto result = EigenDecomposition(M);
     converged = result.get_converged();
+    if (!converged) return;
 
     // 2. convert eigenvalues to singular values
     const auto tmp_lambdas = result.get_eigenvalues();
