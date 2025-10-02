@@ -35,17 +35,18 @@ class AffineSet {
   /// @brief alias for underlying vector spanning R^m (codomain)
   using AmbientVec = linalg::Vector<T, M>;
 
+  /// (dakre) TODO refactor to drop this unecessary constraint
   /// @brief static assertion to check that the system is over determined
   static_assert(N >= M);
 
   /**
-   * @brief is_valid
+   * @brief is_well_formed
    *
    * Checks to see if basis is full column rank
    *
    * @return T/F
    */
-  constexpr auto is_valid() const { return self().is_valid_impl(); }
+  constexpr auto is_well_formed() const { return self().is_well_formed_impl(); }
 
   /**
    * @brief return reference point in set
@@ -130,13 +131,6 @@ class AffineSet {
     return !is_equal(other);
   }
 
-  /**
-   * @brief to conic form to satisfy set like properties
-   *
-   * For affine acts like noop
-   */
-  constexpr void to_conic_form() const {}
-
  protected:
   /** @brief member variables in the base class */
   friend Derived;  ///< friend declaration for derived to reference base class
@@ -218,13 +212,13 @@ class ImplicitAffineSet : public AffineSet<Mat, ImplicitAffineSet<Mat>> {
   constexpr auto basis_impl() const { return Q; }
 
   /**
-   * @brief is_valid_impl
+   * @brief is_well_formed_impl
    *
    * Checks to see if b \in CS(A) by checking if A x - b == 0
    *
    * @return T/F
    */
-  constexpr bool is_valid_impl(T tol = 1e-8) const {
+  constexpr bool is_well_formed_impl(T tol = 1e-8) const {
     return linalg::L2<T, N>()((Q * R * x_lsq) - this->x0) < tol;
   }
 
@@ -320,13 +314,15 @@ class ParametricAffineSet : public AffineSet<Mat, ParametricAffineSet<Mat>> {
   }
 
   /**
-   * @brief is_valid_impl
+   * @brief is_well_formed_impl
    *
    * Checks to see if the basis is full column rank
    *
    * @return T/F
    */
-  constexpr bool is_valid_impl() const { return linalg::QR(U).get_rank() == M; }
+  constexpr bool is_well_formed_impl() const {
+    return linalg::QR(U).get_rank() == M;
+  }
 
   /**
    * @brief simple basis return

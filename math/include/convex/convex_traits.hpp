@@ -135,7 +135,7 @@ struct set_traits<PsdCone<Space>> {
 template <class Set>
 concept SetLike =
     requires(const Set& set, const typename set_traits<Set>::Point& x) {
-      { set.is_valid() } -> std::convertible_to<bool>;
+      { set.is_well_formed() } -> std::convertible_to<bool>;
       { set.contains(x) } -> std::convertible_to<bool>;
     };
 

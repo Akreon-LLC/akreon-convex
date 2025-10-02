@@ -76,11 +76,11 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
   }
 
   /**
-   * @brief is_valid implementation checks to see if set is valid
+   * @brief is_well_formed implementation checks to see if set is valid
    *
    * @return T/F
    */
-  constexpr bool is_valid_impl() const {
+  constexpr bool is_well_formed_impl() const {
     linalg::SymmetricMatrix S(P);
     return S.type == linalg::SymmetricMatrixType::PD ||
            S.type == linalg::SymmetricMatrixType::PSD;

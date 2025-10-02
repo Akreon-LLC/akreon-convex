@@ -31,20 +31,18 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
   /// @brief alias for scalar type of underlying set type
   using ScalarT = linalg::scalar_type_t<T>;
 
-  /// @brief helper to get n elements in point
-  static constexpr size_t N = linalg::vec_size_v<Point>;
-
   /**
-   * @brief is_valid implementation stubbed to true for this set type
+   * @brief is_well_formed implementation stubbed to true for this set type
    *
    * @return T/F
    */
-  constexpr bool is_valid_impl() const { return true; }
+  constexpr bool is_well_formed_impl() const { return true; }
 
   /**
    * @brief check if candidate matrix X \in S^n_++
    *
-   * @param matrix X of type T N x N
+   * @param point in Vector space which is S^n
+   * @param scalar tolerance
    *
    * @return T/F
    */
@@ -53,16 +51,6 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
     linalg::SymmetricMatrix S(X);
     return S.type == linalg::SymmetricMatrixType::PD ||
            S.type == linalg::SymmetricMatrixType::PSD;
-  }
-
-  /**
-   * @brief to conic form helper
-   *
-   * @return conic form
-   */
-  constexpr auto to_conic_form_impl() const {
-    // (dakre) TODO implement
-    return true;
   }
 };
 

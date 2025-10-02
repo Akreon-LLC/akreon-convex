@@ -73,11 +73,11 @@ class NormBall : public ConvexSet<Space, NormBall<Space>> {
   }
 
   /**
-   * @brief is_valid checks to see if underlying set is a valid convex set
+   * @brief is_well_formed checks to see if underlying set is a valid convex set
    *
    * @return T/F
    */
-  constexpr bool is_valid_impl() const { return r > 0; }
+  constexpr bool is_well_formed_impl() const { return r > 0; }
 
  private:
   /** @brief member variables in the norm ball */

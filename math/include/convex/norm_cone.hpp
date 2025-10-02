@@ -35,6 +35,7 @@ class NormCone : public NormBall<Space> {
    * @brief CTOR for norm cone
    *
    * @param t (scalar rep variable radius)
+   * @param norm ball type (enum)
    */
   constexpr explicit NormCone(const ScalarT& t_in, const NormBallType& type_in)
       : NormBall<Space>(Point{}, t_in, type_in) {}

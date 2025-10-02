@@ -25,7 +25,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr double b = 1.0;
     constexpr Halfspace<Matrix<double, 1, 2>> halfspace(point, b,
                                                         HalfspaceType::CLH);
-    STATIC_REQUIRE(halfspace.is_valid());
+    STATIC_REQUIRE(halfspace.is_well_formed());
     STATIC_REQUIRE(halfspace.contains(Vectord<2>{}));
     STATIC_REQUIRE(halfspace.contains(Vectord<2>{-1.0, 0.0}));
     STATIC_REQUIRE(halfspace.contains(Vectord<2>{-1.0, -2.0}));
@@ -40,7 +40,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto halfspace =
         Halfspace<Matrix<double, 1, 4>>(point, b, HalfspaceType::OLH);
 
-    STATIC_REQUIRE(halfspace.is_valid());
+    STATIC_REQUIRE(halfspace.is_well_formed());
     STATIC_REQUIRE(halfspace.contains(Vectord<4>{}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<4>{0.0, 0.0, 0.0, 2.0}));
     STATIC_REQUIRE(halfspace.contains(Vectord<4>{0.0, 0.0, 0.0, 1.9}));
@@ -53,7 +53,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr double b = 2.0;
     constexpr Halfspace<Matrix<double, 1, 3>> halfspace(point, b,
                                                         HalfspaceType::CUH);
-    STATIC_REQUIRE(halfspace.is_valid());
+    STATIC_REQUIRE(halfspace.is_well_formed());
     STATIC_REQUIRE(!halfspace.contains(Vectord<3>{}));
     STATIC_REQUIRE(halfspace.contains(Vectord<3>{0.0, 1.0, 0.0}));
     STATIC_REQUIRE(halfspace.contains(Vectord<3>{0.1, 1.0, 2.0}));
@@ -65,7 +65,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr double b = 5.0;
     constexpr Halfspace<Matrix<double, 1, 1>> halfspace(point, b,
                                                         HalfspaceType::OUH);
-    STATIC_REQUIRE(halfspace.is_valid());
+    STATIC_REQUIRE(halfspace.is_well_formed());
     STATIC_REQUIRE(!halfspace.contains(Vectord<1>{}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<1>{0.1}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<1>{5.0}));
@@ -87,7 +87,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto r = 2.0;
     constexpr auto ball =
         NormBall<Matrix<double, 1, 2>>(c, r, NormBallType::L2OB);
-    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(!ball.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(ball.contains(Vector<double, 2>{c(0) + 0.1, c(1) - 0.2}));
@@ -99,7 +99,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto r = 2.f;
     constexpr auto ball =
         NormBall<Matrix<float, 1, 2>>(c, r, NormBallType::L2CB);
-    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(!ball.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(ball.contains(Vector<float, 2>{c(0) + 0.1f, c(1) - 0.2f}));
@@ -111,7 +111,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto r = 1.0;
     constexpr auto ball =
         NormBall<Matrix<std::complex<double>, 1, 4>>(c, r, NormBallType::L1OB);
-    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(!ball.contains(Vectorcd<4>{}));
     STATIC_REQUIRE(ball.contains(
@@ -125,7 +125,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto r = 1.f;
     constexpr auto ball =
         NormBall<Matrix<std::complex<float>, 1, 4>>(c, r, NormBallType::L1CB);
-    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(!ball.contains(Vectorcf<4>{}));
     STATIC_REQUIRE(ball.contains(
@@ -139,7 +139,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto r = 2.0;
     constexpr auto ball =
         NormBall<Matrix<double, 1, 3>>(c, r, NormBallType::LinfOB);
-    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(!ball.contains(Vectord<3>{}));
     STATIC_REQUIRE(ball.contains(Vectord<3>{c(0) + 1.0, c(1), c(2)}));
@@ -150,7 +150,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto r = 2.f;
     constexpr auto ball =
         NormBall<Matrix<float, 1, 3>>(c, r, NormBallType::LinfCB);
-    STATIC_REQUIRE(ball.is_valid());
+    STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(!ball.contains(Vectorf<3>{}));
     STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
@@ -172,7 +172,7 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     constexpr auto P = make_identity<double, 2>();
     constexpr auto ellipsoid =
         Ellipsoid<Matrix<double, 1, 2>>(c, P, EllipsoidType::OE);
-    REQUIRE(ellipsoid.is_valid());
+    REQUIRE(ellipsoid.is_well_formed());
     STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
     STATIC_REQUIRE(ellipsoid.contains(c));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
@@ -184,7 +184,7 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     constexpr auto P = make_identity<double, 2>();
     constexpr auto ellipsoid =
         Ellipsoid<Matrix<double, 1, 2>>(c, P, EllipsoidType::CE);
-    REQUIRE(ellipsoid.is_valid());
+    REQUIRE(ellipsoid.is_well_formed());
     STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
     STATIC_REQUIRE(ellipsoid.contains(c));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
@@ -205,7 +205,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto c = Vector<double, 2>{1.0, 2.0};
     constexpr auto t = constexpr_sqrt(5.0);
     constexpr auto cone = NormCone<Matrix<double, 1, 2>>(t, NormBallType::L2OB);
-    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
@@ -215,7 +215,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto c = Vector<float, 2>{1.f, 2.f};
     constexpr auto t = constexpr_sqrt(5.f);
     constexpr auto cone = NormCone<Matrix<float, 1, 2>>(t, NormBallType::L2CB);
-    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
@@ -225,7 +225,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto c = Vector<double, 2>{1.0, 2.0};
     constexpr auto t = 3.0;
     constexpr auto cone = NormCone<Matrix<double, 1, 2>>(t, NormBallType::L1OB);
-    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
@@ -235,7 +235,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto c = Vector<float, 2>{1.f, 2.f};
     constexpr auto t = 3.f;
     constexpr auto cone = NormCone<Matrix<float, 1, 2>>(t, NormBallType::L1CB);
-    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
@@ -246,7 +246,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto t = 2.0;
     constexpr auto cone =
         NormCone<Matrix<double, 1, 2>>(t, NormBallType::LinfOB);
-    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
@@ -257,7 +257,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto t = 2.f;
     constexpr auto cone =
         NormCone<Matrix<float, 1, 2>>(t, NormBallType::LinfCB);
-    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
@@ -273,10 +273,36 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     constexpr auto I = make_identity<double, 2>();
     constexpr auto Z = Matrixd<2, 2>{};
     constexpr auto cone = PsdCone<SymmetricMatrix<Matrix<double, 2, 2>>>();
-    STATIC_REQUIRE(cone.is_valid());
+    STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(A));
     STATIC_REQUIRE(cone.contains(B));
     STATIC_REQUIRE(cone.contains(I));
     STATIC_REQUIRE(cone.contains(Z));
+  }
+}
+
+TEST_CASE("Polyhedron", "[convex_sets]") {
+  SECTION("Test Closed Polyhedron") {
+    using Space = Matrix<double, 1, 3>;  // points in R^3
+
+    mat_traits<Matrix<double, 7, 3>> A_mat;
+    constexpr auto A =
+        A_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 0.0);
+    STATIC_REQUIRE(mat_rows_v<decltype(A)> == 7);
+    STATIC_REQUIRE(mat_cols_v<decltype(A)> == 3);
+    constexpr Vector<double, 7> b{1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 2.0};
+
+    constexpr auto C = make_identity<double, 3>();
+    constexpr auto d = Vector<double, 3>{1.0, 2.0, 3.0};
+
+    constexpr Polyhedron<Space, decltype(A), decltype(C)> poly(
+        HalfspaceType::CLH, A, b, C, d);
+
+    // (dakre) valid convex set but empty... I'll add more tests and such but
+    // need to harden more
+    STATIC_REQUIRE(poly.is_well_formed());
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{}));
+    // STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
   }
 }

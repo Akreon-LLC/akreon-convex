@@ -58,7 +58,7 @@ TEST_CASE("Test affine set", "[affine_sets]") {
 
   SECTION("Implicit affine set creation check", "[Ax = b]") {
     constexpr auto set = ImplicitAffineSet(I, b);
-    STATIC_REQUIRE(set.is_valid());
+    STATIC_REQUIRE(set.is_well_formed());
     STATIC_REQUIRE(all_equal(set.basis(), I));
     STATIC_REQUIRE(all_equal(set.point(), b));
     STATIC_REQUIRE(set.contains(b));
@@ -77,7 +77,7 @@ TEST_CASE("Test affine set", "[affine_sets]") {
 
   SECTION("Parametric affine set creation check", "[x0 + U t]") {
     constexpr auto set = ParametricAffineSet(I, b);
-    STATIC_REQUIRE(set.is_valid());
+    STATIC_REQUIRE(set.is_well_formed());
     STATIC_REQUIRE(all_equal(set.basis(), I));
     STATIC_REQUIRE(all_equal(set.point(), b));
     STATIC_REQUIRE(set.contains(b));
@@ -103,7 +103,7 @@ TEST_CASE("Test affine set", "[affine_sets]") {
     constexpr auto A = Matrixd<2, 2>{a, a};
     constexpr auto z = Vectord<2>{0.0, 0.0};
     constexpr auto set = ParametricAffineSet(A, z);
-    STATIC_REQUIRE(!set.is_valid());
+    STATIC_REQUIRE(!set.is_well_formed());
   }
 
   SECTION("Set affine set with 4x4 mat") {
@@ -117,7 +117,7 @@ TEST_CASE("Test affine set", "[affine_sets]") {
     const auto set = ParametricAffineSet(A, x0);
 
     const auto set_two = set.transform(map);
-    REQUIRE(set_two.is_valid());
+    REQUIRE(set_two.is_well_formed());
     REQUIRE(all_equal(set_two.basis(), set.basis()));
     REQUIRE(all_equal(set_two.point(), set.point()));
   }

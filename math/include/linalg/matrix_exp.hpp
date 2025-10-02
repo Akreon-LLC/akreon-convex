@@ -140,7 +140,8 @@ constexpr auto matrix_exp(const Mat& A) {
 
     // (2) process the jordan block N = (J_block - \lambda I)
     Matrix<Complex, N, N> N_blk, E_blk;
-    // 2.a set super diag to 1s on E block (E = I + N + N^2 / 2! + ...)
+    // 2.a set super diag to 1s on E block (E = I + N + N^2 / 2! + ...) up to
+    // chain_len representing N^0 = I
     for (size_t a = 0; a < chain_len; ++a) E_blk[i + a][i + a] = Complex(1);
     // 2.b set N block (N = J_block - \lambda I) where C = \lambda I + N (7.6.5
     // Matrix Computations)

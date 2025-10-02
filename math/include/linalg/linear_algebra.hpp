@@ -141,7 +141,11 @@ constexpr auto back_solve(const Mat& R, const Vec& rhs) {
   for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
     T sum = 0;
     for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
-    x[i] = (rhs(i) - sum) / R(i)(i);
+
+    if (R(i)(i) == 0.0)
+      x[i] = T(0);
+    else
+      x[i] = (rhs(i) - sum) / R(i)(i);
   }
   return x;
 }

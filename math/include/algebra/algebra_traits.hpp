@@ -44,11 +44,11 @@ struct vec_traits<Vector<T, N>> {
 
 /// @brief helper for size of vector
 template <class Vec>
-inline constexpr size_t vec_size_v = vec_traits<Vec>::SIZE;
+inline constexpr size_t vec_size_v = vec_traits<remove_cvref_t<Vec>>::SIZE;
 
 /// @brief alias for underlying type for vector
 template <class Vec>
-using vec_type_t = typename vec_traits<Vec>::value_type;
+using vec_type_t = typename vec_traits<remove_cvref_t<Vec>>::value_type;
 
 /// @brief base type traits definition for matrix
 template <class Mat>
@@ -62,7 +62,7 @@ struct mat_traits<Matrix<T, Rows, Cols>> {
   static constexpr size_t COLS = Cols;
 
   template <typename... Ts>
-  static constexpr auto make(Ts&&... xs) {
+  static constexpr auto operator()(Ts&&... xs) {
     static_assert(sizeof...(xs) == Rows * Cols);
     Matrix<T, Rows, Cols> M;
     int i = 0;
@@ -92,8 +92,39 @@ inline constexpr size_t mat_cols_v = mat_traits<remove_cvref_t<Mat>>::COLS;
 template <class Vec>
 struct space_traits;
 
+template <typename T>
+struct space_traits<Vector<Vector<T, 1>, 1>> {
+  using value_type = T;
+  using Point = Vector<T, 1>;
+
+  static constexpr size_t DIM = 1;
+};
+
+/// @brief type traits definition for vector space (col vector)
+template <typename T, size_t N>
+struct space_traits<Vector<Vector<T, N>, 1>> {
+  using value_type = T;
+  using Point = Vector<T, N>;
+
+  // (dakre) the dimension is the total number of independent scalar values
+  // needed to define any vector in the space
+  static constexpr size_t DIM = N;
+};
+
+/// @brief type traits definition for vector space (row vector)
+template <typename T, size_t N>
+struct space_traits<Vector<Vector<T, 1>, N>> {
+  using value_type = T;
+  using Point = Vector<T, N>;
+
+  // (dakre) the dimension is the total number of independent scalar values
+  // needed to define any vector in the space
+  static constexpr size_t DIM = N;
+};
+
 /// @brief type traits definition for vector space
 template <typename T, size_t M, size_t N>
+  requires(M > 1 && N > 1)
 struct space_traits<Vector<Vector<T, N>, M>> {
   using value_type = T;
   using Point = Vector<T, N>;
@@ -105,15 +136,15 @@ struct space_traits<Vector<Vector<T, N>, M>> {
 
 /// @brief alias for space type
 template <class Space>
-using space_type_t = typename space_traits<Space>::value_type;
+using space_type_t = typename space_traits<remove_cvref_t<Space>>::value_type;
 
 /// @brief alias for point type in vector space
 template <class Space>
-using space_point_t = typename space_traits<Space>::Point;
+using space_point_t = typename space_traits<remove_cvref_t<Space>>::Point;
 
 /// @helper for dimension of vector space
 template <class Space>
-inline constexpr size_t space_dim_v = space_traits<Space>::DIM;
+inline constexpr size_t space_dim_v = space_traits<remove_cvref_t<Space>>::DIM;
 
 /** \struct scalar_type
  *  \brief Structure that deals in type_trait deduction for a scalar type
@@ -251,11 +282,10 @@ concept FieldLike =
 
 /// @brief concept definition for vector like
 template <class Vec>
-concept VectorLike = (FieldLike<typename vec_traits<Vec>::value_type> ||
-                      FieldLike<typename mat_traits<Vec>::value_type>) &&
-                     requires {
-                       { vec_traits<Vec>::SIZE } -> std::convertible_to<size_t>;
-                     };
+concept VectorLike =
+    (FieldLike<vec_type_t<Vec>> || FieldLike<mat_type_t<Vec>>) && requires {
+      { vec_size_v<Vec> } -> std::convertible_to<size_t>;
+    };
 
 /// @brief vector vector compatability
 template <class VecA, class VecB>
@@ -267,30 +297,24 @@ concept VecVecCompatible = VectorLike<VecA> && VectorLike<VecB> &&
 template <class Space>
 concept VectorSpace =
     VectorLike<Space> &&
-    requires(const typename space_traits<Space>::Point& x,
-             const typename space_traits<Space>::Point& y,
-             const typename space_traits<Space>::value_type& alpha) {
-      { x + y } -> std::convertible_to<typename space_traits<Space>::Point>;
-      { x - y } -> std::convertible_to<typename space_traits<Space>::Point>;
-      { alpha * x } -> std::convertible_to<typename space_traits<Space>::Point>;
+    requires(const space_point_t<Space>& x, const space_point_t<Space>& y,
+             const space_type_t<Space>& alpha) {
+      { x + y } -> std::convertible_to<space_point_t<Space>>;
+      { x - y } -> std::convertible_to<space_point_t<Space>>;
+      { alpha * x } -> std::convertible_to<space_point_t<Space>>;
+      { alpha * (x + y) } -> std::convertible_to<space_point_t<Space>>;
+      { alpha * x + alpha * y } -> std::convertible_to<space_point_t<Space>>;
       {
-        alpha * (x + y)
-      } -> std::convertible_to<typename space_traits<Space>::Point>;
-      {
-        alpha * x + alpha * y
-      } -> std::convertible_to<typename space_traits<Space>::Point>;
-      {
-        typename space_traits<Space>::value_type(1) * x
-      } -> std::convertible_to<typename space_traits<Space>::Point>;
+        space_type_t<Space>(1) * x
+      } -> std::convertible_to<space_point_t<Space>>;
     };
 
 /// @brief concept definition for matrix like
 template <class Mat>
-concept MatrixLike =
-    FieldLike<typename mat_traits<Mat>::value_type> && requires {
-      { mat_traits<Mat>::ROWS } -> std::convertible_to<size_t>;
-      { mat_traits<Mat>::COLS } -> std::convertible_to<size_t>;
-    };
+concept MatrixLike = FieldLike<mat_type_t<Mat>> && requires {
+  { mat_rows_v<Mat> } -> std::convertible_to<size_t>;
+  { mat_cols_v<Mat> } -> std::convertible_to<size_t>;
+};
 
 /// @brief concept square matrix like
 template <class Mat>

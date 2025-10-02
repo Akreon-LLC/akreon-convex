@@ -20,13 +20,22 @@ TODO to scope:
 - [x] lsq via QR & back-solve with R
 - [x] svd via QR & back-solve (U \Sigma V)
 - [x] inverse operation (QR + backsolve for I)
+- [x] jordan form (eig decomp)
 - [x] matrix exponential
 - [] LDL^T / Cholesky Decomposition
 ### Convex Analysis
-- [] Affine sets & space
-- [] Convex sets & space
-- [] Convex functions & analysis
-- [] Duality & KKT 
+- [x] implicit affine sets
+- [x] parametric affine sets
+- [x] affine maps
+- [x] affine transforms [R | t]
+- [x] ellipsoid convex set
+- [x] halfspace convex set
+- [x] norm ball convex set
+- [x] norm cone convex set
+- [x] psd cone convex set
+- [] polyhedron convex set
+- [] convex hull 
+- [] duality & KKT 
 ### Operators & Morphisms
 - [] linear map abstraction
 - [] composition, identity, inverse

@@ -72,11 +72,11 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
   }
 
   /**
-   * @brief is_valid checks to see if underlying set is a valid convex set
+   * @brief is_well_formed checks to see if underlying set is a valid convex set
    *
    * @return T/F
    */
-  constexpr bool is_valid_impl() const {
+  constexpr bool is_well_formed_impl() const {
     if (linalg::all_zero(a)) {
       if (type == HalfspaceType::CLH || type == HalfspaceType::OLH) {
         if (b < T(0)) return false;

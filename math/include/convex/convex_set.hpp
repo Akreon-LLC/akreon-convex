@@ -31,13 +31,13 @@ class ConvexSet {
   static constexpr size_t Dim = linalg::space_traits<Space>::Dim;
 
   /**
-   * @brief is_valid
+   * @brief is_well_formed
    *
    * Check to see if the underlying convex set is valid
    *
    * @return T/F
    */
-  constexpr auto is_valid() const { return self().is_valid_impl(); }
+  constexpr auto is_well_formed() const { return self().is_well_formed_impl(); }
 
   /**
    * @brief contains to check if the point lies in the convex set
