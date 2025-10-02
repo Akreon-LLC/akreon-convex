@@ -175,6 +175,20 @@ constexpr void constexpr_for(Func&& f) {
 }
 
 /**
+ * @brief compare complex vars
+ *
+ * @param complex var a
+ * @param complex var b
+ *
+ * @return T/F
+ */
+template <typename T>
+  requires(is_complex_v<T>)
+constexpr bool is_same(const T& a, const T& b, scalar_type_t<T> tol = 1e-10) {
+  return constexpr_absc(a - b) < tol;
+}
+
+/**
  * @brief argsort in descending manner
  *
  * @param Vector type T size N x 1

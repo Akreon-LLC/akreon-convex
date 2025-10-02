@@ -485,10 +485,6 @@ class EigenDecomposition {
     // 3.a prepare back solve for eigenvectors via Jordan blocks
     std::array<bool, N> used{false};
 
-    auto is_same = [](const Complex& a, const Complex& b) {
-      return constexpr_absc(a - b) < TOL;
-    };
-
     auto indices_equal = [&](const Vector<Complex, N>& D,
                              Complex val) -> std::array<int, N> {
       std::array<int, N> idx;

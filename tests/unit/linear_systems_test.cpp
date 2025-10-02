@@ -28,26 +28,15 @@ TEST_CASE("Test linear ODE", "[dot(x) = Ax]") {
     STATIC_REQUIRE(all_equal(res, expected));
   }
 
-  // (dakre) TODO - matrix exp jordan block impl
-#if 0
   SECTION("Matrix exponential of Jordan block") {
     constexpr auto A =
         Matrix<double, 2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{0.0, 2.0}};
-    const auto eig_decomp = EigenDecomposition(A);
-    const auto eigs = eig_decomp.get_eigenvalues();
-    const auto evecs = eig_decomp.get_eigenvectors();
-    std::cout << eigs(0) << " " << eigs(1) << std::endl;
-    std::cout << evecs(0)(0) << " " << evecs(0)(1) << std::endl;
-    std::cout << evecs(0)(1) << " " << evecs(1)(1) << std::endl;
     constexpr double e2 = constexpr_exp(2.0);
     constexpr auto expected = Matrix<std::complex<double>, 2, 2>{
         Vectorcd<2>{e2, e2}, Vectorcd<2>{0.0, e2}};
     constexpr auto res = matrix_exp(A);
-    std::cout << res(0)(0) << " " << res(0)(1) << std::endl;
-    std::cout << res(1)(0) << " " << res(1)(1) << std::endl;
-    //STATIC_REQUIRE(all_equal(res, expected));
+    STATIC_REQUIRE(all_equal(res, expected));
   }
-#endif
 }
 
 TEST_CASE("Test linear system", "[y=Ax]") {
