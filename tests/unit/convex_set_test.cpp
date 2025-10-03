@@ -16,6 +16,7 @@ using namespace convex;
 TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
+    STATIC_REQUIRE(SetLike<Hyperplane<Matrix<double, 1, 4>>>);
     STATIC_REQUIRE(SetLike<Halfspace<Matrix<double, 1, 2>>>);
     STATIC_REQUIRE(SetLike<Halfspace<Matrix<float, 1, 10>>>);
   }
@@ -278,6 +279,11 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
 }
 
 TEST_CASE("PSD cone", "[convex_sets]") {
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(SetLike<PsdCone<Matrix<double, 2, 2>>>);
+    STATIC_REQUIRE(SetLike<PsdCone<Matrix<float, 10, 10>>>);
+  }
+
   SECTION("PSD Cones") {
     constexpr auto A =
         Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
@@ -295,21 +301,65 @@ TEST_CASE("PSD cone", "[convex_sets]") {
 }
 
 TEST_CASE("Polyhedron", "[convex_sets]") {
-  SECTION("Test Closed Polyhedron") {
-    using Space = Matrix<double, 1, 3>;  // points in R^3
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(
+        SetLike<Polyhedron<Matrix<double, 2, 1>, Matrix<double, 2, 2>>>);
+    STATIC_REQUIRE(
+        SetLike<Polyhedron<Matrix<float, 2, 1>, Matrix<float, 2, 2>>>);
+  }
 
-    mat_traits<Matrix<double, 7, 3>> A_mat;
-    constexpr auto A =
-        A_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
-              0.0, 1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 0.0);
-    STATIC_REQUIRE(mat_rows_v<decltype(A)> == 7);
-    STATIC_REQUIRE(mat_cols_v<decltype(A)> == 3);
-    constexpr Vector<double, 7> b{1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 2.0};
+  using Space = Matrix<double, 1, 3>;  // points in R^3
+  mat_traits<Matrix<double, 7, 3>> A_mat;
+  constexpr auto A =
+      A_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 0.0);
+  STATIC_REQUIRE(mat_rows_v<decltype(A)> == 7);
+  STATIC_REQUIRE(mat_cols_v<decltype(A)> == 3);
+  constexpr Vector<double, 7> b{1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 2.0};
 
+  SECTION("Test Closed Polyhedron", "[A x <= b]") {
     constexpr Polyhedron<Space, decltype(A)> poly(HalfspaceType::CLH, A, b);
 
     STATIC_REQUIRE(poly.is_well_formed());
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{}));
     STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
+    STATIC_REQUIRE(poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
+  }
+
+  SECTION("Test Open Polyhedron", "[A x < b]") {
+    constexpr Polyhedron<Space, decltype(A)> poly(HalfspaceType::OLH, A, b);
+
+    STATIC_REQUIRE(poly.is_well_formed());
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{}));
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
+    STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.1, 0.1, 0.1}));
+  }
+
+  mat_traits<Matrix<double, 2, 3>> C_mat;
+  constexpr auto C = C_mat(1.0, 1.0, 1.0, 2.0, 2.0, 2.0);
+  constexpr Vector<double, 2> d{1.0, 2.0};
+
+  SECTION("Test Closed Polyhedron", "[A x <= b, C x == d]") {
+    constexpr Polyhedron<Space, decltype(A), decltype(C)> poly(
+        HalfspaceType::CLH, A, b, C, d);
+
+    STATIC_REQUIRE(poly.is_well_formed());
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{}));
+    STATIC_REQUIRE(poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
+    STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.0, 1.0, 0.0}));
+    STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.0, 0.0, 1.0}));
+  }
+
+  SECTION("Test Closed Polyhedron", "[A x < b, C x == d]") {
+    constexpr Polyhedron<Space, decltype(A), decltype(C)> poly(
+        HalfspaceType::OLH, A, b, C, d);
+
+    STATIC_REQUIRE(poly.is_well_formed());
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{}));
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{0.0, 1.0, 0.0}));
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{0.0, 0.0, 1.0}));
+    STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.2, 0.3, 0.5}));
   }
 }

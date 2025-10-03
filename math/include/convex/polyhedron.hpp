@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "affine_set.hpp"
 #include "halfspace.hpp"
+#include "hyperplane.hpp"
 
 namespace convex {
 
@@ -81,12 +81,15 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
     if (!(type == HalfspaceType::CLH || type == HalfspaceType::OLH))
       return false;
 
-    // (1) verify halfspaces for each row in A and b check if halfspace is valid
+    // (1) verify halfspaces for each row in A and b check if halfspace is
+    // valid
     for (size_t i = 0; i < RowsA; ++i)
       if (!Halfspace<Space>(A(i), b(i), type).is_well_formed()) return false;
 
     // (2) verify hyperplanes C x = d is valid
-    // if (RowsC > 0 && !ImplicitAffineSet(C, d).is_well_formed()) return false;
+    for (size_t i = 0; i < RowsC; ++i)
+      if (RowsC > 0 && !Hyperplane<Space>(C(i), d(i)).is_well_formed())
+        return false;
 
     return true;
   }
@@ -104,7 +107,9 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
       if (!Halfspace<Space>(A(i), b(i), type).contains(x, tol)) return false;
 
     // (1) check if x is in the affine set defined by C x = d
-    // if (RowsC > 0 && !ImplicitAffineSet(C, d).contains(x, tol)) return false;
+    for (size_t i = 0; i < RowsC; ++i)
+      if (RowsC > 0 && !Hyperplane<Space>(C(i), d(i)).contains(x, tol))
+        return false;
 
     return true;
   }
