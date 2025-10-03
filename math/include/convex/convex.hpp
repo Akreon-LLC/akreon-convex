@@ -8,6 +8,7 @@
 #include "affine_map.hpp"
 #include "affine_transforms.hpp"
 #include "convex_set.hpp"
+#include "hyperplane.hpp"
 #include "halfspace.hpp"
 #include "norm_ball.hpp"
 #include "ellipsoid.hpp"

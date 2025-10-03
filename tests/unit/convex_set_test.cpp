@@ -20,6 +20,19 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(SetLike<Halfspace<Matrix<float, 1, 10>>>);
   }
 
+  SECTION("Test hyperplane") {
+    constexpr Vector<double, 3> point{0.1, 0.2, 0.3};
+    constexpr double b = 0.6;
+    constexpr Hyperplane<Matrix<double, 1, 3>> hyperplane(point, b);
+    STATIC_REQUIRE(hyperplane.is_well_formed());
+    STATIC_REQUIRE(!hyperplane.contains(Vectord<3>{}));
+    STATIC_REQUIRE(hyperplane.contains(Vectord<3>{1.0, 1.0, 1.0}));
+    STATIC_REQUIRE(!hyperplane.contains(Vectord<3>{1.0, 1.0, 2.0}));
+
+    STATIC_REQUIRE(
+        !Hyperplane<Matrix<double, 1, 1>>(Vectord<1>{}, b).is_well_formed());
+  }
+
   SECTION("Test closed lower halfspace") {
     constexpr Vector<double, 2> point{1.0, 2.0};
     constexpr double b = 1.0;
