@@ -142,12 +142,63 @@ constexpr auto back_solve(const Mat& R, const Vec& rhs) {
     T sum = 0;
     for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
 
-    if (R(i)(i) == 0.0)
-      x[i] = T(0);
-    else
-      x[i] = (rhs(i) - sum) / R(i)(i);
+    assert(R(i)(i) != T(0));
+    x[i] = (rhs(i) - sum) / R(i)(i);
   }
   return x;
+}
+
+/**
+ * @brief forward solve linear system of equations
+ *
+ * R^T x = rhs ... R transposed is lower left instead of upper right
+ *
+ * @param lower left triangular matrix
+ * @param rhs vector to be solved
+ *
+ * @return solved x vector
+ */
+template <MatrixLike Mat, VectorLike Vec>
+  requires(std::same_as<mat_type_t<Mat>, vec_type_t<Vec>> &&
+           mat_rows_v<Mat> == vec_size_v<Vec>)
+constexpr auto forward_solve(const Mat& L, const Vec& rhs) {
+  using T = mat_type_t<Mat>;
+  constexpr size_t Rows = mat_rows_v<Mat>;
+  constexpr size_t Cols = mat_cols_v<Mat>;
+
+  Vector<T, Cols> x;
+  constexpr auto mn = std::min(Rows, Cols);
+  for (int i = 0; i < static_cast<int>(mn); ++i) {
+    T sum = 0;
+    for (int j = 0; j < i; ++j) sum += (L(i)(j) * x(j));
+
+    assert(L(i)(i) != T(0));
+    x[i] = (rhs(i) - sum) / L(i)(i);
+  }
+  return x;
+}
+
+/**
+ * @brief minimum norm solution for underdetermined system m < n for A
+ *
+ * min x s.t. ||A x - y||
+ *
+ * @param Q \in R^{n x n} (orthogonal basis from QR)
+ * @param R \in R^{n x m} (upper right triangular from QR)
+ *
+ * @return x_min
+ */
+template <MatrixLike MatQ, MatrixLike MatR, VectorLike Vec>
+  requires(MatMulCompatible<MatQ, MatR> && MatVecCompatible<MatR, Vec>)
+constexpr auto min_norm(const MatQ& Q, const MatR& R, const Vec& b) {
+  using T = mat_type_t<MatQ>;
+  if constexpr (!is_complex_v<T>) {
+    const auto y = forward_solve(transpose(R), b);
+    return Q * y;
+  } else {
+    const auto y = forward_solve(conjugate_transpose(R), b);
+    return Q * y;
+  }
 }
 
 /**

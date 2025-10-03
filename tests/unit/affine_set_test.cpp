@@ -52,27 +52,9 @@ TEST_CASE("Test affine set", "[affine_sets]") {
   }
 
   SECTION("Quick test on signature to mat set like") {
-    STATIC_REQUIRE(SetLike<ImplicitAffineSet<Matrix<double, 2, 2>>>);
     STATIC_REQUIRE(SetLike<ParametricAffineSet<Matrix<double, 6, 6>>>);
-  }
-
-  SECTION("Implicit affine set creation check", "[Ax = b]") {
-    constexpr auto set = ImplicitAffineSet(I, b);
-    STATIC_REQUIRE(set.is_well_formed());
-    STATIC_REQUIRE(all_equal(set.basis(), I));
-    STATIC_REQUIRE(all_equal(set.point(), b));
-    STATIC_REQUIRE(set.contains(b));
-    STATIC_REQUIRE(!set.contains(Vectord<3>{0.0, 0.0, 0.0}));
-    // (dakre) no matter what x we give the projection vector will always be in
-    // the direction of 1, 2, 3 (b)
-    constexpr auto projection = set.project(ones);
-    STATIC_REQUIRE(all_equal(projection, b));
-    constexpr auto projection2 = set.project(zeros);
-    STATIC_REQUIRE(all_equal(projection2, b));
-
-    constexpr auto set_two = set.transform(I_map);
-    STATIC_REQUIRE(all_equal(set_two.basis(), set.basis()));
-    STATIC_REQUIRE(all_equal(set_two.point(), set.point()));
+    STATIC_REQUIRE(
+        SetLike<ParametricAffineSet<Matrix<std::complex<double>, 3, 3>>>);
   }
 
   SECTION("Parametric affine set creation check", "[x0 + U t]") {

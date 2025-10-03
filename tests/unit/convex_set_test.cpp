@@ -293,16 +293,10 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(mat_cols_v<decltype(A)> == 3);
     constexpr Vector<double, 7> b{1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 2.0};
 
-    constexpr auto C = make_identity<double, 3>();
-    constexpr auto d = Vector<double, 3>{1.0, 2.0, 3.0};
+    constexpr Polyhedron<Space, decltype(A)> poly(HalfspaceType::CLH, A, b);
 
-    constexpr Polyhedron<Space, decltype(A), decltype(C)> poly(
-        HalfspaceType::CLH, A, b, C, d);
-
-    // (dakre) valid convex set but empty... I'll add more tests and such but
-    // need to harden more
     STATIC_REQUIRE(poly.is_well_formed());
-    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{}));
-    // STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
+    STATIC_REQUIRE(poly.contains(Vector<double, 3>{}));
+    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
   }
 }

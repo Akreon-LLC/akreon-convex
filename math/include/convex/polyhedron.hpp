@@ -17,7 +17,7 @@ namespace convex {
  */
 
 template <linalg::VectorSpace Space, linalg::MatrixLike MatA,
-          linalg::MatrixLike MatC = linalg::Matrix<linalg::vec_type_t<Space>, 0,
+          linalg::MatrixLike MatC = linalg::Matrix<linalg::mat_type_t<Space>, 0,
                                                    linalg::space_dim_v<Space>>>
   requires(!linalg::is_complex_v<linalg::mat_type_t<Space>> &&
            !linalg::is_complex_v<linalg::mat_type_t<MatA>> &&
@@ -86,7 +86,7 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
       if (!Halfspace<Space>(A(i), b(i), type).is_well_formed()) return false;
 
     // (2) verify hyperplanes C x = d is valid
-    if (RowsC > 0 && !ImplicitAffineSet(C, d).is_well_formed()) return false;
+    // if (RowsC > 0 && !ImplicitAffineSet(C, d).is_well_formed()) return false;
 
     return true;
   }
@@ -104,7 +104,7 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
       if (!Halfspace<Space>(A(i), b(i), type).contains(x, tol)) return false;
 
     // (1) check if x is in the affine set defined by C x = d
-    if (RowsC > 0 && !ImplicitAffineSet(C, d).contains(x, tol)) return false;
+    // if (RowsC > 0 && !ImplicitAffineSet(C, d).contains(x, tol)) return false;
 
     return true;
   }

@@ -70,6 +70,7 @@ struct mat_traits<Matrix<T, Rows, Cols>> {
       const auto col = i % Cols;
       const auto row = i / Cols;
       M[row][col] = x;
+      i++;
     };
     ((void)set_elem(std::forward<Ts>(xs)), ...);
     return M;
