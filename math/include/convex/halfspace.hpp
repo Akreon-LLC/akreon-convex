@@ -122,8 +122,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
    *
    * @return T/F
    */
-  constexpr bool is_equal_impl(
-      const ConvexSet<Space, Halfspace<Space>>& other) const {
+  constexpr bool is_equal_impl(const ConvexBase& other) const {
     return other.self().a == a && other.self().b == b &&
            other.self().type == type;
   }

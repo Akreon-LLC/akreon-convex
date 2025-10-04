@@ -31,6 +31,10 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
   /// @brief alias for scalar type of underlying set type
   using ScalarT = linalg::scalar_type_t<T>;
 
+ private:
+  /// @brief allow convex base to invoke impl
+  friend ConvexBase;
+
   /**
    * @brief is_well_formed implementation stubbed to true for this set type
    *
@@ -51,6 +55,18 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
     linalg::SymmetricMatrix S(X);
     return S.type == linalg::SymmetricMatrixType::PD ||
            S.type == linalg::SymmetricMatrixType::PSD;
+  }
+
+  /**
+   * @brief equality comparison
+   *
+   * @param convex set
+   *
+   * @return T/F
+   */
+  constexpr bool is_equal_impl(const ConvexBase& other) const {
+    (void)other;
+    return true;
   }
 };
 

@@ -92,8 +92,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    *
    * @return T/F
    */
-  constexpr bool is_equal_impl(
-      const ConvexSet<Space, Hyperplane<Space>>& other) const {
+  constexpr bool is_equal_impl(const ConvexBase& other) const {
     return other.self().a == a && other.self().b == b;
   }
 

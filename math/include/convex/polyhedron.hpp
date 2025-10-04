@@ -71,6 +71,10 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
       linalg::Vector<T, RowsC> d_in = linalg::Vector<T, RowsC>{})
       : type(type_in), A(A_in), b(b_in), C(C_in), d(d_in) {}
 
+ private:
+  /// @brief allow convex base to invoke impl
+  friend ConvexBase;
+
   /**
    * @brief is_well_formed implementation
    *
@@ -114,7 +118,18 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
     return true;
   }
 
- private:
+  /**
+   * @brief equality comparison
+   *
+   * @param convex set
+   *
+   * @return T/F
+   */
+  constexpr bool is_equal_impl(const ConvexBase& other) const {
+    return other.self().A == A && other.self().b == b && other.self().C == C &&
+           other.self().d == d;
+  }
+
   /** @brief member variables in the polyhedron */
   HalfspaceType type;  //< halfspace type
   MatA A;              //< set of finite number of halfspaces

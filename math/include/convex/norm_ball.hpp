@@ -43,6 +43,10 @@ class NormBall : public ConvexSet<Space, NormBall<Space>> {
                               const NormBallType& type_in)
       : c(c_in), r(r_in), type(type_in) {}
 
+ private:
+  /// @brief allow base class to invoke impl
+  friend ConvexBase;
+
   /**
    * @brief contains function to see if x is in the norm ball (norm(x - c) <= r)
    *
@@ -79,7 +83,18 @@ class NormBall : public ConvexSet<Space, NormBall<Space>> {
    */
   constexpr bool is_well_formed_impl() const { return r > 0; }
 
- private:
+  /**
+   * @brief equality comparison
+   *
+   * @param convex set
+   *
+   * @return T/F
+   */
+  constexpr bool is_equal_impl(const ConvexBase& other) const {
+    return other.self().c == c && other.self().r == r &&
+           other.self().type == type;
+  }
+
   /** @brief member variables in the norm ball */
   Point c;            //< n-dim vector of type T representing center of ball
   ScalarT r;          //< scalar of type T representing radius
