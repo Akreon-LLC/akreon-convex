@@ -32,6 +32,11 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
 
     STATIC_REQUIRE(
         !Hyperplane<Matrix<double, 1, 1>>(Vectord<1>{}, b).is_well_formed());
+
+    constexpr auto hyperplane_id =
+        hyperplane.transform(AffineMap<Matrix<double, 3, 3>>(
+            make_identity<double, 3>(), Vectord<3>{}));
+    STATIC_REQUIRE(hyperplane_id == hyperplane);
   }
 
   SECTION("Test closed lower halfspace") {
@@ -72,6 +77,16 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(halfspace.contains(Vectord<3>{0.0, 1.0, 0.0}));
     STATIC_REQUIRE(halfspace.contains(Vectord<3>{0.1, 1.0, 2.0}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<3>{0.1, 1.0, -2.0}));
+
+    constexpr auto halfspace_id =
+        halfspace.transform(AffineMap<Matrix<double, 3, 3>>(
+            make_identity<double, 3>(), Vectord<3>{}));
+    STATIC_REQUIRE(halfspace_id == halfspace);
+
+    constexpr auto t = Vectord<3>{1.0, 5.0, 0.0};
+    constexpr auto halfspace_trans = halfspace.transform(
+        AffineMap<Matrix<double, 3, 3>>(make_identity<double, 3>(), t));
+    STATIC_REQUIRE(halfspace_trans != halfspace_id);
   }
 
   SECTION("Test open upper halfspace") {
@@ -191,6 +206,21 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid.contains(c));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
     STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{1.5, 1.0}));
+
+    constexpr auto ellipsoid_id =
+        ellipsoid.transform(AffineMap<decltype(P)>(P, Vectord<2>{}));
+    STATIC_REQUIRE(ellipsoid_id == ellipsoid);
+
+    constexpr mat_traits<Matrix<double, 2, 2>> R_mat;
+    constexpr auto R = R_mat(M_PI / 2, 0.0, 0.0, M_PI / 2);
+    constexpr auto ellipsoid_90 =
+        ellipsoid.transform(AffineMap<decltype(R)>(R, Vectord<2>{}));
+    STATIC_REQUIRE(ellipsoid_90 == Ellipsoid<Matrix<double, 1, 2>>(
+                                       R * c,
+                                       transpose(inverse(R)) * inverse(R),
+                                       EllipsoidType::OE));
+    STATIC_REQUIRE(ellipsoid_90 != Ellipsoid<Matrix<double, 1, 2>>(
+                                       R * c, R, EllipsoidType::CE));
   }
 
   SECTION("Test closed ellipsoid set") {

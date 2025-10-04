@@ -51,7 +51,40 @@ class ConvexSet {
     return self().contains_impl(x, tol);
   }
 
- private:
+  /**
+   * @brief transform convex set by affine map
+   *
+   * @param affine map
+   *
+   * @return transformed set
+   */
+  template <linalg::MatrixLike Mat>
+  constexpr auto transform(const AffineMap<Mat>& map) const {
+    return self().transform_impl(map);
+  }
+
+  /**
+   * @brief equality comparison overload
+   *
+   * @param convex set
+   *
+   * @return T/F
+   */
+  constexpr bool operator==(const ConvexSet<Space, Derived>& other) const {
+    return self().is_equal_impl(other);
+  }
+
+  /**
+   * @brief inequality comparison overload
+   *
+   * @param convex set
+   *
+   * @return T/F
+   */
+  constexpr bool operator!=(const ConvexSet<Space, Derived>& other) const {
+    return !self().is_equal_impl(other);
+  }
+
   /**
    * @brief self function which returns a const ref to the derived object
    *

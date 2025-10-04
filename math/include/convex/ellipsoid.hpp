@@ -48,6 +48,10 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
                                const EllipsoidType& type_in)
       : c(c_in), P(P_in), type(type_in) {}
 
+ private:
+  /// @brief allow base class to invoke impl pure virtual (v-table like) funcs
+  friend ConvexBase;
+
   /**
    * @brief contains function to see if x is in the ellipsoid (x - c)^T P (x -
    * c) <= 1
@@ -86,7 +90,44 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
            S.type == linalg::SymmetricMatrixType::PSD;
   }
 
- private:
+  /**
+   * @brief transform set from an affine map
+   *
+   * E = {x | (x - c)^T P (x - c) <= 1}
+   * f(x) = U x + t -> { y = f(x) | x \in E }
+   * x = U^{-1}(y - t), sub back in we get...
+   * E' = {y | (U^{-1}(y - t) - c)^T P (U^{-1}(y - t) - c) <= 1}
+   * ... U^{-1}(y - t) - c \to U^{-1}(y - (U c + t)
+   * E' = { y | (y - (U c + t))^T U^{-T} P U^{-1} (y - (U c + t)) <= 1
+   *
+   * c' = U c + t
+   * P' = U^{-T} P u
+   *
+   * @param Affine map
+   *
+   * @return transformed ellipsoid
+   */
+  template <linalg::SquareMatrixLike Mat>
+    requires(linalg::mat_rows_v<Mat> == N)
+  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+    const auto U_inv = linalg::inverse(map.linear_part());
+    return Ellipsoid<Space>(map.linear_part() * c + map.translation(),
+                            transpose(U_inv) * P * U_inv, type);
+  }
+
+  /**
+   * @brief equality comparison
+   *
+   * @param convex set
+   *
+   * @return T/F
+   */
+  constexpr bool is_equal_impl(
+      const ConvexSet<Space, Ellipsoid<Space>>& other) const {
+    return other.self().c == c && other.self().P == P &&
+           other.self().type == type;
+  }
+
   /** @brief member variables in the ellipsoid */
   Point c;  //< n-dim vector of type T representing center of ellipsoid
   linalg::Matrix<T, N, N> P;  //< square matrix representing directions for

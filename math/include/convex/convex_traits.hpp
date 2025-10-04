@@ -9,6 +9,10 @@
 
 namespace convex {
 
+/// @brief forward declaration of affine map
+template <linalg::MatrixLike Mat>
+class AffineMap;
+
 /// @brief forward declaration of affine set
 template <linalg::MatrixLike Mat, typename Derived>
 class AffineSet;

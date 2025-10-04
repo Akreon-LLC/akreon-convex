@@ -37,6 +37,9 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
   /// @brief bring into scope the const data members
   using ConvexBase::Dim;
 
+  /// @brief helper to get n elements in point
+  static constexpr size_t N = linalg::vec_size_v<Point>;
+
   /**
    * @brief CTOR for halfspace set
    *
@@ -47,6 +50,10 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
   constexpr explicit Halfspace(const Point& a_in, const T& b_in,
                                const HalfspaceType& type_in)
       : a(a_in), b(b_in), type(type_in) {}
+
+ private:
+  /// @brief allow base class to invoke impl pure virtual (v-table like) funcs
+  friend ConvexBase;
 
   /**
    * @brief contains function to see if x is in the halfspace a^T x <= b
@@ -87,7 +94,40 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
     return true;
   }
 
- private:
+  /**
+   * @brief transform halfspace by affine map
+   *
+   * H = { x | a^T x <= b }
+   * f(H) = { y = f(x) | x \in H}... image of halfspace under f mapping
+   * where affine map is: y = U x + t -> x = U^{-1} (y - t)
+   * so, a^T U^{-1} (y - t) <= b \to a^T U^{-1} y <= b + a^T U^{-1} t
+   * we arrive at: f(H) = { y | a^T U^{-1} y <= b + a^T U^{-1} t }
+   *
+   * @param affine map
+   *
+   * @return transformed halfspace
+   */
+  template <linalg::SquareMatrixLike Mat>
+    requires(linalg::mat_rows_v<Mat> == N &&
+             !linalg::is_complex_v<linalg::mat_type_t<Mat>>)
+  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+    const auto aT_U =
+        transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
+    return Halfspace<Space>(as_vector(aT_U), b + (aT_U * map.translation())(0),
+                            type);
+  }
+
+  /**
+   * @brief is_equal implementation
+   *
+   * @return T/F
+   */
+  constexpr bool is_equal_impl(
+      const ConvexSet<Space, Halfspace<Space>>& other) const {
+    return other.self().a == a && other.self().b == b &&
+           other.self().type == type;
+  }
+
   /** @brief member variables in the halfspace */
   Point a;             //< n-dim vector of type T
   T b;                 //< bias scalar of type T

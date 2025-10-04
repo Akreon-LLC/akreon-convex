@@ -42,9 +42,6 @@ class AffineMap {
   /// @brief alias for underlying vector spanning R^m (codomain)
   using AmbientVec = linalg::Vector<T, M>;
 
-  /// @brief static assertion to check that the system is over determined
-  static_assert(N >= M);
-
   /**
    * @brief CTOR
    *

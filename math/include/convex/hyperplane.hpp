@@ -27,6 +27,9 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
   /// @brief hyperplane dimension
   using ConvexBase::Dim;
 
+  /// @brief helper to get n elements in point
+  static constexpr size_t N = linalg::vec_size_v<Point>;
+
   /**
    * @brief CTOR for hyperplane
    *
@@ -35,6 +38,10 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    */
   constexpr explicit Hyperplane(const Point& a_in, const T& b_in)
       : a(a_in), b(b_in) {}
+
+ private:
+  /// @brief allow base class to invoke impl funcs
+  friend ConvexBase;
 
   /**
    * @brief contains function to see if x lies in the hyerplane defined by a^T x
@@ -59,7 +66,37 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
     return true;
   }
 
- private:
+  /**
+   * @brief transform implementation
+   *
+   * H = { x | a^T x = b }
+   * f(H) = { y = f(x) | x \in H }
+   * y = U x + t -> x = U^{-1} (y - t)
+   * a^T U^{-1} (y - t) = b \to a^T U^{-1} y = b + a^T U^{-1}
+   *
+   * @param affine map
+   *
+   * @return transformed hyperplane
+   */
+  template <linalg::SquareMatrixLike Mat>
+    requires(linalg::mat_rows_v<Mat> == N)
+  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+    const auto aT_U =
+        transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
+    return Hyperplane<Space>(as_vector(aT_U),
+                             b + (aT_U * map.translation())(0));
+  }
+
+  /**
+   * @brief is_equal implementation
+   *
+   * @return T/F
+   */
+  constexpr bool is_equal_impl(
+      const ConvexSet<Space, Hyperplane<Space>>& other) const {
+    return other.self().a == a && other.self().b == b;
+  }
+
   /** @brief member var in hyperplane */
   Point a;  //< n-dim vec of type T
   T b;      //< bias scalar of type T
