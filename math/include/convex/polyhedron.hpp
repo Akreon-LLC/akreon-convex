@@ -16,16 +16,18 @@ namespace convex {
  * P = { x | A x <= b, C x = d }
  */
 
-template <linalg::VectorSpace Space, linalg::MatrixLike MatA,
+template <linalg::VectorSpace Space, HalfspaceType Type,
+          linalg::MatrixLike MatA,
           linalg::MatrixLike MatC = linalg::Matrix<linalg::mat_type_t<Space>, 0,
                                                    linalg::space_dim_v<Space>>>
   requires(!linalg::is_complex_v<linalg::mat_type_t<Space>> &&
            !linalg::is_complex_v<linalg::mat_type_t<MatA>> &&
            !linalg::is_complex_v<linalg::mat_type_t<MatC>>)
-class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
+class Polyhedron
+    : public ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Polyhedron<Space, MatA, MatC>>;
+  using ConvexBase = ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC>>;
   using ConvexBase::Dim;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
@@ -66,10 +68,10 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
    * @param d vector describing hyperplane bias equality (per row vec in C)
    */
   constexpr explicit Polyhedron(
-      const HalfspaceType& type_in, const MatA& A_in,
-      const linalg::Vector<T, RowsA>& b_in, MatC C_in = MatC{},
+      const MatA& A_in, const linalg::Vector<T, RowsA>& b_in,
+      MatC C_in = MatC{},
       linalg::Vector<T, RowsC> d_in = linalg::Vector<T, RowsC>{})
-      : type(type_in), A(A_in), b(b_in), C(C_in), d(d_in) {}
+      : A(A_in), b(b_in), C(C_in), d(d_in) {}
 
  private:
   /// @brief allow convex base to invoke impl
@@ -82,13 +84,13 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
    */
   constexpr bool is_well_formed_impl() const {
     // (0) check halfspace type
-    if (!(type == HalfspaceType::CLH || type == HalfspaceType::OLH))
+    if constexpr (!(Type == HalfspaceType::CLH || Type == HalfspaceType::OLH))
       return false;
 
     // (1) verify halfspaces for each row in A and b check if halfspace is
     // valid
     for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<Space>(A(i), b(i), type).is_well_formed()) return false;
+      if (!Halfspace<Space, Type>(A(i), b(i)).is_well_formed()) return false;
 
     // (2) verify hyperplanes C x = d is valid
     for (size_t i = 0; i < RowsC; ++i)
@@ -108,7 +110,7 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
   constexpr bool contains_impl(const Point& x, const ScalarT& tol) const {
     // (0) check if x is in the halfspaces defined by A x <= b
     for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<Space>(A(i), b(i), type).contains(x, tol)) return false;
+      if (!Halfspace<Space, Type>(A(i), b(i)).contains(x, tol)) return false;
 
     // (1) check if x is in the affine set defined by C x = d
     for (size_t i = 0; i < RowsC; ++i)
@@ -131,8 +133,7 @@ class Polyhedron : public ConvexSet<Space, Polyhedron<Space, MatA, MatC>> {
   }
 
   /** @brief member variables in the polyhedron */
-  HalfspaceType type;  //< halfspace type
-  MatA A;              //< set of finite number of halfspaces
+  MatA A;  //< set of finite number of halfspaces
   linalg::Vector<T, RowsA>
       b;   //< codomain vector describing halfspace inequalities
   MatC C;  //< set of finite number of hyperplanes

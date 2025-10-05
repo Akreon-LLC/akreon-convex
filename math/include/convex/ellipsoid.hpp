@@ -18,14 +18,14 @@ enum struct EllipsoidType { CE, OE };
  * E = { x | (x - c)^T P (x - c) <= 1 } s.t. P \in S^n_+ (symmetric positive
  * definite)
  */
-template <linalg::VectorSpace Space>
+template <linalg::VectorSpace Space, EllipsoidType Type>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&
            !linalg::is_complex_v<linalg::space_point_t<Space>>)
-class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
+class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Ellipsoid<Space>>;
+  using ConvexBase = ConvexSet<Space, Ellipsoid<Space, Type>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::ScalarT;
   using typename ConvexBase::T;
@@ -44,9 +44,8 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
    * @param enum type describing ellipsoid
    */
   constexpr explicit Ellipsoid(const Point& c_in,
-                               const linalg::Matrix<T, N, N>& P_in,
-                               const EllipsoidType& type_in)
-      : c(c_in), P(P_in), type(type_in) {}
+                               const linalg::Matrix<T, N, N>& P_in)
+      : c(c_in), P(P_in) {}
 
  private:
   /// @brief allow base class to invoke impl pure virtual (v-table like) funcs
@@ -69,7 +68,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
     const auto val = (delta_t * (linalg::inverse(P) * delta));
     static_assert(linalg::mat_rows_v<decltype(val)> == 1 &&
                   linalg::mat_cols_v<decltype(val)> == 1);
-    switch (type) {
+    switch (Type) {
       case EllipsoidType::OE:
         return val(0)(0) < ScalarT(1);
       case EllipsoidType::CE:
@@ -111,8 +110,8 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
     requires(linalg::mat_rows_v<Mat> == N)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto U_inv = linalg::inverse(map.linear_part());
-    return Ellipsoid<Space>(map.linear_part() * c + map.translation(),
-                            transpose(U_inv) * P * U_inv, type);
+    return Ellipsoid<Space, Type>(map.linear_part() * c + map.translation(),
+                                  transpose(U_inv) * P * U_inv);
   }
 
   /**
@@ -123,15 +122,13 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().c == c && other.self().P == P &&
-           other.self().type == type;
+    return other.self().c == c && other.self().P == P;
   }
 
   /** @brief member variables in the ellipsoid */
   Point c;  //< n-dim vector of type T representing center of ellipsoid
   linalg::Matrix<T, N, N> P;  //< square matrix representing directions for
                               // ellipsoid (valid \in S^n_+)
-  EllipsoidType type;         //< ellipsoid type
 };
 
 }  // namespace convex

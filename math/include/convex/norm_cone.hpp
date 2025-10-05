@@ -15,13 +15,13 @@ namespace convex {
  * { (x, t) | ||x|| <= t }... closed norm cone defined on L1, L2, Linf
  * { (x, t) | ||x|| < t }... open cone defined on L1, L2, Linf
  */
-template <linalg::VectorSpace Space>
+template <linalg::VectorSpace Space, NormBallType Type>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class NormCone : public NormBall<Space> {
+class NormCone : public NormBall<Space, Type> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = NormBall<Space>;
+  using ConvexBase = NormBall<Space, Type>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -37,8 +37,8 @@ class NormCone : public NormBall<Space> {
    * @param t (scalar rep variable radius)
    * @param norm ball type (enum)
    */
-  constexpr explicit NormCone(const ScalarT& t_in, const NormBallType& type_in)
-      : NormBall<Space>(Point{}, t_in, type_in) {}
+  constexpr explicit NormCone(const ScalarT& t_in)
+      : NormBall<Space, Type>(Point{}, t_in) {}
 };
 
 }  // namespace convex

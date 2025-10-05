@@ -21,13 +21,13 @@ enum struct HalfspaceType { CLH, OLH, CUH, OUH };
  * {x | a^T x >= b}... closed upper halfspace
  * {x | a^T x > b}... open upper halfspace
  */
-template <linalg::VectorSpace Space>
+template <linalg::VectorSpace Space, HalfspaceType Type>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
+class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Halfspace<Space>>;
+  using ConvexBase = ConvexSet<Space, Halfspace<Space, Type>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -47,9 +47,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
    * @param b bias scalar
    * @param enum type describing halfspace
    */
-  constexpr explicit Halfspace(const Point& a_in, const T& b_in,
-                               const HalfspaceType& type_in)
-      : a(a_in), b(b_in), type(type_in) {}
+  constexpr explicit Halfspace(const Point& a_in, const T& b_in)
+      : a(a_in), b(b_in) {}
 
  private:
   /// @brief allow base class to invoke impl pure virtual (v-table like) funcs
@@ -65,7 +64,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
     (void)tol;
-    switch (type) {
+    switch (Type) {
       case HalfspaceType::OUH:
         return linalg::dot(a, x) > b;
       case HalfspaceType::CUH:
@@ -85,7 +84,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
    */
   constexpr bool is_well_formed_impl() const {
     if (linalg::all_zero(a)) {
-      if (type == HalfspaceType::CLH || type == HalfspaceType::OLH) {
+      if constexpr (Type == HalfspaceType::CLH || Type == HalfspaceType::OLH) {
         if (b < T(0)) return false;
       } else {
         if (b > T(0)) return false;
@@ -113,8 +112,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
-    return Halfspace<Space>(as_vector(aT_U), b + (aT_U * map.translation())(0),
-                            type);
+    return Halfspace<Space, Type>(as_vector(aT_U),
+                                  b + (aT_U * map.translation())(0));
   }
 
   /**
@@ -123,14 +122,12 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().a == a && other.self().b == b &&
-           other.self().type == type;
+    return other.self().a == a && other.self().b == b;
   }
 
   /** @brief member variables in the halfspace */
-  Point a;             //< n-dim vector of type T
-  T b;                 //< bias scalar of type T
-  HalfspaceType type;  //< holds value of halfspace enum type
+  Point a;  //< n-dim vector of type T
+  T b;      //< bias scalar of type T
 };
 
 }  // namespace convex
