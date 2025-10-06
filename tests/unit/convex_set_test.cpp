@@ -108,13 +108,9 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
     STATIC_REQUIRE(SetLike<NormBall<Matrix<double, 1, 2>, NormBallType::L2OB>>);
-    STATIC_REQUIRE(
-        SetLike<
-            NormBall<Matrix<std::complex<double>, 1, 5>, NormBallType::L1OB>>);
+    STATIC_REQUIRE(SetLike<NormBall<Matrix<double, 1, 5>, NormBallType::L1OB>>);
     STATIC_REQUIRE(SetLike<NormBall<Matrix<float, 1, 10>, NormBallType::L2CB>>);
-    STATIC_REQUIRE(
-        SetLike<
-            NormBall<Matrix<std::complex<float>, 1, 1>, NormBallType::L2OB>>);
+    STATIC_REQUIRE(SetLike<NormBall<Matrix<float, 1, 1>, NormBallType::L2OB>>);
   }
 
   SECTION("Test open L2 norm ball") {
@@ -180,17 +176,15 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
   }
 
   SECTION("Test closed L1 norm ball") {
-    constexpr auto c = Vector<std::complex<float>, 4>{0.f, 1.2f, -0.8f, 2.f};
+    constexpr auto c = Vector<float, 4>{0.f, 1.2f, -0.8f, 2.f};
     constexpr auto r = 1.f;
     constexpr auto ball =
-        NormBall<Matrix<std::complex<float>, 1, 4>, NormBallType::L1OB>(c, r);
+        NormBall<Matrix<float, 1, 4>, NormBallType::L1OB>(c, r);
     STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(ball.contains(c));
-    STATIC_REQUIRE(!ball.contains(Vectorcf<4>{}));
-    STATIC_REQUIRE(ball.contains(
-        Vectorcf<4>{c(0), c(1), c(2), c(3) + std::complex<float>{0.1f, 0.2f}}));
-    STATIC_REQUIRE(!ball.contains(
-        Vectorcf<4>{c(0) + std::complex<float>(1.f), c(1), c(2), c(3)}));
+    STATIC_REQUIRE(!ball.contains(Vectorf<4>{}));
+    STATIC_REQUIRE(ball.contains(Vectorf<4>{c(0), c(1), c(2), c(3) + 0.1f}));
+    STATIC_REQUIRE(!ball.contains(Vectorf<4>{c(0) + 1.f, c(1), c(2), c(3)}));
   }
 
   SECTION("Test open Linf norm ball") {
@@ -275,20 +269,14 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
     STATIC_REQUIRE(
-        SetLike<NormCone<Matrix<double, 1, 2>, NormBallType::LinfOB>>);
-    STATIC_REQUIRE(
-        SetLike<
-            NormCone<Matrix<std::complex<double>, 1, 5>, NormBallType::L2CB>>);
-    STATIC_REQUIRE(SetLike<NormCone<Matrix<float, 1, 10>, NormBallType::L1CB>>);
-    STATIC_REQUIRE(
-        SetLike<
-            NormCone<Matrix<std::complex<float>, 1, 1>, NormBallType::L2OB>>);
+        SetLike<NormCone<Matrix<double, 1, 2>, NormConeType::LinfOC>>);
+    STATIC_REQUIRE(SetLike<NormCone<Matrix<float, 1, 10>, NormConeType::L1CC>>);
   }
 
   SECTION("Test open L2 norm cone") {
     constexpr auto c = Vector<double, 2>{1.0, 2.0};
     constexpr auto t = constexpr_sqrt(5.0);
-    constexpr auto cone = NormCone<Matrix<double, 1, 2>, NormBallType::L2OB>(t);
+    constexpr auto cone = NormCone<Matrix<double, 1, 2>, NormConeType::L2OC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
@@ -298,7 +286,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
   SECTION("Test closed L2 norm cone") {
     constexpr auto c = Vector<float, 2>{1.f, 2.f};
     constexpr auto t = constexpr_sqrt(5.f);
-    constexpr auto cone = NormCone<Matrix<float, 1, 2>, NormBallType::L2CB>(t);
+    constexpr auto cone = NormCone<Matrix<float, 1, 2>, NormConeType::L2CC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));
@@ -308,7 +296,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
   SECTION("Test open L1 norm cone") {
     constexpr auto c = Vector<double, 2>{1.0, 2.0};
     constexpr auto t = 3.0;
-    constexpr auto cone = NormCone<Matrix<double, 1, 2>, NormBallType::L1OB>(t);
+    constexpr auto cone = NormCone<Matrix<double, 1, 2>, NormConeType::L1OC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
@@ -318,7 +306,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
   SECTION("Test closed L1 norm cone") {
     constexpr auto c = Vector<float, 2>{1.f, 2.f};
     constexpr auto t = 3.f;
-    constexpr auto cone = NormCone<Matrix<float, 1, 2>, NormBallType::L1CB>(t);
+    constexpr auto cone = NormCone<Matrix<float, 1, 2>, NormConeType::L1CC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));
@@ -329,7 +317,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto c = Vector<double, 2>{1.0, 2.0};
     constexpr auto t = 2.0;
     constexpr auto cone =
-        NormCone<Matrix<double, 1, 2>, NormBallType::LinfOB>(t);
+        NormCone<Matrix<double, 1, 2>, NormConeType::LinfOC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
@@ -340,7 +328,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto c = Vector<float, 2>{1.f, 2.f};
     constexpr auto t = 2.f;
     constexpr auto cone =
-        NormCone<Matrix<float, 1, 2>, NormBallType::LinfCB>(t);
+        NormCone<Matrix<float, 1, 2>, NormConeType::LinfCC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));

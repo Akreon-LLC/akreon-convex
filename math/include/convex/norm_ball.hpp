@@ -58,8 +58,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& tol) const {
-    (void)tol;
+  constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
     using T = linalg::vec_type_t<Point>;
     switch (Type) {
       case NormBallType::L2OB:
@@ -119,8 +118,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
     /* L2 case
      * Let z = y - (U c + t) \implies ||U^{-1} z||_2^2 <= r^2 \iff z^T (U^-T
      * U^-1) z <= r^2 So we have f(Br(x)) = {y | (y - (U c + t))^T (U U^T)^{-1}
-     * (y - (U c + t))
-     * <= r^2
+     * (y - (U c + t))  <= r^2
      *
      * (i)  c' = U c + t
      * (ii) r' = ||U^{-1}|| \to r \sigma(U) OR U U^T r^2
@@ -173,48 +171,46 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
      * L1 in Complex domain is different where |z_i| = sqrt(re(z)^2 + im(z)^2)
      * so... \sum_i |z_i| <= r transforms to Second order cone program:
      *
+     * z = y - c'... c' = U c + t
+     *
      * (i) ||z_i||_2 <= s_i
      * (ii) \sum_i s_i <= r
      */
     else if constexpr (Type == NormBallType::L1OB ||
                        Type == NormBallType::L1CB) {
-      if constexpr (linalg::is_complex_v<T>) {
-        return false;  // TODO -impl (need to refactor cone)
-      } else {
-        linalg::Matrix<T, 3 * N + 1, 2 * N> A;
-        linalg::Vector<T, 3 * N + 1> b;
-        b[0] = r;
+      linalg::Matrix<T, 3 * N + 1, 2 * N> A;
+      linalg::Vector<T, 3 * N + 1> b;
+      b[0] = r;
 
-        const auto U_inv = linalg::inverse(U);
-        const auto c_plus_U_inv_t = c + U_inv * t;
-        for (size_t i = 1; i < 2 * N + 1; ++i) {
-          const size_t idx = (i - 1) % N;
-          if (i < N + 1)
-            b[i] = T(-1) * c_plus_U_inv_t(idx);
-          else
-            b[i] = c_plus_U_inv_t(idx);
-        }
-
-        const auto I = linalg::make_identity<T, N>();
-        // (i) first row assignment 1^T s <= r
-        for (size_t i = 0; i < N; ++i) A[0][N + i] = T(1);
-        // (ii) first block assignment -U^{-1} z - s <= 0
-        A = linalg::set_block<1, N + 1, 0, N>(A, T(-1) * U_inv);
-        A = linalg::set_block<1, N + 1, N, 2 * N>(A, T(-1) * I);
-        // (iii) second block assignment U^{-1} z - s <= 0
-        A = linalg::set_block<N + 1, 2 * N + 1, 0, N>(A, U_inv);
-        A = linalg::set_block<N + 1, 2 * N + 1, N, 2 * N>(A, T(-1) * I);
-        // (iv) third block assignment s >= 0
-        A = linalg::set_block<2 * N + 1, 3 * N + 1, N, 2 * N>(A, T(-1) * I);
-
-        using NewSpace = linalg::Matrix<T, 1, 2 * N>;
-        if constexpr (Type == NormBallType::L1OB)
-          return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
-                            linalg::Matrix<T, 0, 2 * N>>(A, b);
+      const auto U_inv = linalg::inverse(U);
+      const auto c_plus_U_inv_t = c + U_inv * t;
+      for (size_t i = 1; i < 2 * N + 1; ++i) {
+        const size_t idx = (i - 1) % N;
+        if (i < N + 1)
+          b[i] = T(-1) * c_plus_U_inv_t(idx);
         else
-          return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
-                            linalg::Matrix<T, 0, 2 * N>>(A, b);
+          b[i] = c_plus_U_inv_t(idx);
       }
+
+      const auto I = linalg::make_identity<T, N>();
+      // (i) first row assignment 1^T s <= r
+      for (size_t i = 0; i < N; ++i) A[0][N + i] = T(1);
+      // (ii) first block assignment -U^{-1} z - s <= 0
+      A = linalg::set_block<1, N + 1, 0, N>(A, T(-1) * U_inv);
+      A = linalg::set_block<1, N + 1, N, 2 * N>(A, T(-1) * I);
+      // (iii) second block assignment U^{-1} z - s <= 0
+      A = linalg::set_block<N + 1, 2 * N + 1, 0, N>(A, U_inv);
+      A = linalg::set_block<N + 1, 2 * N + 1, N, 2 * N>(A, T(-1) * I);
+      // (iv) third block assignment s >= 0
+      A = linalg::set_block<2 * N + 1, 3 * N + 1, N, 2 * N>(A, T(-1) * I);
+
+      using NewSpace = linalg::Matrix<T, 1, 2 * N>;
+      if constexpr (Type == NormBallType::L1OB)
+        return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
+                          linalg::Matrix<T, 0, 2 * N>>(A, b);
+      else
+        return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
+                          linalg::Matrix<T, 0, 2 * N>>(A, b);
     }
     /* Linf case
      *
@@ -232,35 +228,35 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
      * Affine Inequality is Ax <= b, x = [y]
      * A = [ U^{-1} ; -U^{-1} ]
      * b = [ r + c + U^{-1} t; r - c - U^{-1} t ]
+     *
+     * Complex case |z| <= t -> ||z||_2 <= t
+     * (U^{-1} (y - (U c + t)))^T (U^{-1} (y - (U c + t))) <= t^2
+     *
      */
     else {
-      if constexpr (linalg::is_complex_v<T>) {
-        return false;  // TODO -impl (need to refactor cone)
-      } else {
-        linalg::Matrix<T, 2 * N, N> A;
-        linalg::Vector<T, 2 * N> b;
+      linalg::Matrix<T, 2 * N, N> A;
+      linalg::Vector<T, 2 * N> b;
 
-        const auto U_inv = linalg::inverse(U);
-        const auto c_plus_U_inv_t = c + U_inv * t;
-        for (size_t i = 0; i < 2 * N; ++i) {
-          const auto idx = i % N;
-          if (i < N)
-            b[i] = r + c_plus_U_inv_t(idx);
-          else
-            b[i] = r - c_plus_U_inv_t(idx);
-        }
-
-        A = linalg::set_block<0, N, 0, N>(A, U_inv);
-        A = linalg::set_block<N, 2 * N, 0, N>(A, T(-1) * U_inv);
-
-        using NewSpace = linalg::Matrix<T, 1, N>;
-        if constexpr (Type == NormBallType::LinfOB)
-          return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
-                            linalg::Matrix<T, 0, N>>(A, b);
+      const auto U_inv = linalg::inverse(U);
+      const auto c_plus_U_inv_t = c + U_inv * t;
+      for (size_t i = 0; i < 2 * N; ++i) {
+        const auto idx = i % N;
+        if (i < N)
+          b[i] = r + c_plus_U_inv_t(idx);
         else
-          return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
-                            linalg::Matrix<T, 0, N>>(A, b);
+          b[i] = r - c_plus_U_inv_t(idx);
       }
+
+      A = linalg::set_block<0, N, 0, N>(A, U_inv);
+      A = linalg::set_block<N, 2 * N, 0, N>(A, T(-1) * U_inv);
+
+      using NewSpace = linalg::Matrix<T, 1, N>;
+      if constexpr (Type == NormBallType::LinfOB)
+        return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
+                          linalg::Matrix<T, 0, N>>(A, b);
+      else
+        return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
+                          linalg::Matrix<T, 0, N>>(A, b);
     }
   }
 

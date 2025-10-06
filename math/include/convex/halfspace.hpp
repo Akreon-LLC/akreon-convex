@@ -31,9 +31,6 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
-  /// @brief halfspace can only be defined over reals
-  static_assert(!linalg::is_complex_v<T>);
-
   /// @brief bring into scope the const data members
   using ConvexBase::Dim;
 

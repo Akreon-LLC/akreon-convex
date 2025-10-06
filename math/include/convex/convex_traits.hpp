@@ -23,6 +23,7 @@ class ParametricAffineSet;
 
 /// @brief forward declaration of convex set
 template <linalg::VectorSpace Space, typename Derived>
+  requires(!linalg::is_complex_v<linalg::space_type_t<Space>>)
 class ConvexSet;
 
 /// @brief forward declaration of halfspace type
@@ -33,6 +34,9 @@ enum class EllipsoidType;
 
 /// @brief forward declaration of norm ball type
 enum class NormBallType;
+
+/// @brief forward declaration of norm ball type
+enum class NormConeType;
 
 /// @brief forward declaration of hyperplane
 template <linalg::VectorSpace Space>
@@ -60,7 +64,7 @@ template <linalg::VectorSpace Space, EllipsoidType Type>
 class Ellipsoid;
 
 /// @brief forward declaration of norm cone set
-template <linalg::VectorSpace Space, NormBallType Type>
+template <linalg::VectorSpace Space, NormConeType Type>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class NormCone;
@@ -100,6 +104,7 @@ struct set_traits<ParametricAffineSet<Mat>> {
 
 /// @brief derived set type traits - convex sets
 template <linalg::VectorSpace Space, typename Derived>
+  requires(!linalg::is_complex_v<linalg::space_type_t<Space>>)
 struct set_traits<ConvexSet<Space, Derived>> {
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -139,7 +144,7 @@ struct set_traits<Ellipsoid<Space, Type>> {
 };
 
 /// @brief derived set type traints - norm cone
-template <linalg::VectorSpace Space, NormBallType Type>
+template <linalg::VectorSpace Space, NormConeType Type>
 struct set_traits<NormCone<Space, Type>> {
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;

@@ -13,9 +13,15 @@ namespace convex {
 /**
  * @brief Base convex set class CRTP
  *
+ *
+ * IMPORTANT following Boyd's restriction to R^n space, perhaps
+ * adapter or something to encode complex into reals for convex could be in
+ * scope later on
+ *
  * Templated by a vector space and derived class
  */
 template <linalg::VectorSpace Space, typename Derived>
+  requires(!linalg::is_complex_v<linalg::space_type_t<Space>>)
 class ConvexSet {
  public:
   /// @brief alias to extract underlying scalar type of convex set
@@ -29,6 +35,8 @@ class ConvexSet {
 
   /// @brief helper to extract dimension of convex set
   static constexpr size_t Dim = linalg::space_traits<Space>::Dim;
+
+  static_assert(!linalg::is_complex_v<T>);
 
   /**
    * @brief is_well_formed
