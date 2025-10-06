@@ -68,6 +68,22 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
     (void)other;
     return true;
   }
+
+  /**
+   * @brief transform PSD Cone
+   *
+   * TODO Basically assume congruence transform and return back cone,
+   * later explicitly test congruence mapping to make this call
+   *
+   * @param Affine Map
+   *
+   * @return PSD Cone
+   */
+  template <linalg::SquareMatrixLike Mat>
+    requires(std::same_as<T, linalg::mat_type_t<Mat>>)
+  constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
+    return *this;
+  }
 };
 
 }  // namespace convex

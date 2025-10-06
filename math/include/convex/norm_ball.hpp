@@ -100,9 +100,9 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
   /**
    * @brief transform norm ball by affine map
    *
-   * Br(x) = ||x - c|| < r or B = {x | ||x - c|| < r}
+   * Br(c) = ||x - c|| < r or B = {x | ||x - c|| < r}
    * f(B) = {y = f(x) | x \in B}... y = Ux + t -> U^{-1}(y - t) = x
-   * Br'(x) = ||U^{-1}(y - t) - c|| < r -> U^{-1}(y - (U c + t))
+   * Br'(c) = ||U^{-1}(y - t) - c|| < r -> U^{-1}(y - (U c + t))
    *
    * 1. L2 case:
    * Let z = y - (U c + t) \implies ||U^{-1} z||_2^2 <= r^2 \iff z^T (U^-T U^-1)
@@ -110,23 +110,56 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    * So we have f(Br(x)) = {y | (y - (U c + t))^T (U U^T)^{-1} (y - (U c + 1))
    * <= r^2
    *
-   * c' = U c + t
-   * r' = ||U^{-1}|| \to r \sigma(U) OR U U^T r^2
+   * (i)  c' = U c + t
+   * (ii) r' = ||U^{-1}|| \to r \sigma(U) OR U U^T r^2
+   *
+   * 2. L1 case:
+   * We have { y | ||U^{-1} (y - (U c + t))|| <= r }... let z = y - (U c + t)
+   * and w = U^{-1} z \to z = U w
+   *
+   * From above we have ||U^{-1} z || <= r \to ||U^{-1} U w|| <= r simplifies to
+   * || w || <= r
+   *
+   * Linearize L1 norm with abs value epigraphs:
+   * || w || <= r \iff \exists s \in R^n_+ s.t. -s <= w <= s, 1^T s <= r
+   *
+   * L1 ball now represented as a polyhedron (LP equalities & inequalities):
+   * P = { y | \exists w, s >= 0 s.t. y - (U c + t) = U w, || w || <= r }
+   * x = [y; w; s] where y = f(x), w = U^{-1} z, and s \in R^n_+ s.t. 1^T s <= r
+   *
+   * ^ extending dim to include w explicitly avoids performing matrix inverse
+   * which can be costly (i.e., w = U^{-1}(y - (U c + t))
+   *
+   * Equalities (Cx = d)
+   * (i) y - (U c + t) = U w
+   * C x = d
+   * where C = [I -U 0], x = [y w s]^T and d = U c + t
+   *
+   * Inequalities (Ax <= b)
+   * (ii) -s <= w <= s ... \implies s >= 0 ||0||_1 undefined
+   * w - s <= 0 \implies [0 I -I] x <= 0
+   * -w - s <= 0 \implies [0 -I -I] x <= 0
+   *
+   * (iii) 1^T s <= r
+   * 1^T s <= r \implies [0 0 1^T] x <= r
+   *
+   * Above is a polyhedron represented in Ax <= b and Cx = d by projecting onto
+   * y-coordinates
    *
    * @param affine map
    *
-   * @return transformed ball
+   * @return transformed ball (ellipse for L2, polyhedron for L1/Linf)
    */
   template <linalg::SquareMatrixLike Mat>
-    requires(linalg::mat_rows_v<Mat> == N)
+    requires(linalg::mat_cols_v<Mat> == N &&
+             std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
-    // TODO - add L1 & Linf + test
+    const auto& U = map.linear_part();
+    const auto& t = map.translation();
     if constexpr (Type == NormBallType::L2OB || Type == NormBallType::L2CB) {
-      const auto& U = map.linear_part();
-      const auto& t = map.translation();
       const auto point = U * c + t;
       Mat U_T;
-      if constexpr (linalg::is_complex_v<linalg::mat_type_t<Mat>>)
+      if constexpr (linalg::is_complex_v<T>)
         U_T = conjugate_transpose(U);
       else
         U_T = transpose(U);
@@ -136,6 +169,44 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
         return Ellipsoid<Space, EllipsoidType::OE>(point, P);
       else
         return Ellipsoid<Space, EllipsoidType::CE>(point, P);
+    } else if constexpr (Type == NormBallType::L1OB ||
+                         Type == NormBallType::L1CB) {
+      if constexpr (linalg::is_complex_v<T>)
+        return false;  // TODO -impl
+      else {
+        // TODO - fix
+#if 0
+        // (dakre) TODO - need to test out more
+        const auto M = linalg::mat_rows_v<Mat>;
+        linalg::Matrix<T, 3 * N, M + 2 * N> A;
+        linalg::Vector<T, 3 * N> b;
+        for (size_t i = 2 * N; i < 3 * N; ++i) b[i] = r;
+
+        const auto I_n = linalg::make_identity<T, N>;
+        const auto ones = as_col_vector(make_ones<T, N>());
+        A = set_block<0, N, M, M + N>(A, I_n);
+        A = set_block<0, N, M + N, M + 2 * N>(A, T(-1) * I_n);
+        A = set_block<N, 2 * N, M, M + N>(A, T(-1) * I_n);
+        A = set_block<N, 2 * N, M + N, M + 2 * N>(A, T(-1) * I_n);
+        A = set_block<2 * N, 3 * N, 0, 1>(A, ones);
+
+        const auto I_m = linalg::make_identity<T, M>;
+        linalg::Matrix<T, M, M + 2 * N> C;
+        C = set_block<0, M, 0, M>(C, I_m);
+        C = set_block<0, M, M, M + N>(C, T(-1) * U);
+        const auto d = U * c + t;
+
+        if constexpr (Type == NormBallType::L1OB)
+          return Polyhedron<Space, HalfspaceType::OLH, decltype(A),
+                            decltype(C)>(A, b, C, d);
+        else
+          return Polyhedron<Space, HalfspaceType::CLH, decltype(A),
+                            decltype(C)>(A, b, C, d);
+#endif
+        return false;
+      }
+    } else {
+      return false;  // TODO -impl
     }
   }
 

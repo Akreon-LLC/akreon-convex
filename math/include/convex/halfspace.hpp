@@ -107,8 +107,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    * @return transformed halfspace
    */
   template <linalg::SquareMatrixLike Mat>
-    requires(linalg::mat_rows_v<Mat> == N &&
-             !linalg::is_complex_v<linalg::mat_type_t<Mat>>)
+    requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
+             linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());

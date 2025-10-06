@@ -107,7 +107,8 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
    * @return transformed ellipsoid
    */
   template <linalg::SquareMatrixLike Mat>
-    requires(linalg::mat_rows_v<Mat> == N)
+    requires(linalg::mat_cols_v<Mat> == N &&
+             std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto U_inv = linalg::inverse(map.linear_part());
     return Ellipsoid<Space, Type>(map.linear_part() * c + map.translation(),

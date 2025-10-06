@@ -128,14 +128,12 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(ball.contains(Vector<double, 2>{c(0) + 0.1, c(1) - 0.2}));
     STATIC_REQUIRE(!ball.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
 
-#if 0
-    constexpr auto P = r * make_identity<double, 2>();
+    constexpr auto P = r * r * make_identity<double, 2>();
     constexpr auto ellipse =
-        Ellipsoid<Matrix<double, 1, 2>>(c, P, EllipsoidType::OE);
+        Ellipsoid<Matrix<double, 1, 2>, EllipsoidType::OE>(c, P);
     constexpr auto res = ball.transform(AffineMap<Matrix<double, 2, 2>>(
-                       make_identity<double, 2>(), Vectord<2>{}));
+        make_identity<double, 2>(), Vectord<2>{}));
     STATIC_REQUIRE(res == ellipse);
-#endif
   }
 
   SECTION("Test closed L2 norm ball") {
@@ -148,6 +146,13 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(ball.contains(Vector<float, 2>{c(0) + 0.1f, c(1) - 0.2f}));
     STATIC_REQUIRE(ball.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
+
+    constexpr auto P = r * r * make_identity<float, 2>();
+    constexpr auto ellipse =
+        Ellipsoid<Matrix<float, 1, 2>, EllipsoidType::CE>(c, P);
+    constexpr auto res = ball.transform(AffineMap<Matrix<float, 2, 2>>(
+        make_identity<float, 2>(), Vectorf<2>{}));
+    STATIC_REQUIRE(res == ellipse);
   }
 
   SECTION("Test open L1 norm ball") {
@@ -344,6 +349,9 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(B));
     STATIC_REQUIRE(cone.contains(I));
     STATIC_REQUIRE(cone.contains(Z));
+
+    STATIC_REQUIRE(cone.transform(AffineMap<Matrix<double, 2, 2>>(
+                       make_identity<double, 2>(), Vectord<2>{})) == cone);
   }
 }
 
