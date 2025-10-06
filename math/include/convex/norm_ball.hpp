@@ -102,46 +102,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    * Br(c) = ||x - c|| < r or B = {x | ||x - c|| < r}
    * f(B) = {y = f(x) | x \in B}... y = Ux + t -> U^{-1}(y - t) = x
    * Br'(c) = ||U^{-1}(y - t) - c|| < r -> U^{-1}(y - (U c + t))
-   *
-   * 1. L2 case:
-   * Let z = y - (U c + t) \implies ||U^{-1} z||_2^2 <= r^2 \iff z^T (U^-T U^-1)
-   * z <= r^2
-   * So we have f(Br(x)) = {y | (y - (U c + t))^T (U U^T)^{-1} (y - (U c + 1))
-   * <= r^2
-   *
-   * (i)  c' = U c + t
-   * (ii) r' = ||U^{-1}|| \to r \sigma(U) OR U U^T r^2
-   *
-   * 2. L1 case:
-   * We have { y | ||U^{-1} (y - (U c + t))|| <= r }... let z = y - (U c + t)
-   * and w = U^{-1} z \to z = U w
-   *
-   * From above we have ||U^{-1} z || <= r \to ||U^{-1} U w|| <= r simplifies to
-   * || w || <= r
-   *
-   * Linearize L1 norm with abs value epigraphs:
-   * || w || <= r \iff \exists s \in R^n_+ s.t. -s <= w <= s, 1^T s <= r
-   *
-   * L1 ball now represented as a polyhedron (LP equalities & inequalities):
-   * P = { y | \exists w, s >= 0 s.t. y - (U c + t) = U w, || w || <= r }
-   * x = [y; w; s] where y = f(x), w = U^{-1} z, and s \in R^n_+ s.t. 1^T s <= r
-   *
-   * ^ extending dim to include w explicitly avoids performing matrix inverse
-   * which can be costly (i.e., w = U^{-1}(y - (U c + t))
-   *
-   * Equalities (Cx = d)
-   * (i) y - (U c + t) = U w
-   * C x = d
-   * where C = [I -U 0], x = [y w s]^T and d = U c + t
-   *
-   * Inequalities (Ax <= b)
-   * (ii) -s <= w <= s ... \implies s >= 0 ||0||_1 undefined
-   * w - s <= 0 \implies [0 I -I] x <= 0
-   * -w - s <= 0 \implies [0 -I -I] x <= 0
-   *
-   * (iii) 1^T s <= r
-   * 1^T s <= r \implies [0 0 1^T] x <= r
-   *
+
    * Above is a polyhedron represented in Ax <= b and Cx = d by projecting onto
    * y-coordinates
    *
@@ -155,6 +116,15 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto& U = map.linear_part();
     const auto& t = map.translation();
+    /* L2 case
+     * Let z = y - (U c + t) \implies ||U^{-1} z||_2^2 <= r^2 \iff z^T (U^-T
+     * U^-1) z <= r^2 So we have f(Br(x)) = {y | (y - (U c + t))^T (U U^T)^{-1}
+     * (y - (U c + t))
+     * <= r^2
+     *
+     * (i)  c' = U c + t
+     * (ii) r' = ||U^{-1}|| \to r \sigma(U) OR U U^T r^2
+     */
     if constexpr (Type == NormBallType::L2OB || Type == NormBallType::L2CB) {
       const auto point = U * c + t;
       Mat U_T;
@@ -168,40 +138,129 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
         return Ellipsoid<Space, EllipsoidType::OE>(point, P);
       else
         return Ellipsoid<Space, EllipsoidType::CE>(point, P);
-    } else if constexpr (Type == NormBallType::L1OB ||
-                         Type == NormBallType::L1CB) {
-      if constexpr (linalg::is_complex_v<T>)
-        return false;  // TODO -impl
-      else {
-        // (dakre) TODO - need to test out more
-        const auto M = linalg::mat_rows_v<Mat>;
-        linalg::Matrix<T, 2 * N + 1, M + 2 * N> A;
-        linalg::Vector<T, 2 * N + 1> b;
-        b[2 * N] = r;
+    }
+    /* L1 case
+     *
+     * L1 ball now represented as a polyhedron (LP equalities & inequalities):
+     * We have || U^{-1} z || <= r from above, where c transforms similarly to
+     * the above however r scales differently now (forms a type of polyhedron).
+     *
+     * Note the following relationships for L1:
+     * || U^{-1} z ||_1 \to \sum_{i=1}^n | U^{-1} z | <= r
+     * let s = [s_0 s_1 ... s_n] >= 0 not use slack var s to represent abs value
+     * respecting the constraint \sum_i^n s_i <= r
+     * furthermore note z = y - c', c' = Uc + t so the following constraints
+     * are:
+     *
+     * U^{-1} z \to U^{-1} y - U^{-1} U c - t
+     *
+     * (i)   1^T s <= r
+     * (ii)  -(U^{-1} z)_i <= s_i \to -U^{-1} y - s <= -(c + U^{-1} t)
+     * (iii) (U^{-1} z)_i <= s_i \to U^{-1} y - s <= (c + U^{-1} t)
+     * (iv) s >= 0 \to -s <= 0
+     *
+     * P = { x | Ax <= b, Cx = d } where x has an expanded dim including s
+     * x = [y s] \in R^{2*n} and b = [r 0 0 0] \in R^{3*n + 1}
+     *
+     * Affine Inequalities:
+     * (i)   A_1 = [ 0^T; 1^T ], b_1 = r ... first row in A
+     * (ii)  A_2 = [ -U^{-1}; -I ], b_2 = -(c + U^{-1} t)
+     * (iii) A_3 = [ U^{-1}; -I ], b_3 = (c + U^{-1} t)
+     * (iv)  A_4 = [ 0; -I ], b_4 = 0
+     *
+     * Linear Equality C x = d, where z = y - c'... c' = U x + t
+     *
+     * L1 in Complex domain is different where |z_i| = sqrt(re(z)^2 + im(z)^2)
+     * so... \sum_i |z_i| <= r transforms to Second order cone program:
+     *
+     * (i) ||z_i||_2 <= s_i
+     * (ii) \sum_i s_i <= r
+     */
+    else if constexpr (Type == NormBallType::L1OB ||
+                       Type == NormBallType::L1CB) {
+      if constexpr (linalg::is_complex_v<T>) {
+        return false;  // TODO -impl (need to refactor cone)
+      } else {
+        linalg::Matrix<T, 3 * N + 1, 2 * N> A;
+        linalg::Vector<T, 3 * N + 1> b;
+        b[0] = r;
 
-        const auto I_n = linalg::make_identity<T, N>();
-        A = linalg::set_block<0, N, M, M + N>(A, I_n);
-        A = linalg::set_block<0, N, M + N, M + 2 * N>(A, T(-1) * I_n);
-        A = linalg::set_block<N, 2 * N, M, M + N>(A, T(-1) * I_n);
-        A = linalg::set_block<N, 2 * N, M + N, M + 2 * N>(A, T(-1) * I_n);
-        for (size_t i = 0; i < N; ++i) A[2 * N][N + M + i] = T(1);
+        const auto U_inv = linalg::inverse(U);
+        const auto c_plus_U_inv_t = c + U_inv * t;
+        for (size_t i = 1; i < 2 * N + 1; ++i) {
+          const size_t idx = (i - 1) % N;
+          if (i < N + 1)
+            b[i] = T(-1) * c_plus_U_inv_t(idx);
+          else
+            b[i] = c_plus_U_inv_t(idx);
+        }
 
-        const auto I_m = linalg::make_identity<T, M>();
-        linalg::Matrix<T, M, M + 2 * N> C;
-        C = linalg::set_block<0, M, 0, M>(C, I_m);
-        C = linalg::set_block<0, M, M, M + N>(C, T(-1) * U);
-        const auto d = U * c + t;
+        const auto I = linalg::make_identity<T, N>();
+        // (i) first row assignment 1^T s <= r
+        for (size_t i = 0; i < N; ++i) A[0][N + i] = T(1);
+        // (ii) first block assignment -U^{-1} z - s <= 0
+        A = linalg::set_block<1, N + 1, 0, N>(A, T(-1) * U_inv);
+        A = linalg::set_block<1, N + 1, N, 2 * N>(A, T(-1) * I);
+        // (iii) second block assignment U^{-1} z - s <= 0
+        A = linalg::set_block<N + 1, 2 * N + 1, 0, N>(A, U_inv);
+        A = linalg::set_block<N + 1, 2 * N + 1, N, 2 * N>(A, T(-1) * I);
+        // (iv) third block assignment s >= 0
+        A = linalg::set_block<2 * N + 1, 3 * N + 1, N, 2 * N>(A, T(-1) * I);
 
-        using NewSpace = linalg::Matrix<T, 1, M + 2 * N>;
+        using NewSpace = linalg::Matrix<T, 1, 2 * N>;
         if constexpr (Type == NormBallType::L1OB)
           return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
-                            decltype(C)>(A, b, C, d);
+                            linalg::Matrix<T, 0, 2 * N>>(A, b);
         else
           return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
-                            decltype(C)>(A, b, C, d);
+                            linalg::Matrix<T, 0, 2 * N>>(A, b);
       }
-    } else {
-      return false;  // TODO -impl
+    }
+    /* Linf case
+     *
+     * Real case starts similar to L1 but no need for a vector of slack vars
+     * as Linf encodes maximum abs value for the full matrix.
+     *
+     * ||U^{-1} z||_inf = max |U^{-1} z|... largest magnitude among all
+     * components
+     *
+     * z = y - c'... c' = Uc + t so, U^{-1} y - U^{-1}(U c + t)
+     *
+     * -U^{-1} z <= r \to -U^{-1} y <= r - U^{-1}(U c + t)
+     *  U^{-1} z <= r \to U^{-1} y <= r + U^{-1}(U c + t)
+     *
+     * Affine Inequality is Ax <= b, x = [y]
+     * A = [ U^{-1} ; -U^{-1} ]
+     * b = [ r + c + U^{-1} t; r - c - U^{-1} t ]
+     */
+    else {
+      if constexpr (linalg::is_complex_v<T>) {
+        return false;  // TODO -impl (need to refactor cone)
+      } else {
+        linalg::Matrix<T, 2 * N, N> A;
+        linalg::Vector<T, 2 * N> b;
+
+        const auto U_inv = linalg::inverse(U);
+        const auto c_plus_U_inv_t = c + U_inv * t;
+        for (size_t i = 0; i < 2 * N; ++i) {
+          const auto idx = i % N;
+          if (i < N)
+            b[i] = r + c_plus_U_inv_t(idx);
+          else
+            b[i] = r - c_plus_U_inv_t(idx);
+        }
+
+        A = linalg::set_block<0, N, 0, N>(A, U_inv);
+        A = linalg::set_block<N, 2 * N, 0, N>(A, T(-1) * U_inv);
+
+        using NewSpace = linalg::Matrix<T, 1, N>;
+        if constexpr (Type == NormBallType::LinfOB)
+          return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
+                            linalg::Matrix<T, 0, N>>(A, b);
+        else
+          return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
+                            linalg::Matrix<T, 0, N>>(A, b);
+      }
     }
   }
 

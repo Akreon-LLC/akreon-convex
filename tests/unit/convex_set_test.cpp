@@ -159,32 +159,37 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto c = Vector<double, 4>{0.0, 1.2, -0.8, 2.0};
     constexpr auto r = 1.0;
     constexpr auto ball =
-        NormBall<Matrix<double, 1, 4>, NormBallType::L1OB>(c, r);
+        NormBall<Matrix<double, 1, 4>, NormBallType::L1CB>(c, r);
     STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(!ball.contains(Vectord<4>{}));
     STATIC_REQUIRE(ball.contains(Vectord<4>{c(0), c(1), c(2), c(3) + 0.1}));
-    STATIC_REQUIRE(!ball.contains(Vectord<4>{c(0) + 1.0, c(1), c(2), c(3)}));
+    STATIC_REQUIRE(ball.contains(Vectord<4>{c(0) + 1.0, c(1), c(2), c(3)}));
 
     constexpr auto I = make_identity<double, 4>();
     constexpr auto res =
         ball.transform(AffineMap<Matrixd<4, 4>>(I, Vectord<4>{}));
 
-    // TODO implement more tests
     STATIC_REQUIRE(res.is_well_formed());
+    STATIC_REQUIRE(
+        !res.contains(Vectord<8>{c(0), c(1), c(2), c(3), r, r, r, r}));
+    STATIC_REQUIRE(
+        res.contains(Vectord<8>{c(0), c(1), c(2), c(3), 0.0, 0.0, 0.0, 0.0}));
+    STATIC_REQUIRE(res.contains(Vectord<8>{c(0) + 0.3, c(1) - 0.2, c(2) + 0.1,
+                                           c(3) - 0.1, 0.3, 0.2, 0.1, 0.1}));
   }
 
   SECTION("Test closed L1 norm ball") {
     constexpr auto c = Vector<std::complex<float>, 4>{0.f, 1.2f, -0.8f, 2.f};
     constexpr auto r = 1.f;
     constexpr auto ball =
-        NormBall<Matrix<std::complex<float>, 1, 4>, NormBallType::L1CB>(c, r);
+        NormBall<Matrix<std::complex<float>, 1, 4>, NormBallType::L1OB>(c, r);
     STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(!ball.contains(Vectorcf<4>{}));
     STATIC_REQUIRE(ball.contains(
         Vectorcf<4>{c(0), c(1), c(2), c(3) + std::complex<float>{0.1f, 0.2f}}));
-    STATIC_REQUIRE(ball.contains(
+    STATIC_REQUIRE(!ball.contains(
         Vectorcf<4>{c(0) + std::complex<float>(1.f), c(1), c(2), c(3)}));
   }
 
@@ -207,6 +212,14 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(!ball.contains(Vectorf<3>{}));
+    STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
+
+    constexpr auto I = make_identity<float, 3>();
+    constexpr auto res =
+        ball.transform(AffineMap<Matrixf<3, 3>>(I, Vectorf<3>{}));
+    STATIC_REQUIRE(res.is_well_formed());
+    STATIC_REQUIRE(res.contains(c));
+    STATIC_REQUIRE(!res.contains(Vectorf<3>{}));
     STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
   }
 }
