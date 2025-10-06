@@ -401,6 +401,7 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
   constexpr auto C = C_mat(1.0, 1.0, 1.0, 2.0, 2.0, 2.0);
   constexpr Vector<double, 2> d{1.0, 2.0};
 
+  constexpr auto I = make_identity<double, 3>();
   SECTION("Test Closed Polyhedron", "[A x <= b, C x == d]") {
     constexpr Polyhedron<Space, HalfspaceType::CLH, decltype(A), decltype(C)>
         poly(A, b, C, d);
@@ -410,6 +411,8 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.0, 1.0, 0.0}));
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.0, 0.0, 1.0}));
+    STATIC_REQUIRE(poly.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{})) ==
+                   poly);
   }
 
   SECTION("Test Closed Polyhedron", "[A x < b, C x == d]") {
@@ -422,5 +425,7 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!poly.contains(Vector<double, 3>{0.0, 1.0, 0.0}));
     STATIC_REQUIRE(!poly.contains(Vector<double, 3>{0.0, 0.0, 1.0}));
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.2, 0.3, 0.5}));
+    STATIC_REQUIRE(poly.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{})) ==
+                   poly);
   }
 }

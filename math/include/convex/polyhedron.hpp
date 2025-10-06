@@ -121,6 +121,38 @@ class Polyhedron
   }
 
   /**
+   * @brief transform polyhedron by affine map
+   *
+   * P = { x | Ax <= b, Cx = d }
+   * f(x) = U x + t
+   *
+   * P' = { y = f(x) | x \in P }
+   * y = U x + t \to x = U^{-1}(y - t)
+   *
+   * constraints become: A U^{-1} (y - t) <= b & C U^{-1} (y - t) = d
+   * (i) A U^{-1} y <= b + A U^{-1} t
+   * (ii) C U^{-1} y = d + C U^{-1} t
+   *
+   * @return T/F
+   */
+  template <linalg::SquareMatrixLike Mat>
+    requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
+             linalg::mat_cols_v<Mat> == N)
+  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+    const auto& U = map.linear_part();
+    const auto& t = map.translation();
+
+    const auto U_inv = linalg::inverse(U);
+    const auto A_new = A * U_inv;
+    const auto b_new = b + A_new * t;
+    const auto C_new = C * U_inv;
+    const auto d_new = d + C_new * t;
+
+    return Polyhedron<Space, Type, decltype(A), decltype(C)>(A_new, b_new,
+                                                             C_new, d_new);
+  }
+
+  /**
    * @brief equality comparison
    *
    * @param convex set
