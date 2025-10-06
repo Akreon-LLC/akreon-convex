@@ -156,17 +156,22 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
   }
 
   SECTION("Test open L1 norm ball") {
-    constexpr auto c = Vector<std::complex<double>, 4>{0.0, 1.2, -0.8, 2.0};
+    constexpr auto c = Vector<double, 4>{0.0, 1.2, -0.8, 2.0};
     constexpr auto r = 1.0;
     constexpr auto ball =
-        NormBall<Matrix<std::complex<double>, 1, 4>, NormBallType::L1OB>(c, r);
+        NormBall<Matrix<double, 1, 4>, NormBallType::L1OB>(c, r);
     STATIC_REQUIRE(ball.is_well_formed());
     STATIC_REQUIRE(ball.contains(c));
-    STATIC_REQUIRE(!ball.contains(Vectorcd<4>{}));
-    STATIC_REQUIRE(ball.contains(
-        Vectorcd<4>{c(0), c(1), c(2), c(3) + std::complex<double>{0.1, 0.2}}));
-    STATIC_REQUIRE(!ball.contains(
-        Vectorcd<4>{c(0) + std::complex<double>(1.0), c(1), c(2), c(3)}));
+    STATIC_REQUIRE(!ball.contains(Vectord<4>{}));
+    STATIC_REQUIRE(ball.contains(Vectord<4>{c(0), c(1), c(2), c(3) + 0.1}));
+    STATIC_REQUIRE(!ball.contains(Vectord<4>{c(0) + 1.0, c(1), c(2), c(3)}));
+
+    constexpr auto I = make_identity<double, 4>();
+    constexpr auto res =
+        ball.transform(AffineMap<Matrixd<4, 4>>(I, Vectord<4>{}));
+
+    // TODO implement more tests
+    STATIC_REQUIRE(res.is_well_formed());
   }
 
   SECTION("Test closed L1 norm ball") {
@@ -207,8 +212,8 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
 }
 
 TEST_CASE("Test ellipsoid set", "[convex_sets]") {
-  // (dakre) TODO current issue with eig decomp and static compile time checking
-  // effecting this
+  // (dakre) TODO current issue with eig decomp and static compile time
+  // checking effecting this
 #if 0
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(SetLike<Ellipsoid<Matrix<double, 1, 5>>>);

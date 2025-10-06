@@ -61,7 +61,6 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
   constexpr bool contains_impl(const Point& x, const T& tol) const {
     (void)tol;
     using T = linalg::vec_type_t<Point>;
-    constexpr auto N = linalg::vec_size_v<Point>;
     switch (Type) {
       case NormBallType::L2OB:
         return linalg::L2<T, N>()(x - c) < r;
@@ -174,36 +173,32 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
       if constexpr (linalg::is_complex_v<T>)
         return false;  // TODO -impl
       else {
-        // TODO - fix
-#if 0
         // (dakre) TODO - need to test out more
         const auto M = linalg::mat_rows_v<Mat>;
-        linalg::Matrix<T, 3 * N, M + 2 * N> A;
-        linalg::Vector<T, 3 * N> b;
-        for (size_t i = 2 * N; i < 3 * N; ++i) b[i] = r;
+        linalg::Matrix<T, 2 * N + 1, M + 2 * N> A;
+        linalg::Vector<T, 2 * N + 1> b;
+        b[2 * N] = r;
 
-        const auto I_n = linalg::make_identity<T, N>;
-        const auto ones = as_col_vector(make_ones<T, N>());
-        A = set_block<0, N, M, M + N>(A, I_n);
-        A = set_block<0, N, M + N, M + 2 * N>(A, T(-1) * I_n);
-        A = set_block<N, 2 * N, M, M + N>(A, T(-1) * I_n);
-        A = set_block<N, 2 * N, M + N, M + 2 * N>(A, T(-1) * I_n);
-        A = set_block<2 * N, 3 * N, 0, 1>(A, ones);
+        const auto I_n = linalg::make_identity<T, N>();
+        A = linalg::set_block<0, N, M, M + N>(A, I_n);
+        A = linalg::set_block<0, N, M + N, M + 2 * N>(A, T(-1) * I_n);
+        A = linalg::set_block<N, 2 * N, M, M + N>(A, T(-1) * I_n);
+        A = linalg::set_block<N, 2 * N, M + N, M + 2 * N>(A, T(-1) * I_n);
+        for (size_t i = 0; i < N; ++i) A[2 * N][N + M + i] = T(1);
 
-        const auto I_m = linalg::make_identity<T, M>;
+        const auto I_m = linalg::make_identity<T, M>();
         linalg::Matrix<T, M, M + 2 * N> C;
-        C = set_block<0, M, 0, M>(C, I_m);
-        C = set_block<0, M, M, M + N>(C, T(-1) * U);
+        C = linalg::set_block<0, M, 0, M>(C, I_m);
+        C = linalg::set_block<0, M, M, M + N>(C, T(-1) * U);
         const auto d = U * c + t;
 
+        using NewSpace = linalg::Matrix<T, 1, M + 2 * N>;
         if constexpr (Type == NormBallType::L1OB)
-          return Polyhedron<Space, HalfspaceType::OLH, decltype(A),
+          return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
                             decltype(C)>(A, b, C, d);
         else
-          return Polyhedron<Space, HalfspaceType::CLH, decltype(A),
+          return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
                             decltype(C)>(A, b, C, d);
-#endif
-        return false;
       }
     } else {
       return false;  // TODO -impl
