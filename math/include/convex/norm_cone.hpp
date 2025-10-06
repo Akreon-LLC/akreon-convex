@@ -97,6 +97,10 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
   /**
    * @brief transform impl
    *
+   * Affine map of a cone will break cone property so no-op here for the time
+   * being. Cones are homogenous sets anchored at the origin and don't "move"
+   * with affine maps like other convex sets
+   *
    * @param Affine map
    *
    * @return transformed convex set
@@ -104,12 +108,8 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
   template <linalg::SquareMatrixLike Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
              std::same_as<T, linalg::mat_type_t<Mat>>)
-  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
-    const auto& U = map.linear_part();
-    const auto& t = map.translation();
-    (void)U;
-    (void)t;
-    return true;
+  constexpr auto transform_impl(const AffineMap<Mat>& /*map*/) const {
+    return *this;
   }
 
   /** @brief member variables in the norm cone */

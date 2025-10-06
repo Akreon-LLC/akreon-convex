@@ -82,7 +82,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const { return r > 0; }
+  constexpr bool is_well_formed_impl() const { return r >= 0; }
 
   /**
    * @brief equality comparison
