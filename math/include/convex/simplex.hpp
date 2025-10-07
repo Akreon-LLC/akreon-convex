@@ -48,7 +48,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
   constexpr bool contains_impl(const Point& x, const T& tol) const {
     T sum(0);
     for (size_t i = 0; i < N; ++i) {
-      if (x(i) < tol) return false;
+      if (x(i) < T(0)) return false;
       sum += x(i);
     }
     return linalg::constexpr_abs(sum - T(1)) <= tol;

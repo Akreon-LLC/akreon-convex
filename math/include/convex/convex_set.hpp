@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "../algebra/algebra_util.hpp"
 #include "convex_traits.hpp"
 
@@ -81,15 +83,20 @@ class ConvexSet {
    * perspective function)
    * [z; t] \in P^{-1}(C) \equiv K
    *
+   * AKA perspective function composed with an affine func: x_proj = g(f(x))
+   *
    * @param projective map
    * @param point in set
    *
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-  constexpr auto project(const ProjectiveMap<MatA, MatC>& map,
-                         const Point& x) const {
-    return self().project_impl(map, x);
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
+    // (dakre) TODO this is clean for all sets aside from psd cone.. may need to
+    // carry that set separately from others? idk
+    if (!contains(x)) return std::nullopt;
+    return map.apply(x);
   }
 
   /**

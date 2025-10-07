@@ -35,10 +35,19 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(
         !Hyperplane<Matrix<double, 1, 1>>(Vectord<1>{}, b).is_well_formed());
 
+    constexpr auto I = make_identity<double, 3>();
     constexpr auto hyperplane_id =
-        hyperplane.transform(AffineMap<Matrix<double, 3, 3>>(
-            make_identity<double, 3>(), Vectord<3>{}));
+        hyperplane.transform(AffineMap<Matrix<double, 3, 3>>(I, Vectord<3>{}));
     STATIC_REQUIRE(hyperplane_id == hyperplane);
+
+    constexpr ProjectiveMap<Matrix<double, 3, 3>, Matrix<double, 1, 3>>
+        proj_map(I, Vectord<3>{}, as_row_vector(Vectord<3>{}), 1.0);
+    constexpr auto x_proj =
+        hyperplane.project(proj_map, Vectord<3>{1.0, 1.0, 1.0});
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(
+        !hyperplane.project(proj_map, Vectord<3>{1.0, 1.0, 2.0}).has_value());
   }
 
   SECTION("Test closed lower halfspace") {
@@ -67,6 +76,16 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(halfspace.contains(Vectord<4>{0.0, 0.0, 0.0, 1.9}));
     STATIC_REQUIRE(halfspace.contains(Vectord<4>{0.5, 2.0, 2.0, 1.0}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<4>{1.0, 1.0, 0.0, 5.0}));
+
+    constexpr auto I = make_identity<double, 4>();
+    constexpr ProjectiveMap<Matrix<double, 4, 4>, Matrix<double, 1, 4>>
+        proj_map(I, Vectord<4>{}, as_row_vector(Vectord<4>{}), 1.0);
+    constexpr auto x_proj =
+        halfspace.project(proj_map, Vectord<4>{0.0, 0.0, 0.0, 1.9});
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(!halfspace.project(proj_map, Vectord<4>{0.0, 0.0, 0.0, 2.0})
+                        .has_value());
   }
 
   SECTION("Test closed upper halfspace") {
@@ -130,6 +149,14 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto res = ball.transform(AffineMap<Matrix<double, 2, 2>>(
         make_identity<double, 2>(), Vectord<2>{}));
     STATIC_REQUIRE(res == ellipse);
+
+    constexpr auto I = make_identity<double, 2>();
+    constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
+        proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
+    constexpr auto x_proj = ball.project(proj_map, c);
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(!ball.project(proj_map, Vectord<2>{}).has_value());
   }
 
   SECTION("Test closed L2 norm ball") {
@@ -173,6 +200,13 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
         res.contains(Vectord<8>{c(0), c(1), c(2), c(3), 0.0, 0.0, 0.0, 0.0}));
     STATIC_REQUIRE(res.contains(Vectord<8>{c(0) + 0.3, c(1) - 0.2, c(2) + 0.1,
                                            c(3) - 0.1, 0.3, 0.2, 0.1, 0.1}));
+
+    constexpr ProjectiveMap<Matrix<double, 4, 4>, Matrix<double, 1, 4>>
+        proj_map(I, Vectord<4>{}, as_row_vector(Vectord<4>{}), 1.0);
+    constexpr auto x_proj = ball.project(proj_map, c);
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(!ball.project(proj_map, Vectord<4>{}).has_value());
   }
 
   SECTION("Test closed L1 norm ball") {
@@ -196,6 +230,14 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(ball.contains(c));
     STATIC_REQUIRE(!ball.contains(Vectord<3>{}));
     STATIC_REQUIRE(ball.contains(Vectord<3>{c(0) + 1.0, c(1), c(2)}));
+
+    constexpr auto I = make_identity<double, 3>();
+    constexpr ProjectiveMap<Matrix<double, 3, 3>, Matrix<double, 1, 3>>
+        proj_map(I, Vectord<3>{}, as_row_vector(Vectord<3>{}), 1.0);
+    constexpr auto x_proj = ball.project(proj_map, c);
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(!ball.project(proj_map, Vectord<3>{}).has_value());
   }
 
   SECTION("Test closed  Linf norm ball") {
@@ -250,6 +292,14 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid_90 ==
                    Ellipsoid<Matrix<double, 1, 2>, EllipsoidType::OE>(
                        R * c, transpose(inverse(R)) * inverse(R)));
+
+    constexpr auto I = make_identity<double, 2>();
+    constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
+        proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
+    constexpr auto x_proj = ellipsoid.project(proj_map, c);
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(!ellipsoid.project(proj_map, Vectord<2>{}).has_value());
   }
 
   SECTION("Test closed ellipsoid set") {
@@ -281,6 +331,14 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+
+    constexpr auto I = make_identity<double, 2>();
+    constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
+        proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
+    constexpr auto x_proj = cone.project(proj_map, Vectord<2>{});
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(!cone.project(proj_map, c).has_value());
   }
 
   SECTION("Test closed L2 norm cone") {
@@ -301,6 +359,14 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+
+    constexpr auto I = make_identity<double, 2>();
+    constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
+        proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
+    constexpr auto x_proj = cone.project(proj_map, Vectord<2>{});
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(!cone.project(proj_map, c).has_value());
   }
 
   SECTION("Test closed L1 norm cone") {
@@ -322,6 +388,14 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+
+    constexpr auto I = make_identity<double, 2>();
+    constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
+        proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
+    constexpr auto x_proj = cone.project(proj_map, Vectord<2>{});
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(!cone.project(proj_map, c).has_value());
   }
 
   SECTION("Test closed Linf norm cone") {
@@ -385,6 +459,15 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{}));
     STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
+
+    constexpr auto I = make_identity<double, 3>();
+    constexpr ProjectiveMap<Matrix<double, 3, 3>, Matrix<double, 1, 3>>
+        proj_map(I, Vectord<3>{}, as_row_vector(Vectord<3>{}), 1.0);
+    constexpr auto x_proj = poly.project(proj_map, Vectord<3>{});
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(
+        !poly.project(proj_map, Vectord<3>{1.0, 2.0, 3.0}).has_value());
   }
 
   SECTION("Test Open Polyhedron", "[A x < b]") {
@@ -449,5 +532,13 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(poly.contains(Vectord<3>{0.8, 0.1, 0.1}));
     STATIC_REQUIRE(!poly.contains(Vectord<3>{-0.8, 0.1, 0.1}));
     STATIC_REQUIRE(!poly.contains(Vectord<3>{0.8, 0.1, 0.0}));
+
+    constexpr ProjectiveMap<Matrix<double, 3, 3>, Matrix<double, 1, 3>>
+        proj_map(I, Vectord<3>{}, as_row_vector(Vectord<3>{}), 1.0);
+    constexpr auto x_proj =
+        simplex.project(proj_map, Vectord<3>{0.7, 0.2, 0.1});
+    STATIC_REQUIRE(x_proj.has_value());
+    STATIC_REQUIRE(x_proj.value() == x_proj);
+    STATIC_REQUIRE(!simplex.project(proj_map, Vectord<3>{}).has_value());
   }
 }
