@@ -31,7 +31,7 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
   /// @brief alias for scalar type of underlying set type
   using ScalarT = linalg::scalar_type_t<T>;
 
- private:
+ protected:
   /// @brief allow convex base to invoke impl
   friend ConvexBase;
 

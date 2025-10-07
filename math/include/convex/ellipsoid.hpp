@@ -41,13 +41,12 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
    *
    * @param Point (i.e., n-dim vector of type T)
    * @param P \in S^n_+
-   * @param enum type describing ellipsoid
    */
   constexpr explicit Ellipsoid(const Point& c_in,
                                const linalg::Matrix<T, N, N>& P_in)
       : c(c_in), P(P_in) {}
 
- private:
+ protected:
   /// @brief allow base class to invoke impl pure virtual (v-table like) funcs
   friend ConvexBase;
 

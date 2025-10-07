@@ -47,7 +47,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
   constexpr explicit Halfspace(const Point& a_in, const T& b_in)
       : a(a_in), b(b_in) {}
 
- private:
+ protected:
   /// @brief allow base class to invoke impl pure virtual (v-table like) funcs
   friend ConvexBase;
 

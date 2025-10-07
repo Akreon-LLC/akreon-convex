@@ -39,7 +39,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
   constexpr explicit Hyperplane(const Point& a_in, const T& b_in)
       : a(a_in), b(b_in) {}
 
- private:
+ protected:
   /// @brief allow base class to invoke impl funcs
   friend ConvexBase;
 

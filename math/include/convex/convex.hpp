@@ -15,3 +15,4 @@
 #include "norm_cone.hpp"
 #include "psd_cone.hpp"
 #include "polyhedron.hpp"
+#include "simplex.hpp"

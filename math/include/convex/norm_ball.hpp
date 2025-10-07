@@ -46,7 +46,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
   constexpr explicit NormBall(const Point& c_in, const ScalarT& r_in)
       : c(c_in), r(r_in) {}
 
- private:
+ protected:
   /// @brief allow base class to invoke impl
   friend ConvexBase;
 

@@ -429,3 +429,25 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
                    poly);
   }
 }
+
+TEST_CASE("Test Simplex", "[convex_sets]") {
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(SetLike<Simplex<Matrix<double, 1, 3>>>);
+    STATIC_REQUIRE(SetLike<Simplex<Matrix<float, 1, 5>>>);
+  }
+
+  SECTION("Test Simplex", "[{ x | x >= 0, sum_i x_i = 1}]") {
+    constexpr Simplex<Matrixd<1, 3>> simplex;
+    STATIC_REQUIRE(simplex.is_well_formed());
+    STATIC_REQUIRE(simplex == simplex);
+    STATIC_REQUIRE(simplex.contains(Vectord<3>{0.8, 0.1, 0.1}));
+    STATIC_REQUIRE(!simplex.contains(Vectord<3>{-0.8, 0.1, 0.1}));
+    STATIC_REQUIRE(!simplex.contains(Vectord<3>{0.8, 0.1, 0.0}));
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto poly =
+        simplex.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{}));
+    STATIC_REQUIRE(poly.contains(Vectord<3>{0.8, 0.1, 0.1}));
+    STATIC_REQUIRE(!poly.contains(Vectord<3>{-0.8, 0.1, 0.1}));
+    STATIC_REQUIRE(!poly.contains(Vectord<3>{0.8, 0.1, 0.0}));
+  }
+}

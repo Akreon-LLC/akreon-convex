@@ -57,7 +57,7 @@ class Polyhedron
   static_assert(N == ColsC);
 
   /**
-   * @brief CTOR for ellipsoid set
+   * @brief CTOR for polyhedron set
    *
    * @param type describing halfspace inequalities (closed or open)
    * @param A basis of vectors describing linear combinations with x to form
@@ -73,7 +73,7 @@ class Polyhedron
       linalg::Vector<T, RowsC> d_in = linalg::Vector<T, RowsC>{})
       : A(A_in), b(b_in), C(C_in), d(d_in) {}
 
- private:
+ protected:
   /// @brief allow convex base to invoke impl
   friend ConvexBase;
 

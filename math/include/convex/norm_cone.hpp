@@ -43,7 +43,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
    */
   constexpr explicit NormCone(const ScalarT& t_in) : t(t_in) {}
 
- private:
+ protected:
   /// @brief allow base class to invoke impls
   friend ConvexBase;
 

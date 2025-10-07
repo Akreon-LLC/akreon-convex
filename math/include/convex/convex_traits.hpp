@@ -27,16 +27,19 @@ template <linalg::VectorSpace Space, typename Derived>
 class ConvexSet;
 
 /// @brief forward declaration of halfspace type
-enum class HalfspaceType;
+enum struct HalfspaceType;
 
 /// @brief forward declaration of ellipse type
-enum class EllipsoidType;
+enum struct EllipsoidType;
 
 /// @brief forward declaration of norm ball type
-enum class NormBallType;
+enum struct NormBallType;
 
 /// @brief forward declaration of norm ball type
-enum class NormConeType;
+enum struct NormConeType;
+
+/// @brief forward declaration of simplex type
+enum struct SimplexType;
 
 /// @brief forward declaration of hyperplane
 template <linalg::VectorSpace Space>
@@ -82,6 +85,13 @@ template <linalg::VectorSpace Space, HalfspaceType Type,
            !linalg::is_complex_v<linalg::mat_type_t<MatC>>)
 class Polyhedron;
 
+/// @brief forward declaration of simplex set
+template <linalg::VectorSpace Space>
+  requires(linalg::space_dim_v<Space> ==
+               linalg::vec_size_v<linalg::space_point_t<Space>> &&
+           !linalg::is_complex_v<linalg::space_point_t<Space>>)
+class Simplex;
+
 /// @brief set traits
 template <class Set>
 struct set_traits;
@@ -119,7 +129,7 @@ struct set_traits<Hyperplane<Space>> {
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
 };
 
-/// @brief derived set type traints - halfspaces
+/// @brief derived set type traits - halfspaces
 template <linalg::VectorSpace Space, HalfspaceType Type>
 struct set_traits<Halfspace<Space, Type>> {
   using value_type = typename linalg::space_type_t<Space>;
@@ -127,7 +137,7 @@ struct set_traits<Halfspace<Space, Type>> {
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
 };
 
-/// @brief derived set type traints - norm ball
+/// @brief derived set type traits - norm ball
 template <linalg::VectorSpace Space, NormBallType Type>
 struct set_traits<NormBall<Space, Type>> {
   using value_type = typename linalg::space_type_t<Space>;
@@ -135,7 +145,7 @@ struct set_traits<NormBall<Space, Type>> {
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
 };
 
-/// @brief derived set type traints - ellipsoid
+/// @brief derived set type traits - ellipsoid
 template <linalg::VectorSpace Space, EllipsoidType Type>
 struct set_traits<Ellipsoid<Space, Type>> {
   using value_type = typename linalg::space_type_t<Space>;
@@ -143,7 +153,7 @@ struct set_traits<Ellipsoid<Space, Type>> {
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
 };
 
-/// @brief derived set type traints - norm cone
+/// @brief derived set type traits - norm cone
 template <linalg::VectorSpace Space, NormConeType Type>
 struct set_traits<NormCone<Space, Type>> {
   using value_type = typename linalg::space_type_t<Space>;
@@ -151,7 +161,7 @@ struct set_traits<NormCone<Space, Type>> {
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
 };
 
-/// @brief derived set type traints - psd cone
+/// @brief derived set type traits - psd cone
 template <linalg::VectorSpace Space>
 struct set_traits<PsdCone<Space>> {
   using value_type = typename linalg::space_type_t<Space>;
@@ -159,10 +169,18 @@ struct set_traits<PsdCone<Space>> {
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
 };
 
-/// @brief derived set type traints - polyhedron
+/// @brief derived set type traits - polyhedron
 template <linalg::VectorSpace Space, HalfspaceType Type,
           linalg::MatrixLike MatA, linalg::MatrixLike MatC>
 struct set_traits<Polyhedron<Space, Type, MatA, MatC>> {
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t Dim = linalg::space_dim_v<Space>;
+};
+
+/// @brief derived set type traits - simplex
+template <linalg::VectorSpace Space>
+struct set_traits<Simplex<Space>> {
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
