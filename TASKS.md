@@ -23,19 +23,37 @@ TODO to scope:
 - [x] jordan form (eig decomp)
 - [x] matrix exponential
 - [] LDL^T / Cholesky Decomposition
+
 ### Convex Analysis
+
+#### Affine Sets & maps
 - [x] implicit affine sets
 - [x] parametric affine sets
 - [x] affine maps
 - [x] affine transforms [R | t]
-- [x] ellipsoid convex set
-- [x] halfspace convex set
-- [x] norm ball convex set
-- [x] norm cone convex set
-- [x] psd cone convex set
-- [] polyhedron convex set
-- [] convex hull 
-- [] duality & KKT 
+#### Convex Sets
+- [x] ellipsoid
+- [x] halfspace
+- [x] norm ball
+- [x] norm cone
+- [x] psd cone
+- [x] simplex
+- [x] polyhedron
+- [] LMI
+#### Convex Functions
+TODO
+
+#### Convex Problems
+TODO
+
+#### Duality
+- [] duality & KKT
+
+#### Convex Optimization
+- [] convex problem formulations & modeling
+- [] convex opt newton solver
+- [] convex opt interior point solver
+
 ### Operators & Morphisms
 - [] linear map abstraction
 - [] composition, identity, inverse
@@ -58,18 +76,9 @@ TODO to scope:
 - [] arithmetic on polynomials
 - [] evaluation (horner's rule)
 
-## Optimization
-** All of the below are constexpr safe **
-
-### Convex Optimization
-- [] convex problem formulations & modeling
-- [] convex opt newton solver
-- [] convex opt interior point solver
-
 ### Differentiable Optimization
 
-** TODO ** 
-
+** TODO **
 
 ## Controls
 ** All of the below are constexpr safe **

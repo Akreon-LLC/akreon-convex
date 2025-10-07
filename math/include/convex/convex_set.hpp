@@ -62,6 +62,9 @@ class ConvexSet {
   /**
    * @brief transform convex set by affine map
    *
+   * This is applied to convex sets like ellipsoid, polyhedron, simplex, etc...
+   * its image is another convex set
+   *
    * @param affine map
    *
    * @return transformed set
@@ -69,6 +72,24 @@ class ConvexSet {
   template <linalg::MatrixLike Mat>
   constexpr auto transform(const AffineMap<Mat>& map) const {
     return self().transform_impl(map);
+  }
+
+  /**
+   * @brief project x \in dom(C) by linear fractional function
+   *
+   * Q(x) -> [z; t] \in K (K = cone in N+1 dim space formed from inverse
+   * perspective function)
+   * [z; t] \in P^{-1}(C) \equiv K
+   *
+   * @param projective map
+   * @param point in set
+   *
+   * @return projected set
+   */
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr auto project(const ProjectiveMap<MatA, MatC>& map,
+                         const Point& x) const {
+    return self().project_impl(map, x);
   }
 
   /**

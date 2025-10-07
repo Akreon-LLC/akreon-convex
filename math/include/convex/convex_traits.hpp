@@ -13,6 +13,13 @@ namespace convex {
 template <linalg::MatrixLike Mat>
 class AffineMap;
 
+/// @brief forward declaration of projective map
+template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  requires(std::same_as<linalg::mat_type_t<MatA>, linalg::mat_type_t<MatC>> &&
+           linalg::mat_cols_v<MatA> == linalg::mat_cols_v<MatC> &&
+           linalg::mat_rows_v<MatC> == 1)
+class ProjectiveMap;
+
 /// @brief forward declaration of affine set
 template <linalg::MatrixLike Mat, typename Derived>
 class AffineSet;

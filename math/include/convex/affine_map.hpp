@@ -85,6 +85,8 @@ class AffineMap {
    * translation by the inverse.
    *
    * f(x) = U x + c
+   * f^{-1}(f(x)) = id or x
+   *
    * f^{-1}(x) = U^{-1} x - U^{-1} c
    * f^{-1}(f(x)) = U^{-1}(U x + c) - U^{-1} c == x
    *
