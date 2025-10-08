@@ -143,7 +143,7 @@ using space_type_t = typename space_traits<remove_cvref_t<Space>>::value_type;
 template <class Space>
 using space_point_t = typename space_traits<remove_cvref_t<Space>>::Point;
 
-/// @helper for dimension of vector space
+/// @brief for dimension of vector space
 template <class Space>
 inline constexpr size_t space_dim_v = space_traits<remove_cvref_t<Space>>::DIM;
 

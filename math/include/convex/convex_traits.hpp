@@ -193,12 +193,34 @@ struct set_traits<Simplex<Space>> {
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
 };
 
+/// @brief alias for set type
+template <class Set>
+using set_type_t = typename set_traits<linalg::remove_cvref_t<Set>>::value_type;
+
+/// @brief alias for point type in set
+template <class Set>
+using set_point_t = typename set_traits<linalg::remove_cvref_t<Set>>::Point;
+
+/// @brief helper to get dimension of space underpinning set
+template <class Set>
+inline constexpr size_t set_dim_v =
+    set_traits<linalg::remove_cvref_t<Set>>::DIM;
+
 /// @brief set like concept
 template <class Set>
-concept SetLike =
-    requires(const Set& set, const typename set_traits<Set>::Point& x) {
-      { set.is_well_formed() } -> std::convertible_to<bool>;
-      { set.contains(x) } -> std::convertible_to<bool>;
+concept SetLike = requires(const Set& set, const set_point_t<Set>& x) {
+  { set.is_well_formed() } -> std::convertible_to<bool>;
+  { set.contains(x) } -> std::convertible_to<bool>;
+};
+
+/// @brief convex set like concept
+template <class Set, class AffineMap, class ProjectiveMap>
+concept ConvexSetLike =
+    SetLike<Set> &&
+    requires(const Set& set, const AffineMap& affine_map,
+             const ProjectiveMap& projective_map, const set_point_t<Set>& x) {
+      { set.transform(affine_map) };
+      { set.project(projective_map, x) };
     };
 
 }  // namespace convex

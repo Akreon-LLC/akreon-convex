@@ -40,6 +40,7 @@ TODO to scope:
 - [x] simplex
 - [x] polyhedron
 - [] LMI
+- [] separating hyperplane 
 #### Convex Functions
 TODO
 
