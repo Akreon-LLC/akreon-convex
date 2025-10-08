@@ -9,6 +9,7 @@
 
 namespace convex {
 
+/// @brief simple enum for cone type
 enum struct NormConeType { L2OC, L2CC, L1OC, L1CC, LinfOC, LinfCC };
 
 /**
@@ -92,24 +93,6 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
     return other.self().t == t;
-  }
-
-  /**
-   * @brief transform impl
-   *
-   * Affine map of a cone will break cone property so no-op here for the time
-   * being. Cones are homogenous sets anchored at the origin and don't "move"
-   * with affine maps like other convex sets
-   *
-   * @param Affine map
-   *
-   * @return transformed convex set
-   */
-  template <linalg::SquareMatrixLike Mat>
-    requires(linalg::mat_cols_v<Mat> == N &&
-             std::same_as<T, linalg::mat_type_t<Mat>>)
-  constexpr auto transform_impl(const AffineMap<Mat>& /*map*/) const {
-    return *this;
   }
 
   /** @brief member variables in the norm cone */

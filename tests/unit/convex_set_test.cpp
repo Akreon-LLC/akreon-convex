@@ -325,7 +325,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(
         ConvexSetLike<NormCone<Matrix<double, 1, 2>, NormConeType::LinfOC>>);
     STATIC_REQUIRE(
-        ConvexSetLike<NormCone<Matrix<float, 1, 10>, NormConeType::L1CC>>);
+        ConeLike<NormCone<Matrix<float, 1, 10>, NormConeType::L1CC>>);
   }
 
   SECTION("Test open L2 norm cone") {
@@ -341,9 +341,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
     constexpr auto x_proj = cone.project(proj_map, Vectord<2>{});
-    STATIC_REQUIRE(x_proj.has_value());
-    STATIC_REQUIRE(x_proj.value() == x_proj);
-    STATIC_REQUIRE(!cone.project(proj_map, c).has_value());
+    STATIC_REQUIRE(!x_proj.has_value());
   }
 
   SECTION("Test closed L2 norm cone") {
@@ -369,9 +367,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
     constexpr auto x_proj = cone.project(proj_map, Vectord<2>{});
-    STATIC_REQUIRE(x_proj.has_value());
-    STATIC_REQUIRE(x_proj.value() == x_proj);
-    STATIC_REQUIRE(!cone.project(proj_map, c).has_value());
+    STATIC_REQUIRE(!x_proj.has_value());
   }
 
   SECTION("Test closed L1 norm cone") {
@@ -398,9 +394,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
     constexpr auto x_proj = cone.project(proj_map, Vectord<2>{});
-    STATIC_REQUIRE(x_proj.has_value());
-    STATIC_REQUIRE(x_proj.value() == x_proj);
-    STATIC_REQUIRE(!cone.project(proj_map, c).has_value());
+    STATIC_REQUIRE(!x_proj.has_value());
   }
 
   SECTION("Test closed Linf norm cone") {
@@ -417,8 +411,8 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
 
 TEST_CASE("PSD cone", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
-    STATIC_REQUIRE(SetLike<PsdCone<Matrix<double, 2, 2>>>);
-    STATIC_REQUIRE(SetLike<PsdCone<Matrix<float, 10, 10>>>);
+    STATIC_REQUIRE(ConeLike<PsdCone<Matrix<double, 2, 2>>>);
+    STATIC_REQUIRE(ConeLike<PsdCone<Matrix<float, 10, 10>>>);
   }
 
   SECTION("PSD Cones") {
@@ -437,6 +431,11 @@ TEST_CASE("PSD cone", "[convex_sets]") {
 
     STATIC_REQUIRE(cone.transform(AffineMap<Matrix<double, 2, 2>>(
                        make_identity<double, 2>(), Vectord<2>{})) == cone);
+
+    constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
+        proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
+    constexpr auto x_proj = cone.project(proj_map, Matrixd<2, 2>{});
+    STATIC_REQUIRE(!x_proj.has_value());
   }
 }
 
@@ -547,5 +546,28 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(!simplex.project(proj_map, Vectord<3>{}).has_value());
+  }
+}
+
+TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(ConvexSetLike<NonnegOrthant<Matrix<double, 1, 1>>>);
+    STATIC_REQUIRE(ConeLike<NonnegOrthant<Matrix<double, 1, 1>>>);
+  }
+
+  SECTION("Test nonneg orthant", "[R^n_+]") {
+    constexpr NonnegOrthant<Matrixd<1, 2>> set;
+    STATIC_REQUIRE(set.is_well_formed());
+    STATIC_REQUIRE(set == set);
+    STATIC_REQUIRE(set.contains(Vectord<2>{1.0, 0.0}));
+    STATIC_REQUIRE(!set.contains(Vectord<2>{-0.1, 0.1}));
+    constexpr auto I = make_identity<double, 2>();
+    STATIC_REQUIRE(set.transform(AffineMap<Matrixd<2, 2>>(I, Vectord<2>{})) ==
+                   set);
+    STATIC_REQUIRE(
+        !set.project(ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>(
+                         I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 0.0),
+                     Vectord<2>{})
+             .has_value());
   }
 }

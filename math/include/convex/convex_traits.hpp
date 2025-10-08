@@ -95,9 +95,32 @@ class Polyhedron;
 /// @brief forward declaration of simplex set
 template <linalg::VectorSpace Space>
   requires(linalg::space_dim_v<Space> ==
-               linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           !linalg::is_complex_v<linalg::space_point_t<Space>>)
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
 class Simplex;
+
+/// @brief forward declaration of nonneg orthant
+template <linalg::VectorSpace Space>
+  requires(linalg::space_dim_v<Space> ==
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
+class NonnegOrthant;
+
+/// @brief type traits for convex cone
+template <class T>
+struct is_cone : std::false_type {};
+
+/// @brief psd cone & norm cone defs
+template <linalg::VectorSpace Space>
+struct is_cone<PsdCone<Space>> : std::true_type {};
+
+template <linalg::VectorSpace Space, NormConeType Type>
+struct is_cone<NormCone<Space, Type>> : std::true_type {};
+
+template <linalg::VectorSpace Space>
+struct is_cone<NonnegOrthant<Space>> : std::true_type {};
+
+/// @brief value for is cone
+template <class T>
+inline constexpr bool is_cone_v = is_cone<std::remove_cvref_t<T>>::value;
 
 /// @brief set traits
 template <class Set>
@@ -194,6 +217,15 @@ struct set_traits<Simplex<Space>> {
   static constexpr size_t DIM = linalg::space_dim_v<Space>;
 };
 
+/// @brief derived set type traits - nonneg orthant
+template <linalg::VectorSpace Space>
+struct set_traits<NonnegOrthant<Space>> {
+  using VectorSpace = Space;
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t DIM = linalg::space_dim_v<Space>;
+};
+
 /// @brief alias for vector space
 template <class Set>
 using set_space_t =
@@ -228,4 +260,9 @@ concept ConvexSetLike =
              set_point_t<Set> t) {
       { set.transform(AffineMap<decltype(U)>(U, t)) };
     };
+
+/// @brief cone set like concept
+template <class Cone>
+concept ConeLike = SetLike<Cone> && is_cone_v<Cone>;
+
 }  // namespace convex

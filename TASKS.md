@@ -39,8 +39,13 @@ TODO to scope:
 - [x] psd cone
 - [x] simplex
 - [x] polyhedron
+- [] nonnegative orthant
+- [] exponential cone
+- [] power cone
 - [] LMI
 - [] separating hyperplane 
+- [] supporting hyperplane
+- [] conic perspective
 #### Convex Functions
 TODO
 

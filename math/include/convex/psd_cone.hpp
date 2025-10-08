@@ -54,8 +54,7 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
    *
    * @return T/F
    */
-  constexpr auto contains_impl(const Point& X, const ScalarT& tol) const {
-    (void)tol;
+  constexpr auto contains_impl(const Point& X, const ScalarT& /* tol */) const {
     linalg::SymmetricMatrix S(X);
     return S.type == linalg::SymmetricMatrixType::PD ||
            S.type == linalg::SymmetricMatrixType::PSD;
@@ -68,22 +67,8 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
    *
    * @return T/F
    */
-  constexpr bool is_equal_impl(const ConvexBase& other) const {
-    (void)other;
+  constexpr bool is_equal_impl(const ConvexBase& /* other */) const {
     return true;
-  }
-
-  /**
-   * @brief transform PSD Cone
-   *
-   * @param Affine Map
-   *
-   * @return PSD Cone
-   */
-  template <linalg::SquareMatrixLike Mat>
-    requires(std::same_as<T, linalg::mat_type_t<Mat>>)
-  constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
-    return *this;
   }
 };
 

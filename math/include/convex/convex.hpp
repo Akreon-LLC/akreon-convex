@@ -12,6 +12,7 @@
 #include "ellipsoid.hpp"
 #include "halfspace.hpp"
 #include "hyperplane.hpp"
+#include "nonneg_orthant.hpp"
 #include "norm_ball.hpp"
 #include "norm_cone.hpp"
 #include "polyhedron.hpp"

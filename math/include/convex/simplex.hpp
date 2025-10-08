@@ -18,8 +18,7 @@ namespace convex {
  */
 template <linalg::VectorSpace Space>
   requires(linalg::space_dim_v<Space> ==
-               linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           !linalg::is_complex_v<linalg::space_point_t<Space>>)
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
 class Simplex : public ConvexSet<Space, Simplex<Space>> {
  public:
   /// @brief bring into scope the type traits from the base class

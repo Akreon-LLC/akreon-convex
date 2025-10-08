@@ -73,7 +73,12 @@ class ConvexSet {
    */
   template <linalg::MatrixLike Mat>
   constexpr auto transform(const AffineMap<Mat>& map) const {
-    return self().transform_impl(map);
+    // (0) if this is a cone an affine transform remains a cone (assuming
+    // congruence transform)
+    if constexpr (ConeLike<Derived>)
+      return self();
+    else
+      return self().transform_impl(map);
   }
 
   /**
@@ -93,10 +98,17 @@ class ConvexSet {
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
-    // (dakre) TODO this is clean for all sets aside from psd cone.. may need to
-    // carry that set separately from others? idk
-    if (!contains(x)) return std::nullopt;
-    return map.apply(x);
+    // (0) Affine map of a cone will break cone property so no-op here for the
+    // time being. Cones are homogenous sets anchored at the origin and don't
+    // "move" with affine maps like other convex sets
+    if constexpr (ConeLike<Derived>) {
+      return std::nullopt;
+    } else {
+      // (1) if this is a convex set (not cone) then projection of point lies in
+      // K if x is in C
+      if (!contains(x)) return std::nullopt;
+      return map.apply(x);
+    }
   }
 
   /**
