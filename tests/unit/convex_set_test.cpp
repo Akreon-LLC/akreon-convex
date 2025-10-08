@@ -16,18 +16,11 @@ using namespace convex;
 TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
-    STATIC_REQUIRE(SetLike<Hyperplane<Matrix<double, 1, 4>>>);
+    STATIC_REQUIRE(ConvexSetLike<Hyperplane<Matrix<double, 1, 4>>>);
     STATIC_REQUIRE(
-        SetLike<Halfspace<Matrix<double, 1, 2>, HalfspaceType::OUH>>);
+        ConvexSetLike<Halfspace<Matrix<double, 1, 2>, HalfspaceType::OUH>>);
     STATIC_REQUIRE(
-        SetLike<Halfspace<Matrix<float, 1, 10>, HalfspaceType::CLH>>);
-    STATIC_REQUIRE(ConvexSetLike<Hyperplane<Matrix<double, 1, 2>>,
-                                 AffineMap<Matrixd<2, 2>>,
-                                 ProjectiveMap<Matrixd<2, 2>, Matrixd<1, 2>>>);
-    STATIC_REQUIRE(
-        ConvexSetLike<Halfspace<Matrix<double, 1, 2>, HalfspaceType::OUH>,
-                      AffineMap<Matrixd<2, 2>>,
-                      ProjectiveMap<Matrixd<2, 2>, Matrixd<1, 2>>>);
+        ConvexSetLike<Halfspace<Matrix<float, 1, 10>, HalfspaceType::CLH>>);
   }
 
   SECTION("Test hyperplane") {
@@ -133,14 +126,14 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
 TEST_CASE("Test norm ball convex set", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
-    STATIC_REQUIRE(SetLike<NormBall<Matrix<double, 1, 2>, NormBallType::L2OB>>);
-    STATIC_REQUIRE(SetLike<NormBall<Matrix<double, 1, 5>, NormBallType::L1OB>>);
-    STATIC_REQUIRE(SetLike<NormBall<Matrix<float, 1, 10>, NormBallType::L2CB>>);
-    STATIC_REQUIRE(SetLike<NormBall<Matrix<float, 1, 1>, NormBallType::L2OB>>);
     STATIC_REQUIRE(
-        ConvexSetLike<NormBall<Matrix<double, 1, 2>, NormBallType::L2OB>,
-                      AffineMap<Matrixd<2, 2>>,
-                      ProjectiveMap<Matrixd<2, 2>, Matrixd<1, 2>>>);
+        ConvexSetLike<NormBall<Matrix<double, 1, 2>, NormBallType::L2OB>>);
+    STATIC_REQUIRE(
+        ConvexSetLike<NormBall<Matrix<double, 1, 5>, NormBallType::L1OB>>);
+    STATIC_REQUIRE(
+        ConvexSetLike<NormBall<Matrix<float, 1, 10>, NormBallType::L2CB>>);
+    STATIC_REQUIRE(
+        ConvexSetLike<NormBall<Matrix<float, 1, 1>, NormBallType::L2OB>>);
   }
 
   SECTION("Test open L2 norm ball") {
@@ -330,12 +323,9 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
     STATIC_REQUIRE(
-        SetLike<NormCone<Matrix<double, 1, 2>, NormConeType::LinfOC>>);
-    STATIC_REQUIRE(SetLike<NormCone<Matrix<float, 1, 10>, NormConeType::L1CC>>);
+        ConvexSetLike<NormCone<Matrix<double, 1, 2>, NormConeType::LinfOC>>);
     STATIC_REQUIRE(
-        ConvexSetLike<NormCone<Matrix<double, 1, 2>, NormConeType::L2CC>,
-                      AffineMap<Matrixd<2, 2>>,
-                      ProjectiveMap<Matrixd<2, 2>, Matrixd<1, 2>>>);
+        ConvexSetLike<NormCone<Matrix<float, 1, 10>, NormConeType::L1CC>>);
   }
 
   SECTION("Test open L2 norm cone") {
@@ -452,15 +442,12 @@ TEST_CASE("PSD cone", "[convex_sets]") {
 
 TEST_CASE("Polyhedron", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
-    STATIC_REQUIRE(SetLike<Polyhedron<Matrix<double, 2, 1>, HalfspaceType::OUH,
-                                      Matrix<double, 2, 2>>>);
-    STATIC_REQUIRE(SetLike<Polyhedron<Matrix<float, 2, 1>, HalfspaceType::CLH,
-                                      Matrix<float, 2, 2>>>);
     STATIC_REQUIRE(
-        ConvexSetLike<Polyhedron<Matrix<double, 1, 2>, HalfspaceType::CLH,
-                                 Matrix<double, 2, 2>>,
-                      AffineMap<Matrixd<2, 2>>,
-                      ProjectiveMap<Matrixd<2, 2>, Matrixd<1, 2>>>);
+        ConvexSetLike<Polyhedron<Matrix<double, 2, 1>, HalfspaceType::OUH,
+                                 Matrix<double, 2, 2>>>);
+    STATIC_REQUIRE(
+        ConvexSetLike<Polyhedron<Matrix<float, 2, 1>, HalfspaceType::CLH,
+                                 Matrix<float, 2, 2>>>);
   }
 
   using Space = Matrix<double, 1, 3>;  // points in R^3
@@ -535,12 +522,8 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
 
 TEST_CASE("Test Simplex", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
-    STATIC_REQUIRE(SetLike<Simplex<Matrix<double, 1, 3>>>);
-    STATIC_REQUIRE(SetLike<Simplex<Matrix<float, 1, 5>>>);
-
-    STATIC_REQUIRE(
-        ConvexSetLike<Simplex<Matrix<double, 1, 2>>, AffineMap<Matrixd<2, 2>>,
-                      ProjectiveMap<Matrixd<2, 2>, Matrixd<1, 2>>>);
+    STATIC_REQUIRE(ConvexSetLike<Simplex<Matrix<double, 1, 3>>>);
+    STATIC_REQUIRE(ConvexSetLike<Simplex<Matrix<float, 1, 5>>>);
   }
 
   SECTION("Test Simplex", "[{ x | x >= 0, sum_i x_i = 1}]") {

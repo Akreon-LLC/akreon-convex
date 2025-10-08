@@ -9,6 +9,10 @@
 
 namespace convex {
 
+// (dakre) TODO Need to revist PSD Cone class, it is a convex set but doesnt
+// play as nice with transform (assumes congruence affine map) + projection
+// (point is a symmetric matrix vs n-dim point)
+
 /**
  * @brief PSD cone definition valid on vector space
  *
@@ -71,9 +75,6 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
 
   /**
    * @brief transform PSD Cone
-   *
-   * TODO Basically assume congruence transform and return back cone,
-   * later explicitly test congruence mapping to make this call
    *
    * @param Affine Map
    *

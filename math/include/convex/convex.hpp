@@ -7,6 +7,7 @@
 
 #include "affine_map.hpp"
 #include "affine_transforms.hpp"
+#include "convex_ops.hpp"
 #include "convex_set.hpp"
 #include "ellipsoid.hpp"
 #include "halfspace.hpp"
