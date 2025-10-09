@@ -48,6 +48,9 @@ enum struct NormConeType;
 /// @brief forward declaration of simplex type
 enum struct SimplexType;
 
+/// @brief forward declaration of LMI type
+enum struct LMIType;
+
 /// @brief forward declaration of hyperplane
 template <linalg::VectorSpace Space>
   requires(linalg::space_dim_v<Space> ==
@@ -69,8 +72,7 @@ class NormBall;
 /// @brief forward declaration of ellipsoid set
 template <linalg::VectorSpace Space, EllipsoidType Type>
   requires(linalg::space_dim_v<Space> ==
-               linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           !linalg::is_complex_v<linalg::space_point_t<Space>>)
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
 class Ellipsoid;
 
 /// @brief forward declaration of norm cone set
@@ -81,7 +83,7 @@ class NormCone;
 
 /// @brief forward declaration of psd cone set
 template <linalg::VectorSpace Space>
-  requires(!linalg::is_complex_v<linalg::mat_type_t<Space>>)
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<Space>>)
 class PsdCone;
 
 /// @brief forward declaration of polyhedron set
@@ -104,6 +106,12 @@ template <linalg::VectorSpace Space>
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class NonnegOrthant;
 
+/// @brief forward declaration of LMI type
+template <linalg::VectorSpace Space, LMIType Type>
+  requires(linalg::space_dim_v<Space> ==
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
+class LMI;
+
 /// @brief type traits for convex cone
 template <class T>
 struct is_cone : std::false_type {};
@@ -117,6 +125,9 @@ struct is_cone<NormCone<Space, Type>> : std::true_type {};
 
 template <linalg::VectorSpace Space>
 struct is_cone<NonnegOrthant<Space>> : std::true_type {};
+
+template <linalg::VectorSpace Space, LMIType Type>
+struct is_cone<LMI<Space, Type>> : std::true_type {};
 
 /// @brief value for is cone
 template <class T>
@@ -144,7 +155,6 @@ struct set_traits<ParametricAffineSet<Mat>> {
 
 /// @brief derived set type traits - convex sets
 template <linalg::VectorSpace Space, typename Derived>
-  requires(!linalg::is_complex_v<linalg::space_type_t<Space>>)
 struct set_traits<ConvexSet<Space, Derived>> {
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -220,6 +230,15 @@ struct set_traits<Simplex<Space>> {
 /// @brief derived set type traits - nonneg orthant
 template <linalg::VectorSpace Space>
 struct set_traits<NonnegOrthant<Space>> {
+  using VectorSpace = Space;
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t DIM = linalg::space_dim_v<Space>;
+};
+
+/// @brief derived set type traits - LMI
+template <linalg::VectorSpace Space, LMIType Type>
+struct set_traits<LMI<Space, Type>> {
   using VectorSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;

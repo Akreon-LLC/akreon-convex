@@ -19,3 +19,4 @@
 #include "projective_map.hpp"
 #include "psd_cone.hpp"
 #include "simplex.hpp"
+#include "lmi.hpp"

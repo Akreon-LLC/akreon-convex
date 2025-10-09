@@ -39,9 +39,7 @@ TODO to scope:
 - [x] psd cone
 - [x] simplex
 - [x] polyhedron
-- [] nonnegative orthant
-- [] exponential cone
-- [] power cone
+- [x] nonnegative orthant
 - [] LMI
 - [] separating hyperplane 
 - [] supporting hyperplane

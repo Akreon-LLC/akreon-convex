@@ -265,14 +265,10 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
 }
 
 TEST_CASE("Test ellipsoid set", "[convex_sets]") {
-  // (dakre) TODO current issue with eig decomp and static compile time
-  // checking effecting this
-#if 0
   SECTION("Quick test to check convex sets types") {
-    STATIC_REQUIRE(SetLike<Ellipsoid<Matrix<double, 1, 5>>>);
-    STATIC_REQUIRE(SetLike<Ellipsoid<Matrix<float, 1, 1>>>);
+    STATIC_REQUIRE(SetLike<Ellipsoid<Matrix<double, 1, 5>, EllipsoidType::OE>>);
+    STATIC_REQUIRE(SetLike<Ellipsoid<Matrix<float, 1, 2>, EllipsoidType::CE>>);
   }
-#endif
 
   SECTION("Test open ellipsoid set") {
     constexpr auto c = Vector<double, 2>{1.5, 2.0};
@@ -411,8 +407,8 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
 
 TEST_CASE("PSD cone", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
-    STATIC_REQUIRE(ConeLike<PsdCone<Matrix<double, 2, 2>>>);
-    STATIC_REQUIRE(ConeLike<PsdCone<Matrix<float, 10, 10>>>);
+    STATIC_REQUIRE(ConeLike<PsdCone<SymmetricMatrix<Matrix<double, 2, 2>>>>);
+    STATIC_REQUIRE(ConeLike<PsdCone<SymmetricMatrix<Matrix<float, 10, 10>>>>);
   }
 
   SECTION("PSD Cones") {
@@ -569,5 +565,32 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
                          I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 0.0),
                      Vectord<2>{})
              .has_value());
+  }
+}
+
+TEST_CASE("Test LMI", "[convex_sets]") {
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(ConeLike<LMI<Matrix<double, 1, 2>, LMIType::Strict>>);
+    STATIC_REQUIRE(ConeLike<LMI<Matrix<double, 3, 1>, LMIType::NonStrict>>);
+  }
+
+  SECTION("Test Strict LMI", "[A(x) <= B]") {
+    constexpr auto I = make_identity<double, 2>();
+    constexpr LMI<Matrixd<1, 2>, LMIType::Strict> set(I, I, I);
+    STATIC_REQUIRE(set.is_well_formed());
+    STATIC_REQUIRE(!set.contains(Vectord<2>{1.0, 2.0}));
+    STATIC_REQUIRE(set.contains(Vectord<2>{}));
+    STATIC_REQUIRE(set.contains(Vectord<2>{0.2, 0.5}));
+    STATIC_REQUIRE(!set.contains(Vectord<2>{0.5, 0.5}));
+  }
+
+  SECTION("Test Nonstrict LMI", "[A(x) <= B]") {
+    constexpr auto I = make_identity<double, 3>();
+    constexpr LMI<Matrixd<1, 3>, LMIType::NonStrict> set(I, I, I, I);
+    STATIC_REQUIRE(set.is_well_formed());
+    STATIC_REQUIRE(!set.contains(Vectord<3>{1.0, 2.0, 3.0}));
+    STATIC_REQUIRE(set.contains(Vectord<3>{}));
+    STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));
+    STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
   }
 }

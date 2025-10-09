@@ -20,8 +20,7 @@ enum struct EllipsoidType { CE, OE };
  */
 template <linalg::VectorSpace Space, EllipsoidType Type>
   requires(linalg::space_dim_v<Space> ==
-               linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           !linalg::is_complex_v<linalg::space_point_t<Space>>)
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
 class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
  public:
   /// @brief bring into scope the type traits from the base class
@@ -32,9 +31,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
 
   /// @brief bring into scope the const data members
   using ConvexBase::Dim;
-
-  /// @brief helper to get n elements in point
-  static constexpr size_t N = linalg::vec_size_v<Point>;
+  using ConvexBase::N;
 
   /**
    * @brief CTOR for ellipsoidal set
@@ -59,8 +56,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& tol) const {
-    (void)tol;
+  constexpr bool contains_impl(const Point& x, const T& /*tol*/) const {
     const auto delta = as_col_vector(x - c);
     const auto delta_t = linalg::transpose(delta);
 

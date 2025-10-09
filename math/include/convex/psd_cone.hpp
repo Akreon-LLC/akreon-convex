@@ -9,10 +9,6 @@
 
 namespace convex {
 
-// (dakre) TODO Need to revist PSD Cone class, it is a convex set but doesnt
-// play as nice with transform (assumes congruence affine map) + projection
-// (point is a symmetric matrix vs n-dim point)
-
 /**
  * @brief PSD cone definition valid on vector space
  *
@@ -21,7 +17,7 @@ namespace convex {
  * { X \in S^n | X >= 0 }... set of psd matrices
  */
 template <linalg::VectorSpace Space>
-  requires(!linalg::is_complex_v<linalg::mat_type_t<Space>>)
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<Space>>)
 class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
  public:
   /// @brief bring into scope the type traits from the base class
