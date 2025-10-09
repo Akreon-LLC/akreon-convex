@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "affine_set.hpp"
+#include "sets/affine_set.hpp"
 
 namespace convex {
 

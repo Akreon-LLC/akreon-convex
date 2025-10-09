@@ -7,8 +7,8 @@
 
 #include <optional>
 
-#include "../algebra/algebra_util.hpp"
-#include "convex_traits.hpp"
+#include "../../algebra/algebra_util.hpp"
+#include "../convex_traits.hpp"
 
 namespace convex {
 

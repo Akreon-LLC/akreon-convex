@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "convex_set.hpp"
-#include "hyperplane.hpp"
+#include "sets/convex_set.hpp"
+#include "sets/hyperplane.hpp"
 
 namespace convex {
 

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "convex_set.hpp"
+#include "sets/convex_set.hpp"
 
 namespace convex {
 
