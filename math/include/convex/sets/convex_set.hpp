@@ -113,6 +113,40 @@ class ConvexSet {
   }
 
   /**
+   * @brief perspective function (perspective)
+   *
+   * P(K) -> C where P : R^{m + 1} -> R^{m}
+   *
+   * @param t (slice defining cone)
+   *
+   * @return convex set
+   */
+  constexpr auto perspective(T t = 1.0) const {
+    if constexpr (ConeLike<Derived>) {
+      return self().perspective_impl(t);
+    } else {
+      return std::nullopt;
+    }
+  }
+
+  /**
+   * @brief inverse perspective function (inv_perspective)
+   *
+   * P^{-1}(C) -> K where P^{-1} : R^m -> R^{m + 1}
+   *
+   * @param t (slice defining cone)
+   *
+   * @return cone
+   */
+  constexpr auto inv_perspective(T t = 1.0) const {
+    if constexpr (ConeLike<Derived>) {
+      return std::nullopt;
+    } else {
+      return self().inv_perspective_impl(t);
+    }
+  }
+
+  /**
    * @brief equality comparison overload
    *
    * @param convex set

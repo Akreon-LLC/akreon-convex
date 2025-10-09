@@ -61,6 +61,18 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space>> {
   constexpr bool is_equal_impl(const ConvexBase& /* other */) const {
     return true;
   }
+
+  /**
+   * @brief pushfoward impl
+   *
+   * @param t slice
+   *
+   * @return convex set
+   */
+  constexpr auto perspective_impl(const T& t) const {
+    (void)t;
+    return false;
+  }
 };
 
 }  // namespace convex

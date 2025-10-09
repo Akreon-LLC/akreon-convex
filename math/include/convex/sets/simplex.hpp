@@ -116,6 +116,18 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
   constexpr bool is_equal_impl(const ConvexBase& /*other*/) const {
     return true;
   }
+
+  /**
+   * @brief inverse perspective func from convex set to cone
+   *
+   * @param t cone slice
+   *
+   * @return cone
+   */
+  constexpr auto inv_perspective_impl(const T& t) const {
+    (void)t;
+    return false;
+  }
 };
 
 }  // namespace convex

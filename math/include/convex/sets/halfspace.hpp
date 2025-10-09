@@ -122,6 +122,18 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
     return other.self().a == a && other.self().b == b;
   }
 
+  /**
+   * @brief inverse perspective func from convex set to cone
+   *
+   * @param t cone slice
+   *
+   * @return cone
+   */
+  constexpr auto inv_perspective_impl(const T& t) const {
+    (void)t;
+    return false;
+  }
+
   /** @brief member variables in the halfspace */
   Point a;  //< n-dim vector of type T
   T b;      //< bias scalar of type T

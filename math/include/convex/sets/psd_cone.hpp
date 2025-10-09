@@ -66,6 +66,15 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
   constexpr bool is_equal_impl(const ConvexBase& /* other */) const {
     return true;
   }
+
+  /**
+   * @brief pushfoward impl
+   *
+   * @param t slice
+   *
+   * @return convex set
+   */
+  constexpr auto perspective_impl(const T& /*t*/) const { return false; }
 };
 
 }  // namespace convex

@@ -121,6 +121,18 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
     return other.self().c == c && other.self().P == P;
   }
 
+  /**
+   * @brief inverse perspective func from convex set to cone
+   *
+   * @param t cone slice
+   *
+   * @return cone
+   */
+  constexpr auto inv_perspective_impl(const T& t) const {
+    (void)t;
+    return false;
+  }
+
   /** @brief member variables in the ellipsoid */
   Point c;  //< n-dim vector of type T representing center of ellipsoid
   linalg::Matrix<T, N, N> P;  //< square matrix representing directions for

@@ -97,6 +97,18 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
     return other.self().a == a && other.self().b == b;
   }
 
+  /**
+   * @brief inverse perspective func from convex set to cone
+   *
+   * @param t cone slice
+   *
+   * @return cone
+   */
+  constexpr auto inv_perspective_impl(const T& t) const {
+    (void)t;
+    return false;
+  }
+
   /** @brief member var in hyperplane */
   Point a;  //< n-dim vec of type T
   T b;      //< bias scalar of type T

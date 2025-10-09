@@ -112,6 +112,18 @@ class LMI : public ConvexSet<Space, LMI<Space, Type>> {
   }
 
   /**
+   * @brief pushfoward impl
+   *
+   * @param t slice
+   *
+   * @return convex set
+   */
+  constexpr auto perspective_impl(const T& t) const {
+    (void)t;
+    return false;
+  }
+
+  /**
    * @brief helper function to check definiteness of matrix
    *
    * @param symmetric matrix S

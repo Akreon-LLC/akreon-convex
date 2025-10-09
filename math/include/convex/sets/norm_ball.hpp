@@ -260,6 +260,18 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
     }
   }
 
+  /**
+   * @brief inverse perspective func from convex set to cone
+   *
+   * @param t cone slice
+   *
+   * @return cone
+   */
+  constexpr auto inv_perspective_impl(const T& t) const {
+    (void)t;
+    return false;
+  }
+
   /** @brief member variables in the norm ball */
   Point c;    //< n-dim vector of type T representing center of ball
   ScalarT r;  //< scalar of type T representing radius

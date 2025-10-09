@@ -95,6 +95,15 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
     return other.self().t == t;
   }
 
+  /**
+   * @brief pushfoward impl
+   *
+   * @param t slice
+   *
+   * @return convex set
+   */
+  constexpr auto perspective_impl(const T& /*t*/) const { return false; }
+
   /** @brief member variables in the norm cone */
   ScalarT t;  //< scalar of type T representing threshold for cone
 };
