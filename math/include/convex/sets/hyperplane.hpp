@@ -39,6 +39,16 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
   constexpr explicit Hyperplane(const Point& a_in, const T& b_in)
       : a(a_in), b(b_in) {}
 
+  /**
+   * @brief CTOR for hyperplane (conic view)
+   *
+   * @param Point (i.e., n-dim vec)
+   * @param b bias scalar
+   * @param t scalar for cone view
+   */
+  constexpr explicit Hyperplane(const Point& a_in, const T& b_in, const T& t_in)
+      : a(a_in), b(b_in), t(t_in) {}
+
  protected:
   /// @brief allow base class to invoke impl funcs
   friend ConvexBase;
@@ -53,7 +63,10 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
-    return linalg::constexpr_abs(linalg::dot(a, x) - b) < tol;
+    T alpha(b);
+    if (t.has_value()) alpha *= t.value();
+
+    return linalg::constexpr_abs(linalg::dot(a, x) - alpha) < tol;
   }
 
   /**
@@ -62,6 +75,9 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    * @return T/F
    */
   constexpr bool is_well_formed_impl() const {
+    if (t.has_value())
+      if (t <= T(0)) return false;
+
     if (linalg::all_zero(a)) return false;
     return true;
   }
@@ -82,6 +98,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
     requires(linalg::mat_cols_v<Mat> == N &&
              std::same_as<linalg::mat_type_t<Mat>, T>)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+    if (t.has_value()) return *this;
+
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
     return Hyperplane<Space>(as_vector(aT_U),
@@ -94,7 +112,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().a == a && other.self().b == b;
+    return other.self().a == a && other.self().b == b && other.self().t == t;
   }
 
   /**
@@ -104,14 +122,14 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    *
    * @return cone
    */
-  constexpr auto inv_perspective_impl(const T& t) const {
-    (void)t;
-    return false;
+  constexpr auto to_cone_impl(const T& t_in) const {
+    return Hyperplane<Space>(a, b, t_in);
   }
 
   /** @brief member var in hyperplane */
-  Point a;  //< n-dim vec of type T
-  T b;      //< bias scalar of type T
+  Point a;             //< n-dim vec of type T
+  T b;                 //< bias scalar of type T
+  std::optional<T> t;  //< t scalar for conic view
 };
 
 }  // namespace convex

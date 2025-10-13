@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <assert.h>
+
 #include "convex_set.hpp"
 
 namespace convex {
@@ -24,7 +26,6 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, Simplex<Space>>;
   using typename ConvexBase::Point;
-  using typename ConvexBase::ScalarT;
   using typename ConvexBase::T;
 
   /// @brief bring into scope the const data members
@@ -32,6 +33,16 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
 
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
+
+  /**
+   * @brief CTOR for simplex (default)
+   */
+  constexpr explicit Simplex() {}
+
+  /**
+   * @brief CTOR for simplex (conic view)
+   */
+  constexpr explicit Simplex(const T& t_in) : t(t_in) {}
 
  protected:
   /// @brief allow base class to invoke impl funcs
@@ -45,12 +56,14 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
-    T sum(0);
+    T alpha(1), sum(0);
+    if (t.has_value()) alpha *= t.value();
+
     for (size_t i = 0; i < N; ++i) {
       if (x(i) < T(0)) return false;
       sum += x(i);
     }
-    return linalg::constexpr_abs(sum - T(1)) <= tol;
+    return linalg::constexpr_abs(sum - alpha) <= tol;
   }
 
   /**
@@ -58,7 +71,10 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const { return true; }
+  constexpr bool is_well_formed_impl() const {
+    if (t.has_value()) return t.value() > T(0);
+    return true;
+  }
 
   /**
    * @brief transform simplex to polyhedron
@@ -88,6 +104,9 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
   template <linalg::MatrixLike Mat>
     requires(std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+    // (dakre) TODO may need to figure out cleaner way to handle this
+    assert(!t.has_value());
+
     const auto& U = map.linear_part();
     const auto& t = map.translation();
     const auto U_inv = linalg::inverse(U);
@@ -113,8 +132,8 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    *
    * @return T/F
    */
-  constexpr bool is_equal_impl(const ConvexBase& /*other*/) const {
-    return true;
+  constexpr bool is_equal_impl(const ConvexBase& other) const {
+    return other.self().t == t;
   }
 
   /**
@@ -124,10 +143,12 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    *
    * @return cone
    */
-  constexpr auto inv_perspective_impl(const T& t) const {
-    (void)t;
-    return false;
+  constexpr auto to_cone_impl(const T& t_in) const {
+    return Simplex<Space>(t_in);
   }
+
+  /** @brief member var in simplex */
+  std::optional<T> t;  //< optional for conic view
 };
 
 }  // namespace convex

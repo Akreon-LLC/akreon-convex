@@ -7,6 +7,7 @@
 
 #include "convex_set.hpp"
 #include "ellipsoid.hpp"
+#include "norm_cone.hpp"
 
 namespace convex {
 /// @brief simple enum to describe ball type
@@ -32,9 +33,6 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
   /// @brief bring into scope the const data members
   using ConvexBase::Dim;
 
-  /// @briaf alias for scalar type of undering set type
-  using ScalarT = linalg::scalar_type_t<T>;
-
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
@@ -43,7 +41,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    *
    * @param Point (i.e., n-dim vector of type T)
    */
-  constexpr explicit NormBall(const Point& c_in, const ScalarT& r_in)
+  constexpr explicit NormBall(const Point& c_in, const T& r_in)
       : c(c_in), r(r_in) {}
 
  protected:
@@ -59,7 +57,6 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
-    using T = linalg::vec_type_t<Point>;
     switch (Type) {
       case NormBallType::L2OB:
         return linalg::L2<T, N>()(x - c) < r;
@@ -267,14 +264,27 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    *
    * @return cone
    */
-  constexpr auto inv_perspective_impl(const T& t) const {
-    (void)t;
-    return false;
+  constexpr auto to_cone_impl(const T& t_in) const {
+    switch (Type) {
+      case NormBallType::L2OB:
+        return NormCone<Space, NormConeType::L2OC>(c, r, t_in);
+      case NormBallType::L2CB:
+        return NormCone<Space, NormConeType::L2CC>(c, r, t_in);
+      case NormBallType::L1OB:
+        return NormCone<Space, NormConeType::L1OC>(c, r, t_in);
+      case NormBallType::L1CB:
+        return NormCone<Space, NormConeType::L1CC>(c, r, t_in);
+      case NormBallType::LinfOB:
+        return NormCone<Space, NormConeType::LinfOC>(c, r, t_in);
+      case NormBallType::LinfCB:
+      default:
+        return NormCone<Space, NormConeType::LinfCC>(c, r, t_in);
+    }
   }
 
   /** @brief member variables in the norm ball */
-  Point c;    //< n-dim vector of type T representing center of ball
-  ScalarT r;  //< scalar of type T representing radius
+  Point c;  //< n-dim vector of type T representing center of ball
+  T r;      //< scalar of type T representing radius
 };
 
 }  // namespace convex

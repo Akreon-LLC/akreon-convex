@@ -29,9 +29,6 @@ class ConvexSet {
   /// @brief alias to extract underlying scalar type of convex set
   using T = linalg::space_type_t<Space>;
 
-  /// @briaf alias for scalar type of undering set type
-  using ScalarT = linalg::scalar_type_t<T>;
-
   /// @brief helper to extract dimension of convex set
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
 
@@ -113,24 +110,7 @@ class ConvexSet {
   }
 
   /**
-   * @brief perspective function (perspective)
-   *
-   * P(K) -> C where P : R^{m + 1} -> R^{m}
-   *
-   * @param t (slice defining cone)
-   *
-   * @return convex set
-   */
-  constexpr auto perspective(T t = 1.0) const {
-    if constexpr (ConeLike<Derived>) {
-      return self().perspective_impl(t);
-    } else {
-      return std::nullopt;
-    }
-  }
-
-  /**
-   * @brief inverse perspective function (inv_perspective)
+   * @brief to cone (apply inverse perspective func to convex set (non-cone))
    *
    * P^{-1}(C) -> K where P^{-1} : R^m -> R^{m + 1}
    *
@@ -138,11 +118,11 @@ class ConvexSet {
    *
    * @return cone
    */
-  constexpr auto inv_perspective(T t = 1.0) const {
+  constexpr auto to_cone(T t = 1.0) const {
     if constexpr (ConeLike<Derived>) {
       return std::nullopt;
     } else {
-      return self().inv_perspective_impl(t);
+      return self().to_cone_impl(t);
     }
   }
 

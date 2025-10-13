@@ -42,10 +42,19 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    *
    * @param Point (i.e., n-dim vector of type T)
    * @param b bias scalar
-   * @param enum type describing halfspace
    */
   constexpr explicit Halfspace(const Point& a_in, const T& b_in)
       : a(a_in), b(b_in) {}
+
+  /**
+   * @brief CTOR for halfspace in conic view
+   *
+   * @param Point (n-dim vec)
+   * @param b bias scalar
+   * @param t cone view scalar
+   */
+  constexpr explicit Halfspace(const Point& a_in, const T& b_in, const T& t_in)
+      : a(a_in), b(b_in), t(t_in) {}
 
  protected:
   /// @brief allow base class to invoke impl pure virtual (v-table like) funcs
@@ -59,18 +68,20 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& tol) const {
-    (void)tol;
+  constexpr bool contains_impl(const Point& x, const T& /*tol*/) const {
+    T alpha(b);
+    if (t.has_value()) alpha *= t.value();
+
     switch (Type) {
       case HalfspaceType::OUH:
-        return linalg::dot(a, x) > b;
+        return linalg::dot(a, x) > alpha;
       case HalfspaceType::CUH:
-        return linalg::dot(a, x) >= b;
+        return linalg::dot(a, x) >= alpha;
       case HalfspaceType::OLH:
-        return linalg::dot(a, x) < b;
+        return linalg::dot(a, x) < alpha;
       case HalfspaceType::CLH:
       default:
-        return linalg::dot(a, x) <= b;
+        return linalg::dot(a, x) <= alpha;
     }
   }
 
@@ -80,6 +91,9 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    * @return T/F
    */
   constexpr bool is_well_formed_impl() const {
+    if (t.has_value())
+      if (t <= T(0)) return false;
+
     if (linalg::all_zero(a)) {
       if constexpr (Type == HalfspaceType::CLH || Type == HalfspaceType::OLH) {
         if (b < T(0)) return false;
@@ -107,6 +121,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
     requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
              linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+    if (t.has_value()) return *this;
+
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
     return Halfspace<Space, Type>(as_vector(aT_U),
@@ -119,7 +135,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().a == a && other.self().b == b;
+    return other.self().a == a && other.self().b == b && other.self().t == t;
   }
 
   /**
@@ -129,14 +145,14 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    *
    * @return cone
    */
-  constexpr auto inv_perspective_impl(const T& t) const {
-    (void)t;
-    return false;
+  constexpr auto to_cone_impl(const T& t_in) const {
+    return Halfspace<Space, Type>(a, b, t_in);
   }
 
   /** @brief member variables in the halfspace */
-  Point a;  //< n-dim vector of type T
-  T b;      //< bias scalar of type T
+  Point a;             //< n-dim vector of type T
+  T b;                 //< bias scalar of type T
+  std::optional<T> t;  //< conic view t scalar
 };
 
 }  // namespace convex

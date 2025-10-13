@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "norm_ball.hpp"
+#include "convex_set.hpp"
 
 namespace convex {
 
@@ -31,9 +31,6 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
   /// @brief bring into scope the const data members
   using ConvexBase::Dim;
 
-  /// @brief alias for scalar type of underlying set type
-  using ScalarT = linalg::scalar_type_t<T>;
-
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
@@ -42,7 +39,17 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
    *
    * @param t (scalar rep variable radius)
    */
-  constexpr explicit NormCone(const ScalarT& t_in) : t(t_in) {}
+  constexpr explicit NormCone(const T& t_in) : t(t_in) {}
+
+  /**
+   * @brief CTOR for norm cone (via norm ball conic view)
+   *
+   * @param t (scalar for conic view)
+   * @param center point from norm ball
+   * @param r (radius from norm ball)
+   */
+  constexpr explicit NormCone(const Point& c_in, const T& r_in, const T& t_in)
+      : c(c_in), r(r_in), t(t_in) {}
 
  protected:
   /// @brief allow base class to invoke impls
@@ -59,21 +66,26 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
-    using T = linalg::vec_type_t<Point>;
+    T alpha(t);
+    if (r.has_value()) alpha *= r.value();
+
+    Point beta;
+    if (c.has_value()) beta = c.value();
+
     switch (Type) {
       case NormConeType::L2OC:
-        return linalg::L2<T, N>()(x) < t;
+        return linalg::L2<T, N>()(x - beta) < alpha;
       case NormConeType::L2CC:
-        return linalg::L2<T, N>()(x) <= t;
+        return linalg::L2<T, N>()(x - beta) <= alpha;
       case NormConeType::L1OC:
-        return linalg::L1<T, N>()(x) < t;
+        return linalg::L1<T, N>()(x - beta) < alpha;
       case NormConeType::L1CC:
-        return linalg::L1<T, N>()(x) <= t;
+        return linalg::L1<T, N>()(x - beta) <= alpha;
       case NormConeType::LinfOC:
-        return linalg::Linf<T, N>()(x) < t;
+        return linalg::Linf<T, N>()(x - beta) < alpha;
       case NormConeType::LinfCC:
       default:
-        return linalg::Linf<T, N>()(x) <= t;
+        return linalg::Linf<T, N>()(x - beta) <= alpha;
     }
   }
 
@@ -82,7 +94,10 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const { return t >= 0; }
+  constexpr bool is_well_formed_impl() const {
+    if (r.has_value()) return r.value() >= 0;
+    return t > 0;
+  }
 
   /**
    * @brief equality comparison
@@ -92,7 +107,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().t == t;
+    return other.self().t == t && other.self().c == c && other.self().r == r;
   }
 
   /**
@@ -105,7 +120,9 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
   constexpr auto perspective_impl(const T& /*t*/) const { return false; }
 
   /** @brief member variables in the norm cone */
-  ScalarT t;  //< scalar of type T representing threshold for cone
+  T t;                     //< scalar of type T representing threshold for cone
+  std::optional<T> r;      //< radius from norm ball -> cone
+  std::optional<Point> c;  //< center point from norm ball -> cone
 };
 
 }  // namespace convex

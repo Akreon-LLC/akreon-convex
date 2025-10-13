@@ -31,7 +31,6 @@ class Polyhedron
   using ConvexBase::Dim;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
-  using ScalarT = linalg::scalar_type_t<T>;
 
   /// @brief helper to get N elements in point type
   static constexpr size_t N = linalg::vec_size_v<Point>;
@@ -59,7 +58,6 @@ class Polyhedron
   /**
    * @brief CTOR for polyhedron set
    *
-   * @param type describing halfspace inequalities (closed or open)
    * @param A basis of vectors describing linear combinations with x to form
    * halfspace
    * @param b vector describing halfspace inequality (per row vec in A)
@@ -73,6 +71,22 @@ class Polyhedron
       linalg::Vector<T, RowsC> d_in = linalg::Vector<T, RowsC>{})
       : A(A_in), b(b_in), C(C_in), d(d_in) {}
 
+  /**
+   * @brief CTOR for polyhedron as conic view
+   *
+   * @param A matrix for halfspace(s)
+   * @param b vector for halfspace(s)
+   * @param C matrix for hyperplane(s)
+   * @param d vector for hyperplane(s)
+   * @param t scalar for conic view
+   */
+  constexpr explicit Polyhedron(const MatA& A_in,
+                                const linalg::Vector<T, RowsA>& b_in,
+                                const MatC& C_in,
+                                const linalg::Vector<T, RowsC>& d_in,
+                                const T& t_in)
+      : A(A_in), b(b_in), C(C_in), d(d_in), t(t_in) {}
+
  protected:
   /// @brief allow convex base to invoke impl
   friend ConvexBase;
@@ -83,6 +97,12 @@ class Polyhedron
    * @return T/F
    */
   constexpr bool is_well_formed_impl() const {
+    T alpha(1);
+    if (t.has_value()) {
+      if (t.value() <= T(0)) return false;
+      alpha *= t.value();
+    }
+
     // (0) check halfspace type
     if constexpr (!(Type == HalfspaceType::CLH || Type == HalfspaceType::OLH))
       return false;
@@ -90,11 +110,12 @@ class Polyhedron
     // (1) verify halfspaces for each row in A and b check if halfspace is
     // valid
     for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<Space, Type>(A(i), b(i)).is_well_formed()) return false;
+      if (!Halfspace<Space, Type>(A(i), alpha * b(i)).is_well_formed())
+        return false;
 
     // (2) verify hyperplanes C x = d is valid
     for (size_t i = 0; i < RowsC; ++i)
-      if (RowsC > 0 && !Hyperplane<Space>(C(i), d(i)).is_well_formed())
+      if (RowsC > 0 && !Hyperplane<Space>(C(i), alpha * d(i)).is_well_formed())
         return false;
 
     return true;
@@ -107,14 +128,18 @@ class Polyhedron
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const ScalarT& tol) const {
+  constexpr bool contains_impl(const Point& x, const T& tol) const {
+    T alpha(1);
+    if (t.has_value()) alpha *= t.value();
+
     // (0) check if x is in the halfspaces defined by A x <= b
     for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<Space, Type>(A(i), b(i)).contains(x, tol)) return false;
+      if (!Halfspace<Space, Type>(A(i), alpha * b(i)).contains(x, tol))
+        return false;
 
     // (1) check if x is in the affine set defined by C x = d
     for (size_t i = 0; i < RowsC; ++i)
-      if (RowsC > 0 && !Hyperplane<Space>(C(i), d(i)).contains(x, tol))
+      if (RowsC > 0 && !Hyperplane<Space>(C(i), alpha * d(i)).contains(x, tol))
         return false;
 
     return true;
@@ -139,14 +164,16 @@ class Polyhedron
     requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
              linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+    if (t.has_value()) return *this;
+
     const auto& U = map.linear_part();
-    const auto& t = map.translation();
+    const auto& trans = map.translation();
 
     const auto U_inv = linalg::inverse(U);
     const auto A_new = A * U_inv;
-    const auto b_new = b + A_new * t;
+    const auto b_new = b + A_new * trans;
     const auto C_new = C * U_inv;
-    const auto d_new = d + C_new * t;
+    const auto d_new = d + C_new * trans;
 
     return Polyhedron<Space, Type, decltype(A), decltype(C)>(A_new, b_new,
                                                              C_new, d_new);
@@ -161,7 +188,7 @@ class Polyhedron
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
     return other.self().A == A && other.self().b == b && other.self().C == C &&
-           other.self().d == d;
+           other.self().d == d && other.self().t == t;
   }
 
   /**
@@ -171,9 +198,8 @@ class Polyhedron
    *
    * @return cone
    */
-  constexpr auto inv_perspective_impl(const T& t) const {
-    (void)t;
-    return false;
+  constexpr auto to_cone_impl(const T& t_in) const {
+    return Polyhedron<Space, Type, decltype(A), decltype(C)>(A, b, C, d, t_in);
   }
 
   /** @brief member variables in the polyhedron */
@@ -183,5 +209,6 @@ class Polyhedron
   MatC C;  //< set of finite number of hyperplanes
   linalg::Vector<T, RowsC>
       d;  //< codomain vector describing bias for hyperplane equalities
+  std::optional<T> t;  //< optional for conic view
 };
 }  // namespace convex
