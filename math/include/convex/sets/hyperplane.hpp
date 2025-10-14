@@ -122,9 +122,16 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    *
    * @return cone
    */
-  constexpr auto to_cone_impl(const T& t_in) const {
+  constexpr auto to_conic_view_impl(const T& t_in) const {
     return Hyperplane<Space>(a, b, t_in);
   }
+
+  /**
+   * @brief is cone
+   *
+   * @return T/F
+   */
+  constexpr bool is_conic_view_impl() const { return t.has_value(); }
 
   /** @brief member var in hyperplane */
   Point a;             //< n-dim vec of type T

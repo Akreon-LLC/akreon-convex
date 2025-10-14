@@ -264,23 +264,27 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    *
    * @return cone
    */
-  constexpr auto to_cone_impl(const T& t_in) const {
-    switch (Type) {
-      case NormBallType::L2OB:
-        return NormCone<Space, NormConeType::L2OC>(c, r, t_in);
-      case NormBallType::L2CB:
-        return NormCone<Space, NormConeType::L2CC>(c, r, t_in);
-      case NormBallType::L1OB:
-        return NormCone<Space, NormConeType::L1OC>(c, r, t_in);
-      case NormBallType::L1CB:
-        return NormCone<Space, NormConeType::L1CC>(c, r, t_in);
-      case NormBallType::LinfOB:
-        return NormCone<Space, NormConeType::LinfOC>(c, r, t_in);
-      case NormBallType::LinfCB:
-      default:
-        return NormCone<Space, NormConeType::LinfCC>(c, r, t_in);
-    }
+  constexpr auto to_conic_view_impl(const T& t_in) const {
+    if constexpr (Type == NormBallType::L2OB)
+      return NormCone<Space, NormConeType::L2OC>(t_in, c, r);
+    else if constexpr (Type == NormBallType::L2CB)
+      return NormCone<Space, NormConeType::L2CC>(t_in, c, r);
+    else if constexpr (Type == NormBallType::L1OB)
+      return NormCone<Space, NormConeType::L1OC>(t_in, c, r);
+    else if constexpr (Type == NormBallType::L1CB)
+      return NormCone<Space, NormConeType::L1CC>(t_in, c, r);
+    else if constexpr (Type == NormBallType::LinfOB)
+      return NormCone<Space, NormConeType::LinfOC>(t_in, c, r);
+    else 
+      return NormCone<Space, NormConeType::LinfCC>(t_in, c, r);
   }
+
+  /**
+   * @brief is cone
+   *
+   * @return T/F
+   */
+  constexpr bool is_conic_view_impl() const { return false; }
 
   /** @brief member variables in the norm ball */
   Point c;  //< n-dim vector of type T representing center of ball

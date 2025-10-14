@@ -48,8 +48,8 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
    * @param center point from norm ball
    * @param r (radius from norm ball)
    */
-  constexpr explicit NormCone(const Point& c_in, const T& r_in, const T& t_in)
-      : c(c_in), r(r_in), t(t_in) {}
+  constexpr explicit NormCone(const T& t_in, const Point& c_in, const T& r_in)
+      : t(t_in), c(c_in), r(r_in) {}
 
  protected:
   /// @brief allow base class to invoke impls
@@ -121,8 +121,8 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
 
   /** @brief member variables in the norm cone */
   T t;                     //< scalar of type T representing threshold for cone
-  std::optional<T> r;      //< radius from norm ball -> cone
   std::optional<Point> c;  //< center point from norm ball -> cone
+  std::optional<T> r;      //< radius from norm ball -> cone
 };
 
 }  // namespace convex

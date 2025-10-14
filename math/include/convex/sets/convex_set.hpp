@@ -118,12 +118,23 @@ class ConvexSet {
    *
    * @return cone
    */
-  constexpr auto to_cone(T t = 1.0) const {
-    if constexpr (ConeLike<Derived>) {
+  constexpr auto to_conic_view(T t = 1.0) const {
+    if constexpr (ConeLike<Derived>)
       return std::nullopt;
-    } else {
-      return self().to_cone_impl(t);
-    }
+    else
+      return self().to_conic_view_impl(t);
+  }
+
+  /**
+   * @brief is cone
+   *
+   * @return T/F
+   */
+  constexpr bool is_conic_view() const {
+    if constexpr (ConeLike<Derived>)
+      return true;
+    else
+      return self().is_conic_view_impl();
   }
 
   /**

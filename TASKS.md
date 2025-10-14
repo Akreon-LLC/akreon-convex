@@ -40,10 +40,10 @@ TODO to scope:
 - [x] simplex
 - [x] polyhedron
 - [x] nonnegative orthant
-- [] LMI
+- [x] LMI
+- [x] conic view (via inv perspective func)
 - [] separating hyperplane 
 - [] supporting hyperplane
-- [] conic perspective
 #### Convex Functions
 TODO
 

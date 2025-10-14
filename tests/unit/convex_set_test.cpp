@@ -48,6 +48,14 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(
         !hyperplane.project(proj_map, Vectord<3>{1.0, 1.0, 2.0}).has_value());
+
+    constexpr auto hyperplane_cone = hyperplane.to_conic_view();
+    STATIC_REQUIRE(!hyperplane.is_conic_view());
+    STATIC_REQUIRE(hyperplane_cone.is_conic_view());
+    STATIC_REQUIRE(hyperplane_cone != hyperplane);
+    STATIC_REQUIRE(!hyperplane_cone.contains(Vectord<3>{}));
+    STATIC_REQUIRE(hyperplane_cone.contains(Vectord<3>{1.0, 1.0, 1.0}));
+    STATIC_REQUIRE(!hyperplane_cone.contains(Vectord<3>{1.0, 1.0, 2.0}));
   }
 
   SECTION("Test closed lower halfspace") {
@@ -56,6 +64,18 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr Halfspace<Matrix<double, 1, 2>, HalfspaceType::CLH> halfspace(
         point, b);
     STATIC_REQUIRE(halfspace.is_well_formed());
+    STATIC_REQUIRE(halfspace.contains(Vectord<2>{}));
+    STATIC_REQUIRE(halfspace.contains(Vectord<2>{-1.0, 0.0}));
+    STATIC_REQUIRE(halfspace.contains(Vectord<2>{-1.0, -2.0}));
+    STATIC_REQUIRE(halfspace.contains(Vectord<2>{1.0, 0.0}));
+    STATIC_REQUIRE(!halfspace.contains(Vectord<2>{1.0, 2.0}));
+    STATIC_REQUIRE(!halfspace.contains(Vectord<2>{-1.0, 5.0}));
+
+    constexpr auto halfspace_cone = halfspace.to_conic_view();
+    STATIC_REQUIRE(halfspace_cone.is_well_formed());
+    STATIC_REQUIRE(!halfspace.is_conic_view());
+    STATIC_REQUIRE(halfspace_cone.is_conic_view());
+    STATIC_REQUIRE(halfspace_cone != halfspace);
     STATIC_REQUIRE(halfspace.contains(Vectord<2>{}));
     STATIC_REQUIRE(halfspace.contains(Vectord<2>{-1.0, 0.0}));
     STATIC_REQUIRE(halfspace.contains(Vectord<2>{-1.0, -2.0}));
@@ -86,6 +106,17 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(!halfspace.project(proj_map, Vectord<4>{0.0, 0.0, 0.0, 2.0})
                         .has_value());
+
+    constexpr auto halfspace_cone = halfspace.to_conic_view();
+    STATIC_REQUIRE(halfspace_cone.is_well_formed());
+    STATIC_REQUIRE(!halfspace.is_conic_view());
+    STATIC_REQUIRE(halfspace_cone.is_conic_view());
+    STATIC_REQUIRE(halfspace_cone != halfspace);
+    STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{}));
+    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<4>{0.0, 0.0, 0.0, 2.0}));
+    STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{0.0, 0.0, 0.0, 1.9}));
+    STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{0.5, 2.0, 2.0, 1.0}));
+    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<4>{1.0, 1.0, 0.0, 5.0}));
   }
 
   SECTION("Test closed upper halfspace") {
@@ -108,6 +139,16 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto halfspace_trans = halfspace.transform(
         AffineMap<Matrix<double, 3, 3>>(make_identity<double, 3>(), t));
     STATIC_REQUIRE(halfspace_trans != halfspace_id);
+
+    constexpr auto halfspace_cone = halfspace.to_conic_view();
+    STATIC_REQUIRE(halfspace_cone.is_well_formed());
+    STATIC_REQUIRE(!halfspace.is_conic_view());
+    STATIC_REQUIRE(halfspace_cone.is_conic_view());
+    STATIC_REQUIRE(halfspace_cone != halfspace);
+    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<3>{}));
+    STATIC_REQUIRE(halfspace_cone.contains(Vectord<3>{0.0, 1.0, 0.0}));
+    STATIC_REQUIRE(halfspace_cone.contains(Vectord<3>{0.1, 1.0, 2.0}));
+    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<3>{0.1, 1.0, -2.0}));
   }
 
   SECTION("Test open upper halfspace") {
@@ -120,6 +161,16 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace.contains(Vectord<1>{0.1}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<1>{5.0}));
     STATIC_REQUIRE(halfspace.contains(Vectord<1>{6.0}));
+
+    constexpr auto halfspace_cone = halfspace.to_conic_view();
+    STATIC_REQUIRE(halfspace_cone.is_well_formed());
+    STATIC_REQUIRE(!halfspace.is_conic_view());
+    STATIC_REQUIRE(halfspace_cone.is_conic_view());
+    STATIC_REQUIRE(halfspace_cone != halfspace);
+    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<1>{}));
+    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<1>{0.1}));
+    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<1>{5.0}));
+    STATIC_REQUIRE(halfspace_cone.contains(Vectord<1>{6.0}));
   }
 }
 
@@ -161,6 +212,13 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(!ball.project(proj_map, Vectord<2>{}).has_value());
+
+    constexpr auto cone = ball.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!ball.is_conic_view());
+    STATIC_REQUIRE(cone.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.2}));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
   }
 
   SECTION("Test closed L2 norm ball") {
@@ -180,6 +238,13 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto res = ball.transform(AffineMap<Matrix<float, 2, 2>>(
         make_identity<float, 2>(), Vectorf<2>{}));
     STATIC_REQUIRE(res == ellipse);
+
+    constexpr auto cone = ball.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!ball.is_conic_view());
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{c(0) + 0.1f, c(1) - 0.2f}));
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{c(0) + 2.f, c(1)}));
   }
 
   SECTION("Test open L1 norm ball") {
@@ -211,6 +276,14 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(!ball.project(proj_map, Vectord<4>{}).has_value());
+
+    constexpr auto cone = ball.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!ball.is_conic_view());
+    STATIC_REQUIRE(!cone.contains(Vectord<4>{}));
+    STATIC_REQUIRE(cone.contains(Vectord<4>{c(0), c(1), c(2), c(3) + 0.1}));
+    STATIC_REQUIRE(cone.contains(Vectord<4>{c(0) + 1.0, c(1), c(2), c(3)}));
   }
 
   SECTION("Test closed L1 norm ball") {
@@ -223,6 +296,15 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!ball.contains(Vectorf<4>{}));
     STATIC_REQUIRE(ball.contains(Vectorf<4>{c(0), c(1), c(2), c(3) + 0.1f}));
     STATIC_REQUIRE(!ball.contains(Vectorf<4>{c(0) + 1.f, c(1), c(2), c(3)}));
+
+    constexpr auto cone = ball.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!ball.is_conic_view());
+    STATIC_REQUIRE(cone.contains(c));
+    STATIC_REQUIRE(!cone.contains(Vectorf<4>{}));
+    STATIC_REQUIRE(cone.contains(Vectorf<4>{c(0), c(1), c(2), c(3) + 0.1f}));
+    STATIC_REQUIRE(!cone.contains(Vectorf<4>{c(0) + 1.f, c(1), c(2), c(3)}));
   }
 
   SECTION("Test open Linf norm ball") {
@@ -242,6 +324,14 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(!ball.project(proj_map, Vectord<3>{}).has_value());
+
+    constexpr auto cone = ball.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!ball.is_conic_view());
+    STATIC_REQUIRE(cone.contains(c));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{}));
+    STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 1.0, c(1), c(2)}));
   }
 
   SECTION("Test closed  Linf norm ball") {
@@ -261,6 +351,14 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(res.contains(c));
     STATIC_REQUIRE(!res.contains(Vectorf<3>{}));
     STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
+
+    constexpr auto cone = ball.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!ball.is_conic_view());
+    STATIC_REQUIRE(cone.contains(c));
+    STATIC_REQUIRE(!cone.contains(Vectorf<3>{}));
+    STATIC_REQUIRE(cone.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
   }
 }
 
@@ -300,6 +398,15 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(!ellipsoid.project(proj_map, Vectord<2>{}).has_value());
+
+    constexpr auto cone = ellipsoid.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!ellipsoid.is_conic_view());
+    STATIC_REQUIRE(!cone.contains(Vectord<2>{}));
+    STATIC_REQUIRE(cone.contains(c));
+    STATIC_REQUIRE(cone.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
+    STATIC_REQUIRE(!cone.contains(Vectord<2>{1.5, 1.0}));
   }
 
   SECTION("Test closed ellipsoid set") {
@@ -312,6 +419,14 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid.contains(c));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
+
+    constexpr auto cone = ellipsoid.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!ellipsoid.is_conic_view());
+    STATIC_REQUIRE(cone.contains(c));
+    STATIC_REQUIRE(cone.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
+    STATIC_REQUIRE(cone.contains(Vectord<2>{1.5, 1.0}));
   }
 }
 
@@ -329,6 +444,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto t = constexpr_sqrt(5.0);
     constexpr auto cone = NormCone<Matrix<double, 1, 2>, NormConeType::L2OC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(cone.is_conic_view());
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
@@ -345,6 +461,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto t = constexpr_sqrt(5.f);
     constexpr auto cone = NormCone<Matrix<float, 1, 2>, NormConeType::L2CC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(cone.is_conic_view());
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
@@ -355,6 +472,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto t = 3.0;
     constexpr auto cone = NormCone<Matrix<double, 1, 2>, NormConeType::L1OC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(cone.is_conic_view());
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
@@ -371,6 +489,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto t = 3.f;
     constexpr auto cone = NormCone<Matrix<float, 1, 2>, NormConeType::L1CC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(cone.is_conic_view());
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
@@ -382,6 +501,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto cone =
         NormCone<Matrix<double, 1, 2>, NormConeType::LinfOC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(cone.is_conic_view());
     STATIC_REQUIRE(cone.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(!cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
@@ -399,6 +519,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto cone =
         NormCone<Matrix<float, 1, 2>, NormConeType::LinfCC>(t);
     STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(cone.is_conic_view());
     STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
@@ -420,6 +541,7 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     constexpr auto Z = Matrixd<2, 2>{};
     constexpr auto cone = PsdCone<SymmetricMatrix<Matrix<double, 2, 2>>>();
     STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(cone.is_conic_view());
     STATIC_REQUIRE(cone.contains(A));
     STATIC_REQUIRE(cone.contains(B));
     STATIC_REQUIRE(cone.contains(I));
@@ -470,6 +592,14 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(
         !poly.project(proj_map, Vectord<3>{1.0, 2.0, 3.0}).has_value());
+
+    constexpr auto cone = poly.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!poly.is_conic_view());
+    STATIC_REQUIRE(cone.contains(Vector<double, 3>{}));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
+    STATIC_REQUIRE(cone.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
   }
 
   SECTION("Test Open Polyhedron", "[A x < b]") {
@@ -480,6 +610,15 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
     STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.1, 0.1, 0.1}));
+
+    constexpr auto cone = poly.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!poly.is_conic_view());
+    STATIC_REQUIRE(!cone.contains(Vector<double, 3>{}));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
+    STATIC_REQUIRE(cone.contains(Vector<double, 3>{0.1, 0.1, 0.1}));
   }
 
   mat_traits<Matrix<double, 2, 3>> C_mat;
@@ -498,6 +637,15 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.0, 0.0, 1.0}));
     STATIC_REQUIRE(poly.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{})) ==
                    poly);
+
+    constexpr auto cone = poly.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!poly.is_conic_view());
+    STATIC_REQUIRE(!cone.contains(Vector<double, 3>{}));
+    STATIC_REQUIRE(cone.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
+    STATIC_REQUIRE(cone.contains(Vector<double, 3>{0.0, 1.0, 0.0}));
+    STATIC_REQUIRE(cone.contains(Vector<double, 3>{0.0, 0.0, 1.0}));
   }
 
   SECTION("Test Closed Polyhedron", "[A x < b, C x == d]") {
@@ -512,6 +660,16 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.2, 0.3, 0.5}));
     STATIC_REQUIRE(poly.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{})) ==
                    poly);
+
+    constexpr auto cone = poly.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!poly.is_conic_view());
+    STATIC_REQUIRE(!cone.contains(Vector<double, 3>{}));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 3>{0.0, 1.0, 0.0}));
+    STATIC_REQUIRE(!cone.contains(Vector<double, 3>{0.0, 0.0, 1.0}));
+    STATIC_REQUIRE(cone.contains(Vector<double, 3>{0.2, 0.3, 0.5}));
   }
 }
 
@@ -542,6 +700,15 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(!simplex.project(proj_map, Vectord<3>{}).has_value());
+
+    constexpr auto cone = simplex.to_conic_view();
+    STATIC_REQUIRE(cone.is_conic_view());
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(!simplex.is_conic_view());
+    STATIC_REQUIRE(simplex != cone);
+    STATIC_REQUIRE(cone.contains(Vectord<3>{0.8, 0.1, 0.1}));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{-0.8, 0.1, 0.1}));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{0.8, 0.1, 0.0}));
   }
 }
 
@@ -554,6 +721,7 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
   SECTION("Test nonneg orthant", "[R^n_+]") {
     constexpr NonnegOrthant<Matrixd<1, 2>> set;
     STATIC_REQUIRE(set.is_well_formed());
+    STATIC_REQUIRE(set.is_conic_view());
     STATIC_REQUIRE(set == set);
     STATIC_REQUIRE(set.contains(Vectord<2>{1.0, 0.0}));
     STATIC_REQUIRE(!set.contains(Vectord<2>{-0.1, 0.1}));
@@ -578,6 +746,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     constexpr auto I = make_identity<double, 2>();
     constexpr LMI<Matrixd<1, 2>, LMIType::Strict> set(I, I, I);
     STATIC_REQUIRE(set.is_well_formed());
+    STATIC_REQUIRE(set.is_conic_view());
     STATIC_REQUIRE(!set.contains(Vectord<2>{1.0, 2.0}));
     STATIC_REQUIRE(set.contains(Vectord<2>{}));
     STATIC_REQUIRE(set.contains(Vectord<2>{0.2, 0.5}));
@@ -588,6 +757,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     constexpr auto I = make_identity<double, 3>();
     constexpr LMI<Matrixd<1, 3>, LMIType::NonStrict> set(I, I, I, I);
     STATIC_REQUIRE(set.is_well_formed());
+    STATIC_REQUIRE(set.is_conic_view());
     STATIC_REQUIRE(!set.contains(Vectord<3>{1.0, 2.0, 3.0}));
     STATIC_REQUIRE(set.contains(Vectord<3>{}));
     STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));

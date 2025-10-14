@@ -143,9 +143,16 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    *
    * @return cone
    */
-  constexpr auto to_cone_impl(const T& t_in) const {
+  constexpr auto to_conic_view_impl(const T& t_in) const {
     return Simplex<Space>(t_in);
   }
+
+  /**
+   * @brief is cone
+   *
+   * @return T/F
+   */
+  constexpr bool is_conic_view_impl() const { return t.has_value(); }
 
   /** @brief member var in simplex */
   std::optional<T> t;  //< optional for conic view

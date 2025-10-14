@@ -198,9 +198,16 @@ class Polyhedron
    *
    * @return cone
    */
-  constexpr auto to_cone_impl(const T& t_in) const {
+  constexpr auto to_conic_view_impl(const T& t_in) const {
     return Polyhedron<Space, Type, decltype(A), decltype(C)>(A, b, C, d, t_in);
   }
+
+  /**
+   * @brief is cone
+   *
+   * @return T/F
+   */
+  constexpr bool is_conic_view_impl() const { return t.has_value(); }
 
   /** @brief member variables in the polyhedron */
   MatA A;  //< set of finite number of halfspaces
