@@ -262,7 +262,6 @@ class ParametricAffineSet : public AffineSet<Mat, ParametricAffineSet<Mat>> {
     return linalg::L2<T, N>()(residual) < tol;
   }
 
-
  private:
   /** @brief member variables in the base class */
   Mat U;  //< basis matrix for the affine set

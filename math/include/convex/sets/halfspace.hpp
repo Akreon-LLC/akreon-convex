@@ -45,6 +45,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * @param b bias scalar
    */
   constexpr explicit Halfspace(const Point& a_in, const T& b_in)
+    requires(Tag == ViewTag::ConvexSet)
       : a(a_in), b(b_in) {}
 
   /**
@@ -55,6 +56,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * @param t cone view scalar
    */
   constexpr explicit Halfspace(const Point& a_in, const T& b_in, const T& t_in)
+    requires(Tag == ViewTag::ConvexCone)
       : a(a_in), b(b_in), t(t_in) {}
 
   /**
@@ -116,10 +118,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    */
   template <linalg::SquareMatrixLike Mat>
     requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
-             linalg::mat_cols_v<Mat> == N)
+             linalg::mat_cols_v<Mat> == N && Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
-    if (t.has_value()) return *this;
-
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
     return Halfspace<Space, Type>(as_vector(aT_U),

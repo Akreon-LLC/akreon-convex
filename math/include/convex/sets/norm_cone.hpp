@@ -19,7 +19,7 @@ enum struct NormConeType { L2OC, L2CC, L1OC, L1CC, LinfOC, LinfCC };
  * { (x, t) | ||x|| < t }... open cone defined on L1, L2, Linf
  */
 template <linalg::VectorSpace Space, NormConeType Type,
-          ViewTag Tag = ViewTag::ConvexCone>
+          ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
@@ -113,6 +113,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
     return *this;
   }

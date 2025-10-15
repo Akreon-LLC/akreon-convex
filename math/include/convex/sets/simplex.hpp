@@ -37,12 +37,16 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
   /**
    * @brief CTOR for simplex (default)
    */
-  constexpr explicit Simplex() {}
+  constexpr explicit Simplex()
+    requires(Tag == ViewTag::ConvexSet)
+  {}
 
   /**
    * @brief CTOR for simplex (conic view)
    */
-  constexpr explicit Simplex(const T& t_in) : t(t_in) {}
+  constexpr explicit Simplex(const T& t_in)
+    requires(Tag == ViewTag::ConvexCone)
+      : t(t_in) {}
 
   /**
    * @brief contains function to see if x is in the simplex
@@ -98,17 +102,15 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    * @return polyhedron
    */
   template <linalg::MatrixLike Mat>
-    requires(std::same_as<T, linalg::mat_type_t<Mat>>)
+    requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
+             Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
-    // (dakre) TODO may need to figure out cleaner way to handle this
-    assert(!t.has_value());
-
     const auto& U = map.linear_part();
     const auto& t = map.translation();
     const auto U_inv = linalg::inverse(U);
 
-    linalg::Vector<T, N> ones;
-    for (size_t i = 0; i < N; ++i) ones[i] = T(1);
+    linalg::vec_traits<linalg::Vector<T, N>> vec;
+    const auto ones = vec.fill(T(1));
 
     const auto one_T_U_inv = as_row_vector(ones) * U_inv;
 

@@ -37,6 +37,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @param b bias scalar
    */
   constexpr explicit Hyperplane(const Point& a_in, const T& b_in)
+    requires(Tag == ViewTag::ConvexSet)
       : a(a_in), b(b_in) {}
 
   /**
@@ -93,10 +94,9 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    */
   template <linalg::SquareMatrixLike Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
-             std::same_as<linalg::mat_type_t<Mat>, T>)
+             std::same_as<linalg::mat_type_t<Mat>, T> &&
+             Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
-    if (t.has_value()) return *this;
-
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
     return Hyperplane<Space>(as_vector(aT_U),

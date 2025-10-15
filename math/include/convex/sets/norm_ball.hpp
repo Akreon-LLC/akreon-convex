@@ -23,7 +23,8 @@ enum struct NormBallType { L2OB, L2CB, L1OB, L1CB, LinfOB, LinfCB };
 template <linalg::VectorSpace Space, NormBallType Type,
           ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
+               linalg::vec_size_v<linalg::space_point_t<Space>> &&
+           Tag == ViewTag::ConvexSet)
 class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
@@ -105,7 +106,8 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
    */
   template <linalg::SquareMatrixLike Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
-             std::same_as<T, linalg::mat_type_t<Mat>>)
+             std::same_as<T, linalg::mat_type_t<Mat>> &&
+             Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto& U = map.linear_part();
     const auto& t = map.translation();

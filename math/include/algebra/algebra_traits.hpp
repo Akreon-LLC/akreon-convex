@@ -40,6 +40,22 @@ template <typename T, size_t N>
 struct vec_traits<Vector<T, N>> {
   using value_type = T;
   static constexpr size_t SIZE = N;
+
+  template <typename... Ts>
+  static constexpr auto operator()(Ts&&... xs) {
+    static_assert(sizeof...(xs) == N);
+    Vector<T, N> V;
+    int i = 0;
+    auto set_elem = [&](const T& x) { V[i++] = x; };
+    ((void)set_elem(std::forward<Ts>(xs)), ...);
+    return V;
+  }
+
+  static constexpr auto fill(const T& x) {
+    Vector<T, N> V;
+    for (size_t i = 0; i < N; ++i) V[i] = x;
+    return V;
+  }
 };
 
 /// @brief helper for size of vector
@@ -73,6 +89,13 @@ struct mat_traits<Matrix<T, Rows, Cols>> {
       i++;
     };
     ((void)set_elem(std::forward<Ts>(xs)), ...);
+    return M;
+  }
+
+  static constexpr auto fill(const T& x) {
+    Matrix<T, Rows, Cols> M;
+    for (size_t i = 0; i < Rows; ++i)
+      for (size_t j = 0; j < Cols; ++j) M[i][j] = x;
     return M;
   }
 };

@@ -41,6 +41,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    */
   constexpr explicit Ellipsoid(const Point& c_in,
                                const linalg::Matrix<T, N, N>& P_in)
+    requires(Tag == ViewTag::ConvexSet)
       : c(c_in), P(P_in) {}
 
   /**
@@ -118,10 +119,9 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    */
   template <linalg::SquareMatrixLike Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
-             std::same_as<T, linalg::mat_type_t<Mat>>)
+             std::same_as<T, linalg::mat_type_t<Mat>> &&
+             Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
-    if (t.has_value()) return *this;
-
     const auto U_inv = linalg::inverse(map.linear_part());
     return Ellipsoid<Space, Type>(map.linear_part() * c + map.translation(),
                                   transpose(U_inv) * P * U_inv);

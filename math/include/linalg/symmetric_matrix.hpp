@@ -28,7 +28,6 @@ enum struct SymmetricMatrixType { INV = 0, IND, PSD, PD, NSD, ND };
 template <SquareMatrixLike Mat>
 struct SymmetricMatrix {
   using T = mat_type_t<Mat>;
-  using ScalarT = scalar_type_t<mat_type_t<Mat>>;
 
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t DIM = (N * (N + 1)) / 2;
@@ -41,7 +40,7 @@ struct SymmetricMatrix {
    * 1) / 2 elements
    * - Checks eigenvalue signs and sets type
    */
-  constexpr explicit SymmetricMatrix(const Mat& A, ScalarT tol = 1e-10) {
+  constexpr explicit SymmetricMatrix(const Mat& A, T tol = 1e-8) {
     // (0) First see if the incoming matrix is symmetric
     bool valid = false;
     if constexpr (!is_complex_v<Mat>)
@@ -111,6 +110,24 @@ struct SymmetricMatrix {
     if (j < i) std::swap(i, j);
     const size_t idx = (j * (j + 1)) / 2 + i;
     return idx;
+  }
+
+  /**
+   * @brief is psd check
+   *
+   * @return T/F
+   */
+  constexpr bool is_psd() const {
+    return type == SymmetricMatrixType::PD || type == SymmetricMatrixType::PSD;
+  }
+
+  /**
+   * @brief is nsd check
+   *
+   * @return T/F
+   */
+  constexpr bool is_nsd() const {
+    return type == SymmetricMatrixType::ND || type == SymmetricMatrixType::NSD;
   }
 
   /** @brief member variables */

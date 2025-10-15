@@ -70,6 +70,7 @@ class Polyhedron
       const MatA& A_in, const linalg::Vector<T, RowsA>& b_in,
       MatC C_in = MatC{},
       linalg::Vector<T, RowsC> d_in = linalg::Vector<T, RowsC>{})
+    requires(Tag == ViewTag::ConvexSet)
       : A(A_in), b(b_in), C(C_in), d(d_in) {}
 
   /**
@@ -86,6 +87,7 @@ class Polyhedron
                                 const MatC& C_in,
                                 const linalg::Vector<T, RowsC>& d_in,
                                 const T& t_in)
+    requires(Tag == ViewTag::ConvexCone)
       : A(A_in), b(b_in), C(C_in), d(d_in), t(t_in) {}
 
   /**
@@ -159,10 +161,8 @@ class Polyhedron
    */
   template <linalg::SquareMatrixLike Mat>
     requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
-             linalg::mat_cols_v<Mat> == N)
+             linalg::mat_cols_v<Mat> == N && Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
-    if (t.has_value()) return *this;
-
     const auto& U = map.linear_part();
     const auto& trans = map.translation();
 

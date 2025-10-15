@@ -12,7 +12,7 @@ namespace convex {
 /**
  * @brief Nonnegative orthant R^n_+
  */
-template <linalg::VectorSpace Space, ViewTag Tag = ViewTag::ConvexCone>
+template <linalg::VectorSpace Space, ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
@@ -64,6 +64,7 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
     return *this;
   }
