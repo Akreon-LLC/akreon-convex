@@ -18,13 +18,13 @@ namespace convex {
  *
  * Useful in probabilities
  */
-template <linalg::VectorSpace Space>
+template <linalg::VectorSpace Space, ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Simplex : public ConvexSet<Space, Simplex<Space>> {
+class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Simplex<Space>>;
+  using ConvexBase = ConvexSet<Space, Simplex<Space, Tag>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -43,10 +43,6 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    * @brief CTOR for simplex (conic view)
    */
   constexpr explicit Simplex(const T& t_in) : t(t_in) {}
-
- protected:
-  /// @brief allow base class to invoke impl funcs
-  friend ConvexBase;
 
   /**
    * @brief contains function to see if x is in the simplex
@@ -121,7 +117,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
     const auto C = one_T_U_inv;
     const auto d = T(1) + (one_T_U_inv * t)(0);
 
-    return Polyhedron<Space, HalfspaceType::CLH, decltype(A), decltype(C)>(
+    return Polyhedron<Space, HalfspaceType::CLH, decltype(A), decltype(C), Tag>(
         A, b, C, d);
   }
 
@@ -143,17 +139,26 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    *
    * @return cone
    */
-  constexpr auto to_conic_view_impl(const T& t_in) const {
-    return Simplex<Space>(t_in);
+  constexpr auto cone_view_impl(const T& t_in) const {
+    return ConeView(Simplex<Space, ViewTag::ConvexCone>(t_in));
   }
 
   /**
-   * @brief is cone
+   * @brief project impl
    *
-   * @return T/F
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
    */
-  constexpr bool is_conic_view_impl() const { return t.has_value(); }
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
+    if (!this->contains(x)) return std::nullopt;
+    return map.apply(x);
+  }
 
+ private:
   /** @brief member var in simplex */
   std::optional<T> t;  //< optional for conic view
 };

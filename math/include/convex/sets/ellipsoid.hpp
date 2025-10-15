@@ -18,13 +18,14 @@ enum struct EllipsoidType { CE, OE };
  * E = { x | (x - c)^T P (x - c) <= 1 } s.t. P \in S^n_+ (symmetric positive
  * definite)
  */
-template <linalg::VectorSpace Space, EllipsoidType Type>
+template <linalg::VectorSpace Space, EllipsoidType Type,
+          ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
+class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Ellipsoid<Space, Type>>;
+  using ConvexBase = ConvexSet<Space, Ellipsoid<Space, Type, Tag>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -52,11 +53,8 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
   constexpr explicit Ellipsoid(const Point& c_in,
                                const linalg::Matrix<T, N, N>& P_in,
                                const T& t_in)
+    requires(Tag == ViewTag::ConvexCone)
       : c(c_in), P(P_in), t(t_in) {}
-
- protected:
-  /// @brief allow base class to invoke impl pure virtual (v-table like) funcs
-  friend ConvexBase;
 
   /**
    * @brief contains function to see if x is in the ellipsoid (x - c)^T P (x -
@@ -147,17 +145,26 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
    *
    * @return cone
    */
-  constexpr auto to_conic_view_impl(const T& t_in) const {
-    return Ellipsoid<Space, Type>(c, P, t_in);
+  constexpr auto cone_view_impl(const T& t_in) const {
+    return ConeView(Ellipsoid<Space, Type, ViewTag::ConvexCone>(c, P, t_in));
   }
 
   /**
-   * @brief is cone
+   * @brief project impl
    *
-   * @return T/F
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
    */
-  constexpr bool is_conic_view_impl() const { return t.has_value(); }
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
+    if (!this->contains(x)) return std::nullopt;
+    return map.apply(x);
+  }
 
+ private:
   /** @brief member variables in the ellipsoid */
   Point c;  //< n-dim vector of type T representing center of ellipsoid
   linalg::Matrix<T, N, N> P;  //< square matrix representing directions for

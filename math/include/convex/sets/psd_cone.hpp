@@ -16,24 +16,17 @@ namespace convex {
  * case) S^n_++ { X \in S^n | X > 0 }... set of positive definite matrices S^n_+
  * { X \in S^n | X >= 0 }... set of psd matrices
  */
-template <linalg::VectorSpace Space>
+template <linalg::VectorSpace Space, ViewTag Tag = ViewTag::ConvexCone>
   requires(linalg::SquareMatrixLike<linalg::space_point_t<Space>>)
-class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
+class PsdCone : public ConvexSet<Space, PsdCone<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, PsdCone<Space>>;
+  using ConvexBase = ConvexSet<Space, PsdCone<Space, Tag>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
   /// @brief bring into scope the const data members
   using ConvexBase::Dim;
-
-  /// @brief alias for scalar type of underlying set type
-  using ScalarT = linalg::scalar_type_t<T>;
-
- protected:
-  /// @brief allow convex base to invoke impl
-  friend ConvexBase;
 
   /**
    * @brief is_well_formed implementation stubbed to true for this set type
@@ -50,7 +43,7 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
    *
    * @return T/F
    */
-  constexpr auto contains_impl(const Point& X, const ScalarT& /* tol */) const {
+  constexpr auto contains_impl(const Point& X, const T& /* tol */) const {
     linalg::SymmetricMatrix S(X);
     return S.type == linalg::SymmetricMatrixType::PD ||
            S.type == linalg::SymmetricMatrixType::PSD;
@@ -65,6 +58,40 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space>> {
    */
   constexpr bool is_equal_impl(const ConvexBase& /* other */) const {
     return true;
+  }
+
+  /**
+   * @brief transform impl
+   *
+   * @return self
+   */
+  template <linalg::MatrixLike Mat>
+  constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
+    return *this;
+  }
+
+  /**
+   * @brief cone view impl
+   *
+   * @return cone
+   */
+  constexpr auto cone_view_impl(const T& /*t*/) const {
+    return ConeView(PsdCone<Space, ViewTag::ConvexCone>());
+  }
+
+  /**
+   * @brief project impl
+   *
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
+   */
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
+               const Point& /*x*/) const {
+    return std::nullopt;
   }
 };
 

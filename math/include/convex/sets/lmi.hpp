@@ -27,13 +27,14 @@ enum struct LMIType { Strict, NonStrict };
  * Transformed to pre-image of PsdCone
  * F(x) = F_0 + \sum_i F(x) >= 0... F_0 = B, F_i = -A_i
  */
-template <linalg::VectorSpace Space, LMIType Type>
+template <linalg::VectorSpace Space, LMIType Type,
+          ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class LMI : public ConvexSet<Space, LMI<Space, Type>> {
+class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, LMI<Space, Type>>;
+  using ConvexBase = ConvexSet<Space, LMI<Space, Type, Tag>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -60,9 +61,6 @@ class LMI : public ConvexSet<Space, LMI<Space, Type>> {
     };
     ((void)set_mat(std::forward<Fs>(xs)), ...);
   }
-
-  /// @brief allow convex base to invoke impl
-  friend ConvexBase;
 
   /**
    * @brief contains function to see if x is in the LMI defined as
@@ -112,6 +110,40 @@ class LMI : public ConvexSet<Space, LMI<Space, Type>> {
   }
 
   /**
+   * @brief transform impl
+   *
+   * @return self
+   */
+  template <linalg::MatrixLike Mat>
+  constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
+    return *this;
+  }
+
+  /**
+   * @brief project impl
+   *
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
+   */
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
+               const Point& /*x*/) const {
+    return std::nullopt;
+  }
+
+  /**
+   * @brief cone view impl
+   *
+   * @return cone
+   */
+  constexpr auto cone_view_impl(const T& /*t*/) const {
+    return ConeView(LMI<Space, Type, ViewTag::ConvexCone>(A, B));
+  }
+
+  /**
    * @brief helper function to check definiteness of matrix
    *
    * @param symmetric matrix S
@@ -133,6 +165,7 @@ class LMI : public ConvexSet<Space, LMI<Space, Type>> {
     return false;
   }
 
+ private:
   /** @brief member vars for LMI */
   linalg::Vector<linalg::Matrix<T, N, N>, N> A;
   linalg::Matrix<T, N, N> B;

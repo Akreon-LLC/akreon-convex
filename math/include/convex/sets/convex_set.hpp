@@ -9,6 +9,7 @@
 
 #include "../../algebra/algebra_util.hpp"
 #include "../convex_traits.hpp"
+#include "cone_view.hpp"
 
 namespace convex {
 
@@ -71,12 +72,7 @@ class ConvexSet {
    */
   template <linalg::MatrixLike Mat>
   constexpr auto transform(const AffineMap<Mat>& map) const {
-    // (0) if this is a cone an affine transform remains a cone (assuming
-    // congruence transform)
-    if constexpr (ConeLike<Derived>)
-      return self();
-    else
-      return self().transform_impl(map);
+    return self().transform_impl(map);
   }
 
   /**
@@ -96,46 +92,19 @@ class ConvexSet {
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
-    // (0) Affine map of a cone will break cone property so no-op here for the
-    // time being. Cones are homogenous sets anchored at the origin and don't
-    // "move" with affine maps like other convex sets
-    if constexpr (ConeLike<Derived>) {
-      return std::nullopt;
-    } else {
-      // (1) if this is a convex set (not cone) then projection of point lies in
-      // K if x is in C
-      if (!contains(x)) return std::nullopt;
-      return map.apply(x);
-    }
+    return self().project_impl(map, x);
   }
 
   /**
-   * @brief to cone (apply inverse perspective func to convex set (non-cone))
+   * @brief get cone view (apply inverse perspective func to convex set)
    *
    * P^{-1}(C) -> K where P^{-1} : R^m -> R^{m + 1}
    *
    * @param t (slice defining cone)
    *
-   * @return cone
+   * @return cone view
    */
-  constexpr auto to_conic_view(T t = 1.0) const {
-    if constexpr (ConeLike<Derived>)
-      return std::nullopt;
-    else
-      return self().to_conic_view_impl(t);
-  }
-
-  /**
-   * @brief is cone
-   *
-   * @return T/F
-   */
-  constexpr bool is_conic_view() const {
-    if constexpr (ConeLike<Derived>)
-      return true;
-    else
-      return self().is_conic_view_impl();
-  }
+  constexpr auto cone_view(T t = 1.0) const { return self().cone_view_impl(t); }
 
   /**
    * @brief equality comparison overload

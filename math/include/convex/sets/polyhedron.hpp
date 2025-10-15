@@ -19,15 +19,16 @@ namespace convex {
 template <linalg::VectorSpace Space, HalfspaceType Type,
           linalg::MatrixLike MatA,
           linalg::MatrixLike MatC = linalg::Matrix<linalg::mat_type_t<Space>, 0,
-                                                   linalg::space_dim_v<Space>>>
+                                                   linalg::space_dim_v<Space>>,
+          ViewTag Tag = ViewTag::ConvexSet>
   requires(!linalg::is_complex_v<linalg::mat_type_t<Space>> &&
            !linalg::is_complex_v<linalg::mat_type_t<MatA>> &&
            !linalg::is_complex_v<linalg::mat_type_t<MatC>>)
 class Polyhedron
-    : public ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC>> {
+    : public ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC>>;
+  using ConvexBase = ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC, Tag>>;
   using ConvexBase::Dim;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
@@ -86,10 +87,6 @@ class Polyhedron
                                 const linalg::Vector<T, RowsC>& d_in,
                                 const T& t_in)
       : A(A_in), b(b_in), C(C_in), d(d_in), t(t_in) {}
-
- protected:
-  /// @brief allow convex base to invoke impl
-  friend ConvexBase;
 
   /**
    * @brief is_well_formed implementation
@@ -175,8 +172,8 @@ class Polyhedron
     const auto C_new = C * U_inv;
     const auto d_new = d + C_new * trans;
 
-    return Polyhedron<Space, Type, decltype(A), decltype(C)>(A_new, b_new,
-                                                             C_new, d_new);
+    return Polyhedron<Space, Type, decltype(A), decltype(C), Tag>(A_new, b_new,
+                                                                  C_new, d_new);
   }
 
   /**
@@ -198,17 +195,28 @@ class Polyhedron
    *
    * @return cone
    */
-  constexpr auto to_conic_view_impl(const T& t_in) const {
-    return Polyhedron<Space, Type, decltype(A), decltype(C)>(A, b, C, d, t_in);
+  constexpr auto cone_view_impl(const T& t_in) const {
+    return ConeView(
+        Polyhedron<Space, Type, decltype(A), decltype(C), ViewTag::ConvexCone>(
+            A, b, C, d, t_in));
   }
 
   /**
-   * @brief is cone
+   * @brief project impl
    *
-   * @return T/F
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
    */
-  constexpr bool is_conic_view_impl() const { return t.has_value(); }
+  template <linalg::MatrixLike MA, linalg::MatrixLike MC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MA> + 1>>
+  project_impl(const ProjectiveMap<MA, MC>& map, const Point& x) const {
+    if (!this->contains(x)) return std::nullopt;
+    return map.apply(x);
+  }
 
+ private:
   /** @brief member variables in the polyhedron */
   MatA A;  //< set of finite number of halfspaces
   linalg::Vector<T, RowsA>

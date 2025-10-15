@@ -14,13 +14,13 @@ namespace convex {
  *
  * H = { x | a^T x = b }
  */
-template <linalg::VectorSpace Space>
+template <linalg::VectorSpace Space, ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
+class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Hyperplane<Space>>;
+  using ConvexBase = ConvexSet<Space, Hyperplane<Space, Tag>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -47,11 +47,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    * @param t scalar for cone view
    */
   constexpr explicit Hyperplane(const Point& a_in, const T& b_in, const T& t_in)
+    requires(Tag == ViewTag::ConvexCone)
       : a(a_in), b(b_in), t(t_in) {}
-
- protected:
-  /// @brief allow base class to invoke impl funcs
-  friend ConvexBase;
 
   /**
    * @brief contains function to see if x lies in the hyerplane defined by a^T x
@@ -122,17 +119,26 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    *
    * @return cone
    */
-  constexpr auto to_conic_view_impl(const T& t_in) const {
-    return Hyperplane<Space>(a, b, t_in);
+  constexpr auto cone_view_impl(const T& t_in) const {
+    return ConeView(Hyperplane<Space, ViewTag::ConvexCone>(a, b, t_in));
   }
 
   /**
-   * @brief is cone
+   * @brief project impl
    *
-   * @return T/F
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
    */
-  constexpr bool is_conic_view_impl() const { return t.has_value(); }
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
+    if (!this->contains(x)) return std::nullopt;
+    return map.apply(x);
+  }
 
+ private:
   /** @brief member var in hyperplane */
   Point a;             //< n-dim vec of type T
   T b;                 //< bias scalar of type T

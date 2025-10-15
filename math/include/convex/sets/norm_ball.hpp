@@ -20,13 +20,14 @@ enum struct NormBallType { L2OB, L2CB, L1OB, L1CB, LinfOB, LinfCB };
  * { x | norm(x - c) <= r }... closed norm (L2, L1, Linf) ball that lies within
  * radius { x | norm(x - c) < r}... open "" ball that ""
  */
-template <linalg::VectorSpace Space, NormBallType Type>
+template <linalg::VectorSpace Space, NormBallType Type,
+          ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
+class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, NormBall<Space, Type>>;
+  using ConvexBase = ConvexSet<Space, NormBall<Space, Type, Tag>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -43,10 +44,6 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    */
   constexpr explicit NormBall(const Point& c_in, const T& r_in)
       : c(c_in), r(r_in) {}
-
- protected:
-  /// @brief allow base class to invoke impl
-  friend ConvexBase;
 
   /**
    * @brief contains function to see if x is in the norm ball (norm(x - c) <= r)
@@ -204,10 +201,10 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
       using NewSpace = linalg::Matrix<T, 1, 2 * N>;
       if constexpr (Type == NormBallType::L1OB)
         return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
-                          linalg::Matrix<T, 0, 2 * N>>(A, b);
+                          linalg::Matrix<T, 0, 2 * N>, Tag>(A, b);
       else
         return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
-                          linalg::Matrix<T, 0, 2 * N>>(A, b);
+                          linalg::Matrix<T, 0, 2 * N>, Tag>(A, b);
     }
     /* Linf case
      *
@@ -250,10 +247,10 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
       using NewSpace = linalg::Matrix<T, 1, N>;
       if constexpr (Type == NormBallType::LinfOB)
         return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
-                          linalg::Matrix<T, 0, N>>(A, b);
+                          linalg::Matrix<T, 0, N>, Tag>(A, b);
       else
         return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
-                          linalg::Matrix<T, 0, N>>(A, b);
+                          linalg::Matrix<T, 0, N>, Tag>(A, b);
     }
   }
 
@@ -264,28 +261,45 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    *
    * @return cone
    */
-  constexpr auto to_conic_view_impl(const T& t_in) const {
+  constexpr auto cone_view_impl(const T& t_in) const {
     if constexpr (Type == NormBallType::L2OB)
-      return NormCone<Space, NormConeType::L2OC>(t_in, c, r);
+      return ConeView(
+          NormCone<Space, NormConeType::L2OC, ViewTag::ConvexCone>(t_in, c, r));
     else if constexpr (Type == NormBallType::L2CB)
-      return NormCone<Space, NormConeType::L2CC>(t_in, c, r);
+      return ConeView(
+          NormCone<Space, NormConeType::L2CC, ViewTag::ConvexCone>(t_in, c, r));
     else if constexpr (Type == NormBallType::L1OB)
-      return NormCone<Space, NormConeType::L1OC>(t_in, c, r);
+      return ConeView(
+          NormCone<Space, NormConeType::L1OC, ViewTag::ConvexCone>(t_in, c, r));
     else if constexpr (Type == NormBallType::L1CB)
-      return NormCone<Space, NormConeType::L1CC>(t_in, c, r);
+      return ConeView(
+          NormCone<Space, NormConeType::L1CC, ViewTag::ConvexCone>(t_in, c, r));
     else if constexpr (Type == NormBallType::LinfOB)
-      return NormCone<Space, NormConeType::LinfOC>(t_in, c, r);
-    else 
-      return NormCone<Space, NormConeType::LinfCC>(t_in, c, r);
+      return ConeView(
+          NormCone<Space, NormConeType::LinfOC, ViewTag::ConvexCone>(t_in, c,
+                                                                     r));
+    else
+      return ConeView(
+          NormCone<Space, NormConeType::LinfCC, ViewTag::ConvexCone>(t_in, c,
+                                                                     r));
   }
 
   /**
-   * @brief is cone
+   * @brief project impl
    *
-   * @return T/F
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
    */
-  constexpr bool is_conic_view_impl() const { return false; }
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
+    if (!this->contains(x)) return std::nullopt;
+    return map.apply(x);
+  }
 
+ private:
   /** @brief member variables in the norm ball */
   Point c;  //< n-dim vector of type T representing center of ball
   T r;      //< scalar of type T representing radius

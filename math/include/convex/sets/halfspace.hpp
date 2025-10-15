@@ -21,13 +21,14 @@ enum struct HalfspaceType { CLH, OLH, CUH, OUH };
  * {x | a^T x >= b}... closed upper halfspace
  * {x | a^T x > b}... open upper halfspace
  */
-template <linalg::VectorSpace Space, HalfspaceType Type>
+template <linalg::VectorSpace Space, HalfspaceType Type,
+          ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
+class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Halfspace<Space, Type>>;
+  using ConvexBase = ConvexSet<Space, Halfspace<Space, Type, Tag>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -55,10 +56,6 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    */
   constexpr explicit Halfspace(const Point& a_in, const T& b_in, const T& t_in)
       : a(a_in), b(b_in), t(t_in) {}
-
- protected:
-  /// @brief allow base class to invoke impl pure virtual (v-table like) funcs
-  friend ConvexBase;
 
   /**
    * @brief contains function to see if x is in the halfspace a^T x <= b
@@ -145,17 +142,26 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    *
    * @return cone
    */
-  constexpr auto to_conic_view_impl(const T& t_in) const {
-    return Halfspace<Space, Type>(a, b, t_in);
+  constexpr auto cone_view_impl(const T& t_in) const {
+    return ConeView(Halfspace<Space, Type, ViewTag::ConvexCone>(a, b, t_in));
   }
 
   /**
-   * @brief is cone
+   * @brief project impl
    *
-   * @return T/F
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
    */
-  constexpr bool is_conic_view_impl() const { return t.has_value(); }
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
+    if (!this->contains(x)) return std::nullopt;
+    return map.apply(x);
+  }
 
+ private:
   /** @brief member variables in the halfspace */
   Point a;             //< n-dim vector of type T
   T b;                 //< bias scalar of type T

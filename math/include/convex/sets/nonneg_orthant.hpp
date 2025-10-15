@@ -12,13 +12,13 @@ namespace convex {
 /**
  * @brief Nonnegative orthant R^n_+
  */
-template <linalg::VectorSpace Space>
+template <linalg::VectorSpace Space, ViewTag Tag = ViewTag::ConvexCone>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space>> {
+class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, NonnegOrthant<Space>>;
+  using ConvexBase = ConvexSet<Space, NonnegOrthant<Space, Tag>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -27,10 +27,6 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space>> {
 
   /// @brief helper to get N elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
-
- protected:
-  /// @brief allow for base class to invoke impl funcs
-  friend ConvexBase;
 
   /**
    * @brief contains function to see if point x lies in the R^n_+ set
@@ -60,6 +56,42 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space>> {
    */
   constexpr bool is_equal_impl(const ConvexBase& /* other */) const {
     return true;
+  }
+
+  /**
+   * @brief transform impl
+   *
+   * @return self
+   */
+  template <linalg::MatrixLike Mat>
+  constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
+    return *this;
+  }
+
+  /**
+   * @brief project impl
+   *
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
+   */
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
+               const Point& /*x*/) const {
+    return std::nullopt;
+  }
+
+  /**
+   * @brief to cone
+   *
+   * @param t cone slice
+   *
+   * @return cone
+   */
+  constexpr auto cone_view_impl(const T& /*t_in*/) const {
+    return ConeView(NonnegOrthant<Space, ViewTag::ConvexCone>());
   }
 };
 

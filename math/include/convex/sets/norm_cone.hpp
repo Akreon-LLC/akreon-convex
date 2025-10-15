@@ -18,13 +18,14 @@ enum struct NormConeType { L2OC, L2CC, L1OC, L1CC, LinfOC, LinfCC };
  * { (x, t) | ||x|| <= t }... closed norm cone defined on L1, L2, Linf
  * { (x, t) | ||x|| < t }... open cone defined on L1, L2, Linf
  */
-template <linalg::VectorSpace Space, NormConeType Type>
+template <linalg::VectorSpace Space, NormConeType Type,
+          ViewTag Tag = ViewTag::ConvexCone>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
+class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, NormCone<Space, Type>>;
+  using ConvexBase = ConvexSet<Space, NormCone<Space, Type, Tag>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -50,10 +51,6 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
    */
   constexpr explicit NormCone(const T& t_in, const Point& c_in, const T& r_in)
       : t(t_in), c(c_in), r(r_in) {}
-
- protected:
-  /// @brief allow base class to invoke impls
-  friend ConvexBase;
 
   /**
    * @brief contains function to see if x is in the norm cone (y, t) \in K
@@ -111,14 +108,40 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type>> {
   }
 
   /**
-   * @brief pushfoward impl
+   * @brief transform impl
    *
-   * @param t slice
-   *
-   * @return convex set
+   * @return self
    */
-  constexpr auto perspective_impl(const T& /*t*/) const { return false; }
+  template <linalg::MatrixLike Mat>
+  constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
+    return *this;
+  }
 
+  /**
+   * @brief cone view impl
+   *
+   * @return cone
+   */
+  constexpr auto cone_view_impl(const T& /*t*/) const {
+    return ConeView(NormCone<Space, Type, ViewTag::ConvexCone>(t, c, r));
+  }
+
+  /**
+   * @brief project impl
+   *
+   * @param project map
+   * @param point in set
+   *
+   * @return projected set
+   */
+  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
+  project_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
+               const Point& /*x*/) const {
+    return std::nullopt;
+  }
+
+ private:
   /** @brief member variables in the norm cone */
   T t;                     //< scalar of type T representing threshold for cone
   std::optional<Point> c;  //< center point from norm ball -> cone
