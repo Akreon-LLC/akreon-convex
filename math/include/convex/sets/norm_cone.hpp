@@ -32,54 +32,61 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
+  /// @brief lifted point (based on lifted space or not)
+  static constexpr size_t AugSize = N - 1;
+  using AugmentedPoint = linalg::Vector<T, AugSize>;
+
   /**
    * @brief CTOR for norm cone
-   *
-   * @param t (scalar rep variable radius)
    */
-  constexpr explicit NormCone(const T& t_in) : t(t_in) {}
+  constexpr explicit NormCone() {}
 
   /**
    * @brief CTOR for norm cone (via norm ball conic view)
    *
-   * @param t (scalar for conic view)
    * @param center point from norm ball
    * @param r (radius from norm ball)
    */
-  constexpr explicit NormCone(const T& t_in, const Point& c_in, const T& r_in)
-      : t(t_in), c(c_in), r(r_in) {}
+  constexpr explicit NormCone(const AugmentedPoint& c_in, const T& r_in)
+      : c(c_in), r(r_in) {}
 
   /**
    * @brief contains function to see if x is in the norm cone (y, t) \in K
    *
    * K = {(x, t) \in R^n x R | ||x|| <= t}
    *
-   * @param point x
+   * @param point (x,t) - lifted by default
    * @param tolerance
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
-    T alpha(t);
-    if (r.has_value()) alpha *= r.value();
+  constexpr bool contains_impl(const Point& x_in, const T& /* tol */) const {
+    T t = x_in(N - 1);
+    if (t < T(0)) return false;
+    AugmentedPoint x = std::get<0>(linalg::splice<N - 1>(x_in));
 
-    Point beta;
-    if (c.has_value()) beta = c.value();
+    AugmentedPoint shift;
+    if (r.has_value() && c.has_value()) {
+      t *= r.value();
+      shift = c.value();
+    }
+
+    const bool zeros = linalg::all_zero(x_in);
 
     switch (Type) {
       case NormConeType::L2OC:
-        return linalg::L2<T, N>()(x - beta) < alpha;
+        return linalg::L2<T, AugSize>()(x - shift) < t;
       case NormConeType::L2CC:
-        return linalg::L2<T, N>()(x - beta) <= alpha;
+        return zeros || linalg::L2<T, AugSize>()(x - shift) <= t;
       case NormConeType::L1OC:
-        return linalg::L1<T, N>()(x - beta) < alpha;
+        return linalg::L1<T, AugSize>()(x - shift) < t;
       case NormConeType::L1CC:
-        return linalg::L1<T, N>()(x - beta) <= alpha;
+        return zeros || linalg::L1<T, AugSize>()(x - shift) <= t;
       case NormConeType::LinfOC:
-        return linalg::Linf<T, N>()(x - beta) < alpha;
+        return linalg::Linf<T, AugSize>()(x - shift) < t;
       case NormConeType::LinfCC:
       default:
-        return linalg::Linf<T, N>()(x - beta) <= alpha;
+        return zeros || linalg::Linf<T, AugSize>()(x - shift) <= t;
     }
   }
 
@@ -88,10 +95,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const {
-    if (r.has_value()) return r.value() >= 0;
-    return t > 0;
-  }
+  constexpr bool is_well_formed_impl() const { return true; }
 
   /**
    * @brief equality comparison
@@ -101,7 +105,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().t == t && other.self().c == c && other.self().r == r;
+    return other.self().c == c && other.self().r == r;
   }
 
   /**
@@ -120,8 +124,10 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl(const T& /*t*/) const {
-    return ConeView(NormCone<Space, Type, ViewTag::ConvexCone>(t, c, r));
+  constexpr auto cone_view_impl() const
+    requires(Tag == ViewTag::ConvexSet)
+  {
+    return ConeView(NormCone<Space, Type, ViewTag::ConvexCone>());
   }
 
   /**
@@ -133,6 +139,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
                const Point& /*x*/) const {
@@ -141,9 +148,8 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
 
  private:
   /** @brief member variables in the norm cone */
-  T t;                     //< scalar of type T representing threshold for cone
-  std::optional<Point> c;  //< center point from norm ball -> cone
-  std::optional<T> r;      //< radius from norm ball -> cone
+  std::optional<AugmentedPoint> c;  //< center point from norm ball -> cone
+  std::optional<T> r;               //< radius from norm ball -> cone
 };
 
 }  // namespace convex

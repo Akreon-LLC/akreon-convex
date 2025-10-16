@@ -30,29 +30,24 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
   using ConvexBase::Dim;
   using ConvexBase::N;
 
+  /// @brief lifted point (based on lifted space or not)
+  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexCone,
+                                            linalg::Vector<T, N - 1>, Point>;
+
+  /// @brief lifted matrix for P
+  using AugmentedMat = std::conditional_t<Tag == ViewTag::ConvexCone,
+                                          linalg::Matrix<T, N - 1, N - 1>,
+                                          linalg::Matrix<T, N, N>>;
+
   /**
    * @brief CTOR for ellipsoidal set
    *
    * @param Point (i.e., n-dim vector of type T)
    * @param P \in S^n_+
    */
-  constexpr explicit Ellipsoid(const Point& c_in,
-                               const linalg::Matrix<T, N, N>& P_in)
-    requires(Tag == ViewTag::ConvexSet)
+  constexpr explicit Ellipsoid(const AugmentedPoint& c_in,
+                               const AugmentedMat& P_in)
       : c(c_in), P(P_in) {}
-
-  /**
-   * @brief CTOR for ellipsoidal set in conic view
-   *
-   * @param Point (center)
-   * @param P \in S^n_+
-   * @param t scalar for cone
-   */
-  constexpr explicit Ellipsoid(const Point& c_in,
-                               const linalg::Matrix<T, N, N>& P_in,
-                               const T& t_in)
-    requires(Tag == ViewTag::ConvexCone)
-      : c(c_in), P(P_in), t(t_in) {}
 
   /**
    * @brief contains function to see if x is in the ellipsoid (x - c)^T P^{-1}
@@ -63,11 +58,18 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /*tol*/) const {
-    T alpha(1);
-    if (t.has_value()) alpha *= t.value();
+  constexpr bool contains_impl(const Point& x_in, const T& /*tol*/) const {
+    T t(1);
+    AugmentedPoint x;
+    if constexpr (Tag == ViewTag::ConvexCone) {
+      if (x_in(N - 1) < T(0)) return false;
+      t *= x_in(N - 1);
+      x = std::get<0>(linalg::splice<N - 1>(x_in));
+    } else {
+      x = x_in;
+    }
 
-    const auto delta = as_col_vector(x - (alpha * c));
+    const auto delta = as_col_vector(x - (t * c));
     const auto delta_t = linalg::transpose(delta);
 
     const auto val = (delta_t * (linalg::inverse(P) * delta));
@@ -75,13 +77,13 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
                   linalg::mat_cols_v<decltype(val)> == 1);
 
     // (dakre) (x - ct)^T P^{-1} (x - ct) <= t^2
-    if (t.has_value()) alpha *= alpha;
+    if constexpr (Tag == ViewTag::ConvexCone) t *= t;
     switch (Type) {
       case EllipsoidType::OE:
-        return val(0)(0) < alpha;
+        return val(0)(0) < t;
       case EllipsoidType::CE:
       default:
-        return val(0)(0) <= alpha;
+        return val(0)(0) <= t;
     }
     return false;
   }
@@ -93,9 +95,6 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    */
   constexpr bool is_well_formed_impl() const {
     linalg::SymmetricMatrix S(P);
-    if (t.has_value())
-      if (t <= T(0)) return false;
-
     return S.type == linalg::SymmetricMatrixType::PD ||
            S.type == linalg::SymmetricMatrixType::PSD;
   }
@@ -135,18 +134,20 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().c == c && other.self().P == P && other.self().t == t;
+    return other.self().c == c && other.self().P == P;
   }
 
   /**
    * @brief inverse perspective func from convex set to cone
    *
-   * @param t cone slice
-   *
    * @return cone
    */
-  constexpr auto cone_view_impl(const T& t_in) const {
-    return ConeView(Ellipsoid<Space, Type, ViewTag::ConvexCone>(c, P, t_in));
+  constexpr auto cone_view_impl() const
+    requires(Tag == ViewTag::ConvexSet)
+  {
+    return ConeView(
+        Ellipsoid<linalg::Matrix<T, 1, N + 1>, Type, ViewTag::ConvexCone>(c,
+                                                                          P));
   }
 
   /**
@@ -158,6 +159,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;
@@ -166,10 +168,9 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
 
  private:
   /** @brief member variables in the ellipsoid */
-  Point c;  //< n-dim vector of type T representing center of ellipsoid
-  linalg::Matrix<T, N, N> P;  //< square matrix representing directions for
-                              // ellipsoid (valid \in S^n_+)
-  std::optional<T> t;         //< conic view t scalar
+  AugmentedPoint c;  //< n-dim vector of type T representing center of ellipsoid
+  AugmentedMat P;    //< square matrix representing directions for
+                     // ellipsoid (valid \in S^n_+)
 };
 
 }  // namespace convex

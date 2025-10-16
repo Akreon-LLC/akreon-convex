@@ -91,7 +91,9 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl(const T& /*t_in*/) const {
+  constexpr auto cone_view_impl() const
+    requires(Tag == ViewTag::ConvexSet)
+  {
     return ConeView(NonnegOrthant<Space, ViewTag::ConvexCone>());
   }
 };

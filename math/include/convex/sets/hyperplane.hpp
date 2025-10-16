@@ -30,41 +30,43 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
+  /// @brief lifted point (based on lifted space or not)
+  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexCone,
+                                            linalg::Vector<T, N - 1>, Point>;
+
   /**
    * @brief CTOR for hyperplane
    *
    * @param Point (i.e., n-dim vec of type T)
    * @param b bias scalar
    */
-  constexpr explicit Hyperplane(const Point& a_in, const T& b_in)
-    requires(Tag == ViewTag::ConvexSet)
+  constexpr explicit Hyperplane(const AugmentedPoint& a_in, const T& b_in)
       : a(a_in), b(b_in) {}
-
-  /**
-   * @brief CTOR for hyperplane (conic view)
-   *
-   * @param Point (i.e., n-dim vec)
-   * @param b bias scalar
-   * @param t scalar for cone view
-   */
-  constexpr explicit Hyperplane(const Point& a_in, const T& b_in, const T& t_in)
-    requires(Tag == ViewTag::ConvexCone)
-      : a(a_in), b(b_in), t(t_in) {}
 
   /**
    * @brief contains function to see if x lies in the hyerplane defined by a^T x
    * == b
+   *
+   * When lifted to convex cone the pair (x,t) \in R^{n + 1}, so last elem of
+   * point x is t
    *
    * @param point x of type T (n-dim)
    * @param tolerance
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& tol) const {
-    T alpha(b);
-    if (t.has_value()) alpha *= t.value();
+  constexpr bool contains_impl(const Point& x_in, const T& tol) const {
+    T t(b);
+    AugmentedPoint x;
+    if constexpr (Tag == ViewTag::ConvexCone) {
+      if (x_in(N - 1) < T(0)) return false;
+      t *= x_in(N - 1);
+      x = std::get<0>(linalg::splice<N - 1>(x_in));
+    } else {
+      x = x_in;
+    }
 
-    return linalg::constexpr_abs(linalg::dot(a, x) - alpha) < tol;
+    return linalg::constexpr_abs(linalg::dot(a, x) - t) < tol;
   }
 
   /**
@@ -73,9 +75,6 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @return T/F
    */
   constexpr bool is_well_formed_impl() const {
-    if (t.has_value())
-      if (t <= T(0)) return false;
-
     if (linalg::all_zero(a)) return false;
     return true;
   }
@@ -109,18 +108,19 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().a == a && other.self().b == b && other.self().t == t;
+    return other.self().a == a && other.self().b == b;
   }
 
   /**
    * @brief inverse perspective func from convex set to cone
    *
-   * @param t cone slice
-   *
    * @return cone
    */
-  constexpr auto cone_view_impl(const T& t_in) const {
-    return ConeView(Hyperplane<Space, ViewTag::ConvexCone>(a, b, t_in));
+  constexpr auto cone_view_impl() const
+    requires(Tag == ViewTag::ConvexSet)
+  {
+    return ConeView(
+        Hyperplane<linalg::Matrix<T, 1, N + 1>, ViewTag::ConvexCone>(a, b));
   }
 
   /**
@@ -132,6 +132,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;
@@ -140,9 +141,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
 
  private:
   /** @brief member var in hyperplane */
-  Point a;             //< n-dim vec of type T
-  T b;                 //< bias scalar of type T
-  std::optional<T> t;  //< t scalar for conic view
+  AugmentedPoint a;  //< n-dim vec of type T
+  T b;               //< bias scalar of type T
 };
 
 }  // namespace convex

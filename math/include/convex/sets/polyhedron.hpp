@@ -52,9 +52,17 @@ class Polyhedron
   static_assert(std::same_as<T, MatA_T>);
   static_assert(std::same_as<MatA_T, MatC_T>);
 
+  /// @brief lifted point (based on lifted space or not)
+  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexCone,
+                                            linalg::Vector<T, N - 1>, Point>;
+
   /// @brief verify domain size align to vector space dim
-  static_assert(N == ColsA);
-  static_assert(N == ColsC);
+  static constexpr size_t AugSize = linalg::vec_size_v<AugmentedPoint>;
+  static_assert(AugSize == ColsA);
+  static_assert(AugSize == ColsC);
+
+  /// @brief mat space based on augmented dim size
+  using MatSpace = linalg::Matrix<T, 1, AugSize>;
 
   /**
    * @brief CTOR for polyhedron set
@@ -70,25 +78,7 @@ class Polyhedron
       const MatA& A_in, const linalg::Vector<T, RowsA>& b_in,
       MatC C_in = MatC{},
       linalg::Vector<T, RowsC> d_in = linalg::Vector<T, RowsC>{})
-    requires(Tag == ViewTag::ConvexSet)
       : A(A_in), b(b_in), C(C_in), d(d_in) {}
-
-  /**
-   * @brief CTOR for polyhedron as conic view
-   *
-   * @param A matrix for halfspace(s)
-   * @param b vector for halfspace(s)
-   * @param C matrix for hyperplane(s)
-   * @param d vector for hyperplane(s)
-   * @param t scalar for conic view
-   */
-  constexpr explicit Polyhedron(const MatA& A_in,
-                                const linalg::Vector<T, RowsA>& b_in,
-                                const MatC& C_in,
-                                const linalg::Vector<T, RowsC>& d_in,
-                                const T& t_in)
-    requires(Tag == ViewTag::ConvexCone)
-      : A(A_in), b(b_in), C(C_in), d(d_in), t(t_in) {}
 
   /**
    * @brief is_well_formed implementation
@@ -96,25 +86,14 @@ class Polyhedron
    * @return T/F
    */
   constexpr bool is_well_formed_impl() const {
-    T alpha(1);
-    if (t.has_value()) {
-      if (t.value() <= T(0)) return false;
-      alpha *= t.value();
-    }
-
-    // (0) check halfspace type
-    if constexpr (!(Type == HalfspaceType::CLH || Type == HalfspaceType::OLH))
-      return false;
-
     // (1) verify halfspaces for each row in A and b check if halfspace is
     // valid
     for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<Space, Type>(A(i), alpha * b(i)).is_well_formed())
-        return false;
+      if (!Halfspace<MatSpace, Type>(A(i), b(i)).is_well_formed()) return false;
 
     // (2) verify hyperplanes C x = d is valid
     for (size_t i = 0; i < RowsC; ++i)
-      if (RowsC > 0 && !Hyperplane<Space>(C(i), alpha * d(i)).is_well_formed())
+      if (RowsC > 0 && !Hyperplane<MatSpace>(C(i), d(i)).is_well_formed())
         return false;
 
     return true;
@@ -127,18 +106,25 @@ class Polyhedron
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& tol) const {
-    T alpha(1);
-    if (t.has_value()) alpha *= t.value();
+  constexpr bool contains_impl(const Point& x_in, const T& tol) const {
+    T t(1);
+    AugmentedPoint x;
+    if constexpr (Tag == ViewTag::ConvexCone) {
+      if (x_in(N - 1) < T(0)) return false;
+      t *= x_in(N - 1);
+      x = std::get<0>(linalg::splice<N - 1>(x_in));
+    } else {
+      x = x_in;
+    }
 
     // (0) check if x is in the halfspaces defined by A x <= b
     for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<Space, Type>(A(i), alpha * b(i)).contains(x, tol))
+      if (!Halfspace<MatSpace, Type>(A(i), t * b(i)).contains(x, tol))
         return false;
 
     // (1) check if x is in the affine set defined by C x = d
     for (size_t i = 0; i < RowsC; ++i)
-      if (RowsC > 0 && !Hyperplane<Space>(C(i), alpha * d(i)).contains(x, tol))
+      if (RowsC > 0 && !Hyperplane<MatSpace>(C(i), t * d(i)).contains(x, tol))
         return false;
 
     return true;
@@ -185,7 +171,7 @@ class Polyhedron
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
     return other.self().A == A && other.self().b == b && other.self().C == C &&
-           other.self().d == d && other.self().t == t;
+           other.self().d == d;
   }
 
   /**
@@ -195,10 +181,11 @@ class Polyhedron
    *
    * @return cone
    */
-  constexpr auto cone_view_impl(const T& t_in) const {
-    return ConeView(
-        Polyhedron<Space, Type, decltype(A), decltype(C), ViewTag::ConvexCone>(
-            A, b, C, d, t_in));
+  constexpr auto cone_view_impl() const
+    requires(Tag == ViewTag::ConvexSet)
+  {
+    return ConeView(Polyhedron<linalg::Matrix<T, 1, N + 1>, Type, decltype(A),
+                               decltype(C), ViewTag::ConvexCone>(A, b, C, d));
   }
 
   /**
@@ -210,6 +197,7 @@ class Polyhedron
    * @return projected set
    */
   template <linalg::MatrixLike MA, linalg::MatrixLike MC>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MA> + 1>>
   project_impl(const ProjectiveMap<MA, MC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;
@@ -224,6 +212,5 @@ class Polyhedron
   MatC C;  //< set of finite number of hyperplanes
   linalg::Vector<T, RowsC>
       d;  //< codomain vector describing bias for hyperplane equalities
-  std::optional<T> t;  //< optional for conic view
 };
 }  // namespace convex

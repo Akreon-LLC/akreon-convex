@@ -60,6 +60,16 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
   }
 
   /**
+   * @brief CTOR for LMI A & B split out
+   *
+   * @param A vector of matrices
+   * @param B matrix
+   */
+  constexpr explicit LMI(const linalg::Vector<linalg::Matrix<T, N, N>, N>& A_in,
+                         const linalg::Matrix<T, N, N>& B_in)
+      : A(A_in), B(B_in) {}
+
+  /**
    * @brief contains function to see if x is in the LMI defined as
    *
    * LMI
@@ -137,7 +147,9 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl(const T& /*t*/) const {
+  constexpr auto cone_view_impl() const
+    requires(Tag == ViewTag::ConvexSet)
+  {
     return ConeView(LMI<Space, Type, ViewTag::ConvexCone>(A, B));
   }
 

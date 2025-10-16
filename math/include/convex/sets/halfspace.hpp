@@ -35,26 +35,18 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
+  /// @brief lifted point (based on lifted space or not)
+  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexCone,
+                                            linalg::Vector<T, N - 1>, Point>;
+
   /**
    * @brief CTOR for halfspace set
    *
    * @param Point (i.e., n-dim vector of type T)
    * @param b bias scalar
    */
-  constexpr explicit Halfspace(const Point& a_in, const T& b_in)
-    requires(Tag == ViewTag::ConvexSet)
+  constexpr explicit Halfspace(const AugmentedPoint& a_in, const T& b_in)
       : a(a_in), b(b_in) {}
-
-  /**
-   * @brief CTOR for halfspace in conic view
-   *
-   * @param Point (n-dim vec)
-   * @param b bias scalar
-   * @param t cone view scalar
-   */
-  constexpr explicit Halfspace(const Point& a_in, const T& b_in, const T& t_in)
-    requires(Tag == ViewTag::ConvexCone)
-      : a(a_in), b(b_in), t(t_in) {}
 
   /**
    * @brief contains function to see if x is in the halfspace a^T x <= b
@@ -64,20 +56,27 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /*tol*/) const {
-    T alpha(b);
-    if (t.has_value()) alpha *= t.value();
+  constexpr bool contains_impl(const Point& x_in, const T& /*tol*/) const {
+    T t(b);
+    AugmentedPoint x;
+    if constexpr (Tag == ViewTag::ConvexCone) {
+      if (x_in(N - 1) < T(0)) return false;
+      t *= x_in(N - 1);
+      x = std::get<0>(linalg::splice<N - 1>(x_in));
+    } else {
+      x = x_in;
+    }
 
     switch (Type) {
       case HalfspaceType::OUH:
-        return linalg::dot(a, x) > alpha;
+        return linalg::dot(a, x) > t;
       case HalfspaceType::CUH:
-        return linalg::dot(a, x) >= alpha;
+        return linalg::dot(a, x) >= t;
       case HalfspaceType::OLH:
-        return linalg::dot(a, x) < alpha;
+        return linalg::dot(a, x) < t;
       case HalfspaceType::CLH:
       default:
-        return linalg::dot(a, x) <= alpha;
+        return linalg::dot(a, x) <= t;
     }
   }
 
@@ -87,9 +86,6 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * @return T/F
    */
   constexpr bool is_well_formed_impl() const {
-    if (t.has_value())
-      if (t <= T(0)) return false;
-
     if (linalg::all_zero(a)) {
       if constexpr (Type == HalfspaceType::CLH || Type == HalfspaceType::OLH) {
         if (b < T(0)) return false;
@@ -129,18 +125,20 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().a == a && other.self().b == b && other.self().t == t;
+    return other.self().a == a && other.self().b == b;
   }
 
   /**
    * @brief inverse perspective func from convex set to cone
    *
-   * @param t cone slice
-   *
    * @return cone
    */
-  constexpr auto cone_view_impl(const T& t_in) const {
-    return ConeView(Halfspace<Space, Type, ViewTag::ConvexCone>(a, b, t_in));
+  constexpr auto cone_view_impl() const
+    requires(Tag == ViewTag::ConvexSet)
+  {
+    return ConeView(
+        Halfspace<linalg::Matrix<T, 1, N + 1>, Type, ViewTag::ConvexCone>(a,
+                                                                          b));
   }
 
   /**
@@ -152,6 +150,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;
@@ -160,9 +159,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
 
  private:
   /** @brief member variables in the halfspace */
-  Point a;             //< n-dim vector of type T
-  T b;                 //< bias scalar of type T
-  std::optional<T> t;  //< conic view t scalar
+  AugmentedPoint a;  //< n-dim vector of type T
+  T b;               //< bias scalar of type T
 };
 
 }  // namespace convex

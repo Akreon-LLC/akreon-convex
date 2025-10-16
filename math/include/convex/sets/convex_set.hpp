@@ -51,6 +51,9 @@ class ConvexSet {
   /**
    * @brief contains to check if the point lies in the convex set
    *
+   * When lifted to convex cone the pair (x,t) \in R^{n + 1}, so last elem of
+   * point x is t
+   *
    * @param point (n-dim vector)
    * @param optional tolerance
    *
@@ -100,11 +103,9 @@ class ConvexSet {
    *
    * P^{-1}(C) -> K where P^{-1} : R^m -> R^{m + 1}
    *
-   * @param t (slice defining cone)
-   *
    * @return cone view
    */
-  constexpr auto cone_view(T t = 1.0) const { return self().cone_view_impl(t); }
+  constexpr auto cone_view() const { return self().cone_view_impl(); }
 
   /**
    * @brief equality comparison overload

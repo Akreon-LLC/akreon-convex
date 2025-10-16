@@ -185,4 +185,24 @@ constexpr bool all_zero(const Vec& X) {
   return cnt == N;
 }
 
+/**
+ * @brief splice operator
+ *
+ * @param vector type T with N elements
+ *
+ * @return tuple
+ */
+template <size_t idx, VectorLike Vec>
+  requires(vec_size_v<Vec> > 0 && idx < vec_size_v<Vec>)
+constexpr auto splice(const Vec& X) {
+  using T = vec_type_t<Vec>;
+  constexpr auto N = vec_size_v<Vec>;
+  Vector<T, idx> a;
+  size_t i = 0;
+  for (; i < idx; ++i) a[i] = X(i);
+  Vector<T, N - idx> b;
+  for (size_t j = 0; i < N; ++i, ++j) b[j] = X(i);
+  return std::tuple(a, b);
+}
+
 }  // namespace linalg

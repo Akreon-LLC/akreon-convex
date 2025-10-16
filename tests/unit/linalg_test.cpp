@@ -62,6 +62,10 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(C(0) == 0.0);
     STATIC_REQUIRE(C(1) == 7.0);
 
+    constexpr auto split = splice<1>(A);
+    STATIC_REQUIRE(std::get<0>(split)(0) == 1.0);
+    STATIC_REQUIRE(std::get<1>(split)(0) == 2.0);
+
     constexpr double alpha = 2.0;
     constexpr auto E = alpha * A;
     constexpr auto F = scalar_multiplication(alpha, A);

@@ -261,27 +261,30 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl(const T& t_in) const {
+  constexpr auto cone_view_impl() const
+    requires(Tag == ViewTag::ConvexSet)
+  {
+    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
     if constexpr (Type == NormBallType::L2OB)
       return ConeView(
-          NormCone<Space, NormConeType::L2OC, ViewTag::ConvexCone>(t_in, c, r));
+          NormCone<LiftedSpace, NormConeType::L2OC, ViewTag::ConvexCone>(c, r));
     else if constexpr (Type == NormBallType::L2CB)
       return ConeView(
-          NormCone<Space, NormConeType::L2CC, ViewTag::ConvexCone>(t_in, c, r));
+          NormCone<LiftedSpace, NormConeType::L2CC, ViewTag::ConvexCone>(c, r));
     else if constexpr (Type == NormBallType::L1OB)
       return ConeView(
-          NormCone<Space, NormConeType::L1OC, ViewTag::ConvexCone>(t_in, c, r));
+          NormCone<LiftedSpace, NormConeType::L1OC, ViewTag::ConvexCone>(c, r));
     else if constexpr (Type == NormBallType::L1CB)
       return ConeView(
-          NormCone<Space, NormConeType::L1CC, ViewTag::ConvexCone>(t_in, c, r));
+          NormCone<LiftedSpace, NormConeType::L1CC, ViewTag::ConvexCone>(c, r));
     else if constexpr (Type == NormBallType::LinfOB)
       return ConeView(
-          NormCone<Space, NormConeType::LinfOC, ViewTag::ConvexCone>(t_in, c,
-                                                                     r));
+          NormCone<LiftedSpace, NormConeType::LinfOC, ViewTag::ConvexCone>(c,
+                                                                           r));
     else
       return ConeView(
-          NormCone<Space, NormConeType::LinfCC, ViewTag::ConvexCone>(t_in, c,
-                                                                     r));
+          NormCone<LiftedSpace, NormConeType::LinfCC, ViewTag::ConvexCone>(c,
+                                                                           r));
   }
 
   /**
@@ -293,6 +296,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;
