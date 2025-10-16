@@ -10,8 +10,6 @@
 #include "norm_cone.hpp"
 
 namespace convex {
-/// @brief simple enum to describe ball type
-enum struct NormBallType { L2OB, L2CB, L1OB, L1CB, LinfOB, LinfCB };
 
 /**
  * @brief Norm ball defined on valid vector space and one of the following type

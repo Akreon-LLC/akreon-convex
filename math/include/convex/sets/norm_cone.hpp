@@ -9,9 +9,6 @@
 
 namespace convex {
 
-/// @brief simple enum for cone type
-enum struct NormConeType { L2OC, L2CC, L1OC, L1CC, LinfOC, LinfCC };
-
 /**
  * @brief Norm cone definition valid on a vector space dim(R^n + 1)
  *

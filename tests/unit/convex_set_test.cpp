@@ -53,6 +53,9 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!hyperplane_cone.contains(Vectord<3>{}));
     STATIC_REQUIRE(hyperplane_cone.contains(Vectord<3>{1.0, 1.0, 1.0}));
     STATIC_REQUIRE(!hyperplane_cone.contains(Vectord<3>{1.0, 1.0, 2.0}));
+    STATIC_REQUIRE(!hyperplane_cone.is_proper());
+    STATIC_REQUIRE(!hyperplane_cone.less_than(point, point).has_value());
+    STATIC_REQUIRE(!hyperplane_cone.less_than_strict(point, point).has_value());
   }
 
   SECTION("Test closed lower halfspace") {
@@ -75,6 +78,9 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<2>{1.0, 0.0}));
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<2>{1.0, 2.0}));
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<2>{-1.0, 5.0}));
+    STATIC_REQUIRE(!halfspace_cone.is_proper());
+    STATIC_REQUIRE(!halfspace_cone.less_than(point, point).has_value());
+    STATIC_REQUIRE(!halfspace_cone.less_than_strict(point, point).has_value());
   }
 
   SECTION("Test open lower halfspace") {
@@ -106,6 +112,9 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{0.0, 0.0, 0.0, 1.9}));
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{0.5, 2.0, 2.0, 1.0}));
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<4>{1.0, 1.0, 0.0, 5.0}));
+    STATIC_REQUIRE(!halfspace_cone.is_proper());
+    STATIC_REQUIRE(!halfspace_cone.less_than(point, point).has_value());
+    STATIC_REQUIRE(!halfspace_cone.less_than_strict(point, point).has_value());
   }
 
   SECTION("Test closed upper halfspace") {
@@ -134,6 +143,9 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<3>{0.0, 1.0, 0.0}));
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<3>{0.1, 1.0, 2.0}));
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<3>{0.1, 1.0, -2.0}));
+    STATIC_REQUIRE(!halfspace_cone.is_proper());
+    STATIC_REQUIRE(!halfspace_cone.less_than(point, point).has_value());
+    STATIC_REQUIRE(!halfspace_cone.less_than_strict(point, point).has_value());
   }
 
   SECTION("Test open upper halfspace") {
@@ -152,6 +164,9 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<1>{0.1}));
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<1>{5.0}));
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<1>{6.0}));
+    STATIC_REQUIRE(!halfspace_cone.is_proper());
+    STATIC_REQUIRE(!halfspace_cone.less_than(point, point).has_value());
+    STATIC_REQUIRE(!halfspace_cone.less_than_strict(point, point).has_value());
   }
 }
 
@@ -197,6 +212,9 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto cone = ball.cone_view();
     STATIC_REQUIRE(cone.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.2}));
     STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(!cone.less_than(c, c).has_value());
+    STATIC_REQUIRE(!cone.less_than_strict(c, c).has_value());
   }
 
   SECTION("Test closed L2 norm ball") {
@@ -217,12 +235,17 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
         make_identity<float, 2>(), Vectorf<2>{}));
     STATIC_REQUIRE(res == ellipse);
 
-    constexpr auto cone = ball.cone_view();
+    constexpr auto cone = ball.cone_view(3.0);
     STATIC_REQUIRE(cone.contains(Vectorf<2>{c(0) + 0.1f, c(1) - 0.2f}));
     STATIC_REQUIRE(cone.contains(Vectorf<2>{c(0) + 2.f, c(1)}));
+    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.less_than(c, c).has_value());
+    STATIC_REQUIRE(cone.less_than(c, c).value());
+    STATIC_REQUIRE(
+        cone.less_than_strict(c, Vectorf<2>{c(0) + 1.1f, c(1) + 3.1f}).value());
   }
 
-  SECTION("Test open L1 norm ball") {
+  SECTION("Test closed L1 norm ball") {
     constexpr auto c = Vector<double, 4>{0.0, 1.2, -0.8, 2.0};
     constexpr auto r = 1.0;
     constexpr auto ball =
@@ -256,9 +279,12 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(Vectord<4>{}));
     STATIC_REQUIRE(cone.contains(Vectord<4>{c(0), c(1), c(2), c(3) + 0.1}));
     STATIC_REQUIRE(cone.contains(Vectord<4>{c(0) + 1.0, c(1), c(2), c(3)}));
+    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.less_than(c, c).has_value());
+    STATIC_REQUIRE(!cone.less_than(c, c).value());
   }
 
-  SECTION("Test closed L1 norm ball") {
+  SECTION("Test open L1 norm ball") {
     constexpr auto c = Vector<float, 4>{0.f, 1.2f, -0.8f, 2.f};
     constexpr auto r = 1.f;
     constexpr auto ball =
@@ -274,6 +300,9 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(Vectorf<4>{}));
     STATIC_REQUIRE(cone.contains(Vectorf<4>{c(0), c(1), c(2), c(3) + 0.1f}));
     STATIC_REQUIRE(!cone.contains(Vectorf<4>{c(0) + 1.f, c(1), c(2), c(3)}));
+    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(!cone.less_than(c, c).has_value());
+    STATIC_REQUIRE(!cone.less_than_strict(c, c).has_value());
   }
 
   SECTION("Test open Linf norm ball") {
@@ -298,6 +327,9 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vectord<3>{}));
     STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 1.0, c(1), c(2)}));
+    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(!cone.less_than(c, c).has_value());
+    STATIC_REQUIRE(!cone.less_than_strict(c, c).has_value());
   }
 
   SECTION("Test closed  Linf norm ball") {
@@ -322,6 +354,11 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(!cone.contains(Vectorf<3>{}));
     STATIC_REQUIRE(cone.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
+    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.less_than(c, c).has_value());
+    STATIC_REQUIRE(!cone.less_than(c, c).value());
+    STATIC_REQUIRE(
+        cone.less_than_strict(c, Vectorf<3>{c(0), c(1), c(2) + 2.1f}).value());
   }
 }
 
@@ -367,6 +404,9 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(cone.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
     STATIC_REQUIRE(!cone.contains(Vectord<2>{1.5, 1.0}));
+    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(!cone.less_than(c, c).has_value());
+    STATIC_REQUIRE(!cone.less_than_strict(c, c).has_value());
   }
 
   SECTION("Test closed ellipsoid set") {
@@ -384,6 +424,12 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(c));
     STATIC_REQUIRE(cone.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
     STATIC_REQUIRE(cone.contains(Vectord<2>{1.5, 1.0}));
+    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.less_than_strict(c, c).has_value());
+    STATIC_REQUIRE(
+        cone.less_than(c, Vectord<2>{c(0) + 1.1, c(1) + 1.1}).value());
+    STATIC_REQUIRE(cone.less_than_strict(c, c).has_value());
+    STATIC_REQUIRE(!cone.less_than_strict(c, c).value());
   }
 }
 

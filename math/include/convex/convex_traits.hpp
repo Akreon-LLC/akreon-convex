@@ -36,23 +36,20 @@ class ConvexSet;
 /// @brief convex set view tag
 enum struct ViewTag { ConvexSet = 0, ConvexCone };
 
-/// @brief forward declaration of halfspace type
-enum struct HalfspaceType;
+/// @brief simple enum to describe type of halfspace
+enum struct HalfspaceType { CLH, OLH, CUH, OUH };
 
-/// @brief forward declaration of ellipse type
-enum struct EllipsoidType;
+/// @brief simple enum to describe type of ellipsoid
+enum struct EllipsoidType { CE, OE };
 
-/// @brief forward declaration of norm ball type
-enum struct NormBallType;
+/// @brief simple enum to describe ball type
+enum struct NormBallType { L2OB, L2CB, L1OB, L1CB, LinfOB, LinfCB };
 
-/// @brief forward declaration of norm ball type
-enum struct NormConeType;
+/// @brief simple enum for cone type
+enum struct NormConeType { L2OC, L2CC, L1OC, L1CC, LinfOC, LinfCC };
 
-/// @brief forward declaration of simplex type
-enum struct SimplexType;
-
-/// @brief forward declaration of LMI type
-enum struct LMIType;
+/// @brief LMIType
+enum struct LMIType { Strict, NonStrict };
 
 /// @brief forward declaration of hyperplane
 template <linalg::VectorSpace Space, ViewTag Tag>

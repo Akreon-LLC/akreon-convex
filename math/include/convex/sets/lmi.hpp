@@ -9,9 +9,6 @@
 
 namespace convex {
 
-/// @brief LMIType
-enum struct LMIType { Strict, NonStrict };
-
 /**
  * @brief LMI (linear matrix inequality)
  *

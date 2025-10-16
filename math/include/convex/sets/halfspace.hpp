@@ -9,9 +9,6 @@
 
 namespace convex {
 
-/// @brief simple enum to describe type of halfspace
-enum struct HalfspaceType { CLH, OLH, CUH, OUH };
-
 /**
  * @brief Halfspace defined on a valid vector space and one of the following
  * type traits:

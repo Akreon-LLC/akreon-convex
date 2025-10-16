@@ -9,9 +9,6 @@
 
 namespace convex {
 
-/// @brief simple enum to describe type of ellipsoid
-enum struct EllipsoidType { CE, OE };
-
 /**
  * @brief Ellipsoid defined as the following
  *
@@ -58,9 +55,9 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
       : c(c_in), P(P_in), t(t_in) {}
 
   /**
-   * @brief contains function to see if x is in the ellipsoid (x - c)^T P (x -
-   * c) <= 1
-
+   * @brief contains function to see if x is in the ellipsoid (x - c)^T P^{-1}
+   * (x - c) <= 1
+   *
    * @param point x of type T with n elements
    * @param tolerance of tyep T (ignored)
    *
@@ -76,6 +73,9 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
     const auto val = (delta_t * (linalg::inverse(P) * delta));
     static_assert(linalg::mat_rows_v<decltype(val)> == 1 &&
                   linalg::mat_cols_v<decltype(val)> == 1);
+
+    // (dakre) (x - ct)^T P^{-1} (x - ct) <= t^2
+    if (t.has_value()) alpha *= alpha;
     switch (Type) {
       case EllipsoidType::OE:
         return val(0)(0) < alpha;

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../convex_traits.hpp"
+#include "../cone_traits.hpp"
 
 namespace convex {
 
@@ -23,9 +23,6 @@ class ConeView {
 
   /// @brief alias for space underlying cone
   using Space = set_space_t<Cone>;
-
-  /// @brief helper to get dimension of space
-  static constexpr size_t Dim = linalg::space_dim_v<Space>;
 
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<linalg::space_point_t<Space>>;
@@ -60,17 +57,12 @@ class ConeView {
    * @return T/F
    */
   constexpr bool is_proper() const {
-    // TODO - add some cone traits to each convex set to enable is proper check
-    // to run smoothly
-
-    // verify non-empty interior = solid
-    if (!cone.is_well_formed_impl() || Dim == 0) return false;
-
-    return true;
+    cone_traits<Cone> ct;
+    return ct.is_closed(cone) && ct.is_solid(cone) && ct.is_pointed(cone);
   }
 
   /**
-   * @brief general inequality for cone K
+   * @brief general inequality for cone K (must be proper)
    *
    * x <=_K y
    *
@@ -79,7 +71,10 @@ class ConeView {
    *
    * @return T/F
    */
-  constexpr bool lte(const Point& x, const Point& y, T tol = 1e-8) const {
+  constexpr std::optional<bool> less_than(const Point& x, const Point& y,
+                                          T tol = 1e-8) const {
+    if (!is_proper()) return std::nullopt;
+
     if constexpr (std::same_as<Point, linalg::SymmetricMatrix<
                                           linalg::Matrix<T, N, N>>>) {
       linalg::Matrix<T, N, N> res;
@@ -94,7 +89,7 @@ class ConeView {
   }
 
   /**
-   * @brief strict inequality for cone K
+   * @brief strict inequality for cone K (must be proper)
    *
    * x <_K y
    *
@@ -103,7 +98,10 @@ class ConeView {
    *
    * @return T/F
    */
-  constexpr bool lt(const Point& x, const Point& y, T tol = 1e-8) const {
+  constexpr std::optional<bool> less_than_strict(const Point& x, const Point& y,
+                                                 T tol = 1e-8) const {
+    if (!is_proper()) return std::nullopt;
+
     const auto delta = y - x;
     const auto eps = 2 * tol;
     if constexpr (std::same_as<Point, linalg::SymmetricMatrix<
@@ -130,7 +128,8 @@ class ConeView {
   }
 
  private:
-  Cone cone;
+  /** @brief member vars for cone */
+  Cone cone;  //< Cone representation of underlying convex set
 };
 
 }  // namespace convex
