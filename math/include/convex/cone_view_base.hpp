@@ -5,37 +5,36 @@
 
 #pragma once
 
-#include "../cone_traits.hpp"
+#include "cone_traits.hpp"
 
 namespace convex {
 
-/**
- * @brief this is an owning cone view of the underlying convex set
- */
-template <ConvexConeLike Cone>
-class ConeView {
- public:
+template <typename Derived>
+struct ConeViewBase {
   /// @brief alias to extract underlying scalar type of convex set
-  using T = set_type_t<Cone>;
+  using T = cone_view_type_t<Derived>;
 
   /// @brief alias for point
-  using Point = set_point_t<Cone>;
+  using Point = cone_view_point_t<Derived>;
 
   /// @brief alias for space underlying cone
-  using Space = set_space_t<Cone>;
+  using Space = cone_view_space_t<Derived>;
+
+  /// @brief alias for cone in view
+  using Cone = cone_view_cone_t<Derived>;
 
   /// @brief helper to get n elements in point
-  static constexpr size_t N = linalg::vec_size_v<linalg::space_point_t<Space>>;
+  static constexpr size_t N = linalg::vec_size_v<Point>;
 
   /**
    * @brief CTOR
    *
    * @param ConvexSet argument
    */
-  constexpr explicit ConeView(const Cone& cone_in) : cone(cone_in) {}
+  constexpr explicit ConeViewBase(const Cone& cone_in) : cone(cone_in) {}
 
   /**
-   * @brief contains func (wrapped around cone impl)
+   * @brief contains func
    *
    * @param point in space
    * @param tolerance
@@ -43,7 +42,7 @@ class ConeView {
    * @return T/F
    */
   constexpr bool contains(const Point& x, T tol = 1e-8) const {
-    return cone.contains_impl(x, tol);
+    return self().contains_impl(x, tol);
   }
 
   /**
@@ -124,7 +123,20 @@ class ConeView {
     return true;
   }
 
- private:
+  /**
+   * @brief get dual view of cone
+   *
+   * @return dual cone view
+   */
+  constexpr auto dual_view() const { return self().dual_view_impl(cone); }
+
+  /**
+   * @brief self func to return dervied object instance
+   *
+   * return self
+   */
+  constexpr auto self() const { return static_cast<const Derived&>(*this); }
+
   /** @brief member vars for cone */
   Cone cone;  //< Cone representation of underlying convex set
 };

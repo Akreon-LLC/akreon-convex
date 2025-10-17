@@ -89,6 +89,21 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
   }
 
   /**
+   * @brief contains dual impl
+   *
+   * K = { x | (x - ct)^T P^{-1} (x - ct) <= t^2 }
+   * K^* = { y | x^T y >= 0, x \in K }
+   *
+   * @param point y
+   * @param tolerance
+   *
+   * @return T/F
+   */
+  constexpr bool contains_dual_impl(const Point& y, const T& tol) const {
+    return contains_impl(y, tol);
+  }
+
+  /**
    * @brief is_well_formed implementation checks to see if set is valid
    *
    * @return T/F

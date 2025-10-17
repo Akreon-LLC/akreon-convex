@@ -11,12 +11,59 @@ namespace convex {
 
 /// @brief forward declaration of cone view
 template <ConvexConeLike Cone>
-class ConeView;
+struct ConeView;
+
+/// @brief forward declaration of dual cone view
+template <ConvexConeLike Cone>
+struct DualConeView;
+
+/// @brief cone view
+template <class Cone>
+struct cone_view_traits;
+
+/// @brief derived for cone view
+template <ConvexConeLike Cone>
+struct cone_view_traits<ConeView<Cone>> {
+  using T = set_type_t<Cone>;
+  using Point = set_point_t<Cone>;
+  using Space = set_space_t<Cone>;
+  using K = Cone;
+};
+
+/// @brief derived for dual cone view
+template <ConvexConeLike Cone>
+struct cone_view_traits<DualConeView<Cone>> {
+  using T = set_type_t<Cone>;
+  using Point = set_point_t<Cone>;
+  using Space = set_space_t<Cone>;
+  using K = Cone;
+};
+
+/// @brief helper to get type in view
+template <class Cone>
+using cone_view_type_t =
+    typename cone_view_traits<linalg::remove_cvref_t<Cone>>::T;
+
+/// @brief helper to get point type in view
+template <class Cone>
+using cone_view_point_t =
+    typename cone_view_traits<linalg::remove_cvref_t<Cone>>::Point;
+
+/// @brief helper to get space type in view
+template <class Cone>
+using cone_view_space_t =
+    typename cone_view_traits<linalg::remove_cvref_t<Cone>>::Space;
+
+/// @brief helper to get cone K in view
+template <class Cone>
+using cone_view_cone_t =
+    typename cone_view_traits<linalg::remove_cvref_t<Cone>>::K;
 
 /// @brief cone traits
-template <ConvexConeLike Cone>
+template <class Cone>
 struct cone_traits;
 
+/// @brief cone check enum
 enum struct ConeCheck { False = 0, True, Unknown };
 
 /// @brief derived cone type traits - lifted hyperplane

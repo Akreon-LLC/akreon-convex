@@ -50,6 +50,22 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space, Tag>> {
   }
 
   /**
+   * @brief contains dual impl (S^n_+ is self-dual)
+   *
+   * { Y | X^T Y >= 0, X \in K}
+   *
+   * @param point Y
+   * @param tolerance
+   *
+   * @return T/F
+   */
+  constexpr bool contains_dual_impl(const Point& Y, const T& tol) const
+    requires(Tag == ViewTag::ConvexCone)
+  {
+    return contains_impl(Y, tol);
+  }
+
+  /**
    * @brief equality comparison
    *
    * @param convex set

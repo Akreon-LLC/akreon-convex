@@ -8,8 +8,8 @@
 #include <optional>
 
 #include "../../algebra/algebra_util.hpp"
+#include "../cone_view.hpp"
 #include "../convex_traits.hpp"
-#include "cone_view.hpp"
 
 namespace convex {
 

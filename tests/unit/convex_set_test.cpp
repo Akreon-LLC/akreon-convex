@@ -429,6 +429,7 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
   }
 
   SECTION("Test nonneg orthant", "[R^n_+]") {
+    // (0) nominal checks
     constexpr NonnegOrthant<Matrixd<1, 2>> set;
     STATIC_REQUIRE(set.is_well_formed());
     STATIC_REQUIRE(set == set);
@@ -437,11 +438,13 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
     constexpr auto I = make_identity<double, 2>();
     STATIC_REQUIRE(set.transform(AffineMap<Matrixd<2, 2>>(I, Vectord<2>{})) ==
                    set);
+    // (1) projection checks
     STATIC_REQUIRE(
         !set.project(ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>(
                          I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 0.0),
                      Vectord<2>{})
              .has_value());
+    // (2) cone checks
     constexpr auto cone = set.cone_view();
     STATIC_REQUIRE(cone.contains(Vectord<2>{1.0, 0.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<2>{-0.1, 0.1}));
@@ -454,6 +457,21 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
         cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).has_value());
     STATIC_REQUIRE(
         !cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).value());
+    // (3) dual cone checks
+    constexpr auto dual_cone = cone.dual_view();
+    STATIC_REQUIRE(dual_cone.contains(Vectord<2>{1.0, 0.0}));
+    STATIC_REQUIRE(!dual_cone.contains(Vectord<2>{-0.1, 0.1}));
+    STATIC_REQUIRE(dual_cone.is_proper() == ConeCheck::True);
+    STATIC_REQUIRE(
+        dual_cone.less_than(Vectord<2>{1.0, 0.0}, Vectord<2>{2.0, 1.0})
+            .has_value());
+    STATIC_REQUIRE(
+        dual_cone.less_than(Vectord<2>{1.0, 0.0}, Vectord<2>{2.0, 1.0})
+            .value());
+    STATIC_REQUIRE(
+        dual_cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).has_value());
+    STATIC_REQUIRE(
+        !dual_cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).value());
   }
 }
 
@@ -513,6 +531,7 @@ TEST_CASE("PSD cone", "[convex_sets]") {
   }
 
   SECTION("PSD Cones") {
+    // (0) nominal checks
     constexpr auto A =
         Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
     constexpr auto B =
@@ -526,6 +545,7 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(I));
     STATIC_REQUIRE(cone.contains(Z));
 
+    // (1) projection check
     STATIC_REQUIRE(cone.transform(AffineMap<Matrix<double, 2, 2>>(
                        make_identity<double, 2>(), Vectord<2>{})) == cone);
 
@@ -534,6 +554,7 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     constexpr auto x_proj = cone.project(proj_map, Matrixd<2, 2>{});
     STATIC_REQUIRE(!x_proj.has_value());
 
+    // (2) cone view check
     constexpr auto cone_v = cone.cone_view();
     STATIC_REQUIRE(cone_v.contains(A));
     STATIC_REQUIRE(cone_v.contains(B));
@@ -549,6 +570,20 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     // indicate that they are in the interior of the PsdCone so strict should
     // pass
     STATIC_REQUIRE(cone_v.less_than_strict(A, A).value());
+
+    // (3) dual cone view check
+    constexpr auto dual_cone_v = cone_v.dual_view();
+    STATIC_REQUIRE(dual_cone_v.contains(A));
+    STATIC_REQUIRE(dual_cone_v.contains(A));
+    STATIC_REQUIRE(dual_cone_v.contains(B));
+    STATIC_REQUIRE(dual_cone_v.contains(I));
+    STATIC_REQUIRE(dual_cone_v.contains(Z));
+    STATIC_REQUIRE(dual_cone_v.is_proper() == ConeCheck::True);
+    STATIC_REQUIRE(dual_cone_v.less_than(A, A).has_value());
+    STATIC_REQUIRE(dual_cone_v.less_than(A, A).value());
+    STATIC_REQUIRE(dual_cone_v.less_than(I, Z).has_value());
+    STATIC_REQUIRE(!dual_cone_v.less_than(I, Z).value());
+    STATIC_REQUIRE(dual_cone_v.less_than_strict(A, A).has_value());
   }
 }
 

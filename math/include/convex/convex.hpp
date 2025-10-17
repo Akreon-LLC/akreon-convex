@@ -7,7 +7,9 @@
 
 #include "affine_map.hpp"
 #include "affine_transforms.hpp"
+#include "cone_view.hpp"
 #include "convex_ops.hpp"
+#include "dual_cone_view.hpp"
 #include "projective_map.hpp"
 #include "sets/convex_set.hpp"
 #include "sets/ellipsoid.hpp"
