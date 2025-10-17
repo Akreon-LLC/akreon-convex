@@ -108,9 +108,7 @@ constexpr auto matrix_exp(const Mat& A) {
   static_assert(N >= 1);
 
   const auto eig_decomp = EigenDecomposition(A);
-
-  Matrix<Complex, N, N> exp_lambda;
-  if (!eig_decomp.get_converged()) return exp_lambda;
+  if (!eig_decomp.get_converged()) return Matrix<Complex, N, N>{};
 
   const auto V = eig_decomp.get_eigenvectors();
   const auto V_inv = inverse(V);

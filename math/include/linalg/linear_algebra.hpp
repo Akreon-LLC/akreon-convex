@@ -736,14 +736,14 @@ class EigenDecomposition {
    *
    * @return (void)
    */
-  constexpr void back_sub_shifted_rhs(const Mat& H, const Complex& lambda,
+  constexpr void back_sub_shifted_rhs(const Mat& H, const Complex& eig,
                                       const Vector<Complex, N>& rhs,
                                       Vector<Complex, N>& x) {
     // (dakre) back solve (H - \lambda I) x = rhs
     for (int r = int(N) - 1; r >= 0; --r) {
       Complex sum(0);
       for (int c = r + 1; c < int(N); ++c) sum += H(r)(c) * x(c);
-      const auto denom = Complex(H(r)(r)) - lambda;
+      const auto denom = Complex(H(r)(r)) - eig;
       if (denom == Complex(0))
         x[r] = Complex(0);
       else

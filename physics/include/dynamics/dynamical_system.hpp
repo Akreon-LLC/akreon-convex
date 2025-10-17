@@ -41,8 +41,8 @@ class DynamicalSystem {
   constexpr linalg::Vector<ScalarT, DoF> Qnc(
       const linalg::Vector<ScalarT, DoF>& q0,
       const linalg::Vector<ScalarT, DoF>& q1,
-      const linalg::Vector<ScalarT, Nu>& U, const ScalarT& h) const {
-    return self().Qnc_impl(q0, q1, U, h);
+      const linalg::Vector<ScalarT, Nu>& U_in, const ScalarT& h) const {
+    return self().Qnc_impl(q0, q1, U_in, h);
   }
 
   constexpr auto get_Q() const { return Q; }

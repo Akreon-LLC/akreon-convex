@@ -54,11 +54,22 @@ class ConeView {
    * 3. K is solid
    * 4. K is pointed x \in K -x \notin K except for 0 (K \intersect -K = 0)
    *
-   * @return T/F
+   * @return { False, True, Unknown }
    */
-  constexpr bool is_proper() const {
+  constexpr ConeCheck is_proper() const {
     cone_traits<Cone> ct;
-    return ct.is_closed(cone) && ct.is_solid(cone) && ct.is_pointed(cone);
+    const auto closed = ct.is_closed(cone);
+    if (closed == ConeCheck::False) return ConeCheck::False;
+    const auto solid = ct.is_solid(cone);
+    if (solid == ConeCheck::False) return ConeCheck::False;
+    const auto pointed = ct.is_pointed(cone);
+    if (pointed == ConeCheck::False) return ConeCheck::False;
+
+    if (closed == ConeCheck::Unknown || solid == ConeCheck::Unknown ||
+        pointed == ConeCheck::Unknown)
+      return ConeCheck::Unknown;
+
+    return ConeCheck::True;
   }
 
   /**
@@ -73,19 +84,8 @@ class ConeView {
    */
   constexpr std::optional<bool> less_than(const Point& x, const Point& y,
                                           T tol = 1e-8) const {
-    if (!is_proper()) return std::nullopt;
-
-    if constexpr (std::same_as<Point, linalg::SymmetricMatrix<
-                                          linalg::Matrix<T, N, N>>>) {
-      linalg::Matrix<T, N, N> res;
-      for (size_t i = 0; i < N; ++i)
-        for (size_t j = 0; j < N; ++j) res[i][j] = y(i)(j) - x(i)(j);
-
-      linalg::SymmetricMatrix<decltype(res)> S(res);
-      return S.is_psd();
-    } else {
-      return contains(y - x, tol);
-    }
+    if (is_proper() == ConeCheck::False) return std::nullopt;
+    return contains(y - x, tol);
   }
 
   /**
@@ -100,24 +100,21 @@ class ConeView {
    */
   constexpr std::optional<bool> less_than_strict(const Point& x, const Point& y,
                                                  T tol = 1e-8) const {
-    if (!is_proper()) return std::nullopt;
+    if (is_proper() == ConeCheck::False) return std::nullopt;
 
     const auto delta = y - x;
     const auto eps = 2 * tol;
-    if constexpr (std::same_as<Point, linalg::SymmetricMatrix<
-                                          linalg::Matrix<T, N, N>>>) {
+    if constexpr (std::same_as<Point, linalg::Matrix<T, N, N>>) {
       linalg::Matrix<T, N, N> res;
       for (size_t i = 0; i < N; ++i)
-        for (size_t j = 0; j < N; ++j) res[i][j] = y(i, j) - x(i, j) + eps;
+        for (size_t j = 0; j < N; ++j) res[i][j] = y(i)(j) - x(i)(j) + eps;
 
-      const linalg::SymmetricMatrix<decltype(res)> Sp(res);
-      if (!Sp.is_psd()) return false;
+      if (!contains(res, tol)) return false;
 
       for (size_t i = 0; i < N; ++i)
-        for (size_t j = 0; j < N; ++j) res[i][j] = y(i, j) - x(i, j) - eps;
+        for (size_t j = 0; j < N; ++j) res[i][j] = y(i)(j) - x(i)(j) - eps;
 
-      const linalg::SymmetricMatrix<decltype(res)> Sn(res);
-      if (!Sn.is_psd()) return false;
+      if (!contains(res, tol)) return false;
     } else {
       const linalg::vec_traits<linalg::Vector<T, N>> vec;
       const auto wiggle = vec.fill(eps);

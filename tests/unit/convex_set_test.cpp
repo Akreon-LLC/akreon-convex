@@ -54,7 +54,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!hyperplane_cone.contains(Vectord<4>{0.0, 0.0, 0.0, 1.0}));
     STATIC_REQUIRE(hyperplane_cone.contains(Vectord<4>{1.0, 1.0, 1.0, 1.0}));
     STATIC_REQUIRE(!hyperplane_cone.contains(Vectord<4>{1.0, 1.0, 2.0, 1.0}));
-    STATIC_REQUIRE(!hyperplane_cone.is_proper());
+    STATIC_REQUIRE(hyperplane_cone.is_proper() == ConeCheck::False);
     constexpr Vectord<4> lifted_point{point(0), point(1), point(2), 1.0};
     STATIC_REQUIRE(
         !hyperplane_cone.less_than(lifted_point, lifted_point).has_value());
@@ -82,7 +82,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<3>{1.0, 0.0, 1.0}));
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<3>{1.0, 2.0, 1.0}));
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<3>{-1.0, 5.0, 1.0}));
-    STATIC_REQUIRE(!halfspace_cone.is_proper());
+    STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
 
     constexpr Vectord<3> lifted_point{point(0), point(1), 1.0};
     STATIC_REQUIRE(
@@ -124,7 +124,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
         halfspace_cone.contains(Vectord<5>{0.5, 2.0, 2.0, 1.0, 1.0}));
     STATIC_REQUIRE(
         !halfspace_cone.contains(Vectord<5>{1.0, 1.0, 0.0, 5.0, 1.0}));
-    STATIC_REQUIRE(!halfspace_cone.is_proper());
+    STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
     constexpr Vectord<5> lifted_point{point(0), point(1), point(2), point(3),
                                       1.0};
     STATIC_REQUIRE(
@@ -159,7 +159,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{0.0, 1.0, 0.0, 1.0}));
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{0.1, 1.0, 2.0, 1.0}));
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<4>{0.1, 1.0, -2.0, 1.0}));
-    STATIC_REQUIRE(!halfspace_cone.is_proper());
+    STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
 
     constexpr Vectord<4> lifted_point{point(0), point(1), point(2), 1.0};
     STATIC_REQUIRE(
@@ -184,7 +184,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<2>{0.1, 1.0}));
     STATIC_REQUIRE(!halfspace_cone.contains(Vectord<2>{5.0, 1.0}));
     STATIC_REQUIRE(halfspace_cone.contains(Vectord<2>{6.0, 1.0}));
-    STATIC_REQUIRE(!halfspace_cone.is_proper());
+    STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
     constexpr Vectord<2> lifted_point{point(0), 1.0};
     STATIC_REQUIRE(
         !halfspace_cone.less_than(lifted_point, lifted_point).has_value());
@@ -235,7 +235,7 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vectord<3>{c(0), c(1), 1.0}));
     STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 0.1, c(1) - 0.5, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<3>{1.5, 1.0, 1.0}));
-    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
     constexpr Vectord<3> lifted_c{c(0), c(1), 1.0};
     STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
@@ -256,7 +256,7 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vectord<3>{c(0), c(1), 1.0}));
     STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 0.1, c(1) - 0.5, 1.0}));
     STATIC_REQUIRE(cone.contains(Vectord<3>{1.5, 1.0, 1.0}));
-    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
     constexpr Vectord<3> lifted_c{c(0), c(1), 1.0};
     STATIC_REQUIRE(cone.less_than_strict(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
@@ -305,7 +305,7 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{}));
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 2.0, 3.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
-    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
     STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
     STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).value());
   }
@@ -324,7 +324,7 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 2.0, 3.0, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.1, 0.1, 0.1, 1.0}));
-    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
     STATIC_REQUIRE(!cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
   }
 
@@ -350,7 +350,7 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.0, 1.0, 0.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.0, 0.0, 1.0, 1.0}));
-    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
     STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
     STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).value());
   }
@@ -374,7 +374,7 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{0.0, 1.0, 0.0, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{0.0, 0.0, 1.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.2, 0.3, 0.5, 1.0}));
-    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
     STATIC_REQUIRE(!cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
   }
 }
@@ -411,7 +411,7 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vectord<4>{0.8, 0.1, 0.1, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<4>{-0.8, 0.1, 0.1, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<4>{0.8, 0.1, 0.0, 1.0}));
-    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(cone.less_than(Vectord<4>{0.8, 0.1, 0.0, 1.0},
                                   Vectord<4>{1.6, 0.2, 0.0, 2.0})
                        .has_value());
@@ -445,7 +445,7 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
     constexpr auto cone = set.cone_view();
     STATIC_REQUIRE(cone.contains(Vectord<2>{1.0, 0.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<2>{-0.1, 0.1}));
-    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(
         cone.less_than(Vectord<2>{1.0, 0.0}, Vectord<2>{2.0, 1.0}).has_value());
     STATIC_REQUIRE(
@@ -480,7 +480,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(Vectord<3>{}));
     STATIC_REQUIRE(cone.contains(Vectord<3>{0.2, 0.5, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<3>{0.5, 0.5, 1.0}));
-    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
     STATIC_REQUIRE(!cone.less_than(Vectord<3>{}, Vectord<3>{}).has_value());
   }
 
@@ -497,7 +497,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vectord<4>{}));
     STATIC_REQUIRE(cone.contains(Vectord<4>{0.2, 0.5, 0.1, 1.0}));
     STATIC_REQUIRE(cone.contains(Vectord<4>{1. / 3., 1. / 3., 1. / 3., 1.0}));
-    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
     STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
     STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).value());
   }
@@ -539,11 +539,16 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(B));
     STATIC_REQUIRE(cone_v.contains(I));
     STATIC_REQUIRE(cone_v.contains(Z));
-    STATIC_REQUIRE(cone_v.is_proper());
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(cone_v.less_than(A, A).has_value());
     STATIC_REQUIRE(cone_v.less_than(A, A).value());
     STATIC_REQUIRE(cone_v.less_than(I, Z).has_value());
     STATIC_REQUIRE(!cone_v.less_than(I, Z).value());
+    STATIC_REQUIRE(cone_v.less_than_strict(A, A).has_value());
+    // (dakre) TODO look at this one further... so eigs are PSD which would
+    // indicate that they are in the interior of the PsdCone so strict should
+    // pass
+    STATIC_REQUIRE(cone_v.less_than_strict(A, A).value());
   }
 }
 
@@ -570,7 +575,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
-    STATIC_REQUIRE(!cone_v.is_proper());
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::False);
 
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
@@ -591,7 +596,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(!cone_v.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
-    STATIC_REQUIRE(cone_v.is_proper());
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
   }
 
   SECTION("Test open L1 norm cone") {
@@ -606,7 +611,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
-    STATIC_REQUIRE(!cone_v.is_proper());
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::False);
 
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
@@ -629,7 +634,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(cone_v.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
     STATIC_REQUIRE(!cone_v.contains(Vector<float, 2>{c(0) + 4.f, c(1)}));
-    STATIC_REQUIRE(cone_v.is_proper());
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
   }
 
   SECTION("Test open Linf norm cone") {
@@ -645,7 +650,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
-    STATIC_REQUIRE(!cone_v.is_proper());
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::False);
 
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
@@ -715,7 +720,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 0.1, c(1) - 0.2, r}));
     STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 2.0, c(1), r}));
     STATIC_REQUIRE(!cone.contains(Vectord<3>{c(0) + 2.0, c(1), 1.0}));
-    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
     STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
   }
@@ -742,7 +747,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto lifted_c = Vectorf<3>{c(0), c(1), r};
     STATIC_REQUIRE(cone.contains(Vectorf<3>{c(0) + 0.1f, c(1) - 0.2f, 1.f}));
     STATIC_REQUIRE(cone.contains(Vectorf<3>{c(0) + 2.f, c(1), 1.f}));
-    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
     STATIC_REQUIRE(cone.less_than_strict(
@@ -787,7 +792,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
         cone.contains(Vectord<5>{c(0), c(1), c(2), c(3) + 0.1, 1.0}));
     STATIC_REQUIRE(
         cone.contains(Vectord<5>{c(0) + 1.0, c(1), c(2), c(3), 1.0}));
-    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
     STATIC_REQUIRE(cone.less_than_strict(lifted_c, lifted_c).has_value());
@@ -811,7 +816,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(Vectorf<5>{}));
     STATIC_REQUIRE(cone.contains(Vectorf<5>{c(0), c(1), c(2), c(3) + 0.1f, r}));
     STATIC_REQUIRE(!cone.contains(Vectorf<5>{c(0) + 1.f, c(1), c(2), c(3), r}));
-    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
     STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
   }
@@ -839,7 +844,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(lifted_c));
     STATIC_REQUIRE(!cone.contains(Vectord<4>{}));
     STATIC_REQUIRE(cone.contains(Vectord<4>{c(0) + 1.0, c(1), c(2), r}));
-    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
     STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
   }
@@ -867,7 +872,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(lifted_c));
     STATIC_REQUIRE(cone.contains(Vectorf<4>{}));
     STATIC_REQUIRE(cone.contains(Vectorf<4>{c(0) + 1.f, c(1), c(2), r}));
-    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
     STATIC_REQUIRE(

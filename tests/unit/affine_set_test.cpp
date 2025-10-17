@@ -140,7 +140,6 @@ TEST_CASE("Test 2d Space Operations", "[affine_sets]") {
 
   SECTION("2d [R | t]") {
     constexpr auto R_mat = R(M_PI / 6);
-    constexpr auto x1 = Vectord<2>{1.0, 2.0};
     constexpr auto map = AffineMap2d<double>(R_mat, x1);
     constexpr auto set_Rt = set.transform(map);
     STATIC_REQUIRE(all_equal(set_Rt.basis(), R_mat * I));
