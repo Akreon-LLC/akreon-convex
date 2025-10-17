@@ -39,6 +39,18 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
   using ConvexBase::Dim;
   using ConvexBase::N;
 
+  /// @brief lifted point (based on lifted space or not)
+  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexCone,
+                                            linalg::Vector<T, N - 1>, Point>;
+
+  /// @brief lifted matrix for P
+  using AugmentedMat = std::conditional_t<Tag == ViewTag::ConvexCone,
+                                          linalg::Matrix<T, N - 1, N - 1>,
+                                          linalg::Matrix<T, N, N>>;
+
+  /// @brief augmented point size
+  static constexpr size_t AugSize = linalg::vec_size_v<AugmentedPoint>;
+
   /**
    * @brief CTOR for LMI
    *
@@ -47,7 +59,7 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    */
   template <typename... Fs>
   constexpr explicit LMI(Fs&&... xs) {
-    static_assert(sizeof...(xs) == N + 1);
+    static_assert(sizeof...(xs) == AugSize + 1);
     int i = 0;
     auto set_mat = [&](const auto& x) {
       if (i == 0)
@@ -65,8 +77,8 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    * @param A vector of matrices
    * @param B matrix
    */
-  constexpr explicit LMI(const linalg::Vector<linalg::Matrix<T, N, N>, N>& A_in,
-                         const linalg::Matrix<T, N, N>& B_in)
+  constexpr explicit LMI(const linalg::Vector<AugmentedMat, AugSize>& A_in,
+                         const AugmentedMat& B_in)
       : A(A_in), B(B_in) {}
 
   /**
@@ -80,9 +92,16 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /*tol*/) const {
-    linalg::Matrix<T, N, N> res = B;
-    for (size_t i = 0; i < N; ++i) res = res + (x(i) * A(i));
+  constexpr bool contains_impl(const Point& x_in, const T& /*tol*/) const {
+    AugmentedMat res = B;
+    AugmentedPoint x;
+    if constexpr (Tag == ViewTag::ConvexCone) {
+      res = x_in(N - 1) * res;
+      x = std::get<0>(linalg::splice<AugSize>(x_in));
+    } else {
+      x = x_in;
+    }
+    for (size_t i = 0; i < AugSize; ++i) res = res + (x(i) * A(i));
     linalg::SymmetricMatrix S(res);
     return check_definiteness(S);
   }
@@ -95,7 +114,7 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
   constexpr bool is_well_formed_impl() const {
     if (linalg::SymmetricMatrix(B).type == linalg::SymmetricMatrixType::INV)
       return false;
-    for (size_t i = 0; i < N; ++i)
+    for (size_t i = 0; i < AugSize; ++i)
       if (linalg::SymmetricMatrix(A(i)).type ==
           linalg::SymmetricMatrixType::INV)
         return false;
@@ -111,7 +130,7 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
     if (!linalg::all_equal(B, other.B)) return false;
-    for (size_t i = 0; i < N; ++i)
+    for (size_t i = 0; i < AugSize; ++i)
       if (!linalg::all_equal(A(i), other.A(i))) return false;
     return true;
   }
@@ -150,7 +169,8 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
   constexpr auto cone_view_impl() const
     requires(Tag == ViewTag::ConvexSet)
   {
-    return ConeView(LMI<Space, Type, ViewTag::ConvexCone>(A, B));
+    return ConeView(
+        LMI<linalg::Matrix<T, 1, N + 1>, Type, ViewTag::ConvexCone>(A, B));
   }
 
   /**
@@ -161,7 +181,7 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    * @return T/F
    */
   constexpr bool check_definiteness(
-      const linalg::SymmetricMatrix<linalg::Matrix<T, N, N>>& S) const {
+      const linalg::SymmetricMatrix<AugmentedMat>& S) const {
     switch (S.type) {
       case linalg::SymmetricMatrixType::PSD: {
         if (Type == LMIType::NonStrict) return true;
@@ -175,10 +195,24 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
     return false;
   }
 
+  /**
+   * @brief helper to get As
+   *
+   * @return vector of matrices
+   */
+  constexpr auto get_A() const { return A; }
+
+  /**
+   * @brief helper to get B
+   *
+   * @return B
+   */
+  constexpr auto get_B() const { return B; }
+
  private:
   /** @brief member vars for LMI */
-  linalg::Vector<linalg::Matrix<T, N, N>, N> A;
-  linalg::Matrix<T, N, N> B;
+  linalg::Vector<AugmentedMat, AugSize> A;
+  AugmentedMat B;
 };
 
 }  // namespace convex

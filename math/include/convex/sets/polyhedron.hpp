@@ -204,6 +204,20 @@ class Polyhedron
     return map.apply(x);
   }
 
+  /**
+   * @brief get A mat
+   *
+   * @return A matrix
+   */
+  constexpr auto get_A() const { return A; }
+
+  /**
+   * @brief get C mat
+   *
+   * @return C matrix
+   */
+  constexpr auto get_C() const { return C; }
+
  private:
   /** @brief member variables in the polyhedron */
   MatA A;  //< set of finite number of halfspaces

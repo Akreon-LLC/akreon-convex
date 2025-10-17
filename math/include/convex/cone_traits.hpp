@@ -17,7 +17,7 @@ class ConeView;
 template <ConvexConeLike Cone>
 struct cone_traits;
 
-/// @brief derived cone type traits - hyperplane
+/// @brief derived cone type traits - lifted hyperplane
 template <linalg::VectorSpace Space>
 struct cone_traits<Hyperplane<Space, ViewTag::ConvexCone>> {
   using ConeT = Hyperplane<Space, ViewTag::ConvexCone>;
@@ -28,7 +28,7 @@ struct cone_traits<Hyperplane<Space, ViewTag::ConvexCone>> {
   static constexpr bool is_pointed(const ConeT& /*cone*/) { return false; }
 };
 
-/// @brief derived cone type traits - halfspace
+/// @brief derived cone type traits - lifted halfspace
 template <linalg::VectorSpace Space, HalfspaceType Type>
 struct cone_traits<Halfspace<Space, Type, ViewTag::ConvexCone>> {
   using ConeT = Halfspace<Space, Type, ViewTag::ConvexCone>;
@@ -41,7 +41,7 @@ struct cone_traits<Halfspace<Space, Type, ViewTag::ConvexCone>> {
   static constexpr bool is_pointed(const ConeT& /*cone*/) { return false; }
 };
 
-/// @brief derived cone type traits - ellipsoid
+/// @brief derived cone type traits - lifted ellipsoid
 template <linalg::VectorSpace Space, EllipsoidType Type>
 struct cone_traits<Ellipsoid<Space, Type, ViewTag::ConvexCone>> {
   using ConeT = Ellipsoid<Space, Type, ViewTag::ConvexCone>;
@@ -67,7 +67,7 @@ struct cone_traits<Ellipsoid<Space, Type, ViewTag::ConvexCone>> {
   static constexpr bool is_pointed(const ConeT& /*cone*/) { return true; }
 };
 
-/// @brief derived cone type traits - norm ball
+/// @brief derived cone type traits - norm cone
 template <linalg::VectorSpace Space, NormConeType Type>
 struct cone_traits<NormCone<Space, Type, ViewTag::ConvexCone>> {
   using ConeT = NormCone<Space, Type, ViewTag::ConvexCone>;
@@ -91,6 +91,132 @@ struct cone_traits<NormCone<Space, Type, ViewTag::ConvexCone>> {
    * Linf case : similar result
    */
   static constexpr bool is_pointed(const ConeT& /*cone*/) { return true; }
+};
+
+/// @brief derived cone type traits for lifted simplex
+template <linalg::VectorSpace Space>
+struct cone_traits<Simplex<Space, ViewTag::ConvexCone>> {
+  using ConeT = Simplex<Space, ViewTag::ConvexCone>;
+  static constexpr bool is_closed(const ConeT& /*cone*/) { return true; }
+  static constexpr bool is_solid(const ConeT& cone) {
+    return cone.is_well_formed() && linalg::space_dim_v<Space> > 0;
+  }
+  /**
+   * @brief pointed test (x,t) \in K & (-x, -t) \in -K
+   *
+   * (i) { (x, t) | \sum_i x_i = t, t > 0 }
+   * (ii) { (x, t) | \sum_i -x_i = -t, -t > 0 }
+   *
+   * set 2 cannot exist thus K \cap -K = { 0 }
+   */
+  static constexpr bool is_pointed(const ConeT& /*cone*/) { return true; }
+};
+
+/// @brief derived cone type traits for nonneg orthant
+template <linalg::VectorSpace Space>
+struct cone_traits<NonnegOrthant<Space, ViewTag::ConvexCone>> {
+  using ConeT = NonnegOrthant<Space, ViewTag::ConvexCone>;
+  static constexpr bool is_closed(const ConeT& /*cone*/) { return true; }
+  static constexpr bool is_solid(const ConeT& cone) {
+    return cone.is_well_formed() && linalg::space_dim_v<Space> > 0;
+  }
+  static constexpr bool is_pointed(const ConeT& /*cone*/) { return true; }
+};
+
+/// @brief psd cone type traits
+template <linalg::VectorSpace Space>
+struct cone_traits<PsdCone<Space, ViewTag::ConvexCone>> {
+  using ConeT = PsdCone<Space, ViewTag::ConvexCone>;
+  static constexpr bool is_closed(const ConeT& /*cone*/) { return true; }
+  static constexpr bool is_solid(const ConeT& cone) {
+    return cone.is_well_formed() && linalg::mat_rows_v<Space> > 1 &&
+           linalg::mat_cols_v<Space> > 1;
+  }
+  static constexpr bool is_pointed(const ConeT& /*cone*/) { return true; }
+};
+
+/// @brief polyhedron cone type traits
+template <linalg::VectorSpace Space, HalfspaceType Type,
+          linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+struct cone_traits<Polyhedron<Space, Type, MatA, MatC, ViewTag::ConvexCone>> {
+  using ConeT = Polyhedron<Space, Type, MatA, MatC, ViewTag::ConvexCone>;
+  using T = linalg::space_type_t<Space>;
+  static constexpr size_t N = linalg::space_dim_v<Space> - 1;
+
+  static constexpr bool is_closed(const ConeT& /*cone*/) {
+    return Type == HalfspaceType::CLH || Type == HalfspaceType::CUH;
+  }
+  static constexpr bool is_solid(const ConeT& cone) {
+    // (dakre) TODO add slater test for feasibility (LP)
+    return cone.is_well_formed() && N > 0;
+  }
+  /**
+   * @brief pointed test
+   *
+   * (i) { (x, t) | A x <= t, C x = d t }
+   * (ii) { (-x, -t) | -A x <= -t, -C x = -d t }
+   *
+   * t > 0 by def, so t = 0 and rhs \to 0
+   *
+   * K \cap -K = { 0 } \implies L(P) = nullspace([A C]) AKA lineality space
+   * IFF L(P) = null([A C]) = { 0 } is trivial then it's pointed
+   */
+  static constexpr bool is_pointed(const ConeT& cone) {
+    const auto A = cone.get_A();
+    static constexpr size_t RowsC = linalg::mat_rows_v<MatC>;
+    static constexpr size_t RowsA = linalg::mat_rows_v<MatA>;
+    if constexpr (RowsC == 0) {
+      const auto rank = linalg::QR(A).get_rank();
+      return rank == N;
+    } else {
+      const auto C = cone.get_C();
+      linalg::Matrix<T, RowsA + RowsC, N> AC;
+      AC = linalg::set_block<0, RowsA, 0, N>(AC, A);
+      AC = linalg::set_block<RowsA, RowsA + RowsC, 0, N>(AC, C);
+      const auto rank = linalg::QR(AC).get_rank();
+      return rank == N;
+    }
+  }
+};
+
+/// @brief LMI cone type traits
+template <linalg::VectorSpace Space, LMIType Type>
+struct cone_traits<LMI<Space, Type, ViewTag::ConvexCone>> {
+  using ConeT = LMI<Space, Type, ViewTag::ConvexCone>;
+  using T = linalg::space_type_t<Space>;
+  static constexpr size_t N = linalg::space_dim_v<Space> - 1;
+
+  static constexpr bool is_closed(const ConeT& /*cone*/) {
+    return Type == LMIType::NonStrict;
+  }
+  static constexpr bool is_solid(const ConeT& cone) {
+    // (dakre) TODO add slater test for feasibility (LP)
+    return cone.is_well_formed() && linalg::space_dim_v<Space> > 0;
+  }
+  /**
+   * @brief pointed test
+   *
+   * (i) { (x, t) | A(x) <= Bt }
+   * (ii) { (-x, -t) | A(-x) <= -Bt }
+   *
+   * 0 <= Bt - A(x) \implies PSD
+   * 0 <= A(x) - Bt \implies PSD
+   *
+   * t > 0 by def, so t = 0 and B drops out
+   * 0 <= A(x) & 0 <= -A(x) \implies A(x) <= 0
+   * IFF null(A(x)) = { 0 } is trivial then its pointed
+   */
+  static constexpr bool is_pointed(const ConeT& cone) {
+    const auto As = cone.get_A();
+    linalg::Matrix<T, N * N, N> A_stack;
+    linalg::constexpr_for<0, N>(
+        [&]<size_t i>(std::integral_constant<size_t, i>) {
+          constexpr size_t blk = i * N;
+          A_stack = linalg::set_block<blk, N + blk, 0, N>(A_stack, As(i));
+        });
+    const auto rank = linalg::QR(A_stack).get_rank();
+    return rank == N;
+  }
 };
 
 }  // namespace convex

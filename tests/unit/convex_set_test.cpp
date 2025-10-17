@@ -305,6 +305,9 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{}));
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 2.0, 3.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
+    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
+    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).value());
   }
 
   SECTION("Test Open Polyhedron", "[A x < b]") {
@@ -321,6 +324,8 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 2.0, 3.0, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.1, 0.1, 0.1, 1.0}));
+    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(!cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
   }
 
   mat_traits<Matrix<double, 2, 3>> C_mat;
@@ -345,9 +350,12 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.0, 1.0, 0.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.0, 0.0, 1.0, 1.0}));
+    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
+    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).value());
   }
 
-  SECTION("Test Closed Polyhedron", "[A x < b, C x == d]") {
+  SECTION("Test Open Polyhedron", "[A x < b, C x == d]") {
     constexpr Polyhedron<Space, HalfspaceType::OLH, decltype(A), decltype(C)>
         poly(A, b, C, d);
 
@@ -366,6 +374,8 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{0.0, 1.0, 0.0, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vector<double, 4>{0.0, 0.0, 1.0, 1.0}));
     STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.2, 0.3, 0.5, 1.0}));
+    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(!cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
   }
 }
 
@@ -401,6 +411,13 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(Vectord<4>{0.8, 0.1, 0.1, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<4>{-0.8, 0.1, 0.1, 1.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<4>{0.8, 0.1, 0.0, 1.0}));
+    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.less_than(Vectord<4>{0.8, 0.1, 0.0, 1.0},
+                                  Vectord<4>{1.6, 0.2, 0.0, 2.0})
+                       .has_value());
+    STATIC_REQUIRE(cone.less_than(Vectord<4>{0.8, 0.2, 0.0, 1.0},
+                                  Vectord<4>{1.6, 0.4, 0.0, 2.0})
+                       .value());
   }
 }
 
@@ -428,16 +445,26 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
     constexpr auto cone = set.cone_view();
     STATIC_REQUIRE(cone.contains(Vectord<2>{1.0, 0.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<2>{-0.1, 0.1}));
+    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(
+        cone.less_than(Vectord<2>{1.0, 0.0}, Vectord<2>{2.0, 1.0}).has_value());
+    STATIC_REQUIRE(
+        cone.less_than(Vectord<2>{1.0, 0.0}, Vectord<2>{2.0, 1.0}).value());
+    STATIC_REQUIRE(
+        cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).has_value());
+    STATIC_REQUIRE(
+        !cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).value());
   }
 }
 
 TEST_CASE("Test LMI", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(
-        ConvexConeLike<
-            LMI<Matrix<double, 1, 2>, LMIType::Strict, ViewTag::ConvexCone>>);
-    STATIC_REQUIRE(ConvexConeLike<LMI<Matrix<double, 3, 1>, LMIType::NonStrict,
-                                      ViewTag::ConvexCone>>);
+        ConvexSetLike<
+            LMI<Matrix<double, 1, 2>, LMIType::Strict, ViewTag::ConvexSet>>);
+    STATIC_REQUIRE(
+        ConvexSetLike<
+            LMI<Matrix<double, 3, 1>, LMIType::NonStrict, ViewTag::ConvexSet>>);
   }
 
   SECTION("Test Strict LMI", "[A(x) <= B]") {
@@ -449,10 +476,12 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(set.contains(Vectord<2>{0.2, 0.5}));
     STATIC_REQUIRE(!set.contains(Vectord<2>{0.5, 0.5}));
     constexpr auto cone = set.cone_view();
-    STATIC_REQUIRE(!cone.contains(Vectord<2>{1.0, 2.0}));
-    STATIC_REQUIRE(cone.contains(Vectord<2>{}));
-    STATIC_REQUIRE(cone.contains(Vectord<2>{0.2, 0.5}));
-    STATIC_REQUIRE(!cone.contains(Vectord<2>{0.5, 0.5}));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{1.0, 2.0, 1.0}));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{}));
+    STATIC_REQUIRE(cone.contains(Vectord<3>{0.2, 0.5, 1.0}));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{0.5, 0.5, 1.0}));
+    STATIC_REQUIRE(!cone.is_proper());
+    STATIC_REQUIRE(!cone.less_than(Vectord<3>{}, Vectord<3>{}).has_value());
   }
 
   SECTION("Test Nonstrict LMI", "[A(x) <= B]") {
@@ -464,10 +493,13 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));
     STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
     constexpr auto cone = set.cone_view();
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{1.0, 2.0, 3.0}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{0.2, 0.5, 0.1}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
+    STATIC_REQUIRE(!cone.contains(Vectord<4>{1.0, 2.0, 3.0, 1.0}));
+    STATIC_REQUIRE(cone.contains(Vectord<4>{}));
+    STATIC_REQUIRE(cone.contains(Vectord<4>{0.2, 0.5, 0.1, 1.0}));
+    STATIC_REQUIRE(cone.contains(Vectord<4>{1. / 3., 1. / 3., 1. / 3., 1.0}));
+    STATIC_REQUIRE(cone.is_proper());
+    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
+    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).value());
   }
 }
 
@@ -507,6 +539,11 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(B));
     STATIC_REQUIRE(cone_v.contains(I));
     STATIC_REQUIRE(cone_v.contains(Z));
+    STATIC_REQUIRE(cone_v.is_proper());
+    STATIC_REQUIRE(cone_v.less_than(A, A).has_value());
+    STATIC_REQUIRE(cone_v.less_than(A, A).value());
+    STATIC_REQUIRE(cone_v.less_than(I, Z).has_value());
+    STATIC_REQUIRE(!cone_v.less_than(I, Z).value());
   }
 }
 
@@ -533,6 +570,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(!cone_v.is_proper());
 
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
@@ -553,6 +591,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(Vector<float, 2>{}));
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(!cone_v.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
+    STATIC_REQUIRE(cone_v.is_proper());
   }
 
   SECTION("Test open L1 norm cone") {
@@ -567,6 +606,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(!cone_v.is_proper());
 
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
@@ -589,6 +629,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(cone_v.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
     STATIC_REQUIRE(!cone_v.contains(Vector<float, 2>{c(0) + 4.f, c(1)}));
+    STATIC_REQUIRE(cone_v.is_proper());
   }
 
   SECTION("Test open Linf norm cone") {
@@ -604,6 +645,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{}));
     STATIC_REQUIRE(cone_v.contains(c));
     STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(!cone_v.is_proper());
 
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
