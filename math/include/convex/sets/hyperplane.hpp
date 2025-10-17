@@ -70,29 +70,6 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
   }
 
   /**
-   * @brief contains dual impl
-   *
-   * K = { (x,t) | a^T x = b t } \to { z | M z = 0 } where M = [ a^T -b ]
-   * Linear subspace L = {z | M z = 0} the dual is the orthogonal complement
-   * (subspaces annihilator) which comprises of linear functionals that map
-   * every vector in the subspace to the nullspace { 0 }
-   *
-   * L = { z | M z = 0}, L^* = range(M^T)
-   * y \in K^* iff x^T y = 0
-   */
-  constexpr bool contains_dual_impl(const Point& y, const T& tol) const
-    requires(Tag == ViewTag::ConvexCone)
-  {
-    Point m;
-    m[N - 1] = T(-1) * y(N - 1) * b;
-    for (size_t i = 0; i < N - 1; ++i) m[i] = a(i);
-    const auto mTm = linalg::dot(m, m);
-    if (mTm == 0) return false;
-    const auto y_proj = (dot(y, m) / mTm) * m;
-    return L2<T, N - 1>(y_proj) <= tol;
-  }
-
-  /**
    * @brief is well formed checks to see if the hyperplane is valid
    *
    * @return T/F

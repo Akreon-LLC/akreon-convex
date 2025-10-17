@@ -457,21 +457,6 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
         cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).has_value());
     STATIC_REQUIRE(
         !cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).value());
-    // (3) dual cone checks
-    constexpr auto dual_cone = cone.dual_view();
-    STATIC_REQUIRE(dual_cone.contains(Vectord<2>{1.0, 0.0}));
-    STATIC_REQUIRE(!dual_cone.contains(Vectord<2>{-0.1, 0.1}));
-    STATIC_REQUIRE(dual_cone.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(
-        dual_cone.less_than(Vectord<2>{1.0, 0.0}, Vectord<2>{2.0, 1.0})
-            .has_value());
-    STATIC_REQUIRE(
-        dual_cone.less_than(Vectord<2>{1.0, 0.0}, Vectord<2>{2.0, 1.0})
-            .value());
-    STATIC_REQUIRE(
-        dual_cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).has_value());
-    STATIC_REQUIRE(
-        !dual_cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).value());
   }
 }
 
@@ -570,20 +555,6 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     // indicate that they are in the interior of the PsdCone so strict should
     // pass
     STATIC_REQUIRE(cone_v.less_than_strict(A, A).value());
-
-    // (3) dual cone view check
-    constexpr auto dual_cone_v = cone_v.dual_view();
-    STATIC_REQUIRE(dual_cone_v.contains(A));
-    STATIC_REQUIRE(dual_cone_v.contains(A));
-    STATIC_REQUIRE(dual_cone_v.contains(B));
-    STATIC_REQUIRE(dual_cone_v.contains(I));
-    STATIC_REQUIRE(dual_cone_v.contains(Z));
-    STATIC_REQUIRE(dual_cone_v.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(dual_cone_v.less_than(A, A).has_value());
-    STATIC_REQUIRE(dual_cone_v.less_than(A, A).value());
-    STATIC_REQUIRE(dual_cone_v.less_than(I, Z).has_value());
-    STATIC_REQUIRE(!dual_cone_v.less_than(I, Z).value());
-    STATIC_REQUIRE(dual_cone_v.less_than_strict(A, A).has_value());
   }
 }
 

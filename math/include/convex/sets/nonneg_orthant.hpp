@@ -43,22 +43,6 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
   }
 
   /**
-   * @brief contains dual impl (R^n_+ is self-dual)
-   *
-   * { y | x^T y >= 0, x \in K}
-   *
-   * @param point y
-   * @param tolerance
-   *
-   * @return T/F
-   */
-  constexpr bool contains_dual_impl(const Point& y, const T& tol) const
-    requires(Tag == ViewTag::ConvexCone)
-  {
-    return contains_impl(y, tol);
-  }
-
-  /**
    * @brief is well formed check
    *
    * @return T/F

@@ -18,29 +18,16 @@ namespace convex {
 template <ConvexConeLike Cone>
 struct DualConeView : ConeViewBase<DualConeView<Cone>> {
   /// @helpers from base class
-  using ConeViewBase = ConeViewBase<DualConeView<Cone>>;
-  using typename ConeViewBase::Point;
-  using typename ConeViewBase::T;
+  using ConeBase = ConeViewBase<DualConeView<Cone>>;
+  using typename ConeBase::Point;
+  using typename ConeBase::T;
 
   /**
    * @brief CTOR
    *
    * @param ConvexSet argument
    */
-  constexpr explicit DualConeView(const Cone& cone_in)
-      : ConeViewBase(cone_in) {}
-
-  /**
-   * @brief contains func (wrapped around cone impl)
-   *
-   * @param point in space
-   * @param tolerance
-   *
-   * @return T/F
-   */
-  constexpr bool contains_impl(const Point& x, T tol = 1e-8) const {
-    return this->cone.contains_dual_impl(x, tol);
-  }
+  constexpr explicit DualConeView(const Cone& cone_in) : ConeBase(cone_in) {}
 
   /**
    * @brief get dual view of cone
