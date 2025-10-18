@@ -18,7 +18,7 @@ namespace convex {
  * {x | a^T x >= b}... closed upper halfspace
  * {x | a^T x > b}... open upper halfspace
  */
-template <linalg::VectorSpace Space, HalfspaceType Type,
+template <linalg::RnSpace Space, HalfspaceType Type,
           ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)

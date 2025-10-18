@@ -333,6 +333,10 @@ concept VectorSpace =
       } -> std::convertible_to<space_point_t<Space>>;
     };
 
+/// @brief R^n space
+template <class Space>
+concept RnSpace = VectorSpace<Space> && !is_complex_v<space_type_t<Space>>;
+
 /// @brief concept definition for matrix like
 template <class Mat>
 concept MatrixLike = FieldLike<mat_type_t<Mat>> && requires {

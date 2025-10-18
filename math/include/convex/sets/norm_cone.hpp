@@ -15,7 +15,7 @@ namespace convex {
  * { (x, t) | ||x|| <= t }... closed norm cone defined on L1, L2, Linf
  * { (x, t) | ||x|| < t }... open cone defined on L1, L2, Linf
  */
-template <linalg::VectorSpace Space, NormConeType Type,
+template <linalg::RnSpace Space, NormConeType Type,
           ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)

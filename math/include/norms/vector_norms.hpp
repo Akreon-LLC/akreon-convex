@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../linalg/vector_ops.hpp"
+#include "norm_traits.hpp"
 
 namespace linalg {
 
@@ -18,8 +19,7 @@ namespace linalg {
  *
  * @return scalar
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
+template <FieldLike T, size_t N>
 struct L2 {
   using ScalarT = scalar_type_t<T>;
   constexpr auto operator()(const Vector<T, N>& x) const {
@@ -44,8 +44,7 @@ struct L2 {
  *
  * @return scalar
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
+template <FieldLike T, size_t N>
 struct L1 {
   using ScalarT = scalar_type_t<T>;
   constexpr auto operator()(const Vector<T, N>& x) const {
@@ -67,8 +66,7 @@ struct L1 {
  *
  * @return scalar
  */
-template <typename T, size_t N>
-  requires(FieldLike<T>)
+template <FieldLike T, size_t N>
 struct Linf {
   using ScalarT = scalar_type_t<T>;
   constexpr auto operator()(const Vector<T, N>& x) const {

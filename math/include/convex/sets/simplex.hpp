@@ -16,7 +16,7 @@ namespace convex {
  *
  * Useful in probabilities
  */
-template <linalg::VectorSpace Space, ViewTag Tag = ViewTag::ConvexSet>
+template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {

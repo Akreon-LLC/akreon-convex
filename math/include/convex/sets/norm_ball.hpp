@@ -18,7 +18,7 @@ namespace convex {
  * { x | norm(x - c) <= r }... closed norm (L2, L1, Linf) ball that lies within
  * radius { x | norm(x - c) < r}... open "" ball that ""
  */
-template <linalg::VectorSpace Space, NormBallType Type,
+template <linalg::RnSpace Space, NormBallType Type,
           ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&

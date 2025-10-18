@@ -15,7 +15,7 @@ namespace convex {
  * E = { x | (x - c)^T P (x - c) <= 1 } s.t. P \in S^n_+ (symmetric positive
  * definite)
  */
-template <linalg::VectorSpace Space, EllipsoidType Type,
+template <linalg::RnSpace Space, EllipsoidType Type,
           ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)

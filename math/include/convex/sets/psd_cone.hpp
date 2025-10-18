@@ -16,7 +16,7 @@ namespace convex {
  * case) S^n_++ { X \in S^n | X > 0 }... set of positive definite matrices S^n_+
  * { X \in S^n | X >= 0 }... set of psd matrices
  */
-template <linalg::VectorSpace Space, ViewTag Tag = ViewTag::ConvexSet>
+template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::SquareMatrixLike<linalg::space_point_t<Space>>)
 class PsdCone : public ConvexSet<Space, PsdCone<Space, Tag>> {
  public:

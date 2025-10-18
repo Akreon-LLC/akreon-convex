@@ -10,6 +10,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Werror)
 endif()
 
+# Embedded code optimizations
+add_compile_options(-ffunction-sections -fdata-sections -fvisibility=hidden -fno-rtti -flto -Os)
+# add -fno-exceptions to lib TU 
+
 option(BUILD_TESTING "Enable building test code" ON)
 
 include(FetchContent)

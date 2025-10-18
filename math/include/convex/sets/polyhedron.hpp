@@ -16,7 +16,7 @@ namespace convex {
  * P = { x | A x <= b, C x = d }
  */
 
-template <linalg::VectorSpace Space, HalfspaceType Type,
+template <linalg::RnSpace Space, HalfspaceType Type,
           linalg::MatrixLike MatA,
           linalg::MatrixLike MatC = linalg::Matrix<linalg::mat_type_t<Space>, 0,
                                                    linalg::space_dim_v<Space>>,

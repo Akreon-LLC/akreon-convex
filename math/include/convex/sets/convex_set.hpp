@@ -23,8 +23,7 @@ namespace convex {
  *
  * Templated by a vector space and derived class
  */
-template <linalg::VectorSpace Space, typename Derived>
-  requires(!linalg::is_complex_v<linalg::space_type_t<Space>>)
+template <linalg::RnSpace Space, typename Derived>
 class ConvexSet {
  public:
   /// @brief alias to extract underlying scalar type of convex set

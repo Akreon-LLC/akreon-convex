@@ -24,7 +24,7 @@ namespace convex {
  * Transformed to pre-image of PsdCone
  * F(x) = F_0 + \sum_i F(x) >= 0... F_0 = B, F_i = -A_i
  */
-template <linalg::VectorSpace Space, LMIType Type,
+template <linalg::RnSpace Space, LMIType Type,
           ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
