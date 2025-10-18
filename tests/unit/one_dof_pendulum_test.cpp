@@ -76,8 +76,8 @@ TEST_CASE("Test Pendulum", "[pendulum]") {
     for (size_t i = 0; i < 10; ++i) {
       const auto result = Solve(Pendulum<double>(Q, 1.0, 1.0), h);
       Q = std::get<0>(result);
-      REQUIRE(L2<double, 1>()(Vector<double, 1>{Q(0)(2) - expected(i)}) <=
-              1e-4);
+      REQUIRE(L2<Vector<double, 1>>()(
+                  Vector<double, 1>{Q(0)(2) - expected(i)}) <= 1e-4);
     }
   }
 }

@@ -55,18 +55,18 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
   constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
     switch (Type) {
       case NormBallType::L2OB:
-        return linalg::L2<T, N>()(x - c) < r;
+        return linalg::L2<Point>()(x - c) < r;
       case NormBallType::L2CB:
-        return linalg::L2<T, N>()(x - c) <= r;
+        return linalg::L2<Point>()(x - c) <= r;
       case NormBallType::L1OB:
-        return linalg::L1<T, N>()(x - c) < r;
+        return linalg::L1<Point>()(x - c) < r;
       case NormBallType::L1CB:
-        return linalg::L1<T, N>()(x - c) <= r;
+        return linalg::L1<Point>()(x - c) <= r;
       case NormBallType::LinfOB:
-        return linalg::Linf<T, N>()(x - c) < r;
+        return linalg::Linf<Point>()(x - c) < r;
       case NormBallType::LinfCB:
       default:
-        return linalg::Linf<T, N>()(x - c) <= r;
+        return linalg::Linf<Point>()(x - c) <= r;
     }
   }
 

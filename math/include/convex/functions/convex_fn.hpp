@@ -14,17 +14,13 @@ namespace convex {
  *
  * Similar space constraints on R^n with convex set domain
  */
-template <ConvexDomainLike Domain, typename Derived>
+template <ConvexSetLike Domain, typename Derived>
 class ConvexFn {
  public:
   /// @brief alias to extract type traits from Domain convex set
-  using Space = std::conditional_t<linalg::VectorSpace<Domain>, Domain,
-                                   set_space_t<Domain>>;
-  using T =
-      std::conditional_t<linalg::VectorSpace<Domain>,
-                         linalg::space_type_t<Domain>, set_type_t<Domain>>;
-  using Point = std::conditional_t<linalg::VectorSpace<Domain>, Domain,
-                                   set_point_t<Domain>>;
+  using Space = set_space_t<Domain>;
+  using T = set_type_t<Domain>;
+  using Point = set_point_t<Domain>;
 
   /// @brief helper to get dimension size of space & size of point
   static constexpr size_t Dim = set_dim_v<Domain>;
@@ -39,7 +35,9 @@ class ConvexFn {
    *
    * @return y (scalar in R)
    */
-  constexpr T eval(const Point& x) const { return self().eval_impl(x); }
+  constexpr std::optional<T> eval(const Point& x) const {
+    return self().eval_impl(x);
+  }
 
   /**
    * @brief epigraph of f = above the graph of f (convex set)

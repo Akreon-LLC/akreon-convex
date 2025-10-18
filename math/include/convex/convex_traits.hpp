@@ -116,6 +116,15 @@ class LMI;
 template <class Set>
 struct set_traits;
 
+/// @brief derived set type traits - R^n
+template <linalg::RnSpace Space>
+struct set_traits<Space> {
+  using RnSpace = Space;
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t DIM = linalg::space_dim_v<Space>;
+};
+
 /// @brief derived set type traits - affine sets
 template <linalg::MatrixLike Mat, typename Derived>
 struct set_traits<AffineSet<Mat, Derived>> {
@@ -273,11 +282,8 @@ concept SetLike = requires(const Set& set, const set_point_t<Set>& x) {
 /// @brief convex set like concept
 template <class Set>
 concept ConvexSetLike =
-    SetLike<Set> && set_view_tag_v<Set> == ViewTag::ConvexSet;
-
-/// @brief convex domain like concept
-template <class Set>
-concept ConvexDomainLike = ConvexSetLike<Set> || linalg::RnSpace<Set>;
+    (SetLike<Set> && set_view_tag_v<Set> == ViewTag::ConvexSet) ||
+    linalg::RnSpace<Set>;
 
 /// @brief cone set like concept
 template <class Set>

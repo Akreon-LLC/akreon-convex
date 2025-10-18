@@ -19,10 +19,11 @@ namespace linalg {
  *
  * @return scalar
  */
-template <FieldLike T, size_t N>
+template <VectorLike Vec>
 struct L2 {
-  using ScalarT = scalar_type_t<T>;
-  constexpr auto operator()(const Vector<T, N>& x) const {
+  using T = vec_type_t<Vec>;
+  using ScalarT = scalar_type_t<vec_type_t<Vec>>;
+  constexpr auto operator()(const Vec& x) const {
     ScalarT result = 0;
     if constexpr (!is_complex_v<T>)
       result = dot(x, x);
@@ -44,10 +45,11 @@ struct L2 {
  *
  * @return scalar
  */
-template <FieldLike T, size_t N>
+template <VectorLike Vec>
 struct L1 {
-  using ScalarT = scalar_type_t<T>;
-  constexpr auto operator()(const Vector<T, N>& x) const {
+  using T = vec_type_t<Vec>;
+  using ScalarT = scalar_type_t<vec_type_t<Vec>>;
+  constexpr auto operator()(const Vec& x) const {
     ScalarT sum = 0;
     if constexpr (!is_complex_v<T>)
       for (const auto& _x : x) sum += constexpr_abs(_x);
@@ -66,10 +68,11 @@ struct L1 {
  *
  * @return scalar
  */
-template <FieldLike T, size_t N>
+template <VectorLike Vec>
 struct Linf {
-  using ScalarT = scalar_type_t<T>;
-  constexpr auto operator()(const Vector<T, N>& x) const {
+  using T = vec_type_t<Vec>;
+  using ScalarT = scalar_type_t<vec_type_t<Vec>>;
+  constexpr auto operator()(const Vec& x) const {
     ScalarT mx = 0;
     if constexpr (!is_complex_v<T>)
       for (const auto& _x : x) mx = std::max(mx, constexpr_abs(_x));

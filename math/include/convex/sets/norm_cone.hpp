@@ -34,7 +34,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
 
   /// @brief lifted point (based on lifted space or not)
   static constexpr size_t AugSize = N - 1;
-  using AugmentedPoint = linalg::Vector<T, AugSize>;
+  using AugPoint = linalg::Vector<T, AugSize>;
 
   /**
    * @brief CTOR for norm cone
@@ -47,7 +47,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    * @param center point from norm ball
    * @param r (radius from norm ball)
    */
-  constexpr explicit NormCone(const AugmentedPoint& c_in, const T& r_in)
+  constexpr explicit NormCone(const AugPoint& c_in, const T& r_in)
       : c(c_in), r(r_in) {}
 
   /**
@@ -63,9 +63,9 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
   constexpr bool contains_impl(const Point& x_in, const T& /* tol */) const {
     T t = x_in(N - 1);
     if (t < T(0)) return false;
-    AugmentedPoint x = std::get<0>(linalg::splice<N - 1>(x_in));
+    AugPoint x = std::get<0>(linalg::splice<N - 1>(x_in));
 
-    AugmentedPoint shift;
+    AugPoint shift;
     if (r.has_value() && c.has_value()) {
       t *= r.value();
       shift = c.value();
@@ -75,18 +75,18 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
 
     switch (Type) {
       case NormConeType::L2OC:
-        return linalg::L2<T, AugSize>()(x - shift) < t;
+        return linalg::L2<AugPoint>()(x - shift) < t;
       case NormConeType::L2CC:
-        return zeros || linalg::L2<T, AugSize>()(x - shift) <= t;
+        return zeros || linalg::L2<AugPoint>()(x - shift) <= t;
       case NormConeType::L1OC:
-        return linalg::L1<T, AugSize>()(x - shift) < t;
+        return linalg::L1<AugPoint>()(x - shift) < t;
       case NormConeType::L1CC:
-        return zeros || linalg::L1<T, AugSize>()(x - shift) <= t;
+        return zeros || linalg::L1<AugPoint>()(x - shift) <= t;
       case NormConeType::LinfOC:
-        return linalg::Linf<T, AugSize>()(x - shift) < t;
+        return linalg::Linf<AugPoint>()(x - shift) < t;
       case NormConeType::LinfCC:
       default:
-        return zeros || linalg::Linf<T, AugSize>()(x - shift) <= t;
+        return zeros || linalg::Linf<AugPoint>()(x - shift) <= t;
     }
   }
 
@@ -148,8 +148,8 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
 
  private:
   /** @brief member variables in the norm cone */
-  std::optional<AugmentedPoint> c;  //< center point from norm ball -> cone
-  std::optional<T> r;               //< radius from norm ball -> cone
+  std::optional<AugPoint> c;  //< center point from norm ball -> cone
+  std::optional<T> r;         //< radius from norm ball -> cone
 };
 
 }  // namespace convex

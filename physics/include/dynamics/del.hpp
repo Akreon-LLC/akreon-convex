@@ -182,7 +182,7 @@ constexpr auto Solve(
     // Update Qkp1 column for next timestep
     for (size_t j = 0; j < DoF; ++j) Q[j][2] += Q_delta(j);
 
-    if (linalg::L2<ScalarT, DoF>()(Q_delta) < tol) break;
+    if (linalg::L2<linalg::Vector<ScalarT, DoF>>()(Q_delta) < tol) break;
   }
 
   for (size_t i = 0; i < DoF; ++i) {

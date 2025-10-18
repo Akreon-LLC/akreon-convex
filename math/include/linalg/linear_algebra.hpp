@@ -44,9 +44,7 @@ constexpr auto normalize(const Vec& X, const Norm& norm) {
  */
 template <VectorLike Vec>
 constexpr auto euclidean_distance(const Vec& X, const Vec& Y) {
-  using T = vec_type_t<Vec>;
-  constexpr size_t N = vec_size_v<Vec>;
-  return L2<T, N>()(X - Y);
+  return L2<Vec>()(X - Y);
 }
 
 /**
@@ -59,9 +57,7 @@ constexpr auto euclidean_distance(const Vec& X, const Vec& Y) {
  */
 template <VectorLike Vec>
 constexpr auto manhattan_distance(const Vec& X, const Vec& Y) {
-  using T = vec_type_t<Vec>;
-  constexpr size_t N = vec_size_v<Vec>;
-  return L1<T, N>()(X - Y);
+  return L1<Vec>()(X - Y);
 }
 
 /**
@@ -261,7 +257,7 @@ class QR {
     const size_t mn = std::min(Rows, Cols);
     size_t rank = 0;
     for (size_t i = 0; i < mn; ++i)
-      if (L2<T, 1>()(Vector<T, 1>{R(i)(i)}) > tol) rank += 1;
+      if (L2<Vector<T, 1>>()(Vector<T, 1>{R(i)(i)}) > tol) rank += 1;
     return rank;
   }
 
@@ -770,7 +766,7 @@ class EigenDecomposition {
     // seed eigenvector at position idx to kick of back substitution
     const Complex la = lambda[idx] - Complex(a);
     Complex z0, z1;
-    if (L2<T, 1>()(Vector<T, 1>{b}) >= L2<Complex, 1>()(la)) {
+    if (L2<Vector<T, 1>>()(Vector<T, 1>{b}) >= L2<Vector<Complex, 1>>()(la)) {
       // Use [b; lambda - a]
       z0 = Complex(b);
       z1 = la;
@@ -779,7 +775,8 @@ class EigenDecomposition {
       z0 = lambda[idx] - Complex(d);
       z1 = Complex(c);
     }
-    Real s = constexpr_sqrt(L2<Complex, 1>()(z0) + L2<Complex, 1>()(z1));
+    Real s = constexpr_sqrt(L2<Vector<Complex, 1>>()(z0) +
+                            L2<Vector<Complex, 1>>()(z1));
     if (s > Real(0)) {
       z0 /= s;
       z1 /= s;
@@ -818,7 +815,7 @@ class EigenDecomposition {
       v[j] = sum;
     }
 
-    return normalize(v, L2<Complex, N>());
+    return normalize(v, L2<Vector<Complex, N>>());
   }
 
   /** @brief eigendecomposition member variables */

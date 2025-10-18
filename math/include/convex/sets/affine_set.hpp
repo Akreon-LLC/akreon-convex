@@ -259,7 +259,7 @@ class ParametricAffineSet : public AffineSet<Mat, ParametricAffineSet<Mat>> {
     const auto r = x - this->x0;
     const auto t = linalg::QR(U).solve(r);
     const auto residual = U * t - r;
-    return linalg::L2<T, N>()(residual) < tol;
+    return linalg::L2<linalg::Vector<T, N>>()(residual) < tol;
   }
 
  private:

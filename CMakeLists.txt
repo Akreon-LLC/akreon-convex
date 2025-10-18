@@ -12,7 +12,7 @@ endif()
 
 # Embedded code optimizations
 add_compile_options(-ffunction-sections -fdata-sections -fvisibility=hidden -fno-rtti -flto -Os)
-# add -fno-exceptions to lib TU 
+# add -fno-exceptions to lib TU
 
 option(BUILD_TESTING "Enable building test code" ON)
 
@@ -79,4 +79,9 @@ if(BUILD_TESTING)
   add_test(NAME convex_set_test COMMAND convex_set_test)
   target_link_libraries(convex_set_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(convex_set_test PRIVATE ../math/include)
+
+  add_executable(convex_fn_test tests/unit/convex_fn_test.cpp)
+  add_test(NAME convex_fn_test COMMAND convex_fn_test)
+  target_link_libraries(convex_fn_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(convex_fn_test PRIVATE ../math/include)
 endif()

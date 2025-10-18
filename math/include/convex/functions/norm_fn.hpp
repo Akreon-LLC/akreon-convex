@@ -13,6 +13,7 @@ namespace convex {
  * @brief norm convex function wrapper
  */
 template <linalg::RnSpace Space, linalg::NormLike Norm>
+  requires(linalg::space_dim_v<Space> == linalg::norm_size_v<Norm>)
 class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
  public:
   /// @brief bring into scope the convex fn alias / helpers
@@ -20,15 +21,7 @@ class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
-  using typename ConvexBase::Space;
   using typename ConvexBase::T;
-
-  /**
-   * @brief CTOR that wraps a norm
-   *
-   * @param norm functor (L2, L1, Linf)
-   */
-  constexpr explicit NormFn(const Norm& norm_in) : norm(norm_in) {}
 
   /**
    * @brief eval impl
@@ -37,7 +30,9 @@ class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
    *
    * @return y (scalar \in R)
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const { return norm(x); }
+  constexpr std::optional<T> eval_impl(const Point& x) const {
+    return Norm()(x);
+  }
 
   /**
    * @brief epigraph impl
@@ -51,17 +46,13 @@ class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
    */
   constexpr auto epigraph_impl() const {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    if constexpr (std::same_as<Norm, linalg::L2<T, N>>) {
+    if constexpr (std::same_as<Norm, linalg::L2<Point>>) {
       return NormCone<LiftedSpace, NormConeType::L2CC, ViewTag::ConvexCone>();
-    } else if constexpr (std::same_as<Norm, linalg::L1<T, N>>) {
+    } else if constexpr (std::same_as<Norm, linalg::L1<Point>>) {
       return NormCone<LiftedSpace, NormConeType::L1CC, ViewTag::ConvexCone>();
     } else {
       return NormCone<LiftedSpace, NormConeType::LinfCC, ViewTag::ConvexCone>();
     }
   }
-
- private:
-  /** @brief member vars */
-  Norm norm;  //< L1, L2, Linf norm functor
 };
 }  // namespace convex
