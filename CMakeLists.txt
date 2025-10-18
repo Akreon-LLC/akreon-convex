@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.22)
 
 project(dmc VERSION 0.0.0 LANGUAGES CXX DESCRIPTION "Akreon SDK" HOMEPAGE_URL https://github.com/dakre21/akreon_sdk)
 
-set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -11,7 +11,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # Embedded code optimizations
-add_compile_options(-ffunction-sections -fdata-sections -fvisibility=hidden -fno-rtti -flto -Os)
+add_compile_options(-ffunction-sections -fdata-sections -fvisibility=hidden -fno-rtti -flto -Oz)
 # add -fno-exceptions to lib TU
 
 option(BUILD_TESTING "Enable building test code" ON)
@@ -37,6 +37,7 @@ if(BUILD_TESTING)
 
   enable_testing()
 
+  # Unit Tests
   add_executable(linalg_test tests/unit/linalg_test.cpp)
   add_test(NAME linalg_test COMMAND linalg_test)
   target_link_libraries(linalg_test PRIVATE Catch2::Catch2WithMain)
@@ -47,8 +48,6 @@ if(BUILD_TESTING)
   target_link_libraries(linear_systems_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(linear_systems_test PRIVATE ../math/include)
 
-  add_executable(linalg_fuzz_test tests/functional/linalg_fuzz_test.cpp)
-  target_include_directories(linalg_fuzz_test PRIVATE ../math/include)
 
   add_executable(one_dof_pendulum_test tests/unit/one_dof_pendulum_test.cpp)
   add_test(NAME one_dof_pendulum_test COMMAND one_dof_pendulum_test)
@@ -84,4 +83,11 @@ if(BUILD_TESTING)
   add_test(NAME convex_fn_test COMMAND convex_fn_test)
   target_link_libraries(convex_fn_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(convex_fn_test PRIVATE ../math/include)
+
+  # Functional Tests
+  add_executable(linalg_fuzz_test tests/functional/linalg_fuzz_test.cpp)
+  target_include_directories(linalg_fuzz_test PRIVATE ../math/include)
+
+  add_executable(convex_fuzz_test tests/functional/convex_fuzz_test.cpp)
+  target_include_directories(convex_fuzz_test PRIVATE ../math/include)
 endif()
