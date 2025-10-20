@@ -87,14 +87,13 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
   /**
    * @brief to cone
    *
-   * @param t cone slice
-   *
    * @return cone
    */
   constexpr auto cone_view_impl() const
     requires(Tag == ViewTag::ConvexSet)
   {
-    return ConeView(NonnegOrthant<Space, ViewTag::ConvexCone>());
+    using LiftedSpace = linalg::Matrix<double, 1, N + 1>;
+    return ConeView(NonnegOrthant<LiftedSpace, ViewTag::ConvexCone>());
   }
 };
 

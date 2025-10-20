@@ -47,11 +47,11 @@ class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
   constexpr auto epigraph_impl() const {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
     if constexpr (std::same_as<Norm, linalg::L2<Point>>) {
-      return NormCone<LiftedSpace, NormConeType::L2CC, ViewTag::ConvexCone>();
+      return NormCone<LiftedSpace, NormConeType::L2CC>().cone_view();
     } else if constexpr (std::same_as<Norm, linalg::L1<Point>>) {
-      return NormCone<LiftedSpace, NormConeType::L1CC, ViewTag::ConvexCone>();
+      return NormCone<LiftedSpace, NormConeType::L1CC>().cone_view();
     } else {
-      return NormCone<LiftedSpace, NormConeType::LinfCC, ViewTag::ConvexCone>();
+      return NormCone<LiftedSpace, NormConeType::LinfCC>().cone_view();
     }
   }
 };

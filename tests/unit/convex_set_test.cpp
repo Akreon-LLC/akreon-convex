@@ -446,17 +446,19 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
              .has_value());
     // (2) cone checks
     constexpr auto cone = set.cone_view();
-    STATIC_REQUIRE(cone.contains(Vectord<2>{1.0, 0.0}));
-    STATIC_REQUIRE(!cone.contains(Vectord<2>{-0.1, 0.1}));
+    STATIC_REQUIRE(cone.contains(Vectord<3>{1.0, 0.0, 1.0}));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{-0.1, 0.1, 1.0}));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(
-        cone.less_than(Vectord<2>{1.0, 0.0}, Vectord<2>{2.0, 1.0}).has_value());
+        cone.less_than(Vectord<3>{1.0, 0.0, 1.0}, Vectord<3>{2.0, 1.0, 1.0})
+            .has_value());
     STATIC_REQUIRE(
-        cone.less_than(Vectord<2>{1.0, 0.0}, Vectord<2>{2.0, 1.0}).value());
+        cone.less_than(Vectord<3>{1.0, 0.0, 1.0}, Vectord<3>{2.0, 1.0, 1.0})
+            .value());
     STATIC_REQUIRE(
-        cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).has_value());
+        cone.less_than(Vectord<3>{}, Vectord<3>{-1.0, 0.1, 1.0}).has_value());
     STATIC_REQUIRE(
-        !cone.less_than(Vectord<2>{}, Vectord<2>{-1.0, 0.1}).value());
+        !cone.less_than(Vectord<3>{}, Vectord<3>{-1.0, 0.1, 1.0}).value());
   }
 }
 

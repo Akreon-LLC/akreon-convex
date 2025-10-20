@@ -11,6 +11,7 @@
 #include "convex_ops.hpp"
 #include "dual_cone_view.hpp"
 #include "functions/affine_fn.hpp"
+#include "functions/indicator_fn.hpp"
 #include "functions/max_fn.hpp"
 #include "functions/norm_fn.hpp"
 #include "projective_map.hpp"

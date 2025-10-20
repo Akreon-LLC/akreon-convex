@@ -55,11 +55,11 @@ class AffineFn : public ConvexFn<Domain, AffineFn<Domain>> {
    * @return epigraph
    */
   constexpr auto epigraph_impl() const {
-    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
     const auto A = map.linear_part();
     const auto b = map.translation();
-    return Halfspace<LiftedSpace, HalfspaceType::CLH, ViewTag::ConvexCone>(
-        linalg::as_vector(A), b(0));
+    return Halfspace<Domain, HalfspaceType::CLH, ViewTag::ConvexSet>(
+               linalg::as_vector(A), b(0))
+        .cone_view();
   }
 
  private:
