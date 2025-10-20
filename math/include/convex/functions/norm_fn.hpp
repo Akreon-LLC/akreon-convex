@@ -39,10 +39,10 @@ class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
    *
    * F(x) = ||x||
    * graph(F(x)) = { (x, ||x||) | x \in dom f }
-   * epi(F(x)) = epi(||x||) = { (x, t) | ||x|| <= t, x \in dom f } \equiv norm
-   * cone
+   * epi(F(x)) = epi(||x||) = { (x, t) | ||x|| <= t, x \in dom f, t >= 0 }
+   * \equiv norm cone
    *
-   * @return epigraph
+   * @return epigraph = norm cone
    */
   constexpr auto epigraph_impl() const {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;

@@ -85,3 +85,31 @@ TEST_CASE("Test affine fn", "[convex_fn]") {
     STATIC_REQUIRE(!epi_f.contains(Vectord<4>{1.0, 1.0, 0.0, 1.0}));
   }
 }
+
+TEST_CASE("Test max fn") {
+  SECTION("Test max fn (trivial)") {
+    using Space = Matrixd<1, 2>;
+    constexpr auto x = Vectord<2>{};
+    constexpr auto max_fn = MaxFn<Space>();
+    STATIC_REQUIRE(max_fn.eval(x).has_value());
+    STATIC_REQUIRE(max_fn.eval(x).value() == 0.0);
+    constexpr auto epi_f = max_fn.epigraph();
+    STATIC_REQUIRE(epi_f.is_well_formed());
+    STATIC_REQUIRE(epi_f.contains(Vectord<3>{}));
+  }
+
+  SECTION("Test max fn") {
+    using Space = Matrixd<1, 5>;
+    constexpr auto x = Vectord<5>{-1.0, 4.5, 2.0, 3.0, 5.0};
+    constexpr auto max_fn = MaxFn<Space>();
+    STATIC_REQUIRE(max_fn.eval(x).has_value());
+    STATIC_REQUIRE(max_fn.eval(x).value() == 5.0);
+    constexpr auto epi_f = max_fn.epigraph();
+    STATIC_REQUIRE(epi_f.is_well_formed());
+    STATIC_REQUIRE(epi_f.contains(Vectord<6>{}));
+    STATIC_REQUIRE(
+        epi_f.contains(Vectord<6>{x(0), x(1), x(2), x(3), x(4), 5.0}));
+    STATIC_REQUIRE(
+        !epi_f.contains(Vectord<6>{x(0), x(1), x(2), x(3), x(4), 1.0}));
+  }
+}
