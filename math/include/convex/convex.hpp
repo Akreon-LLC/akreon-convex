@@ -14,6 +14,7 @@
 #include "functions/indicator_fn.hpp"
 #include "functions/max_fn.hpp"
 #include "functions/norm_fn.hpp"
+#include "functions/quad_over_linear_fn.hpp"
 #include "projective_map.hpp"
 #include "sets/convex_set.hpp"
 #include "sets/ellipsoid.hpp"
@@ -25,4 +26,5 @@
 #include "sets/norm_cone.hpp"
 #include "sets/polyhedron.hpp"
 #include "sets/psd_cone.hpp"
+#include "sets/rsoc.hpp"
 #include "sets/simplex.hpp"

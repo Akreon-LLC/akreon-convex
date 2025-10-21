@@ -888,3 +888,44 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
             .value());
   }
 }
+
+TEST_CASE("Test Rotated SOC", "[convex_sets]") {
+  SECTION("Quick RSOC check") {
+    STATIC_REQUIRE(
+        ConvexSetLike<RotatedSOC<Matrix<double, 1, 3>, NormConeType::L2CC,
+                                 ViewTag::ConvexSet>>);
+  }
+
+  SECTION("Test RSOC Open Set") {
+    using Space = linalg::Matrix<double, 1, 3>;
+    constexpr auto rsoc = RotatedSOC<Space, NormConeType::L2OC>();
+    STATIC_REQUIRE(rsoc.is_well_formed());
+    STATIC_REQUIRE(rsoc.contains(Vectord<3>{0.0, 1.0, 2.0}));
+    STATIC_REQUIRE(!rsoc.contains(Vectord<3>{2.0, 2.0, 2.0}));
+    STATIC_REQUIRE(!rsoc.contains(Vectord<3>{0.0, 1.0, 0.0}));
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto rsoc_t =
+        rsoc.transform(AffineMap<Matrix<double, 3, 3>>(I, Vectord<3>{}));
+    STATIC_REQUIRE(rsoc_t == rsoc);
+    constexpr auto cone = rsoc.cone_view();
+    STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{0.0, 1.0, 0.0}));
+  }
+
+  SECTION("Test RSOC Closed Set") {
+    using Space = linalg::Matrix<double, 1, 3>;
+    constexpr auto rsoc = RotatedSOC<Space, NormConeType::L2CC>();
+    STATIC_REQUIRE(rsoc.is_well_formed());
+    STATIC_REQUIRE(rsoc.contains(Vectord<3>{}));
+    STATIC_REQUIRE(rsoc.contains(Vectord<3>{0.0, 1.0, 2.0}));
+    STATIC_REQUIRE(rsoc.contains(Vectord<3>{2.0, 2.0, 2.0}));
+    STATIC_REQUIRE(rsoc.contains(Vectord<3>{0.0, 1.0, 0.0}));
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto rsoc_t =
+        rsoc.transform(AffineMap<Matrix<double, 3, 3>>(I, Vectord<3>{}));
+    STATIC_REQUIRE(rsoc_t == rsoc);
+    constexpr auto cone = rsoc.cone_view();
+    STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
+    STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 0.0}));
+  }
+}

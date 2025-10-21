@@ -5,22 +5,22 @@
 
 #pragma once
 
+#include "../sets/rsoc.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {
 /**
  * @brief quadratic over linear function
  *
- * (dakre) TODO Fix / Finish
- *
- * F(x) = x^2 / y, where y > 0 so (x, y) \in R x R_++
+ * F(x) = x^2 / y, where y > 0 so (x, y) \in R x R_++ or more generally
+ * F(x) = x^T x / y, where y > 0 and x \in R^n so R^n x R_++
  */
 template <linalg::RnSpace Space>
-  requires(linalg::space_dim_v<Space> == 2)
+  requires(linalg::space_dim_v<Space> >= 2)
 class QuadOverLinearFn : public ConvexFn<Space, QuadOverLinearFn<Space>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Space, MaxFn<Space>>;
+  using ConvexBase = ConvexFn<Space, QuadOverLinearFn<Space>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -33,25 +33,29 @@ class QuadOverLinearFn : public ConvexFn<Space, QuadOverLinearFn<Space>> {
    *
    * @return y \in R
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const {
-    if (x(1) <= T(0)) return std::nullopt;
-    return (x(0) * x(0)) / x(1);
+  constexpr std::optional<T> eval_impl(const Point& x_in) const {
+    const auto y = x_in(N - 1);
+    const auto x = std::get<0>(linalg::splice<N - 1>(x_in));
+    if (y <= T(0)) return std::nullopt;
+    return linalg::dot(x, x) / y;
   }
 
   /**
    * @brief epigraph impl
    *
-   * F(x) = x^2 / y, y > 0
-   * graph(F(x)) = { (x, y, x^2 / y) | (x, y) \in dom f }
-   * epi(F(x)) = { (x, y, t) \in R x R_++ x R_+ | x^2 / y <= t, (x, y) \in dom
-   * f, t
-   * >= 0 } \equiv { (x, y, t) | t y >= x^2, t >= 0, (x, y) \in dom f }
+   * F(x) = ||x||_2^2 / y
+   * graph(F(x)) = { (x, y, ||x||_2^2 / y) | x \in R^n, y \in R_++, t \in R_+ }
+   * epi(F(x)) = { (x, y, t) | ||x||_2^2 / y, (x, y) \in dom f, t >= 0 }...
+   * ||x||_2^2 <= t y
+   *
+   * rotated SOC = { (x, y, z) | ||x||_2^2 <= y z, y >= 0, z >= 0 }
+   * epi(F(x)) as RSOC = { (x, y, z) | ||x||_2^2 <= y t, y > 0, t >= 0 }
    *
    * @return L1 cone
    */
   constexpr auto epigraph_impl() const {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return false;
+    return RotatedSOC<LiftedSpace, NormConeType::L2CC>().cone_view();
   }
 };
 }  // namespace convex

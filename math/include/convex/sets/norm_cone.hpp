@@ -42,7 +42,9 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
   constexpr explicit NormCone() {}
 
   /**
-   * @brief CTOR for norm cone (via norm ball conic view)
+   * @brief CTOR for norm cone 
+   *
+   * Transformed from norm ball or rotated SOC
    *
    * @param center point from norm ball
    * @param r (radius from norm ball)

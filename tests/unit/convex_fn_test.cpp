@@ -242,3 +242,17 @@ TEST_CASE("Test indicator fn") {
     STATIC_REQUIRE(epi_f.contains(Vectord<4>{0.1, 0.2, 0.7, 1.0}));
   }
 }
+
+TEST_CASE("Test quad over linear", "[convex_fn]") {
+  SECTION("Test quad/linear") {
+    using Space = Matrixd<1, 4>;
+    constexpr auto qol = QuadOverLinearFn<Space>();
+    STATIC_REQUIRE(!qol.eval(Vectord<4>{}).has_value());
+    STATIC_REQUIRE(qol.eval(Vectord<4>{1.0, 2.0, 3.0, 2.0}).has_value());
+    STATIC_REQUIRE(qol.eval(Vectord<4>{1.0, 2.0, 3.0, 2.0}).value() == 7.0);
+    STATIC_REQUIRE(!qol.eval(Vectord<4>{1.0, 2.0, 0.0, 0.0}).has_value());
+    constexpr auto epi_f = qol.epigraph();
+    STATIC_REQUIRE(epi_f.contains(Vectord<5>{}));
+    STATIC_REQUIRE(epi_f.contains(Vectord<5>{1.0, 2.0, 1.0, 2.0, 3.0}));
+  }
+}

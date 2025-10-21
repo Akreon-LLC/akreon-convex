@@ -50,8 +50,7 @@ class MaxFn : public ConvexFn<Space, MaxFn<Space>> {
    */
   constexpr auto epigraph_impl() const {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return NormCone<LiftedSpace, NormConeType::LinfCC, ViewTag::ConvexSet>()
-        .cone_view();
+    return NormCone<LiftedSpace, NormConeType::LinfCC>().cone_view();
   }
 };
 
