@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../cone_view.hpp"
-#include "../convex_traits.hpp"
+#include "../convex_fn_traits.hpp"
 
 namespace convex {
 /**

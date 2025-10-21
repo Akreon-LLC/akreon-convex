@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "functions/convex_fn.hpp"
 #include "sets/convex_set.hpp"
 #include "sets/hyperplane.hpp"
 
