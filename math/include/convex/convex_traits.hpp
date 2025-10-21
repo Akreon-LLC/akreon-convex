@@ -120,6 +120,12 @@ template <linalg::RnSpace Space, NormConeType Type, ViewTag Tag>
            (Type == NormConeType::L2OC || Type == NormConeType::L2CC))
 class RotatedSOC;
 
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(linalg::space_dim_v<Space> ==
+               linalg::vec_size_v<linalg::space_point_t<Space>> &&
+           linalg::space_dim_v<Space> == 3)
+class ExpCone;
+
 /// @brief set traits
 template <class Set>
 struct set_traits;
@@ -262,6 +268,16 @@ struct set_traits<LMI<Space, Type, Tag>> {
 /// @brief derived set type traits - RSOC
 template <linalg::RnSpace Space, NormConeType Type, ViewTag Tag>
 struct set_traits<RotatedSOC<Space, Type, Tag>> {
+  using RnSpace = Space;
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t DIM = linalg::space_dim_v<Space>;
+  static constexpr ViewTag VIEW_TAG = Tag;
+};
+
+/// @brief derived set type traits - Exp cone
+template <linalg::RnSpace Space, ViewTag Tag>
+struct set_traits<ExpCone<Space, Tag>> {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;

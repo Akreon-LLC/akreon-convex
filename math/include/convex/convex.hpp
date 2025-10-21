@@ -18,6 +18,7 @@
 #include "projective_map.hpp"
 #include "sets/convex_set.hpp"
 #include "sets/ellipsoid.hpp"
+#include "sets/exp_cone.hpp"
 #include "sets/halfspace.hpp"
 #include "sets/hyperplane.hpp"
 #include "sets/lmi.hpp"

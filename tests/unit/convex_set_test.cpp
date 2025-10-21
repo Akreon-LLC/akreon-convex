@@ -910,6 +910,7 @@ TEST_CASE("Test Rotated SOC", "[convex_sets]") {
     constexpr auto cone = rsoc.cone_view();
     STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
     STATIC_REQUIRE(!cone.contains(Vectord<3>{0.0, 1.0, 0.0}));
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
   }
 
   SECTION("Test RSOC Closed Set") {
@@ -927,5 +928,37 @@ TEST_CASE("Test Rotated SOC", "[convex_sets]") {
     constexpr auto cone = rsoc.cone_view();
     STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
     STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 0.0}));
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
+    STATIC_REQUIRE(
+        cone.less_than(Vectord<3>{}, Vectord<3>{1.0, 1.0, 1.0}).has_value());
+    STATIC_REQUIRE(
+        cone.less_than(Vectord<3>{}, Vectord<3>{1.0, 1.0, 1.0}).value());
+    STATIC_REQUIRE(!cone.less_than_strict(Vectord<3>{}, Vectord<3>{}).value());
+  }
+}
+
+TEST_CASE("Test Exp Cone", "[convex_sets]") {
+  SECTION("Quick exp cone") {
+    STATIC_REQUIRE(ConvexSetLike<ExpCone<Matrixd<1, 3>, ViewTag::ConvexSet>>);
+  }
+
+  SECTION("Test exp cone") {
+    using Space = linalg::Matrixd<1, 3>;
+    constexpr auto exp_cone = ExpCone<Space>();
+    STATIC_REQUIRE(exp_cone.is_well_formed());
+    STATIC_REQUIRE(exp_cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
+    STATIC_REQUIRE(exp_cone.contains(Vectord<3>{-1.0, 1.0, 2.0}));
+    STATIC_REQUIRE(!exp_cone.contains(Vectord<3>{0.1, 1.0, 2.0}));
+    STATIC_REQUIRE(!exp_cone.contains(Vectord<3>{0.1, 1.0, -2.0}));
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto exp_cone_t =
+        exp_cone.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{}));
+    STATIC_REQUIRE(exp_cone_t == exp_cone);
+    constexpr auto cone = exp_cone.cone_view();
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
+    STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
+    STATIC_REQUIRE(cone.contains(Vectord<3>{-1.0, 1.0, 2.0}));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{0.1, 1.0, 2.0}));
+    STATIC_REQUIRE(!cone.contains(Vectord<3>{0.1, 1.0, -2.0}));
   }
 }

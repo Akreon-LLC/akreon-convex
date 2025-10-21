@@ -67,53 +67,61 @@ struct cone_traits;
 enum struct ConeCheck { False = 0, True, Unknown };
 
 /// @brief derived cone type traits - lifted hyperplane
-template <linalg::VectorSpace Space>
+template <linalg::RnSpace Space>
 struct cone_traits<Hyperplane<Space, ViewTag::ConvexCone>> {
   using ConeT = Hyperplane<Space, ViewTag::ConvexCone>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
+
   static constexpr ConeCheck is_solid(const ConeT& cone) {
     return cone.is_well_formed() && linalg::space_dim_v<Space> > 0
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   static constexpr ConeCheck is_pointed(const ConeT& /*cone*/) {
     return ConeCheck::False;
   }
 };
 
 /// @brief derived cone type traits - lifted halfspace
-template <linalg::VectorSpace Space, HalfspaceType Type>
+template <linalg::RnSpace Space, HalfspaceType Type>
 struct cone_traits<Halfspace<Space, Type, ViewTag::ConvexCone>> {
   using ConeT = Halfspace<Space, Type, ViewTag::ConvexCone>;
+
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return Type == HalfspaceType::CLH || Type == HalfspaceType::CUH
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   static constexpr ConeCheck is_solid(const ConeT& cone) {
     return cone.is_well_formed() && linalg::space_dim_v<Space> > 0
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   static constexpr ConeCheck is_pointed(const ConeT& /*cone*/) {
     return ConeCheck::False;
   }
 };
 
 /// @brief derived cone type traits - lifted ellipsoid
-template <linalg::VectorSpace Space, EllipsoidType Type>
+template <linalg::RnSpace Space, EllipsoidType Type>
 struct cone_traits<Ellipsoid<Space, Type, ViewTag::ConvexCone>> {
   using ConeT = Ellipsoid<Space, Type, ViewTag::ConvexCone>;
+
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return Type == EllipsoidType::CE ? ConeCheck::True : ConeCheck::False;
   }
+
   static constexpr ConeCheck is_solid(const ConeT& cone) {
     return cone.is_well_formed() && linalg::space_dim_v<Space> > 0
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   /**
    * @brief pointed test (x,t) \in K & (-x, -t) \in -K
    *
@@ -133,7 +141,7 @@ struct cone_traits<Ellipsoid<Space, Type, ViewTag::ConvexCone>> {
 };
 
 /// @brief derived cone type traits - norm cone
-template <linalg::VectorSpace Space, NormConeType Type>
+template <linalg::RnSpace Space, NormConeType Type>
 struct cone_traits<NormCone<Space, Type, ViewTag::ConvexCone>> {
   using ConeT = NormCone<Space, Type, ViewTag::ConvexCone>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
@@ -142,11 +150,13 @@ struct cone_traits<NormCone<Space, Type, ViewTag::ConvexCone>> {
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   static constexpr ConeCheck is_solid(const ConeT& cone) {
     return cone.is_well_formed() && linalg::space_dim_v<Space> > 0
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   /**
    * @brief pointed test (x,t) \in K & (-x, -t) \in -K
    *
@@ -165,17 +175,19 @@ struct cone_traits<NormCone<Space, Type, ViewTag::ConvexCone>> {
 };
 
 /// @brief derived cone type traits for lifted simplex
-template <linalg::VectorSpace Space>
+template <linalg::RnSpace Space>
 struct cone_traits<Simplex<Space, ViewTag::ConvexCone>> {
   using ConeT = Simplex<Space, ViewTag::ConvexCone>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
+
   static constexpr ConeCheck is_solid(const ConeT& cone) {
     return cone.is_well_formed() && linalg::space_dim_v<Space> > 0
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   /**
    * @brief pointed test (x,t) \in K & (-x, -t) \in -K
    *
@@ -190,43 +202,47 @@ struct cone_traits<Simplex<Space, ViewTag::ConvexCone>> {
 };
 
 /// @brief derived cone type traits for nonneg orthant
-template <linalg::VectorSpace Space>
+template <linalg::RnSpace Space>
 struct cone_traits<NonnegOrthant<Space, ViewTag::ConvexCone>> {
   using ConeT = NonnegOrthant<Space, ViewTag::ConvexCone>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
+
   static constexpr ConeCheck is_solid(const ConeT& cone) {
     return cone.is_well_formed() && linalg::space_dim_v<Space> > 0
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   static constexpr ConeCheck is_pointed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
 };
 
 /// @brief psd cone type traits
-template <linalg::VectorSpace Space>
+template <linalg::RnSpace Space>
 struct cone_traits<PsdCone<Space, ViewTag::ConvexCone>> {
   using ConeT = PsdCone<Space, ViewTag::ConvexCone>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
+
   static constexpr ConeCheck is_solid(const ConeT& cone) {
     return cone.is_well_formed() && linalg::mat_rows_v<Space> > 1 &&
                    linalg::mat_cols_v<Space> > 1
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   static constexpr ConeCheck is_pointed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
 };
 
 /// @brief polyhedron cone type traits
-template <linalg::VectorSpace Space, HalfspaceType Type,
-          linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+template <linalg::RnSpace Space, HalfspaceType Type, linalg::MatrixLike MatA,
+          linalg::MatrixLike MatC>
 struct cone_traits<Polyhedron<Space, Type, MatA, MatC, ViewTag::ConvexCone>> {
   using ConeT = Polyhedron<Space, Type, MatA, MatC, ViewTag::ConvexCone>;
   using T = linalg::space_type_t<Space>;
@@ -237,12 +253,14 @@ struct cone_traits<Polyhedron<Space, Type, MatA, MatC, ViewTag::ConvexCone>> {
                ? ConeCheck::True
                : ConeCheck::False;
   }
+
   static constexpr ConeCheck is_solid(const ConeT& cone) {
     // (dakre) this is a soft check (full solid check includes slater test for
     // feasibility (LP))
     return cone.is_well_formed() && N > 0 ? ConeCheck::Unknown
                                           : ConeCheck::False;
   }
+
   /**
    * @brief pointed test
    *
@@ -273,7 +291,7 @@ struct cone_traits<Polyhedron<Space, Type, MatA, MatC, ViewTag::ConvexCone>> {
 };
 
 /// @brief LMI cone type traits
-template <linalg::VectorSpace Space, LMIType Type>
+template <linalg::RnSpace Space, LMIType Type>
 struct cone_traits<LMI<Space, Type, ViewTag::ConvexCone>> {
   using ConeT = LMI<Space, Type, ViewTag::ConvexCone>;
   using T = linalg::space_type_t<Space>;
@@ -282,6 +300,7 @@ struct cone_traits<LMI<Space, Type, ViewTag::ConvexCone>> {
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return Type == LMIType::NonStrict ? ConeCheck::True : ConeCheck::False;
   }
+
   static constexpr ConeCheck is_solid(const ConeT& cone) {
     // (dakre) this is a soft check (full solid check includes slater test for
     // feasibility (LP))
@@ -289,6 +308,7 @@ struct cone_traits<LMI<Space, Type, ViewTag::ConvexCone>> {
                ? ConeCheck::Unknown
                : ConeCheck::False;
   }
+
   /**
    * @brief pointed test
    *
@@ -312,6 +332,53 @@ struct cone_traits<LMI<Space, Type, ViewTag::ConvexCone>> {
         });
     const auto rank = linalg::QR(A_stack).get_rank();
     return rank == N ? ConeCheck::True : ConeCheck::False;
+  }
+};
+
+/// @brief Rotated SOC
+template <linalg::RnSpace Space, NormConeType Type>
+struct cone_traits<RotatedSOC<Space, Type, ViewTag::ConvexCone>> {
+  using ConeT = RotatedSOC<Space, Type, ViewTag::ConvexCone>;
+
+  static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
+    return Type == NormConeType::L2CC ? ConeCheck::True : ConeCheck::False;
+  }
+
+  static constexpr ConeCheck is_solid(const ConeT& cone) {
+    return cone.is_well_formed() && linalg::space_dim_v<Space> > 0
+               ? ConeCheck::True
+               : ConeCheck::False;
+  }
+
+  static constexpr ConeCheck is_pointed(const ConeT& /*cone*/) {
+    return ConeCheck::True;
+  }
+};
+
+/// @brief exponential cone
+template <linalg::RnSpace Space>
+struct cone_traits<ExpCone<Space, ViewTag::ConvexCone>> {
+  using ConeT = ExpCone<Space, ViewTag::ConvexCone>;
+  using T = linalg::space_type_t<Space>;
+
+  static constexpr ConeCheck is_closed(const ConeT& /* cone */) {
+    return ConeCheck::True;
+  }
+
+  static constexpr ConeCheck is_solid(const ConeT& cone) {
+    return cone.is_well_formed() ? ConeCheck::True : ConeCheck::False;
+  }
+
+  /**
+   * @brief pointed test
+   *
+   * (i) { (x, y, z) | y e^{x/y} >= z, x <= 0, z >= 0, y > 0 } \cup { (x, 0, z)
+   * | x <= 0, z >= 0 } (ii) -K = { 0 }
+   *
+   * so K \cap -K = { 0 }
+   */
+  static constexpr ConeCheck is_pointed(const ConeT& /* cone */) {
+    return ConeCheck::True;
   }
 };
 

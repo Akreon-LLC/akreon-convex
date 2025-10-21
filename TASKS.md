@@ -32,6 +32,7 @@ TODO to scope:
 - [x] affine maps
 - [x] affine transforms [R | t]
 #### Convex Sets
+- [x] convex set base
 - [x] ellipsoid
 - [x] halfspace
 - [x] norm ball
@@ -41,11 +42,25 @@ TODO to scope:
 - [x] polyhedron
 - [x] nonnegative orthant
 - [x] LMI
+- [x] rotated soc cone
+- [x] exp cone
 - [x] conic view (via inv perspective func)
-- [] separating hyperplane 
+- [x] affine transform
+- [x] equality operators
+- [x] linear fractional
+- [] separating hyperplane
 - [] supporting hyperplane
 #### Convex Functions
-TODO
+- [x] convex fun base
+- [x] affine func
+- [x] max func
+- [x] norm func
+- [x] quad / linear func
+- [] log sum exp
+- [] exp
+- [] log det
+- [] geometric mean
+- [x] epigraph
 
 #### Convex Problems
 TODO
