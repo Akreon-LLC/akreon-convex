@@ -15,12 +15,12 @@ namespace convex {
  * F(x) = x^2 / y, where y > 0 so (x, y) \in R x R_++ or more generally
  * F(x) = x^T x / y, where y > 0 and x \in R^n so R^n x R_++
  */
-template <linalg::RnSpace Space>
+template <linalg::RnSpace Space, FnTag Tag = FnTag::Convex>
   requires(linalg::space_dim_v<Space> >= 2)
-class QuadOverLinearFn : public ConvexFn<Space, QuadOverLinearFn<Space>> {
+class QuadOverLinearFn : public ConvexFn<Space, QuadOverLinearFn<Space, Tag>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Space, QuadOverLinearFn<Space>>;
+  using ConvexBase = ConvexFn<Space, QuadOverLinearFn<Space, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -53,7 +53,9 @@ class QuadOverLinearFn : public ConvexFn<Space, QuadOverLinearFn<Space>> {
    *
    * @return L1 cone
    */
-  constexpr auto epigraph_impl() const {
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
     return RotatedSOC<LiftedSpace, NormConeType::L2CC>().cone_view();
   }

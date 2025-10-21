@@ -14,11 +14,11 @@ namespace convex {
  *
  * I(x) = { 0 | x \in c } else \infinity
  */
-template <ConvexSetLike Set>
-class IndicatorFn : public ConvexFn<Set, IndicatorFn<Set>> {
+template <ConvexSetLike Set, FnTag Tag = FnTag::Convex>
+class IndicatorFn : public ConvexFn<Set, IndicatorFn<Set, Tag>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Set, IndicatorFn<Set>>;
+  using ConvexBase = ConvexFn<Set, IndicatorFn<Set, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -52,7 +52,11 @@ class IndicatorFn : public ConvexFn<Set, IndicatorFn<Set>> {
    *
    * @return cone of C
    */
-  constexpr auto epigraph_impl() const { return set.cone_view(); }
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
+    return set.cone_view();
+  }
 
  private:
   /** @brief member vars */

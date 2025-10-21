@@ -12,12 +12,13 @@ namespace convex {
 /**
  * @brief norm convex function wrapper
  */
-template <linalg::RnSpace Space, linalg::NormLike Norm>
+template <linalg::RnSpace Space, linalg::NormLike Norm,
+          FnTag Tag = FnTag::Convex>
   requires(linalg::space_dim_v<Space> == linalg::norm_size_v<Norm>)
-class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
+class NormFn : public ConvexFn<Space, NormFn<Space, Norm, Tag>> {
  public:
   /// @brief bring into scope the convex fn alias / helpers
-  using ConvexBase = ConvexFn<Space, NormFn<Space, Norm>>;
+  using ConvexBase = ConvexFn<Space, NormFn<Space, Norm, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -44,7 +45,9 @@ class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
    *
    * @return epigraph = norm cone
    */
-  constexpr auto epigraph_impl() const {
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
     if constexpr (std::same_as<Norm, linalg::L2<Point>>) {
       return NormCone<LiftedSpace, NormConeType::L2CC>().cone_view();

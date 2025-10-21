@@ -12,11 +12,11 @@ namespace convex {
 /**
  * @brief affine function (map wrapped in convex fn context)
  */
-template <linalg::RnSpace Domain>
-class AffineFn : public ConvexFn<Domain, AffineFn<Domain>> {
+template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
+class AffineFn : public ConvexFn<Domain, AffineFn<Domain, Tag>> {
  public:
   /// @brief bring into scope the convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, AffineFn<Domain>>;
+  using ConvexBase = ConvexFn<Domain, AffineFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -54,7 +54,9 @@ class AffineFn : public ConvexFn<Domain, AffineFn<Domain>> {
    *
    * @return epigraph
    */
-  constexpr auto epigraph_impl() const {
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
     const auto A = map.linear_part();
     const auto b = map.translation();
     return Halfspace<Domain, HalfspaceType::CLH, ViewTag::ConvexSet>(
