@@ -43,6 +43,13 @@ TEST_CASE("Test constexpr math", "[math]") {
   STATIC_REQUIRE(a.real() == constexpr_cos(M_PI / 6));
   STATIC_REQUIRE(a.imag() == constexpr_sin(M_PI / 6));
 
+  STATIC_REQUIRE(!constexpr_atanh(2.0).has_value());
+  STATIC_REQUIRE(!constexpr_atanh(-1.0).has_value());
+  STATIC_REQUIRE(!constexpr_atanh(1.0).has_value());
+  STATIC_REQUIRE(constexpr_atanh(0.0).value() == 0.0);
+  STATIC_REQUIRE(constexpr_abs(constexpr_atanh(0.5).value() -
+                               0.549306144224055) < 2 * eps);
+
   constexpr auto b = std::complex<double>(1.0, -2.0);
   constexpr auto expected = 2.3607;
   STATIC_REQUIRE(L2<Vector<std::complex<double>, 1>>()(b) - expected < eps);
@@ -50,6 +57,12 @@ TEST_CASE("Test constexpr math", "[math]") {
   constexpr auto V = Vectord<5>{1.0, 2.0, 3.0, 4.0, 5.0};
   constexpr auto P = argsort_desc(V);
   STATIC_REQUIRE(P == std::array<size_t, 5>{4, 3, 2, 1, 0});
+
+  STATIC_REQUIRE(!constexpr_ln(-1.0).has_value());
+  STATIC_REQUIRE(constexpr_ln(1.0).has_value());
+  STATIC_REQUIRE(constexpr_ln(1.0).value() == 0.0);
+  STATIC_REQUIRE(constexpr_abs(constexpr_ln(constexpr_exp(1.0)).value() - 1.0) <
+                 eps);
 }
 
 TEST_CASE("Test vector space types", "[vector_space]") {

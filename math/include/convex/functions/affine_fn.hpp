@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../affine_map.hpp"
+#include "concave_fn.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {
@@ -13,10 +14,16 @@ namespace convex {
  * @brief affine function (map wrapped in convex fn context)
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-class AffineFn : public ConvexFn<Domain, AffineFn<Domain, Tag>> {
+class AffineFn
+    : public std::conditional_t<Tag == FnTag::Convex,
+                                ConvexFn<Domain, AffineFn<Domain, Tag>>,
+                                ConcaveFn<Domain, AffineFn<Domain, Tag>>> {
  public:
   /// @brief bring into scope the convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, AffineFn<Domain, Tag>>;
+  using ConvexBase =
+      std::conditional_t<Tag == FnTag::Convex,
+                         ConvexFn<Domain, AffineFn<Domain, Tag>>,
+                         ConcaveFn<Domain, AffineFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -54,9 +61,7 @@ class AffineFn : public ConvexFn<Domain, AffineFn<Domain, Tag>> {
    *
    * @return epigraph
    */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
+  constexpr auto epigraph_impl() const {
     const auto A = map.linear_part();
     const auto b = map.translation();
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
@@ -72,9 +77,7 @@ class AffineFn : public ConvexFn<Domain, AffineFn<Domain, Tag>> {
    *
    * @return hypograph
    */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
+  constexpr auto hypograph_impl() const {
     const auto A = map.linear_part();
     const auto b = map.translation();
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;

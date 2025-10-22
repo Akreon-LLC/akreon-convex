@@ -5,6 +5,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "algebra_traits.hpp"
 
 /// @brief macro for capping compile step eval (default max is ~512)
@@ -20,7 +22,7 @@ namespace linalg {
  *
  * @return T/F
  */
-template <typename T>
+template <FieldLike T>
 constexpr bool is_real(const std::complex<T>& z, scalar_type_t<T> tol = 1e-10) {
   return z.imag() <= tol;
 }
@@ -32,7 +34,7 @@ constexpr bool is_real(const std::complex<T>& z, scalar_type_t<T> tol = 1e-10) {
  *
  * @return |x|
  */
-template <typename T>
+template <FieldLike T>
   requires(!is_complex_v<T>)
 constexpr T constexpr_abs(const T& x) {
   return x < 0 ? -1 * x : x;
@@ -47,8 +49,8 @@ constexpr T constexpr_abs(const T& x) {
  *
  * @return sqrt(x)
  */
-template <typename T>
-  requires(FieldLike<T> && !is_complex_v<T>)
+template <FieldLike T>
+  requires(!is_complex_v<T>)
 constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0,
                            T tol = 1e-10) {
   if (x == T(0)) return T(1e-30);
@@ -65,7 +67,7 @@ constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0,
  *
  * @return |x|
  */
-template <typename T>
+template <FieldLike T>
   requires(is_complex_v<T>)
 constexpr scalar_type_t<T> constexpr_absc(const T& x) {
   return constexpr_sqrt(x.real() * x.real() + x.imag() * x.imag());
@@ -80,8 +82,8 @@ constexpr scalar_type_t<T> constexpr_absc(const T& x) {
  *
  * @return cosine approx of x
  */
-template <typename T>
-  requires(FieldLike<T> && !is_complex_v<T>)
+template <FieldLike T>
+  requires(!is_complex_v<T>)
 constexpr auto constexpr_sin(const T& x, int terms = 16) {
   T sum = x, term = x;
   for (int k = 1; k < terms; ++k) {
@@ -100,13 +102,36 @@ constexpr auto constexpr_sin(const T& x, int terms = 16) {
  *
  * @return cosine approx of x
  */
-template <typename T>
-  requires(FieldLike<T> && !is_complex_v<T>)
+template <FieldLike T>
+  requires(!is_complex_v<T>)
 constexpr auto constexpr_cos(const T& x, int terms = 16) {
   T sum = T(1), term = T(1);
   for (int k = 1; k < terms; ++k) {
     term *= (-(x * x)) / (T(2 * k - 1) * T(2 * k));
     sum += term;
+  }
+  return sum;
+}
+
+/**
+ * @brief atanh (inverse hyperbolic tangent function)
+ *
+ * atanh(x) = x + x^3 / 3 + x^5 / 5 + ... = \sum_{n=0}^{\infty}
+ * \frac{x^{2n+1}}{2n+1}
+ *
+ * @param x \in (-1, 1)
+ *
+ * @return y \in R
+ */
+template <FieldLike T>
+  requires(!is_complex_v<T>)
+constexpr std::optional<T> constexpr_atanh(const T& x, int terms = 16) {
+  if (constexpr_abs(x) >= T(1)) return std::nullopt;
+  const T x2 = x * x;
+  T term(x), sum(x);
+  for (int k = 1; k < terms; ++k) {
+    term *= x2;
+    sum += (term / T(2 * k + 1));
   }
   return sum;
 }
@@ -118,25 +143,27 @@ constexpr auto constexpr_cos(const T& x, int terms = 16) {
  *
  * @return complex number
  */
-template <typename T>
-  requires(FieldLike<T> && !is_complex_v<T>)
+template <FieldLike T>
+  requires(!is_complex_v<T>)
 constexpr auto constexpr_expi(const T& theta, int terms = 16) {
   return std::complex<T>(constexpr_cos(theta, terms),
                          constexpr_sin(theta, terms));
 }
 
 /**
- * @brief exp on real value
+ * @brief exp (sum of a power series)
+ *
+ * exp(x) = 1 + x + x^2/2! + x^3/3!... = \sum_{n=0}^\infty
+ * \frac{x^n}{n!}
  *
  * @param x \in R
  *
  * @return real number
  */
-template <typename T>
-  requires(FieldLike<T> && !is_complex_v<T>)
+template <FieldLike T>
+  requires(!is_complex_v<T>)
 constexpr auto constexpr_exp(const T& x, int terms = 16) {
-  T sum = 1;
-  T term = 1;
+  T sum(1), term(1);
   for (int k = 1; k < terms; ++k) {
     term *= x / k;
     sum += term;
@@ -151,10 +178,37 @@ constexpr auto constexpr_exp(const T& x, int terms = 16) {
  *
  * @return complex number
  */
-template <typename T>
-  requires(FieldLike<T> && is_complex_v<T>)
+template <FieldLike T>
+  requires(is_complex_v<T>)
 constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
   return constexpr_exp(lambda.real()) * constexpr_expi(lambda.imag(), terms);
+}
+
+/**
+ * @brief natural log
+ *
+ * [old] less numerically friendly
+ * Taylor series expansion for 1 + t, t = 0
+ * log(1 + t) = t - t^2 / 2 + t^3 / 3 - ... =
+ * \sum_{k=1}^{\infty}(-1)^{k+1}\frac{t^k}{k}
+ *
+ * Restricting x \in R_++, and let t = x - 1... log(1 + x - 1) = log(x)
+ * log(x) \approx (x - 1) - (x - 1)^2 / 2 + (x - 1)^3 - ...
+ *
+ * [new] use atanh
+ * log(x) \approx 2 * atan(y) where y = (x - 1) / (x + 1)
+ *
+ * @return real number
+ */
+template <FieldLike T>
+  requires(!is_complex_v<T>)
+constexpr std::optional<T> constexpr_ln(const T& x, int terms = 16) {
+  if (x <= T(0)) return std::nullopt;
+
+  const T y = (x - T(1)) / (x + T(1));
+  const auto res = constexpr_atanh(y, terms);
+  if (!res.has_value()) return std::nullopt;
+  return T(2) * res.value();
 }
 
 /*
@@ -182,7 +236,7 @@ constexpr void constexpr_for(Func&& f) {
  *
  * @return T/F
  */
-template <typename T>
+template <FieldLike T>
   requires(is_complex_v<T>)
 constexpr bool is_same(const T& a, const T& b, scalar_type_t<T> tol = 1e-10) {
   return constexpr_absc(a - b) < tol;
@@ -195,7 +249,7 @@ constexpr bool is_same(const T& a, const T& b, scalar_type_t<T> tol = 1e-10) {
  *
  * @return Vector of indices
  */
-template <typename T, size_t N>
+template <FieldLike T, size_t N>
   requires(!is_complex_v<T>)
 constexpr auto argsort_desc(const Vector<T, N>& x) {
   std::array<size_t, N> p;

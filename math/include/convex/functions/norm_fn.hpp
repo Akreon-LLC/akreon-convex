@@ -12,13 +12,12 @@ namespace convex {
 /**
  * @brief norm convex function wrapper
  */
-template <linalg::RnSpace Space, linalg::NormLike Norm,
-          FnTag Tag = FnTag::Convex>
+template <linalg::RnSpace Space, linalg::NormLike Norm>
   requires(linalg::space_dim_v<Space> == linalg::norm_size_v<Norm>)
-class NormFn : public ConvexFn<Space, NormFn<Space, Norm, Tag>> {
+class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
  public:
   /// @brief bring into scope the convex fn alias / helpers
-  using ConvexBase = ConvexFn<Space, NormFn<Space, Norm, Tag>>;
+  using ConvexBase = ConvexFn<Space, NormFn<Space, Norm>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -45,9 +44,7 @@ class NormFn : public ConvexFn<Space, NormFn<Space, Norm, Tag>> {
    *
    * @return epigraph = norm cone
    */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
+  constexpr auto epigraph_impl() const {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
     if constexpr (std::same_as<Norm, linalg::L2<Point>>) {
       return NormCone<LiftedSpace, NormConeType::L2CC>().cone_view();
@@ -57,5 +54,13 @@ class NormFn : public ConvexFn<Space, NormFn<Space, Norm, Tag>> {
       return NormCone<LiftedSpace, NormConeType::LinfCC>().cone_view();
     }
   }
+
+  /**
+   * @brief hypograph impl
+   *
+   * hypo(F(x)) = hypo(||x||) = { (x, t) | ||x|| >= t, x \in dom f }
+   *
+   * @return hypograph
+   */
 };
 }  // namespace convex

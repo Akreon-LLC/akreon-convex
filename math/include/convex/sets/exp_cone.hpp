@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include <iostream>
-
 #include "convex_set.hpp"
 
 namespace convex {

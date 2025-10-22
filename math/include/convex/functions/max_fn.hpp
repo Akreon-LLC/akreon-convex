@@ -14,11 +14,11 @@ namespace convex {
  *
  * F(x) = max { x_1, x_2, ... x_n }, x \in R^n
  */
-template <linalg::RnSpace Space, FnTag Tag = FnTag::Convex>
-class MaxFn : public ConvexFn<Space, MaxFn<Space, Tag>> {
+template <linalg::RnSpace Space>
+class MaxFn : public ConvexFn<Space, MaxFn<Space>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Space, MaxFn<Space, Tag>>;
+  using ConvexBase = ConvexFn<Space, MaxFn<Space>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -48,9 +48,7 @@ class MaxFn : public ConvexFn<Space, MaxFn<Space, Tag>> {
    *
    * @return Linf cone
    */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
+  constexpr auto epigraph_impl() const {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
     return NormCone<LiftedSpace, NormConeType::LinfCC>().cone_view();
   }
