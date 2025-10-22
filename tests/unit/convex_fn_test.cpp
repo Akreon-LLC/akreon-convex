@@ -66,7 +66,8 @@ TEST_CASE("Test affine fn", "[convex_fn]") {
     STATIC_REQUIRE(epi_f.contains(Vectord<3>{}));
     STATIC_REQUIRE(!epi_f.contains(Vectord<3>{1.0, 2.0, -1.0}));
   }
-  SECTION("Test affine fn") {
+
+  SECTION("Test affine fn (convex)") {
     using Space = Matrixd<1, 3>;
     constexpr auto x0 = Vectord<1>{2.0};
     constexpr auto U = Space{Vectord<3>{1.0, 5.0, 2.0}};
@@ -75,9 +76,25 @@ TEST_CASE("Test affine fn", "[convex_fn]") {
     STATIC_REQUIRE(affine_fn.eval(Vectord<3>{}).has_value());
     STATIC_REQUIRE(affine_fn.eval(Vectord<3>{}).value() == 2.0);
     constexpr auto epi_f = affine_fn.epigraph();
-    STATIC_REQUIRE(epi_f.contains(Vectord<4>{}));
-    STATIC_REQUIRE(epi_f.contains(Vectord<4>{1.0, 1.0, 1.0, 4.0}));
+    STATIC_REQUIRE(!epi_f.contains(Vectord<4>{}));
+    STATIC_REQUIRE(epi_f.contains(Vectord<4>{0.0, 0.0, 0.0, 2.0}));
+    STATIC_REQUIRE(epi_f.contains(Vectord<4>{1.0, 1.0, 1.0, 16.0}));
+    STATIC_REQUIRE(!epi_f.contains(Vectord<4>{1.0, 1.0, 1.0, 4.0}));
     STATIC_REQUIRE(!epi_f.contains(Vectord<4>{1.0, 1.0, 0.0, 1.0}));
+  }
+
+  SECTION("Test affine fn (concave)") {
+    using Space = Matrixd<1, 4>;
+    constexpr auto x0 = Vectord<1>{1.0};
+    constexpr auto U = Space{Vectord<4>{-1.0, 2.0, 3.0, 1.0}};
+    constexpr auto map = AffineMap<Space>(U, x0);
+    constexpr auto affine_fn = AffineFn<Space, FnTag::Concave>(map);
+    STATIC_REQUIRE(affine_fn.eval(Vectord<4>{}).has_value());
+    STATIC_REQUIRE(affine_fn.eval(Vectord<4>{}).value() == 1.0);
+    constexpr auto hypo_f = affine_fn.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(Vectord<5>{}));
+    STATIC_REQUIRE(hypo_f.contains(Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0}));
+    STATIC_REQUIRE(!hypo_f.contains(Vectord<5>{1.0, -1.0, -1.0, -1.0, 1.0}));
   }
 }
 

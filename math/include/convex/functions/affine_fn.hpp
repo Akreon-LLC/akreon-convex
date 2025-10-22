@@ -59,7 +59,26 @@ class AffineFn : public ConvexFn<Domain, AffineFn<Domain, Tag>> {
   {
     const auto A = map.linear_part();
     const auto b = map.translation();
-    return Halfspace<Domain, HalfspaceType::CLH, ViewTag::ConvexSet>(
+    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
+    return Halfspace<LiftedSpace, HalfspaceType::CLH, ViewTag::EpigraphCone>(
+               linalg::as_vector(A), b(0))
+        .cone_view();
+  }
+
+  /**
+   * @brief hypograph impl
+   *
+   * opposite of epigraph for concave function
+   *
+   * @return hypograph
+   */
+  constexpr auto hypograph_impl() const
+    requires(Tag == FnTag::Concave)
+  {
+    const auto A = map.linear_part();
+    const auto b = map.translation();
+    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
+    return Halfspace<LiftedSpace, HalfspaceType::CUH, ViewTag::HypographCone>(
                linalg::as_vector(A), b(0))
         .cone_view();
   }

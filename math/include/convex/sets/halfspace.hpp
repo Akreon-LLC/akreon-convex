@@ -36,8 +36,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
   /// @brief lifted point (based on lifted space or not)
-  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexCone,
-                                            linalg::Vector<T, N - 1>, Point>;
+  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexSet, Point,
+                                            linalg::Vector<T, N - 1>>;
 
   /**
    * @brief CTOR for halfspace set
@@ -57,13 +57,20 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x_in, const T& /*tol*/) const {
-    T t(b);
     AugmentedPoint x;
-    if constexpr (Tag == ViewTag::ConvexCone) {
+    if constexpr (Tag != ViewTag::ConvexSet) {
       if (x_in(N - 1) < T(0)) return false;
-      t *= x_in(N - 1);
       x = std::get<0>(linalg::splice<N - 1>(x_in));
-    } else {
+    }
+
+    T t(0);
+    if constexpr (Tag == ViewTag::ConvexCone)
+      t = b * x_in(N - 1);
+    else if constexpr (Tag == ViewTag::EpigraphCone ||
+                       Tag == ViewTag::HypographCone)
+      t = x_in(N - 1) - b;
+    else {
+      t = b;
       x = x_in;
     }
 
@@ -81,7 +88,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
   }
 
   /**
-   * @brief is_well_formed checks to see if underlying set is a valid convex set
+   * @brief is_well_formed checks to see if underlying set is a valid convex
+   * set
    *
    * @return T/F
    */
@@ -133,12 +141,13 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
-  {
-    return ConeView(
-        Halfspace<linalg::Matrix<T, 1, N + 1>, Type, ViewTag::ConvexCone>(a,
-                                                                          b));
+  constexpr auto cone_view_impl() const {
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(
+          Halfspace<linalg::Matrix<T, 1, N + 1>, Type, ViewTag::ConvexCone>(a,
+                                                                            b));
+    else
+      return ConeView(Halfspace<linalg::Matrix<T, 1, N>, Type, Tag>(a, b));
   }
 
   /**

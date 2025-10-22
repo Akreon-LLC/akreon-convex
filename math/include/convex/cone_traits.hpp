@@ -67,9 +67,10 @@ struct cone_traits;
 enum struct ConeCheck { False = 0, True, Unknown };
 
 /// @brief derived cone type traits - lifted hyperplane
-template <linalg::RnSpace Space>
-struct cone_traits<Hyperplane<Space, ViewTag::ConvexCone>> {
-  using ConeT = Hyperplane<Space, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<Hyperplane<Space, Tag>> {
+  using ConeT = Hyperplane<Space, Tag>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
@@ -86,9 +87,10 @@ struct cone_traits<Hyperplane<Space, ViewTag::ConvexCone>> {
 };
 
 /// @brief derived cone type traits - lifted halfspace
-template <linalg::RnSpace Space, HalfspaceType Type>
-struct cone_traits<Halfspace<Space, Type, ViewTag::ConvexCone>> {
-  using ConeT = Halfspace<Space, Type, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, HalfspaceType Type, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<Halfspace<Space, Type, Tag>> {
+  using ConeT = Halfspace<Space, Type, Tag>;
 
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return Type == HalfspaceType::CLH || Type == HalfspaceType::CUH
@@ -108,9 +110,10 @@ struct cone_traits<Halfspace<Space, Type, ViewTag::ConvexCone>> {
 };
 
 /// @brief derived cone type traits - lifted ellipsoid
-template <linalg::RnSpace Space, EllipsoidType Type>
-struct cone_traits<Ellipsoid<Space, Type, ViewTag::ConvexCone>> {
-  using ConeT = Ellipsoid<Space, Type, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, EllipsoidType Type, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<Ellipsoid<Space, Type, Tag>> {
+  using ConeT = Ellipsoid<Space, Type, Tag>;
 
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return Type == EllipsoidType::CE ? ConeCheck::True : ConeCheck::False;
@@ -141,9 +144,10 @@ struct cone_traits<Ellipsoid<Space, Type, ViewTag::ConvexCone>> {
 };
 
 /// @brief derived cone type traits - norm cone
-template <linalg::RnSpace Space, NormConeType Type>
-struct cone_traits<NormCone<Space, Type, ViewTag::ConvexCone>> {
-  using ConeT = NormCone<Space, Type, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, NormConeType Type, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<NormCone<Space, Type, Tag>> {
+  using ConeT = NormCone<Space, Type, Tag>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return Type == NormConeType::L2CC || Type == NormConeType::L1CC ||
                    Type == NormConeType::LinfCC
@@ -175,9 +179,10 @@ struct cone_traits<NormCone<Space, Type, ViewTag::ConvexCone>> {
 };
 
 /// @brief derived cone type traits for lifted simplex
-template <linalg::RnSpace Space>
-struct cone_traits<Simplex<Space, ViewTag::ConvexCone>> {
-  using ConeT = Simplex<Space, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<Simplex<Space, Tag>> {
+  using ConeT = Simplex<Space, Tag>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
@@ -202,9 +207,10 @@ struct cone_traits<Simplex<Space, ViewTag::ConvexCone>> {
 };
 
 /// @brief derived cone type traits for nonneg orthant
-template <linalg::RnSpace Space>
-struct cone_traits<NonnegOrthant<Space, ViewTag::ConvexCone>> {
-  using ConeT = NonnegOrthant<Space, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<NonnegOrthant<Space, Tag>> {
+  using ConeT = NonnegOrthant<Space, Tag>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
@@ -221,9 +227,10 @@ struct cone_traits<NonnegOrthant<Space, ViewTag::ConvexCone>> {
 };
 
 /// @brief psd cone type traits
-template <linalg::RnSpace Space>
-struct cone_traits<PsdCone<Space, ViewTag::ConvexCone>> {
-  using ConeT = PsdCone<Space, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<PsdCone<Space, Tag>> {
+  using ConeT = PsdCone<Space, Tag>;
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return ConeCheck::True;
   }
@@ -242,9 +249,10 @@ struct cone_traits<PsdCone<Space, ViewTag::ConvexCone>> {
 
 /// @brief polyhedron cone type traits
 template <linalg::RnSpace Space, HalfspaceType Type, linalg::MatrixLike MatA,
-          linalg::MatrixLike MatC>
-struct cone_traits<Polyhedron<Space, Type, MatA, MatC, ViewTag::ConvexCone>> {
-  using ConeT = Polyhedron<Space, Type, MatA, MatC, ViewTag::ConvexCone>;
+          linalg::MatrixLike MatC, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<Polyhedron<Space, Type, MatA, MatC, Tag>> {
+  using ConeT = Polyhedron<Space, Type, MatA, MatC, Tag>;
   using T = linalg::space_type_t<Space>;
   static constexpr size_t N = linalg::space_dim_v<Space> - 1;
 
@@ -291,9 +299,10 @@ struct cone_traits<Polyhedron<Space, Type, MatA, MatC, ViewTag::ConvexCone>> {
 };
 
 /// @brief LMI cone type traits
-template <linalg::RnSpace Space, LMIType Type>
-struct cone_traits<LMI<Space, Type, ViewTag::ConvexCone>> {
-  using ConeT = LMI<Space, Type, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, LMIType Type, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<LMI<Space, Type, Tag>> {
+  using ConeT = LMI<Space, Type, Tag>;
   using T = linalg::space_type_t<Space>;
   static constexpr size_t N = linalg::space_dim_v<Space> - 1;
 
@@ -336,9 +345,10 @@ struct cone_traits<LMI<Space, Type, ViewTag::ConvexCone>> {
 };
 
 /// @brief Rotated SOC
-template <linalg::RnSpace Space, NormConeType Type>
-struct cone_traits<RotatedSOC<Space, Type, ViewTag::ConvexCone>> {
-  using ConeT = RotatedSOC<Space, Type, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, NormConeType Type, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<RotatedSOC<Space, Type, Tag>> {
+  using ConeT = RotatedSOC<Space, Type, Tag>;
 
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return Type == NormConeType::L2CC ? ConeCheck::True : ConeCheck::False;
@@ -356,9 +366,10 @@ struct cone_traits<RotatedSOC<Space, Type, ViewTag::ConvexCone>> {
 };
 
 /// @brief exponential cone
-template <linalg::RnSpace Space>
-struct cone_traits<ExpCone<Space, ViewTag::ConvexCone>> {
-  using ConeT = ExpCone<Space, ViewTag::ConvexCone>;
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<ExpCone<Space, Tag>> {
+  using ConeT = ExpCone<Space, Tag>;
   using T = linalg::space_type_t<Space>;
 
   static constexpr ConeCheck is_closed(const ConeT& /* cone */) {

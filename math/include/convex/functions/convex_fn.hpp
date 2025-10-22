@@ -40,7 +40,9 @@ class ConvexFn {
   }
 
   /**
-   * @brief epigraph of f = above the graph of f (convex set)
+   * @brief epigraph of f
+   *
+   * Region above the graph of f defined by t
    *
    * f : R^n -> R
    * graph(f) = { (x, f(x)) | x \in dom f } \in R^n
@@ -49,6 +51,17 @@ class ConvexFn {
    * @return epigraph of func
    */
   constexpr auto epigraph() const { return self().epigraph_impl(); }
+
+  /**
+   * @brief hypograph of f
+   *
+   * Region below the graph of f defined by t
+   *
+   * f : R^n -> R
+   * graph(f) = { (x, f(x)) | x \in dom f } \in R^n
+   * hypo(f) = { (x, t) | x \in dom f, f(x) >= t } \in R^{n+1}
+   */
+  constexpr auto hypograph() const { return self().hypograph_impl(); }
 
   /**
    * @brief self

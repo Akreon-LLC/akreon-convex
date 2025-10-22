@@ -33,7 +33,7 @@ template <linalg::RnSpace Space, typename Derived>
 class ConvexSet;
 
 /// @brief convex set view tag
-enum struct ViewTag { ConvexSet = 0, ConvexCone };
+enum struct ViewTag { ConvexSet = 0, ConvexCone, EpigraphCone, HypographCone };
 
 /// @brief simple enum to describe type of halfspace
 enum struct HalfspaceType { CLH, OLH, CUH, OUH };
@@ -322,6 +322,8 @@ concept ConvexSetLike =
 /// @brief cone set like concept
 template <class Set>
 concept ConvexConeLike =
-    SetLike<Set> && set_view_tag_v<Set> == ViewTag::ConvexCone;
+    SetLike<Set> && (set_view_tag_v<Set> == ViewTag::ConvexCone ||
+                     set_view_tag_v<Set> == ViewTag::EpigraphCone ||
+                     set_view_tag_v<Set> == ViewTag::HypographCone);
 
 }  // namespace convex
