@@ -188,7 +188,7 @@ template <MatrixLike MatQ, MatrixLike MatR, VectorLike Vec>
   requires(MatMulCompatible<MatQ, MatR> && MatVecCompatible<MatR, Vec>)
 constexpr auto min_norm(const MatQ& Q, const MatR& R, const Vec& b) {
   using T = mat_type_t<MatQ>;
-  if constexpr (!is_complex_v<T>) {
+  if constexpr (RealLike<T>) {
     const auto y = forward_solve(transpose(R), b);
     return Q * y;
   } else {
@@ -276,7 +276,7 @@ class QR {
     const auto Q = get_Q();
     const auto R = get_R();
 
-    if constexpr (is_complex_v<T>)
+    if constexpr (ComplexLike<T>)
       c = conjugate_transpose(Q) * b;
     else
       c = transpose(Q) * b;
@@ -318,7 +318,7 @@ class QR {
       const auto& v = as_col_vector(q.get_v());
 
       auto Q_jm_jn = get_n_cols<j, Cols>(Q_jm);
-      if constexpr (is_complex_v<T>)
+      if constexpr (ComplexLike<T>)
         Q_jm_jn = Q_jm_jn - (beta[j] * v) * (conjugate_transpose(v) * Q_jm_jn);
       else
         Q_jm_jn = Q_jm_jn - (beta[j] * v) * (transpose(v) * Q_jm_jn);
@@ -349,7 +349,7 @@ class QR {
       const auto& v_col = as_col_vector(v);
 
       auto Q_block = get_n_rows<j, Rows>(U);
-      if constexpr (is_complex_v<T>)
+      if constexpr (ComplexLike<T>)
         Q_block = Q_block -
                   (beta(j) * v_col) * (conjugate_transpose(v_col) * Q_block);
       else
@@ -381,7 +381,7 @@ class EigenDecomposition {
 
   // @brief aliasing complex and real types for eigen decomposition
   using Real = scalar_type_t<T>;
-  using Complex = std::conditional_t<is_complex_v<T>, T, std::complex<Real>>;
+  using Complex = std::conditional_t<ComplexLike<T>, T, std::complex<Real>>;
 
   static constexpr size_t STEPS = SolverTraits<Real>().steps;
   static constexpr Real TOL = SolverTraits<Real>().tol;
@@ -485,7 +485,7 @@ class EigenDecomposition {
       U = U * Q;
 
       // (dakre) iterate through the upper hessenberg to acquire eigenvalues
-      if constexpr (is_complex_v<T>) {
+      if constexpr (ComplexLike<T>) {
         for (size_t j = 0; j < N; ++j) eigs[j] = H(j)(j);
       } else {
         // (dakre) Hessenberg forms Real Schur Decomposition on the
@@ -528,7 +528,7 @@ class EigenDecomposition {
         Real res(0);
         for (size_t r = 2; r < N; r += 2) {
           for (size_t c = 0; c < r - 1; ++c) {
-            if constexpr (is_complex_v<T>)
+            if constexpr (ComplexLike<T>)
               res += (std::conj(H(r)(c)) * H(r)(c)).real();
             else
               res += H(r)(c) * H(r)(c);
@@ -850,7 +850,7 @@ class SVD {
   // @brief aliasing complex and real types for eigen decomposition
   using T = mat_type_t<Mat>;
   using Real = scalar_type_t<T>;
-  using Complex = std::conditional_t<is_complex_v<T>, T, std::complex<Real>>;
+  using Complex = std::conditional_t<ComplexLike<T>, T, std::complex<Real>>;
 
   // @brief helpers for Rows & Cols
   static constexpr size_t Rows = mat_rows_v<Mat>;
@@ -902,7 +902,7 @@ class SVD {
   constexpr void svd(const Mat& A) {
     // 1. compute A^T A then solve eigen decomposition
     Matrix<T, Cols, Cols> M;
-    if constexpr (!is_complex_v<T>)
+    if constexpr (RealLike<T>)
       M = transpose(A) * A;
     else
       M = conjugate_transpose(A) * A;

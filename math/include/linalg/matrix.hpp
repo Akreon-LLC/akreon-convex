@@ -80,7 +80,7 @@ constexpr auto as_complex_matrix(const Mat& A) {
   constexpr auto Rows = mat_rows_v<Mat>;
   constexpr auto Cols = mat_cols_v<Mat>;
   Matrix<std::complex<scalar_type_t<T>>, Rows, Cols> result;
-  if constexpr (!is_complex_v<T>) {
+  if constexpr (RealLike<T>) {
     for (size_t i = 0; i < Rows; ++i)
       for (size_t j = 0; j < Cols; ++j) result[i][j] = std::complex<T>(A(i)(j));
   } else {

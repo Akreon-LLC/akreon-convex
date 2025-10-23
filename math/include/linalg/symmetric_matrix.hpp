@@ -45,7 +45,7 @@ struct SymmetricMatrix {
   constexpr explicit SymmetricMatrix(const Mat& A, ScalarT tol = 1e-8) {
     // (0) First see if the incoming matrix is symmetric
     bool valid = false;
-    if constexpr (!is_complex_v<Mat>)
+    if constexpr (RealLike<T>)
       valid = all_equal(A, transpose(A));
     else
       valid = all_equal(A, conjugate_transpose(A));

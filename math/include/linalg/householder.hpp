@@ -58,7 +58,7 @@ struct HouseholderVector {
    * @return (void)
    */
   constexpr void make_householder(const Vector<T, N>& x, auto) {
-    if constexpr (is_complex_v<T>) {
+    if constexpr (ComplexLike<T>) {
       const T norm_x = L2<Vector<T, N>>()(x);
       if (norm_x == scalar_type_t<T>(0)) {
         // (dakre) no reflector required

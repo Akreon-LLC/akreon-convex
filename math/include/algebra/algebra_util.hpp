@@ -111,8 +111,7 @@ constexpr T constexpr_nrt(T x, T g = 1e-10, T tol = 1e-10) {
  *
  * @return |x|
  */
-template <FieldLike T>
-  requires(is_complex_v<T>)
+template <ComplexLike T>
 constexpr scalar_type_t<T> constexpr_absc(const T& x) {
   return constexpr_sqrt(x.real() * x.real() + x.imag() * x.imag());
 }
@@ -126,8 +125,7 @@ constexpr scalar_type_t<T> constexpr_absc(const T& x) {
  *
  * @return cosine approx of x
  */
-template <FieldLike T>
-  requires(!is_complex_v<T>)
+template <RealLike T>
 constexpr auto constexpr_sin(const T& x, int terms = 16) {
   T sum = x, term = x;
   for (int k = 1; k < terms; ++k) {
@@ -146,8 +144,7 @@ constexpr auto constexpr_sin(const T& x, int terms = 16) {
  *
  * @return cosine approx of x
  */
-template <FieldLike T>
-  requires(!is_complex_v<T>)
+template <RealLike T>
 constexpr auto constexpr_cos(const T& x, int terms = 16) {
   T sum = T(1), term = T(1);
   for (int k = 1; k < terms; ++k) {
@@ -167,8 +164,7 @@ constexpr auto constexpr_cos(const T& x, int terms = 16) {
  *
  * @return y \in R
  */
-template <FieldLike T>
-  requires(!is_complex_v<T>)
+template <RealLike T>
 constexpr std::optional<T> constexpr_atanh(const T& x, int terms = 16) {
   if (constexpr_abs(x) >= T(1)) return std::nullopt;
   const T x2 = x * x;
@@ -187,8 +183,7 @@ constexpr std::optional<T> constexpr_atanh(const T& x, int terms = 16) {
  *
  * @return complex number
  */
-template <FieldLike T>
-  requires(!is_complex_v<T>)
+template <RealLike T>
 constexpr auto constexpr_expi(const T& theta, int terms = 16) {
   return std::complex<T>(constexpr_cos(theta, terms),
                          constexpr_sin(theta, terms));
@@ -204,8 +199,7 @@ constexpr auto constexpr_expi(const T& theta, int terms = 16) {
  *
  * @return real number
  */
-template <FieldLike T>
-  requires(!is_complex_v<T>)
+template <RealLike T>
 constexpr auto constexpr_exp(const T& x, int terms = 16) {
   T sum(1), term(1);
   for (int k = 1; k < terms; ++k) {
@@ -222,8 +216,7 @@ constexpr auto constexpr_exp(const T& x, int terms = 16) {
  *
  * @return complex number
  */
-template <FieldLike T>
-  requires(is_complex_v<T>)
+template <ComplexLike T>
 constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
   return constexpr_exp(lambda.real()) * constexpr_expi(lambda.imag(), terms);
 }
@@ -244,8 +237,7 @@ constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
  *
  * @return real number
  */
-template <FieldLike T>
-  requires(!is_complex_v<T>)
+template <RealLike T>
 constexpr std::optional<T> constexpr_ln(const T& x, int terms = 16) {
   if (x <= T(0)) return std::nullopt;
 
@@ -280,8 +272,7 @@ constexpr void constexpr_for(Func&& f) {
  *
  * @return T/F
  */
-template <FieldLike T>
-  requires(is_complex_v<T>)
+template <ComplexLike T>
 constexpr bool is_same(const T& a, const T& b, scalar_type_t<T> tol = 1e-10) {
   return constexpr_absc(a - b) < tol;
 }
@@ -294,7 +285,7 @@ constexpr bool is_same(const T& a, const T& b, scalar_type_t<T> tol = 1e-10) {
  * @return Vector of indices
  */
 template <VectorLike Vec>
-  requires(!is_complex_v<vec_type_t<Vec>>)
+  requires(RealLike<vec_type_t<Vec>>)
 constexpr auto argsort_desc(const Vec& x) {
   static constexpr size_t N = vec_size_v<Vec>;
 

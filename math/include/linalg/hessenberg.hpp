@@ -81,7 +81,7 @@ class HessenbergMatrix {
 
       // (P1...Pk-1)^T A (P1...Pk-1)
       auto H_block_kn = get_n_cols<k, N>(H_block);
-      if constexpr (is_complex_v<T>)
+      if constexpr (ComplexLike<T>)
         H_block_kn =
             H_block_kn - (beta[k] * v * conjugate_transpose(v)) * H_block_kn;
       else
@@ -92,7 +92,7 @@ class HessenbergMatrix {
 
       // (P1...Pk)^T A (P1...Pk) -- handling case when Pk is of order N - k
       auto H_zn_kn = get_block<0, N, k + 1, N>(H);
-      if constexpr (is_complex_v<T>)
+      if constexpr (ComplexLike<T>)
         H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * conjugate_transpose(v));
       else
         H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * transpose(v));
@@ -123,7 +123,7 @@ class HessenbergMatrix {
       const auto& v_col = as_col_vector(v);
 
       auto U_block = get_n_cols<k + 1, N>(U);
-      if constexpr (is_complex_v<T>)
+      if constexpr (ComplexLike<T>)
         U_block = U_block -
                   beta(k) * (U_block * (v_col * conjugate_transpose(v_col)));
       else

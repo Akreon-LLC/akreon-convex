@@ -18,7 +18,7 @@ namespace linalg {
  * @return vector of indices
  */
 template <VectorLike Vec>
-  requires(is_complex_v<vec_type_t<Vec>>)
+  requires(ComplexLike<vec_type_t<Vec>>)
 constexpr auto make_group_permutation(const Vec& D,
                                       scalar_type_t<Vec> tol = 1e-10) {
   constexpr size_t N = vec_size_v<Vec>;

@@ -143,7 +143,7 @@ constexpr auto transpose(const Vec& X) {
  * @return conjugated vector
  */
 template <VectorLike Vec>
-  requires(is_complex_v<vec_type_t<Vec>>)
+  requires(ComplexLike<vec_type_t<Vec>>)
 constexpr auto conjugate(const Vec& X) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;

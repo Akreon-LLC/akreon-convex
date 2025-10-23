@@ -304,6 +304,14 @@ template <typename T>
 concept FieldLike =
     std::floating_point<T> || std::same_as<std::complex<scalar_type_t<T>>, T>;
 
+/// @brief real like concept
+template <typename T>
+concept RealLike = FieldLike<T> && !is_complex_v<T>;
+
+/// @brief complex like concept
+template <typename T>
+concept ComplexLike = FieldLike<T> && is_complex_v<T>;
+
 /// @brief concept definition for vector like
 template <class Vec>
 concept VectorLike =
@@ -335,7 +343,7 @@ concept VectorSpace =
 
 /// @brief R^n space
 template <class Space>
-concept RnSpace = VectorSpace<Space> && !is_complex_v<space_type_t<Space>>;
+concept RnSpace = VectorSpace<Space> && RealLike<space_type_t<Space>>;
 
 /// @brief concept definition for matrix like
 template <class Mat>

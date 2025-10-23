@@ -25,7 +25,7 @@ struct L2 {
   using ScalarT = scalar_type_t<vec_type_t<Vec>>;
   constexpr auto operator()(const Vec& x) const {
     ScalarT result = 0;
-    if constexpr (!is_complex_v<T>)
+    if constexpr (RealLike<T>)
       result = dot(x, x);
     else {
       const auto tmp = dot(conjugate(x), x);
@@ -51,7 +51,7 @@ struct L1 {
   using ScalarT = scalar_type_t<vec_type_t<Vec>>;
   constexpr auto operator()(const Vec& x) const {
     ScalarT sum = 0;
-    if constexpr (!is_complex_v<T>)
+    if constexpr (RealLike<T>)
       for (const auto& _x : x) sum += constexpr_abs(_x);
     else
       for (const auto& _x : x) sum += constexpr_absc(_x);
@@ -74,7 +74,7 @@ struct Linf {
   using ScalarT = scalar_type_t<vec_type_t<Vec>>;
   constexpr auto operator()(const Vec& x) const {
     ScalarT mx = 0;
-    if constexpr (!is_complex_v<T>)
+    if constexpr (RealLike<T>)
       for (const auto& _x : x) mx = std::max(mx, constexpr_abs(_x));
     else
       for (const auto& _x : x) mx = std::max(mx, constexpr_absc(_x));

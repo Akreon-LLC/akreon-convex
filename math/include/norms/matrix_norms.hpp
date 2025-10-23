@@ -25,7 +25,7 @@ struct Fro {
 
   constexpr auto operator()(const Mat& A) {
     scalar_type_t<T> result = 0;
-    if constexpr (!is_complex_v<T>) {
+    if constexpr (RealLike<T>) {
       result = trace(transpose(A) * A);
     } else {
       const auto tmp = trace(conjugate_transpose(A) * A);

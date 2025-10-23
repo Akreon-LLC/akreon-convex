@@ -80,7 +80,7 @@ constexpr auto trace(const Mat& A) {
  */
 template <MatrixLike Mat>
 constexpr auto conjugate_transpose(const Mat& A)
-  requires(is_complex_v<mat_type_t<Mat>>)
+  requires(ComplexLike<mat_type_t<Mat>>)
 {
   constexpr auto Rows = mat_rows_v<Mat>;
   constexpr auto Cols = mat_cols_v<Mat>;
