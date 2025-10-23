@@ -43,6 +43,20 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
   }
 
   /**
+   * @brief contains function to see if point x lies in the R^n_+ set
+   *
+   * @param (x, t) \in R^n_+ x R
+   * @param tolerance
+   *
+   * @return T/F
+   */
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
+                               const T& tol) const {
+    const auto x = std::get<0>(x_in);
+    return contains_impl(x, tol);
+  }
+
+  /**
    * @brief is well formed check
    *
    * @return T/F
@@ -89,11 +103,8 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
-  {
-    using LiftedSpace = linalg::Matrix<double, 1, N + 1>;
-    return ConeView(NonnegOrthant<LiftedSpace, ViewTag::ConvexCone>());
+  constexpr auto cone_view_impl() const {
+    return ConeView(NonnegOrthant<Space, ViewTag::ConvexCone>());
   }
 };
 

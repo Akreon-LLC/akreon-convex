@@ -43,7 +43,7 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space, Tag>> {
    *
    * @return T/F
    */
-  constexpr auto contains_impl(const Point& X, const T& /* tol */) const {
+  constexpr bool contains_impl(const Point& X, const T& /* tol */) const {
     linalg::SymmetricMatrix S(X);
     return S.type == linalg::SymmetricMatrixType::PD ||
            S.type == linalg::SymmetricMatrixType::PSD;

@@ -30,22 +30,31 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
-  /// @brief lifted point (based on lifted space or not)
-  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexCone,
-                                            linalg::Vector<T, N - 1>, Point>;
-
   /**
    * @brief CTOR for hyperplane
    *
    * @param Point (i.e., n-dim vec of type T)
    * @param b bias scalar
    */
-  constexpr explicit Hyperplane(const AugmentedPoint& a_in, const T& b_in)
+  constexpr explicit Hyperplane(const Point& a_in, const T& b_in)
       : a(a_in), b(b_in) {}
 
   /**
    * @brief contains function to see if x lies in the hyerplane defined by a^T x
    * == b
+   *
+   * @param point x of type T (n-dim)
+   * @param tolerance
+   *
+   * @return T/F
+   */
+  constexpr bool contains_impl(const Point& x, const T& tol) const {
+    return linalg::constexpr_abs(linalg::dot(a, x) - b) < tol;
+  }
+
+  /**
+   * @brief contains function to see if x lies in the hyerplane defined by a^T x
+   * == b t
    *
    * When lifted to convex cone the pair (x,t) \in R^{n + 1}, so last elem of
    * point x is t
@@ -55,17 +64,12 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x_in, const T& tol) const {
-    T t(b);
-    AugmentedPoint x;
-    if constexpr (Tag == ViewTag::ConvexCone) {
-      if (x_in(N - 1) < T(0)) return false;
-      t *= x_in(N - 1);
-      x = std::get<0>(linalg::splice<N - 1>(x_in));
-    } else {
-      x = x_in;
-    }
-
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
+                               const T& tol) const {
+    const auto x = std::get<0>(x_in);
+    auto t = std::get<1>(x_in);
+    if (t < T(0)) return false;
+    t *= b;
     return linalg::constexpr_abs(linalg::dot(a, x) - t) < tol;
   }
 
@@ -116,11 +120,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
-  {
-    return ConeView(
-        Hyperplane<linalg::Matrix<T, 1, N + 1>, ViewTag::ConvexCone>(a, b));
+  constexpr auto cone_view_impl() const {
+    return ConeView(Hyperplane<Space, ViewTag::ConvexCone>(a, b));
   }
 
   /**
@@ -141,8 +142,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
 
  private:
   /** @brief member var in hyperplane */
-  AugmentedPoint a;  //< n-dim vec of type T
-  T b;               //< bias scalar of type T
+  Point a;  //< n-dim vec of type T
+  T b;      //< bias scalar of type T
 };
 
 }  // namespace convex

@@ -50,15 +50,26 @@ class ConvexSet {
   /**
    * @brief contains to check if the point lies in the convex set
    *
-   * When lifted to convex cone the pair (x,t) \in R^{n + 1}, so last elem of
-   * point x is t
-   *
    * @param point (n-dim vector)
    * @param optional tolerance
    *
    * @return T/F
    */
   constexpr bool contains(const Point& x, T tol = 1e-8) const {
+    return self().contains_impl(x, tol);
+  }
+
+  /**
+   * @brief contains to check if the point lies in the convex cone
+   *
+   * When lifted to convex cone the pair (x,t) is checked to see if its contained within the set
+   *
+   * @param (point, t) (n-dim vector) x R
+   * @param optional tolerance
+   *
+   * @return T/F
+   */
+  constexpr bool contains(const std::tuple<Point, T>& x, T tol = 1e-8) const {
     return self().contains_impl(x, tol);
   }
 

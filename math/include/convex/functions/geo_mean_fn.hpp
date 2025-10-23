@@ -42,6 +42,12 @@ class GeoMeanFn : public ConcaveFn<Domain, GeoMeanFn<Domain>> {
   /**
    * @brief hypograph impl
    *
+   * F(x) = (\prod_i^n x_i)^{1/n}
+   * graph(F(x)) = { (x, \prod_i^n x_i)^{1/n} | x \in dom f}
+   * hypo(F(x)) = { (x, t) | (\prod_i^n x_i)^{1/n} >= t, x \in dom f }
+   * \equiv = { (x, t) | \prod_i^n x_i >= t^n }
+   * \equiv = { (x, t) | 1 >= \frac{t^n}{\prod_i^n x_i}
+   *
    * @return hypograph
    */
   constexpr auto hypograph_impl() const {

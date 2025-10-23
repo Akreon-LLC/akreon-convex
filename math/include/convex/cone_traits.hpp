@@ -254,7 +254,7 @@ template <linalg::RnSpace Space, HalfspaceType Type, linalg::MatrixLike MatA,
 struct cone_traits<Polyhedron<Space, Type, MatA, MatC, Tag>> {
   using ConeT = Polyhedron<Space, Type, MatA, MatC, Tag>;
   using T = linalg::space_type_t<Space>;
-  static constexpr size_t N = linalg::space_dim_v<Space> - 1;
+  static constexpr size_t N = linalg::space_dim_v<Space>;
 
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return Type == HalfspaceType::CLH || Type == HalfspaceType::CUH

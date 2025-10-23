@@ -50,12 +50,15 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
         !hyperplane.project(proj_map, Vectord<3>{1.0, 1.0, 2.0}).has_value());
 
     constexpr auto hyperplane_cone = hyperplane.cone_view();
-    STATIC_REQUIRE(hyperplane_cone.contains(Vectord<4>{}));
-    STATIC_REQUIRE(!hyperplane_cone.contains(Vectord<4>{0.0, 0.0, 0.0, 1.0}));
-    STATIC_REQUIRE(hyperplane_cone.contains(Vectord<4>{1.0, 1.0, 1.0, 1.0}));
-    STATIC_REQUIRE(!hyperplane_cone.contains(Vectord<4>{1.0, 1.0, 2.0, 1.0}));
+    STATIC_REQUIRE(hyperplane_cone.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(
+        !hyperplane_cone.contains(std::tuple(Vectord<3>{0.0, 0.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(
+        hyperplane_cone.contains(std::tuple(Vectord<3>{1.0, 1.0, 1.0}, 1.0)));
+    STATIC_REQUIRE(
+        !hyperplane_cone.contains(std::tuple(Vectord<3>{1.0, 1.0, 2.0}, 1.0)));
     STATIC_REQUIRE(hyperplane_cone.is_proper() == ConeCheck::False);
-    constexpr Vectord<4> lifted_point{point(0), point(1), point(2), 1.0};
+    constexpr auto lifted_point = std::make_tuple(point, 1.0);
     STATIC_REQUIRE(
         !hyperplane_cone.less_than(lifted_point, lifted_point).has_value());
     STATIC_REQUIRE(!hyperplane_cone.less_than_strict(lifted_point, lifted_point)
@@ -76,15 +79,20 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace.contains(Vectord<2>{-1.0, 5.0}));
 
     constexpr auto halfspace_cone = halfspace.cone_view();
-    STATIC_REQUIRE(halfspace_cone.contains(Vectord<3>{}));
-    STATIC_REQUIRE(halfspace_cone.contains(Vectord<3>{-1.0, 0.0, 1.0}));
-    STATIC_REQUIRE(halfspace_cone.contains(Vectord<3>{-1.0, -2.0, 1.0}));
-    STATIC_REQUIRE(halfspace_cone.contains(Vectord<3>{1.0, 0.0, 1.0}));
-    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<3>{1.0, 2.0, 1.0}));
-    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<3>{-1.0, 5.0, 1.0}));
+    STATIC_REQUIRE(halfspace_cone.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(
+        halfspace_cone.contains(std::tuple(Vectord<2>{-1.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(
+        halfspace_cone.contains(std::tuple(Vectord<2>{-1.0, -2.0}, 1.0)));
+    STATIC_REQUIRE(
+        halfspace_cone.contains(std::tuple(Vectord<2>{1.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(
+        !halfspace_cone.contains(std::tuple(Vectord<2>{1.0, 2.0}, 1.0)));
+    STATIC_REQUIRE(
+        !halfspace_cone.contains(std::tuple(Vectord<2>{-1.0, 5.0}, 1.0)));
     STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
 
-    constexpr Vectord<3> lifted_point{point(0), point(1), 1.0};
+    constexpr auto lifted_point = std::make_tuple(point, 1.0);
     STATIC_REQUIRE(
         !halfspace_cone.less_than(lifted_point, lifted_point).has_value());
     STATIC_REQUIRE(!halfspace_cone.less_than_strict(lifted_point, lifted_point)
@@ -115,18 +123,17 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
                         .has_value());
 
     constexpr auto halfspace_cone = halfspace.cone_view();
-    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<5>{}));
-    STATIC_REQUIRE(
-        !halfspace_cone.contains(Vectord<5>{0.0, 0.0, 0.0, 2.0, 1.0}));
-    STATIC_REQUIRE(
-        halfspace_cone.contains(Vectord<5>{0.0, 0.0, 0.0, 1.9, 1.0}));
-    STATIC_REQUIRE(
-        halfspace_cone.contains(Vectord<5>{0.5, 2.0, 2.0, 1.0, 1.0}));
-    STATIC_REQUIRE(
-        !halfspace_cone.contains(Vectord<5>{1.0, 1.0, 0.0, 5.0, 1.0}));
+    STATIC_REQUIRE(!halfspace_cone.contains(std::tuple(Vectord<4>{}, 0.0)));
+    STATIC_REQUIRE(!halfspace_cone.contains(
+        std::tuple(Vectord<4>{0.0, 0.0, 0.0, 2.0}, 1.0)));
+    STATIC_REQUIRE(halfspace_cone.contains(
+        std::tuple(Vectord<4>{0.0, 0.0, 0.0, 1.9}, 1.0)));
+    STATIC_REQUIRE(halfspace_cone.contains(
+        std::tuple(Vectord<4>{0.5, 2.0, 2.0, 1.0}, 1.0)));
+    STATIC_REQUIRE(!halfspace_cone.contains(
+        std::tuple(Vectord<4>{1.0, 1.0, 0.0, 5.0}, 1.0)));
     STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
-    constexpr Vectord<5> lifted_point{point(0), point(1), point(2), point(3),
-                                      1.0};
+    constexpr auto lifted_point = std::make_tuple(point, 1.0);
     STATIC_REQUIRE(
         !halfspace_cone.less_than(lifted_point, lifted_point).has_value());
     STATIC_REQUIRE(!halfspace_cone.less_than_strict(lifted_point, lifted_point)
@@ -155,13 +162,16 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(halfspace_trans != halfspace_id);
 
     constexpr auto halfspace_cone = halfspace.cone_view();
-    STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{}));
-    STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{0.0, 1.0, 0.0, 1.0}));
-    STATIC_REQUIRE(halfspace_cone.contains(Vectord<4>{0.1, 1.0, 2.0, 1.0}));
-    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<4>{0.1, 1.0, -2.0, 1.0}));
+    STATIC_REQUIRE(halfspace_cone.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(
+        halfspace_cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(
+        halfspace_cone.contains(std::tuple(Vectord<3>{0.1, 1.0, 2.0}, 1.0)));
+    STATIC_REQUIRE(
+        !halfspace_cone.contains(std::tuple(Vectord<3>{0.1, 1.0, -2.0}, 1.0)));
     STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
 
-    constexpr Vectord<4> lifted_point{point(0), point(1), point(2), 1.0};
+    constexpr auto lifted_point = std::make_tuple(point, 1.0);
     STATIC_REQUIRE(
         !halfspace_cone.less_than(lifted_point, lifted_point).has_value());
     STATIC_REQUIRE(!halfspace_cone.less_than_strict(lifted_point, lifted_point)
@@ -180,12 +190,12 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(halfspace.contains(Vectord<1>{6.0}));
 
     constexpr auto halfspace_cone = halfspace.cone_view();
-    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<2>{}));
-    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<2>{0.1, 1.0}));
-    STATIC_REQUIRE(!halfspace_cone.contains(Vectord<2>{5.0, 1.0}));
-    STATIC_REQUIRE(halfspace_cone.contains(Vectord<2>{6.0, 1.0}));
+    STATIC_REQUIRE(!halfspace_cone.contains(std::tuple(Vectord<1>{}, 0.0)));
+    STATIC_REQUIRE(!halfspace_cone.contains(std::tuple(Vectord<1>{0.1}, 1.0)));
+    STATIC_REQUIRE(!halfspace_cone.contains(std::tuple(Vectord<1>{5.0}, 1.0)));
+    STATIC_REQUIRE(halfspace_cone.contains(std::tuple(Vectord<1>{6.0}, 1.0)));
     STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
-    constexpr Vectord<2> lifted_point{point(0), 1.0};
+    constexpr auto lifted_point = std::make_tuple(point, 1.0);
     STATIC_REQUIRE(
         !halfspace_cone.less_than(lifted_point, lifted_point).has_value());
     STATIC_REQUIRE(!halfspace_cone.less_than_strict(lifted_point, lifted_point)
@@ -231,12 +241,13 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(!ellipsoid.project(proj_map, Vectord<2>{}).has_value());
 
     constexpr auto cone = ellipsoid.cone_view();
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{c(0), c(1), 1.0}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 0.1, c(1) - 0.5, 1.0}));
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{1.5, 1.0, 1.0}));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{c(0), c(1)}, 1.0)));
+    STATIC_REQUIRE(
+        cone.contains(std::tuple(Vectord<2>{c(0) + 0.1, c(1) - 0.5}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{1.5, 1.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-    constexpr Vectord<3> lifted_c{c(0), c(1), 1.0};
+    constexpr auto lifted_c = std::make_tuple(c, 1.0);
     STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
   }
@@ -253,11 +264,12 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
 
     constexpr auto cone = ellipsoid.cone_view();
-    STATIC_REQUIRE(cone.contains(Vectord<3>{c(0), c(1), 1.0}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 0.1, c(1) - 0.5, 1.0}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{1.5, 1.0, 1.0}));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{c(0), c(1)}, 1.0)));
+    STATIC_REQUIRE(
+        cone.contains(std::tuple(Vectord<2>{c(0) + 0.1, c(1) - 0.5}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{1.5, 1.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    constexpr Vectord<3> lifted_c{c(0), c(1), 1.0};
+    constexpr auto lifted_c = std::make_tuple(c, 1.0);
     STATIC_REQUIRE(cone.less_than_strict(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
     STATIC_REQUIRE(cone.less_than_strict(lifted_c, lifted_c).has_value());
@@ -302,12 +314,16 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
         !poly.project(proj_map, Vectord<3>{1.0, 2.0, 3.0}).has_value());
 
     constexpr auto cone = poly.cone_view();
-    STATIC_REQUIRE(cone.contains(Vector<double, 4>{}));
-    STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 2.0, 3.0, 1.0}));
-    STATIC_REQUIRE(cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{1.0, 2.0, 3.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{1.0, 0.0, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
-    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
-    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).value());
+    STATIC_REQUIRE(cone.less_than(std::tuple(Vectord<3>{}, 0.0),
+                                  std::tuple(Vectord<3>{}, 0.0))
+                       .has_value());
+    STATIC_REQUIRE(cone.less_than(std::tuple(Vectord<3>{}, 0.0),
+                                  std::tuple(Vectord<3>{}, 0.0))
+                       .value());
   }
 
   SECTION("Test Open Polyhedron", "[A x < b]") {
@@ -320,12 +336,13 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{0.1, 0.1, 0.1}));
 
     constexpr auto cone = poly.cone_view();
-    STATIC_REQUIRE(!cone.contains(Vector<double, 4>{}));
-    STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 2.0, 3.0, 1.0}));
-    STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
-    STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.1, 0.1, 0.1, 1.0}));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{1.0, 2.0, 3.0}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{1.0, 0.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.1, 0.1, 0.1}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-    STATIC_REQUIRE(!cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
+    constexpr auto pt = std::make_tuple(Vectord<3>{}, 1.0);
+    STATIC_REQUIRE(!cone.less_than(pt, pt).has_value());
   }
 
   mat_traits<Matrix<double, 2, 3>> C_mat;
@@ -346,13 +363,14 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
                    poly);
 
     constexpr auto cone = poly.cone_view();
-    STATIC_REQUIRE(cone.contains(Vector<double, 4>{}));
-    STATIC_REQUIRE(cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
-    STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.0, 1.0, 0.0, 1.0}));
-    STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.0, 0.0, 1.0, 1.0}));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{1.0, 0.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 0.0, 1.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
-    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
-    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).value());
+    constexpr auto pt = std::make_tuple(Vectord<3>{}, 1.0);
+    STATIC_REQUIRE(cone.less_than(pt, pt).has_value());
+    STATIC_REQUIRE(cone.less_than(pt, pt).value());
   }
 
   SECTION("Test Open Polyhedron", "[A x < b, C x == d]") {
@@ -369,13 +387,15 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
                    poly);
 
     constexpr auto cone = poly.cone_view();
-    STATIC_REQUIRE(!cone.contains(Vector<double, 4>{}));
-    STATIC_REQUIRE(!cone.contains(Vector<double, 4>{1.0, 0.0, 0.0, 1.0}));
-    STATIC_REQUIRE(!cone.contains(Vector<double, 4>{0.0, 1.0, 0.0, 1.0}));
-    STATIC_REQUIRE(!cone.contains(Vector<double, 4>{0.0, 0.0, 1.0, 1.0}));
-    STATIC_REQUIRE(cone.contains(Vector<double, 4>{0.2, 0.3, 0.5, 1.0}));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{1.0, 0.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.0, 0.0, 1.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.2, 0.3, 0.5}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-    STATIC_REQUIRE(!cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
+
+    constexpr auto pt = std::make_tuple(Vectord<3>{}, 1.0);
+    STATIC_REQUIRE(!cone.less_than(pt, pt).has_value());
   }
 }
 
@@ -408,16 +428,17 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(!simplex.project(proj_map, Vectord<3>{}).has_value());
 
     constexpr auto cone = simplex.cone_view();
-    STATIC_REQUIRE(cone.contains(Vectord<4>{0.8, 0.1, 0.1, 1.0}));
-    STATIC_REQUIRE(!cone.contains(Vectord<4>{-0.8, 0.1, 0.1, 1.0}));
-    STATIC_REQUIRE(!cone.contains(Vectord<4>{0.8, 0.1, 0.0, 1.0}));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.8, 0.1, 0.1}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{-0.8, 0.1, 0.1}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.8, 0.1, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(cone.less_than(Vectord<4>{0.8, 0.1, 0.0, 1.0},
-                                  Vectord<4>{1.6, 0.2, 0.0, 2.0})
-                       .has_value());
-    STATIC_REQUIRE(cone.less_than(Vectord<4>{0.8, 0.2, 0.0, 1.0},
-                                  Vectord<4>{1.6, 0.4, 0.0, 2.0})
-                       .value());
+    constexpr auto a = std::make_tuple(Vectord<3>{0.8, 0.2, 0.0}, 1.0);
+    constexpr auto b = std::make_tuple(Vectord<3>{1.6, 0.2, 0.0}, 2.0);
+    constexpr auto c = std::make_tuple(Vectord<3>{1.6, 0.4, 0.0}, 2.0);
+    STATIC_REQUIRE(cone.less_than(a, b).has_value());
+    STATIC_REQUIRE(!cone.less_than(a, b).value());
+    STATIC_REQUIRE(cone.less_than(a, c).has_value());
+    STATIC_REQUIRE(cone.less_than(a, c).value());
   }
 }
 
@@ -446,19 +467,17 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
              .has_value());
     // (2) cone checks
     constexpr auto cone = set.cone_view();
-    STATIC_REQUIRE(cone.contains(Vectord<3>{1.0, 0.0, 1.0}));
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{-0.1, 0.1, 1.0}));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{1.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{-0.1, 0.1}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(
-        cone.less_than(Vectord<3>{1.0, 0.0, 1.0}, Vectord<3>{2.0, 1.0, 1.0})
-            .has_value());
-    STATIC_REQUIRE(
-        cone.less_than(Vectord<3>{1.0, 0.0, 1.0}, Vectord<3>{2.0, 1.0, 1.0})
-            .value());
-    STATIC_REQUIRE(
-        cone.less_than(Vectord<3>{}, Vectord<3>{-1.0, 0.1, 1.0}).has_value());
-    STATIC_REQUIRE(
-        !cone.less_than(Vectord<3>{}, Vectord<3>{-1.0, 0.1, 1.0}).value());
+    constexpr auto a = std::make_tuple(Vectord<2>{1.0, 0.0}, 1.0);
+    constexpr auto b = std::make_tuple(Vectord<2>{2.0, 1.0}, 1.0);
+    constexpr auto z = std::make_tuple(Vectord<2>{}, 0.0);
+    constexpr auto c = std::make_tuple(Vectord<2>{-1.0, 0.1}, 1.0);
+    STATIC_REQUIRE(cone.less_than(a, b).has_value());
+    STATIC_REQUIRE(cone.less_than(a, b).value());
+    STATIC_REQUIRE(cone.less_than(z, c).has_value());
+    STATIC_REQUIRE(!cone.less_than(z, c).value());
   }
 }
 

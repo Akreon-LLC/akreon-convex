@@ -15,9 +15,7 @@ namespace convex {
  *
  * P = { x | A x <= b, C x = d }
  */
-
-template <linalg::RnSpace Space, HalfspaceType Type,
-          linalg::MatrixLike MatA,
+template <linalg::RnSpace Space, HalfspaceType Type, linalg::MatrixLike MatA,
           linalg::MatrixLike MatC = linalg::Matrix<linalg::mat_type_t<Space>, 0,
                                                    linalg::space_dim_v<Space>>,
           ViewTag Tag = ViewTag::ConvexSet>
@@ -52,18 +50,6 @@ class Polyhedron
   static_assert(std::same_as<T, MatA_T>);
   static_assert(std::same_as<MatA_T, MatC_T>);
 
-  /// @brief lifted point (based on lifted space or not)
-  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexCone,
-                                            linalg::Vector<T, N - 1>, Point>;
-
-  /// @brief verify domain size align to vector space dim
-  static constexpr size_t AugSize = linalg::vec_size_v<AugmentedPoint>;
-  static_assert(AugSize == ColsA);
-  static_assert(AugSize == ColsC);
-
-  /// @brief mat space based on augmented dim size
-  using MatSpace = linalg::Matrix<T, 1, AugSize>;
-
   /**
    * @brief CTOR for polyhedron set
    *
@@ -89,11 +75,11 @@ class Polyhedron
     // (1) verify halfspaces for each row in A and b check if halfspace is
     // valid
     for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<MatSpace, Type>(A(i), b(i)).is_well_formed()) return false;
+      if (!Halfspace<Space, Type>(A(i), b(i)).is_well_formed()) return false;
 
     // (2) verify hyperplanes C x = d is valid
     for (size_t i = 0; i < RowsC; ++i)
-      if (RowsC > 0 && !Hyperplane<MatSpace>(C(i), d(i)).is_well_formed())
+      if (RowsC > 0 && !Hyperplane<Space>(C(i), d(i)).is_well_formed())
         return false;
 
     return true;
@@ -106,25 +92,41 @@ class Polyhedron
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x_in, const T& tol) const {
-    T t(1);
-    AugmentedPoint x;
-    if constexpr (Tag == ViewTag::ConvexCone) {
-      if (x_in(N - 1) < T(0)) return false;
-      t *= x_in(N - 1);
-      x = std::get<0>(linalg::splice<N - 1>(x_in));
-    } else {
-      x = x_in;
-    }
+  constexpr bool contains_impl(const Point& x, const T& tol) const {
+    // (0) check if x is in the halfspaces defined by A x <= b
+    for (size_t i = 0; i < RowsA; ++i)
+      if (!Halfspace<Space, Type>(A(i), b(i)).contains(x, tol)) return false;
+
+    // (1) check if x is in the affine set defined by C x = d
+    for (size_t i = 0; i < RowsC; ++i)
+      if (RowsC > 0 && !Hyperplane<Space>(C(i), d(i)).contains(x, tol))
+        return false;
+
+    return true;
+  }
+
+  /**
+   * @brief check if candidate vector is in the set
+   *
+   * @param (x, t) \in R^n x R
+   * @param scalar tolerance
+   *
+   * @return T/F
+   */
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
+                               const T& tol) const {
+    const auto x = std::get<0>(x_in);
+    const auto t = std::get<1>(x_in);
+    if (t < T(0)) return false;
 
     // (0) check if x is in the halfspaces defined by A x <= b
     for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<MatSpace, Type>(A(i), t * b(i)).contains(x, tol))
+      if (!Halfspace<Space, Type>(A(i), t * b(i)).contains(x, tol))
         return false;
 
     // (1) check if x is in the affine set defined by C x = d
     for (size_t i = 0; i < RowsC; ++i)
-      if (RowsC > 0 && !Hyperplane<MatSpace>(C(i), t * d(i)).contains(x, tol))
+      if (RowsC > 0 && !Hyperplane<Space>(C(i), t * d(i)).contains(x, tol))
         return false;
 
     return true;
@@ -181,11 +183,10 @@ class Polyhedron
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
-  {
-    return ConeView(Polyhedron<linalg::Matrix<T, 1, N + 1>, Type, decltype(A),
-                               decltype(C), ViewTag::ConvexCone>(A, b, C, d));
+  constexpr auto cone_view_impl() const {
+    return ConeView(
+        Polyhedron<Space, Type, decltype(A), decltype(C), ViewTag::ConvexCone>(
+            A, b, C, d));
   }
 
   /**

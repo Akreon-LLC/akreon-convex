@@ -56,6 +56,11 @@ class LogDetFn : public ConcaveFn<Domain, LogDetFn<Domain>> {
   /**
    * @brief hypograph impl
    *
+   * F(X) = log det X
+   * graph(F(X)) = { (x, log(det(X))) | x \in dom f }
+   * hypo(F(X)) = { (x, t) | log(det(X)) >= t, x \in dom f }
+   * \equiv { (x, t) | \prod_i^n \lambda_i >= exp(t) }
+   *
    * @return hypograph
    */
   constexpr auto hypograph_impl() const {

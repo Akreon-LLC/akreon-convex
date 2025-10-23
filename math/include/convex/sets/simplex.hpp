@@ -32,31 +32,39 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
-  /// @brief lifted point (based on lifted space or not)
-  using AugmentedPoint = std::conditional_t<Tag == ViewTag::ConvexCone,
-                                            linalg::Vector<T, N - 1>, Point>;
-
   /**
    * @brief contains function to see if x is in the simplex
    *
    * @param point x
+   * @param tolerance (scalar)
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x_in, const T& tol) const {
-    T t(1), sum(0);
-    AugmentedPoint x;
-    size_t lim = N;
-    if constexpr (Tag == ViewTag::ConvexCone) {
-      lim = N - 1;
-      if (x_in(lim) < 0) return false;
-      t *= x_in(lim);
-      x = std::get<0>(linalg::splice<N - 1>(x_in));
-    } else {
-      x = x_in;
+  constexpr bool contains_impl(const Point& x, const T& tol) const {
+    T sum(0);
+    for (size_t i = 0; i < N; ++i) {
+      if (x(i) < T(0)) return false;
+      sum += x(i);
     }
+    return linalg::constexpr_abs(sum - T(1)) <= tol;
+  }
 
-    for (size_t i = 0; i < lim; ++i) {
+  /**
+   * @brief contains function to see if x is in the simplex
+   *
+   * @param (x, t) \in R^n x R
+   * @param tolerance (scalar)
+   *
+   * @return T/F
+   */
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
+                               const T& tol) const {
+    const auto x = std::get<0>(x_in);
+    auto t = std::get<1>(x_in);
+    if (t < T(0)) return false;
+
+    T sum(0);
+    for (size_t i = 0; i < N; ++i) {
       if (x(i) < T(0)) return false;
       sum += x(i);
     }
@@ -133,11 +141,8 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
-  {
-    return ConeView(
-        Simplex<linalg::Matrix<T, 1, N + 1>, ViewTag::ConvexCone>());
+  constexpr auto cone_view_impl() const {
+    return ConeView(Simplex<Space, ViewTag::ConvexCone>());
   }
 
   /**
