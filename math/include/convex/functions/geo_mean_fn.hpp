@@ -34,18 +34,17 @@ class GeoMeanFn : public ConcaveFn<Domain, GeoMeanFn<Domain>> {
    * @return y \in R
    */
   constexpr std::optional<T> eval_impl(const Point& x) const {
-    T prod(0);
+    T prod(1);
     std::for_each(x.begin(), x.end(), [&](const auto& pt) { prod *= pt; });
-    // (dakre) TODO take n-th root
-    return prod;
+    return linalg::constexpr_nrt<T, N>(prod);
   }
 
   /**
-   * @brief epigraph impl
+   * @brief hypograph impl
    *
-   * @return epigraph
+   * @return hypograph
    */
-  constexpr auto epigraph_impl() const {
+  constexpr auto hypograph_impl() const {
     // (dakre) TODO - impl
     return false;
   }

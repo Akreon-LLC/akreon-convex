@@ -43,21 +43,65 @@ constexpr T constexpr_abs(const T& x) {
 /**
  * @brief perform square root of input variable x via root finding
  *
- * @param some type T variable x
- * @param initial guess of type T
- * @param depth size indicating recursion stack depth
+ * f(g) = g^2 - x \to df/dg = 2 g
+ * Newton formula : g_{k+1} = g_k - \frac{g^2 - x} / {2 g_k} \equiv 0.5 * (g_n +
+ * x / g_n)
+ *
+ * @param x \in R
+ * @param g \in R (guess)
  *
  * @return sqrt(x)
  */
 template <FieldLike T>
   requires(!is_complex_v<T>)
-constexpr T constexpr_sqrt(const T& x, T guess = 1e-10, int depth = 0,
-                           T tol = 1e-10) {
+constexpr T constexpr_sqrt(const T& x, T g = 1e-10, T tol = 1e-10) {
   if (x == T(0)) return T(1e-30);
-  // (dakre) newton step 0.5 * (guess + x / guess)
-  if (depth + 1 < MAX_STEP_EVAL && constexpr_abs(guess * guess - x) > tol)
-    return constexpr_sqrt(x, T(0.5) * (guess + x / guess), depth + 1);
-  return guess;
+  assert(x > T(0));
+
+  for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
+    if (constexpr_abs(g * g - x) <= tol) return g;
+    g = T(0.5) * (g + x / g);
+  }
+  return g;
+}
+
+/**
+ * @brief nth root of an input var x \in Reals via newton step
+ *
+ * f(g) = g^n - x \to df/dg = n g^{n-1}
+ * Newton formula : g_{k+1} = g_k - \frac{g_k^n - x}{n g^{n-1}} \equiv
+ * g_{k+1} = 1/n ((n - 1) g_k + x / g_k^{n-1})
+ *
+ * @param x \in R
+ * @param g \n R (guess)
+ *
+ * @return nth root of x
+ */
+template <FieldLike T, size_t N>
+  requires(!is_complex_v<T>)
+constexpr T constexpr_nrt(T x, T g = 1e-10, T tol = 1e-10) {
+  if (x == T(0)) return T(1e-30);
+
+  if constexpr (N % 2 == 1) {
+    if (x < T(0)) x = -x, g = -g;
+  } else {
+    assert(x > T(0));
+  }
+
+  auto pow_n = [&g]() {
+    T pow(1);
+    for (size_t i = 0; i < N; ++i) pow *= g;
+    return pow;
+  };
+
+  for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
+    T gkm1(1);
+    for (size_t l = 0; l < N - 1; ++l) gkm1 *= g;
+
+    g = (T(N - 1) * g + x / gkm1) / T(N);
+    if (constexpr_abs(pow_n() - x) <= tol) return g;
+  }
+  return g;
 }
 
 /**
@@ -249,9 +293,11 @@ constexpr bool is_same(const T& a, const T& b, scalar_type_t<T> tol = 1e-10) {
  *
  * @return Vector of indices
  */
-template <FieldLike T, size_t N>
-  requires(!is_complex_v<T>)
-constexpr auto argsort_desc(const Vector<T, N>& x) {
+template <VectorLike Vec>
+  requires(!is_complex_v<vec_type_t<Vec>>)
+constexpr auto argsort_desc(const Vec& x) {
+  static constexpr size_t N = vec_size_v<Vec>;
+
   std::array<size_t, N> p;
   for (size_t i = 0; i < N; ++i) p[i] = i;
   for (size_t i = 0; i + 1 < N; ++i) {

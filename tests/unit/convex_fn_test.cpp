@@ -286,3 +286,21 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
                                  1.21428330036) < eps);
   }
 }
+
+TEST_CASE("Test log det fn", "[concave_fn]") {
+  SECTION("Test log det fn") {
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto log_det = LogDetFn<linalg::SymmetricMatrix<decltype(I)>>();
+    STATIC_REQUIRE(log_det(I).has_value());
+    STATIC_REQUIRE(log_det(I).value() == 0.0);
+    STATIC_REQUIRE(!log_det(-1.0 * I).has_value());
+  }
+}
+
+TEST_CASE("Test geometric mean fn", "[concave_fn]") {
+  SECTION("Test geometric mean fn") {
+    using Space = Matrixd<1, 4>;
+    constexpr auto geo_mean = GeoMeanFn<Space>();
+    STATIC_REQUIRE(geo_mean(Vectord<4>{1.0, 1.0, 1.0, 1.0}) == 1.0);
+  }
+}
