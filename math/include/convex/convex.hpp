@@ -15,6 +15,7 @@
 #include "functions/max_fn.hpp"
 #include "functions/norm_fn.hpp"
 #include "functions/quad_over_linear_fn.hpp"
+#include "functions/log_sum_exp_fn.hpp"
 #include "projective_map.hpp"
 #include "sets/convex_set.hpp"
 #include "sets/ellipsoid.hpp"

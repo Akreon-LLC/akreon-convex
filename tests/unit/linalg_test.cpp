@@ -47,8 +47,8 @@ TEST_CASE("Test constexpr math", "[math]") {
   STATIC_REQUIRE(!constexpr_atanh(-1.0).has_value());
   STATIC_REQUIRE(!constexpr_atanh(1.0).has_value());
   STATIC_REQUIRE(constexpr_atanh(0.0).value() == 0.0);
-  STATIC_REQUIRE(constexpr_abs(constexpr_atanh(0.5).value() -
-                               0.549306144224055) < 2 * eps);
+  STATIC_REQUIRE(
+      constexpr_abs(constexpr_atanh(0.5).value() - 0.549306144224055) < eps);
 
   constexpr auto b = std::complex<double>(1.0, -2.0);
   constexpr auto expected = 2.3607;

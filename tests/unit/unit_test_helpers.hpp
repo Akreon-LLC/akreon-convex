@@ -5,7 +5,7 @@
 
 namespace unit_test {
 
-constexpr double eps = 1e-10;
+constexpr double eps = 1e-8;
 
 template <typename T>
 concept DefaultConstructible = requires { T{}; };

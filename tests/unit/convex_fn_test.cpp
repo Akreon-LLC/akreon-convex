@@ -273,3 +273,16 @@ TEST_CASE("Test quad over linear", "[convex_fn]") {
     STATIC_REQUIRE(epi_f.contains(Vectord<5>{1.0, 2.0, 1.0, 2.0, 3.0}));
   }
 }
+
+TEST_CASE("Test log sum exp", "[convex_fn]") {
+  SECTION("Test log sum exp") {
+    using Space = Matrixd<1, 4>;
+    constexpr auto lse = LogSumExpFn<Space>();
+    STATIC_REQUIRE(lse(Vectord<4>{}).has_value());
+    STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{}).value() - 1.38629436112) <
+                   eps);
+    STATIC_REQUIRE(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).has_value());
+    STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).value() -
+                                 1.21428330036) < eps);
+  }
+}

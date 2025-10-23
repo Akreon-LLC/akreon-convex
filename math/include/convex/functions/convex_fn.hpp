@@ -27,6 +27,17 @@ class ConvexFn {
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
   /**
+   * @brief operator overload for evaluation fn
+   *
+   * @param point x \in domain
+   *
+   * @return y \in R
+   */
+  constexpr std::optional<T> operator()(const Point& x) const {
+    return self().eval_impl(x);
+  }
+
+  /**
    * @brief eval
    *
    * F(x) -> y \in R
