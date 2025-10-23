@@ -28,6 +28,8 @@ enum struct SymmetricMatrixType { INV = 0, IND, PSD, PD, NSD, ND };
 template <SquareMatrixLike Mat>
 struct SymmetricMatrix {
   using T = mat_type_t<Mat>;
+  using ScalarT = scalar_type_t<T>;
+  using ComplexT = std::complex<ScalarT>;
 
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t DIM = (N * (N + 1)) / 2;
@@ -40,7 +42,7 @@ struct SymmetricMatrix {
    * 1) / 2 elements
    * - Checks eigenvalue signs and sets type
    */
-  constexpr explicit SymmetricMatrix(const Mat& A, T tol = 1e-8) {
+  constexpr explicit SymmetricMatrix(const Mat& A, ScalarT tol = 1e-8) {
     // (0) First see if the incoming matrix is symmetric
     bool valid = false;
     if constexpr (!is_complex_v<Mat>)
@@ -67,7 +69,8 @@ struct SymmetricMatrix {
     if (!eig_decomp.get_converged()) return;
 
     size_t psd = 0, pd = 0, nsd = 0, nd = 0;
-    for (const auto& lambda : eig_decomp.get_eigenvalues()) {
+    const auto lambdas = eig_decomp.get_eigenvalues();
+    for (const auto& lambda : lambdas) {
       pd += lambda.real() > tol;
       psd += lambda.real() >= -tol;
       nd += lambda.real() < -tol;
@@ -83,6 +86,9 @@ struct SymmetricMatrix {
       type = SymmetricMatrixType::ND;
     else if (nsd == N)
       type = SymmetricMatrixType::NSD;
+
+    // (4) House keeping to store off determinant of matrix
+    det = eig_decomp.get_determinant();
   }
 
   /**
@@ -134,6 +140,7 @@ struct SymmetricMatrix {
   SymmetricMatrixType type;  //< SymmetricMatrixType value
   Vector<T, DIM>
       data;  //< Data stored from input square matrix as flattened n-dim vector
+  std::optional<ComplexT> det;  //< result of determinant
 };
 
 }  // namespace linalg

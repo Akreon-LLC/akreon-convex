@@ -234,6 +234,8 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     STATIC_REQUIRE(lambdas(1).real() == diag(1));
     STATIC_REQUIRE(lambdas(2).real() == diag(2));
 
+    STATIC_REQUIRE(result.get_determinant() == 6.0);
+
     constexpr auto V = result.get_eigenvectors();
     STATIC_REQUIRE(all_equal(V, make_identity<std::complex<double>, 3>()));
 
@@ -250,6 +252,9 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
         make_diag(Vectorcd<2>{std::complex(3.0, 0.0), std::complex(1.0, 0.0)});
     constexpr auto converged = result.get_converged();
     STATIC_REQUIRE(converged);
+
+    STATIC_REQUIRE(
+        is_same(result.get_determinant(), std::complex(3.0, 0.0), eps));
 
     constexpr auto lambdas = result.get_eigenvalues();
     STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));

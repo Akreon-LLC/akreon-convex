@@ -424,7 +424,7 @@ class EigenDecomposition {
    * @return \rho
    */
   constexpr auto get_spectral_radius() const {
-    std::complex<Real> rho(0.0);
+    Complex rho(0.0);
     for (size_t i = 0; i < N; ++i) {
       const auto mag_rho =
           constexpr_sqrt(rho.real() * rho.real() + rho.imag() * rho.imag());
@@ -434,6 +434,19 @@ class EigenDecomposition {
       rho = mag_lambda > mag_rho ? lambda(i) : rho;
     }
     return rho;
+  }
+
+  /**
+   * @brief get determinant
+   *
+   * \product \lambda_i = det(A)
+   *
+   * @return det (T)
+   */
+  constexpr auto get_determinant() const {
+    Complex det(1);
+    for (const auto& lam : lambda) det *= lam;
+    return det;
   }
 
  private:
