@@ -34,14 +34,10 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
-  /// @brief lifted point (based on lifted space or not)
-  static constexpr size_t AugSize = N - 2;
-  using AugPoint = linalg::Vector<T, AugSize>;
-
   /**
    * @brief contains to see if x is in rotated soc
    *
-   * @param point x_in = (x \in R^{n-2}, y \in R_++, t \in R_+)
+   * @param point x_in = (x \in R^{n-2}, y \in R_++, z \in R_+)
    *
    * @return T/F
    */
@@ -50,9 +46,9 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
     if (y < T(0)) return false;
     T t = x_in(N - 1);
     if (t < T(0)) return false;
-    AugPoint x = std::get<0>(linalg::splice<N - 2>(x_in));
+    const auto x = std::get<0>(linalg::splice<N - 2>(x_in));
 
-    const auto norm_x = linalg::L2<AugPoint>()(x);
+    const auto norm_x = linalg::L2<decltype(x)>()(x);
     const bool zeros = linalg::all_zero(x_in);
 
     y = y == T(0) ? tol : y;
@@ -64,6 +60,19 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
       default:
         return zeros || norm_x * norm_x <= y * t + tol;
     }
+  }
+
+  /**
+   * @brief contains to see if x is in rotated soc
+   *
+   * @param x \in R^{n-2}, y \in R_++, z \in R_+
+   *
+   * @return T/F
+   */
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
+                               const T& tol) const {
+    const auto x = std::get<0>(x_in);
+    return contains_impl(x, tol);
   }
 
   /**
@@ -96,9 +105,7 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
-  {
+  constexpr auto cone_view_impl() const {
     return ConeView(RotatedSOC<Space, Type, ViewTag::ConvexCone>());
   }
 

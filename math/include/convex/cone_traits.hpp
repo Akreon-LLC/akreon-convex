@@ -304,7 +304,7 @@ template <linalg::RnSpace Space, LMIType Type, ViewTag Tag>
 struct cone_traits<LMI<Space, Type, Tag>> {
   using ConeT = LMI<Space, Type, Tag>;
   using T = linalg::space_type_t<Space>;
-  static constexpr size_t N = linalg::space_dim_v<Space> - 1;
+  static constexpr size_t N = linalg::space_dim_v<Space>;
 
   static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
     return Type == LMIType::NonStrict ? ConeCheck::True : ConeCheck::False;

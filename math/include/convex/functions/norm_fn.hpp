@@ -45,22 +45,13 @@ class NormFn : public ConvexFn<Space, NormFn<Space, Norm>> {
    * @return epigraph = norm cone
    */
   constexpr auto epigraph_impl() const {
-    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
     if constexpr (std::same_as<Norm, linalg::L2<Point>>) {
-      return NormCone<LiftedSpace, NormConeType::L2CC>().cone_view();
+      return NormCone<Space, NormConeType::L2CC>().cone_view();
     } else if constexpr (std::same_as<Norm, linalg::L1<Point>>) {
-      return NormCone<LiftedSpace, NormConeType::L1CC>().cone_view();
+      return NormCone<Space, NormConeType::L1CC>().cone_view();
     } else {
-      return NormCone<LiftedSpace, NormConeType::LinfCC>().cone_view();
+      return NormCone<Space, NormConeType::LinfCC>().cone_view();
     }
   }
-
-  /**
-   * @brief hypograph impl
-   *
-   * hypo(F(x)) = hypo(||x||) = { (x, t) | ||x|| >= t, x \in dom f }
-   *
-   * @return hypograph
-   */
 };
 }  // namespace convex

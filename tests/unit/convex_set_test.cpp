@@ -500,12 +500,13 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(set.contains(Vectord<2>{0.2, 0.5}));
     STATIC_REQUIRE(!set.contains(Vectord<2>{0.5, 0.5}));
     constexpr auto cone = set.cone_view();
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{1.0, 2.0, 1.0}));
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{0.2, 0.5, 1.0}));
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{0.5, 0.5, 1.0}));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{1.0, 2.0}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{0.2, 0.5}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{0.5, 0.5}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-    STATIC_REQUIRE(!cone.less_than(Vectord<3>{}, Vectord<3>{}).has_value());
+    constexpr auto z = std::tuple(Vectord<2>{}, 0.0);
+    STATIC_REQUIRE(!cone.less_than(z, z).has_value());
   }
 
   SECTION("Test Nonstrict LMI", "[A(x) <= B]") {
@@ -517,13 +518,15 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));
     STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
     constexpr auto cone = set.cone_view();
-    STATIC_REQUIRE(!cone.contains(Vectord<4>{1.0, 2.0, 3.0, 1.0}));
-    STATIC_REQUIRE(cone.contains(Vectord<4>{}));
-    STATIC_REQUIRE(cone.contains(Vectord<4>{0.2, 0.5, 0.1, 1.0}));
-    STATIC_REQUIRE(cone.contains(Vectord<4>{1. / 3., 1. / 3., 1. / 3., 1.0}));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{1.0, 2.0, 3.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.2, 0.5, 0.1}, 1.0)));
+    STATIC_REQUIRE(
+        cone.contains(std::tuple(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
-    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).has_value());
-    STATIC_REQUIRE(cone.less_than(Vectord<4>{}, Vectord<4>{}).value());
+    constexpr auto z = std::make_tuple(Vectord<3>{}, 1.0);
+    STATIC_REQUIRE(cone.less_than(z, z).has_value());
+    STATIC_REQUIRE(cone.less_than(z, z).value());
   }
 }
 
@@ -562,20 +565,20 @@ TEST_CASE("PSD cone", "[convex_sets]") {
 
     // (2) cone view check
     constexpr auto cone_v = cone.cone_view();
-    STATIC_REQUIRE(cone_v.contains(A));
-    STATIC_REQUIRE(cone_v.contains(B));
-    STATIC_REQUIRE(cone_v.contains(I));
-    STATIC_REQUIRE(cone_v.contains(Z));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(A, 1.0)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(B, 1.0)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(I, 1.0)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Z, 1.0)));
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(cone_v.less_than(A, A).has_value());
-    STATIC_REQUIRE(cone_v.less_than(A, A).value());
-    STATIC_REQUIRE(cone_v.less_than(I, Z).has_value());
-    STATIC_REQUIRE(!cone_v.less_than(I, Z).value());
-    STATIC_REQUIRE(cone_v.less_than_strict(A, A).has_value());
-    // (dakre) TODO look at this one further... so eigs are PSD which would
-    // indicate that they are in the interior of the PsdCone so strict should
-    // pass
-    STATIC_REQUIRE(cone_v.less_than_strict(A, A).value());
+    constexpr auto tup_A = std::make_tuple(A, 1.0);
+    constexpr auto tup_I = std::make_tuple(I, 1.0);
+    constexpr auto tup_Z = std::make_tuple(Z, 1.0);
+    STATIC_REQUIRE(cone_v.less_than(tup_A, tup_A).has_value());
+    STATIC_REQUIRE(cone_v.less_than(tup_A, tup_A).value());
+    STATIC_REQUIRE(cone_v.less_than(tup_I, tup_Z).has_value());
+    STATIC_REQUIRE(!cone_v.less_than(tup_I, tup_Z).value());
+    STATIC_REQUIRE(cone_v.less_than_strict(tup_A, tup_A).has_value());
+    STATIC_REQUIRE(cone_v.less_than_strict(tup_A, tup_A).value());
   }
 }
 
@@ -591,17 +594,15 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
   }
 
   SECTION("Test open L2 norm cone") {
-    constexpr auto t = constexpr_sqrt(5.0);
-    constexpr auto c = Vector<double, 2>{1.0, t};
     constexpr auto cone = NormCone<Matrix<double, 1, 2>, NormConeType::L2OC>();
     STATIC_REQUIRE(cone.is_well_formed());
-    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{}));
-    STATIC_REQUIRE(cone.contains(c));
-    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(cone.contains(Vectord<2>{}));
+    STATIC_REQUIRE(cone.contains(Vectord<2>{0.1, 0.1}));
+    STATIC_REQUIRE(!cone.contains(Vectord<2>{2.0, 0.0}));
     constexpr auto cone_v = cone.cone_view();
-    STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{}));
-    STATIC_REQUIRE(cone_v.contains(c));
-    STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectord<2>{0.2, 0.3}, 1.0)));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<2>{2.0, 0.1}, 1.0)));
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::False);
 
     constexpr auto I = make_identity<double, 2>();
@@ -612,32 +613,30 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
   }
 
   SECTION("Test closed L2 norm cone") {
-    constexpr auto t = constexpr_sqrt(5.f);
-    constexpr auto c = Vector<float, 2>{1.f, t};
     constexpr auto cone = NormCone<Matrix<float, 1, 2>, NormConeType::L2CC>();
     STATIC_REQUIRE(cone.is_well_formed());
-    STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
-    STATIC_REQUIRE(cone.contains(c));
-    STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{}));
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{0.2f, 0.2f}));
+    STATIC_REQUIRE(!cone.contains(Vector<float, 2>{2.f, 0.f}));
+
     constexpr auto cone_v = cone.cone_view();
-    STATIC_REQUIRE(cone_v.contains(Vector<float, 2>{}));
-    STATIC_REQUIRE(cone_v.contains(c));
-    STATIC_REQUIRE(!cone_v.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectorf<2>{}, 0.0)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectorf<2>{0.1f, 0.2f}, 1.0)));
+    STATIC_REQUIRE(!cone_v.contains(Vectorf<2>{2.f, 1.f}));
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
   }
 
   SECTION("Test open L1 norm cone") {
-    constexpr auto t = 3.0;
-    constexpr auto c = Vector<double, 2>{1.0, t};
     constexpr auto cone = NormCone<Matrix<double, 1, 2>, NormConeType::L1OC>();
     STATIC_REQUIRE(cone.is_well_formed());
-    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{}));
-    STATIC_REQUIRE(cone.contains(c));
-    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(cone.contains(Vectord<2>{}));
+    STATIC_REQUIRE(cone.contains(Vectord<2>{0.5, 0.3}));
+    STATIC_REQUIRE(!cone.contains(Vectord<2>{2.2, 1.0}));
+
     constexpr auto cone_v = cone.cone_view();
-    STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{}));
-    STATIC_REQUIRE(cone_v.contains(c));
-    STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectord<2>{0.1, 0.2}, 1.0)));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<2>{2.0, 1.0}, 1.0)));
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::False);
 
     constexpr auto I = make_identity<double, 2>();
@@ -648,35 +647,33 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
   }
 
   SECTION("Test closed L1 norm cone") {
-    constexpr auto t = 3.f;
-    constexpr auto c = Vector<float, 2>{1.f, t};
     constexpr auto cone = NormCone<Matrix<float, 1, 2>, NormConeType::L1CC>();
     STATIC_REQUIRE(cone.is_well_formed());
-    STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
-    STATIC_REQUIRE(cone.contains(c));
-    STATIC_REQUIRE(cone.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
-    STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 4.f, c(1)}));
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{}));
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{0.2f, 0.1f}));
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{0.1f, 0.8f}));
+    STATIC_REQUIRE(!cone.contains(Vectorf<2>{4.f, 1.f}));
+
     constexpr auto cone_v = cone.cone_view();
-    STATIC_REQUIRE(cone_v.contains(Vector<float, 2>{}));
-    STATIC_REQUIRE(cone_v.contains(c));
-    STATIC_REQUIRE(cone_v.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
-    STATIC_REQUIRE(!cone_v.contains(Vector<float, 2>{c(0) + 4.f, c(1)}));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectorf<2>{}, 0.f)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectorf<2>{0.01f, 0.02f}, 1.f)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectorf<2>{2.f, 1.f}, 3.f)));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectorf<2>{4.f, 1.f}, 3.f)));
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
   }
 
   SECTION("Test open Linf norm cone") {
-    constexpr auto t = 2.0;
-    constexpr auto c = Vector<double, 2>{1.0, t};
     constexpr auto cone =
         NormCone<Matrix<double, 1, 2>, NormConeType::LinfOC>();
     STATIC_REQUIRE(cone.is_well_formed());
-    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{}));
-    STATIC_REQUIRE(cone.contains(c));
-    STATIC_REQUIRE(!cone.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(cone.contains(Vectord<2>{}));
+    STATIC_REQUIRE(cone.contains(Vectord<2>{0.3, 0.3}));
+    STATIC_REQUIRE(!cone.contains(Vectord<2>{2.0, 0.9}));
+
     constexpr auto cone_v = cone.cone_view();
-    STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{}));
-    STATIC_REQUIRE(cone_v.contains(c));
-    STATIC_REQUIRE(!cone_v.contains(Vector<double, 2>{c(0) + 2.0, c(1)}));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectord<2>{1.2, 5.0}, 6.0)));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<2>{2.0, 2.0}, 1.0)));
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::False);
 
     constexpr auto I = make_identity<double, 2>();
@@ -687,19 +684,18 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
   }
 
   SECTION("Test closed Linf norm cone") {
-    constexpr auto t = 2.f;
-    constexpr auto c = Vector<float, 2>{1.f, t};
     constexpr auto cone = NormCone<Matrix<float, 1, 2>, NormConeType::LinfCC>();
     STATIC_REQUIRE(cone.is_well_formed());
-    STATIC_REQUIRE(cone.contains(Vector<float, 2>{}));
-    STATIC_REQUIRE(cone.contains(c));
-    STATIC_REQUIRE(cone.contains(Vector<float, 2>{c(0) + 1.f, c(1)}));
-    STATIC_REQUIRE(!cone.contains(Vector<float, 2>{c(0) + 3.f, c(1)}));
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{}));
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{0.4f, 0.4f}));
+    STATIC_REQUIRE(cone.contains(Vectorf<2>{1.f, 0.2f}));
+    STATIC_REQUIRE(!cone.contains(Vectorf<2>{3.f, 0.4f}));
+
     constexpr auto cone_v = cone.cone_view();
-    STATIC_REQUIRE(cone_v.contains(Vector<float, 2>{}));
-    STATIC_REQUIRE(cone_v.contains(c));
-    STATIC_REQUIRE(cone_v.contains(Vector<float, 2>{c(0) + 1.f, c(1)}));
-    STATIC_REQUIRE(!cone_v.contains(Vector<float, 2>{c(0) + 3.f, c(1)}));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectorf<2>{}, 0.f)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectorf<2>{0.1f, 0.2f}, 1.f)));
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectorf<2>{1.f, 1.f}, 1.f)));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectorf<2>{3.f, 0.f}, 1.f)));
   }
 }
 
@@ -743,10 +739,12 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!ball.project(proj_map, Vectord<2>{}).has_value());
 
     constexpr auto cone = ball.cone_view();
-    constexpr auto lifted_c = Vectord<3>{c(0), c(1), r};
-    STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 0.1, c(1) - 0.2, r}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{c(0) + 2.0, c(1), r}));
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{c(0) + 2.0, c(1), 1.0}));
+    STATIC_REQUIRE(
+        cone.contains(std::tuple(Vectord<2>{c(0) + 0.1, c(1) - 0.2}, r)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{c(0) + 2.0, c(1)}, r)));
+    STATIC_REQUIRE(
+        !cone.contains(std::tuple(Vectord<2>{c(0) + 2.0, c(1)}, 1.0)));
+    constexpr auto lifted_c = std::tuple(c, r);
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
     STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
@@ -771,15 +769,19 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(res == ellipse);
 
     constexpr auto cone = ball.cone_view();
-    constexpr auto lifted_c = Vectorf<3>{c(0), c(1), r};
-    STATIC_REQUIRE(cone.contains(Vectorf<3>{c(0) + 0.1f, c(1) - 0.2f, 1.f}));
-    STATIC_REQUIRE(cone.contains(Vectorf<3>{c(0) + 2.f, c(1), 1.f}));
+    STATIC_REQUIRE(
+        cone.contains(std::tuple(Vectorf<2>{c(0) + 0.1f, c(1) - 0.2f}, 1.f)));
+    STATIC_REQUIRE(
+        cone.contains(std::tuple(Vectorf<2>{c(0) + 2.f, c(1)}, 1.f)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
+
+    constexpr auto lifted_c = std::tuple(c, r);
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
-    STATIC_REQUIRE(cone.less_than_strict(
-                           lifted_c, Vectorf<3>{c(0) + 1.f, c(1) + 1.f, r * r})
-                       .value());
+    STATIC_REQUIRE(
+        cone.less_than_strict(
+                lifted_c, std::tuple(Vectorf<2>{c(0) + 1.f, c(1) + 1.f}, r * r))
+            .value());
   }
 
   SECTION("Test closed L1 norm ball") {
@@ -813,13 +815,14 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!ball.project(proj_map, Vectord<4>{}).has_value());
 
     constexpr auto cone = ball.cone_view();
-    constexpr auto lifted_c = Vectord<5>{c(0), c(1), c(2), c(3), r};
-    STATIC_REQUIRE(cone.contains(Vectord<5>{}));
-    STATIC_REQUIRE(
-        cone.contains(Vectord<5>{c(0), c(1), c(2), c(3) + 0.1, 1.0}));
-    STATIC_REQUIRE(
-        cone.contains(Vectord<5>{c(0) + 1.0, c(1), c(2), c(3), 1.0}));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<4>{}, 0.0)));
+    STATIC_REQUIRE(cone.contains(
+        std::tuple(Vectord<4>{c(0), c(1), c(2), c(3) + 0.1}, 1.0)));
+    STATIC_REQUIRE(cone.contains(
+        std::tuple(Vectord<4>{c(0) + 1.0, c(1), c(2), c(3)}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
+
+    constexpr auto lifted_c = std::tuple(c, r);
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
     STATIC_REQUIRE(cone.less_than_strict(lifted_c, lifted_c).has_value());
@@ -838,12 +841,14 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!ball.contains(Vectorf<4>{c(0) + 1.f, c(1), c(2), c(3)}));
 
     constexpr auto cone = ball.cone_view();
-    constexpr auto lifted_c = Vectorf<5>{c(0), c(1), c(2), c(3), r};
-    STATIC_REQUIRE(cone.contains(lifted_c));
-    STATIC_REQUIRE(!cone.contains(Vectorf<5>{}));
-    STATIC_REQUIRE(cone.contains(Vectorf<5>{c(0), c(1), c(2), c(3) + 0.1f, r}));
-    STATIC_REQUIRE(!cone.contains(Vectorf<5>{c(0) + 1.f, c(1), c(2), c(3), r}));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectorf<4>{}, 0.0)));
+    STATIC_REQUIRE(cone.contains(
+        std::tuple(Vectorf<4>{c(0), c(1), c(2), c(3) + 0.1f}, r)));
+    STATIC_REQUIRE(!cone.contains(
+        std::tuple(Vectorf<4>{c(0) + 1.f, c(1), c(2), c(3)}, r)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
+    constexpr auto lifted_c = std::tuple(c, r);
+    STATIC_REQUIRE(cone.contains(lifted_c));
     STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
   }
@@ -867,11 +872,13 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!ball.project(proj_map, Vectord<3>{}).has_value());
 
     constexpr auto cone = ball.cone_view();
-    constexpr auto lifted_c = Vectord<4>{1.0, 2.0, 3.0, r};
-    STATIC_REQUIRE(cone.contains(lifted_c));
-    STATIC_REQUIRE(!cone.contains(Vectord<4>{}));
-    STATIC_REQUIRE(cone.contains(Vectord<4>{c(0) + 1.0, c(1), c(2), r}));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(
+        cone.contains(std::tuple(Vectord<3>{c(0) + 1.0, c(1), c(2)}, r)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
+
+    constexpr auto lifted_c = std::tuple(c, r);
+    STATIC_REQUIRE(cone.contains(lifted_c));
     STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
   }
@@ -895,15 +902,18 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
 
     constexpr auto cone = ball.cone_view();
-    constexpr auto lifted_c = Vectorf<4>{c(0), c(1), c(2), r};
-    STATIC_REQUIRE(cone.contains(lifted_c));
-    STATIC_REQUIRE(cone.contains(Vectorf<4>{}));
-    STATIC_REQUIRE(cone.contains(Vectorf<4>{c(0) + 1.f, c(1), c(2), r}));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectorf<3>{}, 0.0)));
+    STATIC_REQUIRE(
+        cone.contains(std::tuple(Vectorf<3>{c(0) + 1.f, c(1), c(2)}, r)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
+
+    constexpr auto lifted_c = std::tuple(c, r);
+    STATIC_REQUIRE(cone.contains(lifted_c));
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).has_value());
     STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
     STATIC_REQUIRE(
-        cone.less_than_strict(lifted_c, Vectorf<4>{2.f, 2.f, 2.f, r * r})
+        cone.less_than_strict(lifted_c,
+                              std::tuple(Vectorf<3>{2.f, 2.f, 2.f}, r * r))
             .value());
   }
 }
@@ -945,14 +955,14 @@ TEST_CASE("Test Rotated SOC", "[convex_sets]") {
         rsoc.transform(AffineMap<Matrix<double, 3, 3>>(I, Vectord<3>{}));
     STATIC_REQUIRE(rsoc_t == rsoc);
     constexpr auto cone = rsoc.cone_view();
-    STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 0.0}));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 2.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(
-        cone.less_than(Vectord<3>{}, Vectord<3>{1.0, 1.0, 1.0}).has_value());
-    STATIC_REQUIRE(
-        cone.less_than(Vectord<3>{}, Vectord<3>{1.0, 1.0, 1.0}).value());
-    STATIC_REQUIRE(!cone.less_than_strict(Vectord<3>{}, Vectord<3>{}).value());
+    constexpr auto z = std::make_tuple(Vectord<3>{}, 1.0);
+    constexpr auto ones = std::make_tuple(Vectord<3>{1.0, 1.0, 1.0}, 1.0);
+    STATIC_REQUIRE(cone.less_than(z, ones).has_value());
+    STATIC_REQUIRE(cone.less_than(z, ones).value());
+    STATIC_REQUIRE(!cone.less_than_strict(z, z).value());
   }
 }
 
@@ -975,9 +985,9 @@ TEST_CASE("Test Exp Cone", "[convex_sets]") {
     STATIC_REQUIRE(exp_cone_t == exp_cone);
     constexpr auto cone = exp_cone.cone_view();
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
-    STATIC_REQUIRE(cone.contains(Vectord<3>{-1.0, 1.0, 2.0}));
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{0.1, 1.0, 2.0}));
-    STATIC_REQUIRE(!cone.contains(Vectord<3>{0.1, 1.0, -2.0}));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 2.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{-1.0, 1.0, 2.0}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.1, 1.0, 2.0}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.1, 1.0, -2.0}, 1.0)));
   }
 }

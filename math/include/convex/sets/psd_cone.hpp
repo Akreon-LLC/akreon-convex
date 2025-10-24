@@ -50,6 +50,20 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space, Tag>> {
   }
 
   /**
+   * @brief check if candidate matrix X \in S^n_++
+   *
+   * @param (x, t) \in R^n x R
+   * @param scalar tolerance
+   *
+   * @return T/F
+   */
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
+                               const T& tol) const {
+    const auto X = std::get<0>(x_in);
+    return contains_impl(X, tol);
+  }
+
+  /**
    * @brief equality comparison
    *
    * @param convex set
@@ -76,9 +90,7 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
-  {
+  constexpr auto cone_view_impl() const {
     return ConeView(PsdCone<Space, ViewTag::ConvexCone>());
   }
 

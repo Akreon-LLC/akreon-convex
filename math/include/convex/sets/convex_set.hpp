@@ -38,6 +38,9 @@ class ConvexSet {
   /// @brief alias for point
   using Point = linalg::space_point_t<Space>;
 
+  /// @brief alias for view tag
+  static constexpr ViewTag Tag = set_view_tag_v<Derived>;
+
   /**
    * @brief is_well_formed
    *
@@ -62,14 +65,17 @@ class ConvexSet {
   /**
    * @brief contains to check if the point lies in the convex cone
    *
-   * When lifted to convex cone the pair (x,t) is checked to see if its contained within the set
+   * When lifted to convex cone the pair (x,t) is checked to see if its
+   * contained within the set
    *
    * @param (point, t) (n-dim vector) x R
    * @param optional tolerance
    *
    * @return T/F
    */
-  constexpr bool contains(const std::tuple<Point, T>& x, T tol = 1e-8) const {
+  constexpr bool contains(const std::tuple<Point, T>& x, T tol = 1e-8) const
+    requires(Tag != ViewTag::ConvexSet)
+  {
     return self().contains_impl(x, tol);
   }
 

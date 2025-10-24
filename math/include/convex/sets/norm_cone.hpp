@@ -32,25 +32,35 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
-  /// @brief lifted point (based on lifted space or not)
-  static constexpr size_t AugSize = N - 1;
-  using AugPoint = linalg::Vector<T, AugSize>;
-
   /**
    * @brief CTOR for norm cone
    */
   constexpr explicit NormCone() {}
 
   /**
-   * @brief CTOR for norm cone 
+   * @brief CTOR for norm cone
    *
    * Transformed from norm ball or rotated SOC
    *
    * @param center point from norm ball
    * @param r (radius from norm ball)
    */
-  constexpr explicit NormCone(const AugPoint& c_in, const T& r_in)
+  constexpr explicit NormCone(const Point& c_in, const T& r_in)
       : c(c_in), r(r_in) {}
+
+  /**
+   * @brief contains function to see if x is in the norm cone (y, t) \in K
+   *
+   * K = {(x, t) \in R^n x R | ||x|| <= 1}
+   *
+   * @param point (x,t) - lifted by default
+   * @param tolerance
+   *
+   * @return T/F
+   */
+  constexpr bool contains_impl(const Point& x, const T& tol) const {
+    return contains_impl(std::make_tuple(x, T(1)), tol);
+  }
 
   /**
    * @brief contains function to see if x is in the norm cone (y, t) \in K
@@ -62,33 +72,33 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x_in, const T& /* tol */) const {
-    T t = x_in(N - 1);
-    if (t < T(0)) return false;
-    AugPoint x = std::get<0>(linalg::splice<N - 1>(x_in));
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
+                               const T& /* tol */) const {
+    const auto x = std::get<0>(x_in);
+    auto t = std::get<1>(x_in);
 
-    AugPoint shift;
+    Point shift;
     if (r.has_value() && c.has_value()) {
       t *= r.value();
       shift = c.value();
     }
 
-    const bool zeros = linalg::all_zero(x_in);
+    const bool zeros = linalg::all_zero(x);
 
     switch (Type) {
       case NormConeType::L2OC:
-        return linalg::L2<AugPoint>()(x - shift) < t;
+        return linalg::L2<Point>()(x - shift) < t;
       case NormConeType::L2CC:
-        return zeros || linalg::L2<AugPoint>()(x - shift) <= t;
+        return zeros || linalg::L2<Point>()(x - shift) <= t;
       case NormConeType::L1OC:
-        return linalg::L1<AugPoint>()(x - shift) < t;
+        return linalg::L1<Point>()(x - shift) < t;
       case NormConeType::L1CC:
-        return zeros || linalg::L1<AugPoint>()(x - shift) <= t;
+        return zeros || linalg::L1<Point>()(x - shift) <= t;
       case NormConeType::LinfOC:
-        return linalg::Linf<AugPoint>()(x - shift) < t;
+        return linalg::Linf<Point>()(x - shift) < t;
       case NormConeType::LinfCC:
       default:
-        return zeros || linalg::Linf<AugPoint>()(x - shift) <= t;
+        return zeros || linalg::Linf<Point>()(x - shift) <= t;
     }
   }
 
@@ -126,9 +136,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
-  {
+  constexpr auto cone_view_impl() const {
     return ConeView(NormCone<Space, Type, ViewTag::ConvexCone>());
   }
 
@@ -150,8 +158,8 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
 
  private:
   /** @brief member variables in the norm cone */
-  std::optional<AugPoint> c;  //< center point from norm ball -> cone
-  std::optional<T> r;         //< radius from norm ball -> cone
+  std::optional<Point> c;  //< center point from norm ball -> cone
+  std::optional<T> r;      //< radius from norm ball -> cone
 };
 
 }  // namespace convex

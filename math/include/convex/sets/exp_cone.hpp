@@ -46,6 +46,19 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
   }
 
   /**
+   * @brief exp cone \subset R^3
+   *
+   * @param Point \in R^3 x R
+   *
+   * @return T/F
+   */
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
+                               const T& tol) const {
+    const auto x = std::get<0>(x_in);
+    return contains_impl(x, tol);
+  }
+
+  /**
    * @brief is well formed check
    *
    * @return T/F

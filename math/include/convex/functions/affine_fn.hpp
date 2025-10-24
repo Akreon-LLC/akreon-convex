@@ -64,8 +64,7 @@ class AffineFn
   constexpr auto epigraph_impl() const {
     const auto A = map.linear_part();
     const auto b = map.translation();
-    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return Halfspace<LiftedSpace, HalfspaceType::CLH, ViewTag::EpigraphCone>(
+    return Halfspace<Domain, HalfspaceType::CLH, ViewTag::EpigraphCone>(
                linalg::as_vector(A), b(0))
         .cone_view();
   }
@@ -80,8 +79,7 @@ class AffineFn
   constexpr auto hypograph_impl() const {
     const auto A = map.linear_part();
     const auto b = map.translation();
-    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return Halfspace<LiftedSpace, HalfspaceType::CUH, ViewTag::HypographCone>(
+    return Halfspace<Domain, HalfspaceType::CUH, ViewTag::HypographCone>(
                linalg::as_vector(A), b(0))
         .cone_view();
   }
