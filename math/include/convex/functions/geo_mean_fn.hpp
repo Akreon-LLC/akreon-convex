@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "../sets/power_cone.hpp"
 #include "concave_fn.hpp"
 
 namespace convex {
@@ -36,7 +37,7 @@ class GeoMeanFn : public ConcaveFn<Domain, GeoMeanFn<Domain>> {
   constexpr std::optional<T> eval_impl(const Point& x) const {
     T prod(1);
     std::for_each(x.begin(), x.end(), [&](const auto& pt) { prod *= pt; });
-    return linalg::constexpr_nrt<T, N>(prod);
+    return linalg::constexpr_nrt<T>(prod, N);
   }
 
   /**
@@ -45,14 +46,13 @@ class GeoMeanFn : public ConcaveFn<Domain, GeoMeanFn<Domain>> {
    * F(x) = (\prod_i^n x_i)^{1/n}
    * graph(F(x)) = { (x, \prod_i^n x_i)^{1/n} | x \in dom f}
    * hypo(F(x)) = { (x, t) | (\prod_i^n x_i)^{1/n} >= t, x \in dom f }
-   * \equiv = { (x, t) | \prod_i^n x_i >= t^n }
-   * \equiv = { (x, t) | 1 >= \frac{t^n}{\prod_i^n x_i}
+   * \equiv = { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= |t| } which is the
+   * power cone
    *
    * @return hypograph
    */
   constexpr auto hypograph_impl() const {
-    // (dakre) TODO - impl
-    return false;
+    return PowerCone<Domain>().cone_view();
   }
 };
 

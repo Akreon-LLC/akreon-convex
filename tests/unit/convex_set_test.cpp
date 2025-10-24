@@ -1024,3 +1024,25 @@ TEST_CASE("Test log det cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(std::tuple(Z, 1.0)));
   }
 }
+
+TEST_CASE("Test power cone", "[convex_sets]") {
+  SECTION("Quick power cone") {
+    STATIC_REQUIRE(ConvexConeLike<PowerCone<linalg::Matrixd<1, 3>>>);
+  }
+
+  SECTION("Test power cone") {
+    using Space = Matrixd<1, 3>;
+    constexpr Vector<size_t, 3> roots{3UL, 3UL, 3UL};
+    constexpr auto power_cone = PowerCone<Space>(roots);
+    STATIC_REQUIRE(power_cone.is_well_formed());
+    STATIC_REQUIRE(power_cone.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(
+        power_cone.contains(std::tuple(Vectord<3>{1.0, 1.0, 1.0}, 1.0)));
+    STATIC_REQUIRE(!power_cone.contains(std::tuple(Vectord<3>{}, 1.0)));
+
+    constexpr auto cone_v = power_cone.cone_view();
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<3>{}, 1.0)));
+  }
+}

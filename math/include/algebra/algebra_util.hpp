@@ -73,32 +73,34 @@ constexpr T constexpr_sqrt(const T& x, T g = 1e-10, T tol = 1e-10) {
  * g_{k+1} = 1/n ((n - 1) g_k + x / g_k^{n-1})
  *
  * @param x \in R
+ * @param root \in N
  * @param g \n R (guess)
  *
  * @return nth root of x
  */
-template <FieldLike T, size_t N>
-  requires(!is_complex_v<T>)
-constexpr T constexpr_nrt(T x, T g = 1e-10, T tol = 1e-10) {
+template <RealLike T>
+constexpr T constexpr_nrt(T x, size_t root, T g = 1e-10, T tol = 1e-10) {
+  assert(root > 0);
+
   if (x == T(0)) return T(1e-30);
 
-  if constexpr (N % 2 == 1) {
+  if (root % 2 == 1) {
     if (x < T(0)) x = -x, g = -g;
   } else {
     assert(x > T(0));
   }
 
-  auto pow_n = [&g]() {
+  auto pow_n = [&]() {
     T pow(1);
-    for (size_t i = 0; i < N; ++i) pow *= g;
+    for (size_t i = 0; i < root; ++i) pow *= g;
     return pow;
   };
 
   for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
     T gkm1(1);
-    for (size_t l = 0; l < N - 1; ++l) gkm1 *= g;
+    for (size_t l = 0; l < root - 1; ++l) gkm1 *= g;
 
-    g = (T(N - 1) * g + x / gkm1) / T(N);
+    g = (T(root - 1) * g + x / gkm1) / T(root);
     if (constexpr_abs(pow_n() - x) <= tol) return g;
   }
   return g;

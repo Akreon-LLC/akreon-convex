@@ -421,4 +421,36 @@ struct cone_traits<LogDetCone<Space, Tag>> {
   }
 };
 
+/// @brief power cone
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<PowerCone<Space, Tag>> {
+  using ConeT = PowerCone<Space, Tag>;
+  using T = linalg::space_type_t<Space>;
+
+  static constexpr ConeCheck is_closed(const ConeT& /* cone */) {
+    return ConeCheck::True;
+  }
+
+  static constexpr ConeCheck is_solid(const ConeT& cone) {
+    return cone.is_well_formed() ? ConeCheck::True : ConeCheck::False;
+  }
+
+  /**
+   * @brief pointed test
+   *
+   * K = { (x, t) \in R^n_+ x R | |t| <= \prod_i^n x_i^\alpha_i, \sum_i^n
+   * \alpha_i <= 1,
+   * \forall \alpha >= 0 }
+   * -K = { (-x, -t) \in R^n_+ x R | |-t| <= \prod_i^n -x_i^\alpha_i, \sum_i^n
+   * \alpha_i <= 1,
+   * \forall \alpha >= 0 }
+   *
+   * -K = { 0 } so K \cap -K = { 0 }
+   */
+  static constexpr ConeCheck is_pointed(const ConeT& /* cone */) {
+    return ConeCheck::True;
+  }
+};
+
 }  // namespace convex

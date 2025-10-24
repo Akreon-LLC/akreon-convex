@@ -27,8 +27,8 @@ TEST_CASE("Test constexpr math", "[math]") {
   constexpr auto res1 = constexpr_sqrt(64.0) - 8.0;
   STATIC_REQUIRE(res1 < eps);
 
-  STATIC_REQUIRE(constexpr_abs(constexpr_nrt<double, 3>(1.0) - 1.0) < eps);
-  STATIC_REQUIRE(constexpr_abs(constexpr_nrt<double, 3>(3.0) - 1.44224957031) <
+  STATIC_REQUIRE(constexpr_abs(constexpr_nrt<double>(1.0, 3) - 1.0) < eps);
+  STATIC_REQUIRE(constexpr_abs(constexpr_nrt<double>(3.0, 3) - 1.44224957031) <
                  eps);
 
   STATIC_REQUIRE(constexpr_abs(-2.0) == 2.0);

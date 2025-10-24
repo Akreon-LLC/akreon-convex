@@ -30,6 +30,7 @@
 #include "sets/norm_ball.hpp"
 #include "sets/norm_cone.hpp"
 #include "sets/polyhedron.hpp"
+#include "sets/power_cone.hpp"
 #include "sets/psd_cone.hpp"
 #include "sets/rsoc.hpp"
 #include "sets/simplex.hpp"
