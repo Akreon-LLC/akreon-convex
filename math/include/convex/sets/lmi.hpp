@@ -144,7 +144,6 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
     return *this;
   }

@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../../linalg/symmetric_matrix.hpp"
+#include "../sets/log_det_cone.hpp"
 #include "concave_fn.hpp"
 
 namespace convex {
@@ -46,11 +47,7 @@ class LogDetFn : public ConcaveFn<Domain, LogDetFn<Domain>> {
    * @return y \in R
    */
   constexpr std::optional<T> eval_impl(const Point& X) const {
-    linalg::SymmetricMatrix S(X);
-    if (S.type != linalg::SymmetricMatrixType::PD) return std::nullopt;
-    if (!S.det.has_value()) return std::nullopt;
-    if (!linalg::is_real(S.det.value())) return std::nullopt;
-    return linalg::constexpr_ln(S.det.value().real());
+    return LogDet<Domain>()(X);
   }
 
   /**
@@ -64,8 +61,7 @@ class LogDetFn : public ConcaveFn<Domain, LogDetFn<Domain>> {
    * @return hypograph
    */
   constexpr auto hypograph_impl() const {
-    // (dakre) TODO - impl
-    return false;
+    return LogDetCone<Domain>().cone_view();
   }
 };
 

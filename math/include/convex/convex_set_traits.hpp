@@ -120,11 +120,17 @@ template <linalg::RnSpace Space, NormConeType Type, ViewTag Tag>
            (Type == NormConeType::L2OC || Type == NormConeType::L2CC))
 class RotatedSOC;
 
+/// @brief exponential cone type
 template <linalg::RnSpace Space, ViewTag Tag>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&
            linalg::space_dim_v<Space> == 3)
 class ExpCone;
+
+/// @brief log det cone type
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<Space>>)
+class LogDetCone;
 
 /// @brief set traits
 template <class Set>
@@ -285,6 +291,16 @@ struct set_traits<ExpCone<Space, Tag>> {
   static constexpr ViewTag VIEW_TAG = Tag;
 };
 
+/// @brief derived set type traits - Log det cone
+template <linalg::RnSpace Space, ViewTag Tag>
+struct set_traits<LogDetCone<Space, Tag>> {
+  using RnSpace = Space;
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t DIM = linalg::space_dim_v<Space>;
+  static constexpr ViewTag VIEW_TAG = Tag;
+};
+
 /// @brief alias for vector space
 template <class Set>
 using set_space_t = typename set_traits<linalg::remove_cvref_t<Set>>::RnSpace;
@@ -313,6 +329,14 @@ concept SetLike = requires(const Set& set, const set_point_t<Set>& x) {
   { set.contains(x) } -> std::convertible_to<bool>;
 };
 
+/// @brief lifted set (x,t) like concept
+template <class Set>
+concept LiftedSetLike = requires(
+    const Set& set, const std::tuple<set_point_t<Set>, set_type_t<Set>>& x) {
+  { set.is_well_formed() } -> std::convertible_to<bool>;
+  { set.contains(x) } -> std::convertible_to<bool>;
+};
+
 /// @brief convex set like concept
 template <class Set>
 concept ConvexSetLike =
@@ -322,8 +346,8 @@ concept ConvexSetLike =
 /// @brief cone set like concept
 template <class Set>
 concept ConvexConeLike =
-    SetLike<Set> && (set_view_tag_v<Set> == ViewTag::ConvexCone ||
-                     set_view_tag_v<Set> == ViewTag::EpigraphCone ||
-                     set_view_tag_v<Set> == ViewTag::HypographCone);
+    LiftedSetLike<Set> && (set_view_tag_v<Set> == ViewTag::ConvexCone ||
+                           set_view_tag_v<Set> == ViewTag::EpigraphCone ||
+                           set_view_tag_v<Set> == ViewTag::HypographCone);
 
 }  // namespace convex

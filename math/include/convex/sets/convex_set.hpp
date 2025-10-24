@@ -58,7 +58,9 @@ class ConvexSet {
    *
    * @return T/F
    */
-  constexpr bool contains(const Point& x, T tol = 1e-8) const {
+  constexpr bool contains(const Point& x, T tol = 1e-8) const
+    requires(Tag == ViewTag::ConvexSet)
+  {
     return self().contains_impl(x, tol);
   }
 
@@ -90,6 +92,7 @@ class ConvexSet {
    * @return transformed set
    */
   template <linalg::MatrixLike Mat>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform(const AffineMap<Mat>& map) const {
     return self().transform_impl(map);
   }
@@ -109,6 +112,7 @@ class ConvexSet {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
+    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
     return self().project_impl(map, x);

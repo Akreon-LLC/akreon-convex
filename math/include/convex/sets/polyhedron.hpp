@@ -149,7 +149,7 @@ class Polyhedron
    */
   template <linalg::SquareMatrixLike Mat>
     requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
-             linalg::mat_cols_v<Mat> == N && Tag == ViewTag::ConvexSet)
+             linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto& U = map.linear_part();
     const auto& trans = map.translation();
@@ -198,7 +198,6 @@ class Polyhedron
    * @return projected set
    */
   template <linalg::MatrixLike MA, linalg::MatrixLike MC>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MA> + 1>>
   project_impl(const ProjectiveMap<MA, MC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;

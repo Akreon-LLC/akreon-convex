@@ -97,8 +97,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    */
   template <linalg::SquareMatrixLike Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
-             std::same_as<linalg::mat_type_t<Mat>, T> &&
-             Tag == ViewTag::ConvexSet)
+             std::same_as<linalg::mat_type_t<Mat>, T>)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
@@ -133,7 +132,6 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;

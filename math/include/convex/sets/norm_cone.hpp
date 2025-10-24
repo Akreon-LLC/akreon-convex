@@ -16,7 +16,7 @@ namespace convex {
  * { (x, t) | ||x|| < t }... open cone defined on L1, L2, Linf
  */
 template <linalg::RnSpace Space, NormConeType Type,
-          ViewTag Tag = ViewTag::ConvexSet>
+          ViewTag Tag = ViewTag::ConvexCone>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
@@ -126,7 +126,6 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
     return *this;
   }
@@ -149,7 +148,6 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
                const Point& /*x*/) const {

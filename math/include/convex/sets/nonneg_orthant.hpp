@@ -78,7 +78,6 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
     return *this;
   }

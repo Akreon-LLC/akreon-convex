@@ -104,8 +104,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    * @return polyhedron
    */
   template <linalg::MatrixLike Mat>
-    requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
-             Tag == ViewTag::ConvexSet)
+    requires(std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto& U = map.linear_part();
     const auto& t = map.translation();
@@ -154,7 +153,6 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;

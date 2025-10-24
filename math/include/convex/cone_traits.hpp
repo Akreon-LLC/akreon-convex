@@ -393,4 +393,32 @@ struct cone_traits<ExpCone<Space, Tag>> {
   }
 };
 
+/// @brief log det cone
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<LogDetCone<Space, Tag>> {
+  using ConeT = LogDetCone<Space, Tag>;
+  using T = linalg::space_type_t<Space>;
+
+  static constexpr ConeCheck is_closed(const ConeT& /* cone */) {
+    return ConeCheck::True;
+  }
+
+  static constexpr ConeCheck is_solid(const ConeT& cone) {
+    return cone.is_well_formed() ? ConeCheck::True : ConeCheck::False;
+  }
+
+  /**
+   * @brief pointed test
+   *
+   * K = { X \in S^n_++, t \in R | log(det(X)) >= t }
+   * -K = { -X \in S^n_--, -t \in R | log(det(X)) <= t }
+   *
+   * K \cap -K = { 0 }
+   */
+  static constexpr ConeCheck is_pointed(const ConeT& /* cone */) {
+    return ConeCheck::True;
+  }
+};
+
 }  // namespace convex

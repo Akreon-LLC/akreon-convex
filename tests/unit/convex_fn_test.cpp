@@ -123,7 +123,7 @@ TEST_CASE("Test max fn") {
     STATIC_REQUIRE(max_fn.eval(x).value() == 5.0);
 
     constexpr auto epi_f = max_fn.epigraph();
-    STATIC_REQUIRE(epi_f.contains(Vectord<5>{}));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<5>{}, 1.0)));
     STATIC_REQUIRE(epi_f.contains(
         std::tuple(Vectord<5>{x(0), x(1), x(2), x(3), x(4)}, 5.0)));
     STATIC_REQUIRE(!epi_f.contains(
@@ -213,7 +213,7 @@ TEST_CASE("Test indicator fn") {
 
   SECTION("Test indicator fn (cone)") {
     using Space = Matrixd<1, 4>;
-    constexpr NormCone<Space, NormConeType::L2CC> cone;
+    constexpr NormCone<Space, NormConeType::L2CC, ViewTag::ConvexSet> cone;
     using SetT = linalg::remove_cvref_t<decltype(cone)>;
     constexpr auto Ic = IndicatorFn<SetT>(cone);
     STATIC_REQUIRE(Ic.eval(Vectord<4>{}).has_value());
@@ -281,8 +281,9 @@ TEST_CASE("Test quad over linear", "[convex_fn]") {
     STATIC_REQUIRE(qol.eval(Vectord<4>{1.0, 2.0, 3.0, 2.0}).value() == 7.0);
     STATIC_REQUIRE(!qol.eval(Vectord<4>{1.0, 2.0, 0.0, 0.0}).has_value());
     constexpr auto epi_f = qol.epigraph();
-    STATIC_REQUIRE(epi_f.contains(Vectord<5>{}));
-    STATIC_REQUIRE(epi_f.contains(Vectord<5>{1.0, 2.0, 1.0, 2.0, 3.0}));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<5>{}, 1.0)));
+    STATIC_REQUIRE(
+        epi_f.contains(std::tuple(Vectord<5>{1.0, 2.0, 1.0, 2.0, 3.0}, 1.0)));
   }
 }
 
@@ -306,6 +307,11 @@ TEST_CASE("Test log det fn", "[concave_fn]") {
     STATIC_REQUIRE(log_det(I).has_value());
     STATIC_REQUIRE(log_det(I).value() == 0.0);
     STATIC_REQUIRE(!log_det(-1.0 * I).has_value());
+
+    constexpr auto hypo_f = log_det.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(I, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(I, 1.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(-1.0 * I, 1.0)));
   }
 }
 

@@ -10,15 +10,37 @@
 
 namespace convex {
 
+/// @brief Log Det Functor
+template <linalg::RnSpace Domain>
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
+struct LogDet {
+  using T = linalg::space_type_t<Domain>;
+  using Point = linalg::space_point_t<Domain>;
+
+  /**
+   * @brief compute the log det of a symmetric matrix
+   *
+   * @param X \in S^n_++
+   *
+   * @return optional scalar \in R
+   */
+  constexpr std::optional<T> operator()(const Point& X) const {
+    linalg::SymmetricMatrix S(X);
+    if (S.type != linalg::SymmetricMatrixType::PD) return std::nullopt;
+    if (!S.det.has_value()) return std::nullopt;
+    if (!linalg::is_real(S.det.value())) return std::nullopt;
+    return linalg::constexpr_ln(S.det.value().real());
+  }
+};
+
 /**
  * @brief Log(det(x)) cone is the hypograph representation of the log det
  * concave function
  *
  * hypo(F(x)) = { (X, t) | log(det(X)) >= t, X \in S^n_++ }
  */
-template <linalg::RnSpace Space, ViewTag Tag = ViewTag::Hypograph>
-  requires(linalg::SquareMatrixLike<linalg::space_point_t<Space>> &&
-           Tag == ViewTag::Hypograph)
+template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexCone>
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<Space>>)
 class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
@@ -47,11 +69,20 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
   constexpr bool contains_impl(const std::tuple<Point, T>& lifted_X,
                                const T& /* tol */) const {
     const auto X = std::get<0>(lifted_X);
-    linalg::SymmetricMatrix S(X);
-    if (S.type != linalg::SymmetricMatrixType::PD) return false;
-    if (!S.det.has_value()) return false;
     const auto t = std::get<1>(lifted_X);
-    return linalg::constexpr_ln(S.det.value()) >= t;
+    return LogDet<Space>()(X) >= t;
+  }
+
+  /**
+   * @brief check if candidate matrix X \in S^n_++
+   *
+   * @param point in vector space S^n
+   * @param scalar tol
+   *
+   * @return T/F
+   */
+  constexpr bool contains_impl(const Point& X, const T& /* tol */) const {
+    return contains_impl(std::make_tuple(X, T(1)));
   }
 
   /**
@@ -71,7 +102,6 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
     return *this;
   }
@@ -82,7 +112,7 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(LogDetCone<Space, Tag>());
+    return ConeView(LogDetCone<Space, ViewTag::ConvexCone>());
   }
 
   /**

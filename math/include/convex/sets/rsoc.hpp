@@ -95,7 +95,6 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
     return *this;
   }
@@ -118,7 +117,6 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& /* map */,
                const Point& /* x */) const {

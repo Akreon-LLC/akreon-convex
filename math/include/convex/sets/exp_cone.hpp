@@ -78,7 +78,6 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
     return *this;
   }
@@ -89,7 +88,6 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
   {
     return ConeView(ExpCone<Space, ViewTag::ConvexCone>());
   }

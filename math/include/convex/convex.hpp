@@ -25,6 +25,7 @@
 #include "sets/halfspace.hpp"
 #include "sets/hyperplane.hpp"
 #include "sets/lmi.hpp"
+#include "sets/log_det_cone.hpp"
 #include "sets/nonneg_orthant.hpp"
 #include "sets/norm_ball.hpp"
 #include "sets/norm_cone.hpp"

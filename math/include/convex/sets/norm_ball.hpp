@@ -104,8 +104,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
    */
   template <linalg::SquareMatrixLike Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
-             std::same_as<T, linalg::mat_type_t<Mat>> &&
-             Tag == ViewTag::ConvexSet)
+             std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto& U = map.linear_part();
     const auto& t = map.translation();
@@ -261,9 +260,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-    requires(Tag == ViewTag::ConvexSet)
-  {
+  constexpr auto cone_view_impl() const {
     if constexpr (Type == NormBallType::L2OB)
       return ConeView(
           NormCone<Space, NormConeType::L2OC, ViewTag::ConvexCone>(c, r));
@@ -293,7 +290,6 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;

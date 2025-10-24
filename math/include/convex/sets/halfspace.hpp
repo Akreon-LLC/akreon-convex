@@ -130,7 +130,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    */
   template <linalg::SquareMatrixLike Mat>
     requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
-             linalg::mat_cols_v<Mat> == N && Tag == ViewTag::ConvexSet)
+             linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const AffineMap<Mat>& map) const {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
@@ -168,7 +168,6 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * @return projected set
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;
