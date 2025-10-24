@@ -44,23 +44,29 @@ TODO to scope:
 - [x] LMI
 - [x] rotated soc cone
 - [x] exp cone
+- [x] power cone
+- [x] log det cone
 - [x] conic view (via inv perspective func)
 - [x] affine transform
 - [x] equality operators
 - [x] linear fractional
+- [] dual cone (wait till duality)
 - [] separating hyperplane
 - [] supporting hyperplane
 #### Convex Functions
-- [x] convex fun base
+- [x] convex func base
+- [x] concave func base
 - [x] affine func
 - [x] max func
 - [x] norm func
 - [x] quad / linear func
-- [] log sum exp
-- [] exp
-- [] log det
-- [] geometric mean
+- [x] indicator func
+- [] log sum exp (TODO cartesian prod of exp cones \cap simplex)
+- [x] log det func
+- [x] geometric mean func
 - [x] epigraph
+- [x] hypograph
+- [] convex fn -> concave fn (negation) + RT
 
 #### Convex Problems
 TODO
