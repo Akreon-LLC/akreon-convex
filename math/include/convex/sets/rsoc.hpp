@@ -19,7 +19,7 @@ template <linalg::RnSpace Space, NormConeType Type,
           ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           linalg::space_dim_v<Space> > 2 &&
+           linalg::space_dim_v<Space> > 1 &&
            (Type == NormConeType::L2OC || Type == NormConeType::L2CC))
 class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
  public:
@@ -42,24 +42,7 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x_in, const T& tol) const {
-    T y = x_in(N - 2);
-    if (y < T(0)) return false;
-    T z = x_in(N - 1);
-    if (z < T(0)) return false;
-    const auto x = std::get<0>(linalg::splice<N - 2>(x_in));
-
-    const auto norm_x = linalg::L2<decltype(x)>()(x);
-    const bool zeros = linalg::all_zero(x_in);
-
-    y = y == T(0) ? tol : y;
-
-    switch (Type) {
-      case NormConeType::L2OC:
-        return norm_x * norm_x < y * z;
-      case NormConeType::L2CC:
-      default:
-        return zeros || norm_x * norm_x <= y * z + tol;
-    }
+    return contains_impl(std::tuple(x_in, T(1)), tol);
   }
 
   /**
@@ -69,10 +52,31 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
-                               const T& tol) const {
-    const auto x = std::get<0>(x_in);
-    return contains_impl(x, tol);
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in, T tol) const {
+    const auto x_tmp = std::get<0>(x_in);
+    T y = x_tmp(N - 1);
+    if (y <= T(0)) return false;
+    T z = std::get<1>(x_in);
+    if (z < T(0)) return false;
+    const auto x = std::get<0>(linalg::splice<N - 1>(x_tmp));
+
+    const auto norm_x = linalg::L2<decltype(x)>()(x);
+    const bool zeros = linalg::all_zero(x) && z == T(0);
+
+    y = y == T(0) ? tol : y;
+
+    if constexpr (Tag == ViewTag::HypographCone) {
+      z *= T(-1);
+      tol *= T(-1);
+    }
+
+    switch (Type) {
+      case NormConeType::L2OC:
+        return norm_x * norm_x < y * z;
+      case NormConeType::L2CC:
+      default:
+        return zeros || norm_x * norm_x <= y * z + tol;
+    }
   }
 
   /**
@@ -105,7 +109,10 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(RotatedSOC<Space, Type, ViewTag::ConvexCone>());
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(RotatedSOC<Space, Type, ViewTag::ConvexCone>());
+    else
+      return ConeView(RotatedSOC<Space, Type, Tag>());
   }
 
   /**

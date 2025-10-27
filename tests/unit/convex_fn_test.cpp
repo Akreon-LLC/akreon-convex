@@ -320,10 +320,20 @@ TEST_CASE("Test quad over linear", "[convex_fn]") {
     STATIC_REQUIRE(qol.eval(Vectord<4>{1.0, 2.0, 3.0, 2.0}).has_value());
     STATIC_REQUIRE(qol.eval(Vectord<4>{1.0, 2.0, 3.0, 2.0}).value() == 7.0);
     STATIC_REQUIRE(!qol.eval(Vectord<4>{1.0, 2.0, 0.0, 0.0}).has_value());
+
     constexpr auto epi_f = qol.epigraph();
-    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<5>{}, 1.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<4>{}, 1.0)));
     STATIC_REQUIRE(
-        epi_f.contains(std::tuple(Vectord<5>{1.0, 2.0, 1.0, 2.0, 3.0}, 1.0)));
+        epi_f.contains(std::tuple(Vectord<4>{1.0, 2.0, 1.0, 2.0}, 3.0)));
+
+    constexpr auto qol_concave = qol.negate();
+    constexpr auto hypo_f = qol_concave.hypograph();
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<4>{}, 1.0)));
+    STATIC_REQUIRE(
+        !hypo_f.contains(std::tuple(Vectord<4>{1.0, 2.0, 1.0, 2.0}, 3.0)));
+    STATIC_REQUIRE(
+        hypo_f.contains(std::tuple(Vectord<4>{0.0, 0.0, 0.0, 1.0}, 0.0)));
+    STATIC_REQUIRE(ConvexFnLike<decltype(qol_concave.negate())>);
   }
 }
 

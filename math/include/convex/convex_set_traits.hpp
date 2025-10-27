@@ -116,7 +116,7 @@ class LMI;
 template <linalg::RnSpace Space, NormConeType Type, ViewTag Tag>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           linalg::space_dim_v<Space> > 2 &&
+           linalg::space_dim_v<Space> > 1 &&
            (Type == NormConeType::L2OC || Type == NormConeType::L2CC))
 class RotatedSOC;
 
