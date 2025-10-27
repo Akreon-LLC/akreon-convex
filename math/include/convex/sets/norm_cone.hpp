@@ -83,6 +83,10 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
       shift = c.value();
     }
 
+    // (dakre) negated norm function hypograph has opposite sign on the t
+    // leaving the inequality unchanged
+    if constexpr (Tag == ViewTag::HypographCone) t *= T(-1);
+
     const bool zeros = linalg::all_zero(x);
 
     switch (Type) {
@@ -136,7 +140,10 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(NormCone<Space, Type, ViewTag::ConvexCone>());
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(NormCone<Space, Type, ViewTag::ConvexCone>());
+    else
+      return ConeView(NormCone<Space, Type, Tag>());
   }
 
   /**

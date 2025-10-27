@@ -72,7 +72,7 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
     for (size_t i = 0; i < N; ++i)
       prod *= linalg::constexpr_nrt<T>(x(i), roots(i));
 
-    return prod >= linalg::constexpr_abs(t);
+    return prod >= t;
   }
 
   /**

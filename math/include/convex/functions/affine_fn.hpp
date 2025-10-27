@@ -84,6 +84,18 @@ class AffineFn
         .cone_view();
   }
 
+  /**
+   * @brief negate impl
+   *
+   * @return
+   */
+  constexpr auto negate_impl() const {
+    if constexpr (Tag == FnTag::Concave)
+      return AffineFn<Domain, FnTag::Convex>(map);
+    else
+      return AffineFn<Domain, FnTag::Concave>(map);
+  }
+
  private:
   /** @brief member vars */
   AffineMap<Mat> map;

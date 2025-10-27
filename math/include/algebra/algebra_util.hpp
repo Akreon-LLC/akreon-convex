@@ -56,7 +56,9 @@ template <FieldLike T>
   requires(!is_complex_v<T>)
 constexpr T constexpr_sqrt(const T& x, T g = 1e-10, T tol = 1e-10) {
   if (x == T(0)) return T(1e-30);
-  assert(x > T(0));
+  // (dakre) TODO refactor to optional or something this is a global for
+  // removing non-constexpr safe assert calls
+  if (x < T(0)) return T(size_t(-1));
 
   for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
     if (constexpr_abs(g * g - x) <= tol) return g;
@@ -80,14 +82,13 @@ constexpr T constexpr_sqrt(const T& x, T g = 1e-10, T tol = 1e-10) {
  */
 template <RealLike T>
 constexpr T constexpr_nrt(T x, size_t root, T g = 1e-10, T tol = 1e-10) {
-  assert(root > 0);
-
   if (x == T(0)) return T(1e-30);
 
   if (root % 2 == 1) {
     if (x < T(0)) x = -x, g = -g;
   } else {
-    assert(x > T(0));
+    // (dakre) similar TODO as above
+    if (x < T(0)) return T(size_t(-1));
   }
 
   auto pow_n = [&]() {

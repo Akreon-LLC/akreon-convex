@@ -25,16 +25,16 @@ template <ConvexSetLike Space>
 class IndicatorFn;
 
 /// @brief forward declaration - max fn
-template <linalg::RnSpace Space>
+template <linalg::RnSpace Space, FnTag Tag>
 class MaxFn;
 
 /// @brief forward declaration - norm fn
-template <linalg::RnSpace Space, linalg::NormLike Norm>
+template <linalg::RnSpace Space, linalg::NormLike Norm, FnTag Tag>
   requires(linalg::space_dim_v<Space> == linalg::norm_size_v<Norm>)
 class NormFn;
 
 /// @brief forward declaration - quad over linear fn
-template <linalg::RnSpace Space>
+template <linalg::RnSpace Space, FnTag Tag>
   requires(linalg::space_dim_v<Space> >= 2)
 class QuadOverLinearFn;
 
@@ -56,19 +56,20 @@ struct convex_fn_traits<IndicatorFn<Space>> : std::true_type {
 
 /// @brief derived fn type traits - max fn
 template <linalg::RnSpace Space>
-struct convex_fn_traits<MaxFn<Space>> : std::true_type {
+struct convex_fn_traits<MaxFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 
 /// @brief derived fn type traits - norm fn
 template <linalg::RnSpace Space, linalg::NormLike Norm>
-struct convex_fn_traits<NormFn<Space, Norm>> : std::true_type {
+struct convex_fn_traits<NormFn<Space, Norm, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 
 /// @brief derived fn type traits - quad/linear fn
 template <linalg::RnSpace Space>
-struct convex_fn_traits<QuadOverLinearFn<Space>> : std::true_type {
+struct convex_fn_traits<QuadOverLinearFn<Space, FnTag::Convex>>
+    : std::true_type {
   using Domain = Space;
 };
 

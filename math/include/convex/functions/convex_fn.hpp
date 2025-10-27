@@ -64,15 +64,11 @@ class ConvexFn {
   constexpr auto epigraph() const { return self().epigraph_impl(); }
 
   /**
-   * @brief hypograph of f
+   * @brief negate f -> concave function or id
    *
-   * Region below the graph of f defined by t
-   *
-   * f : R^n -> R
-   * graph(f) = { (x, f(x)) | x \in dom f } \in R^n
-   * hypo(f) = { (x, t) | x \in dom f, f(x) >= t } \in R^{n+1}
+   * @return negated convex fn
    */
-  constexpr auto hypograph() const { return self().hypograph_impl(); }
+  constexpr auto negate() const { return self().negate_impl(); }
 
   /**
    * @brief self

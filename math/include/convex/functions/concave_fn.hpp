@@ -60,6 +60,13 @@ class ConcaveFn {
   constexpr auto hypograph() const { return self().hypograph_impl(); }
 
   /**
+   * @brief negate f -> convex fn or id
+   *
+   * @return negated f
+   */
+  constexpr auto negate() const { return self().negate_impl(); }
+
+  /**
    * @brief self
    *
    * @return derived class impl

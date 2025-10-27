@@ -21,10 +21,18 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(norm.eval(Vectord<2>{}).has_value());
     STATIC_REQUIRE(norm.eval(Vectord<2>{}).value() <= eps);
     STATIC_REQUIRE(norm.eval(Vectord<2>{1.0, 2.0}).value() == 3.0);
+
     constexpr auto epi_f = norm.epigraph();
     STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{}, 0.0)));
     STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 3.0)));
     STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 1.0)));
+
+    constexpr auto norm_concave = norm.negate();
+    constexpr auto hypo_f = norm_concave.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 3.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -3.0)));
+    STATIC_REQUIRE(ConvexFnLike<decltype(norm_concave.negate())>);
   }
 
   SECTION("Test L2 fn") {
@@ -34,11 +42,21 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(norm.eval(Vectord<2>{}).value() <= eps);
     STATIC_REQUIRE(norm.eval(Vectord<2>{1.0, 2.0}).value() ==
                    constexpr_sqrt(5.0));
+
     constexpr auto epi_f = norm.epigraph();
     STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{}, 0.0)));
     STATIC_REQUIRE(
         epi_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, constexpr_sqrt(5.0))));
     STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 1.0)));
+
+    constexpr auto norm_concave = norm.negate();
+    constexpr auto hypo_f = norm_concave.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(
+        std::tuple(Vectord<2>{1.0, 2.0}, constexpr_sqrt(5.0))));
+    STATIC_REQUIRE(hypo_f.contains(
+        std::tuple(Vectord<2>{1.0, 2.0}, -1.0 * constexpr_sqrt(5.0))));
+    STATIC_REQUIRE(ConvexFnLike<decltype(norm_concave.negate())>);
   }
 
   SECTION("Test Linf fn") {
@@ -47,10 +65,18 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(norm.eval(Vectord<2>{}).has_value());
     STATIC_REQUIRE(norm.eval(Vectord<2>{}).value() <= eps);
     STATIC_REQUIRE(norm.eval(Vectord<2>{1.0, 2.0}).value() == 2.0);
+
     constexpr auto epi_f = norm.epigraph();
     STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{}, 0.0)));
     STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 2.0)));
     STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 1.0)));
+
+    constexpr auto norm_concave = norm.negate();
+    constexpr auto hypo_f = norm_concave.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 2.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -2.0)));
+    STATIC_REQUIRE(ConvexFnLike<decltype(norm_concave.negate())>);
   }
 }
 
@@ -67,6 +93,13 @@ TEST_CASE("Test affine fn", "[convex_fn]") {
     constexpr auto epi_f = affine_fn.epigraph();
     STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{}, 0.0)));
     STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -1.0)));
+
+    constexpr auto affine_concave = affine_fn.negate();
+    constexpr auto hypo_f = affine_concave.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -1.0)));
+
+    STATIC_REQUIRE(ConvexFnLike<decltype(affine_concave.negate())>);
   }
 
   SECTION("Test affine fn (convex)") {
