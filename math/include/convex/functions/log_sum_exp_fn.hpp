@@ -14,11 +14,17 @@ namespace convex {
  *
  * lse(x) = log(\sum_i^n(e^{x_i})) which is a smooth mapping from R^n to R
  */
-template <linalg::RnSpace Domain>
-class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain>> {
+template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
+class LogSumExpFn
+    : public std::conditional_t<Tag == FnTag::Convex,
+                                ConvexFn<Domain, LogSumExpFn<Domain, Tag>>,
+                                ConcaveFn<Domain, LogSumExpFn<Domain, Tag>>> {
  public:
   /// @brief bring into scope the convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, LogSumExpFn<Domain>>;
+  using ConvexBase =
+      std::conditional_t<Tag == FnTag::Convex,
+                         ConvexFn<Domain, LogSumExpFn<Domain, Tag>>,
+                         ConcaveFn<Domain, LogSumExpFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -38,7 +44,11 @@ class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain>> {
     T sum(0);
     std::for_each(x.begin(), x.end(),
                   [&](const auto& pt) { sum += linalg::constexpr_exp(pt); });
-    return linalg::constexpr_ln(sum);
+
+    if constexpr (Tag == FnTag::Convex)
+      return linalg::constexpr_ln(sum);
+    else
+      return T(-1) * linalg::constexpr_ln(sum);
   }
 
   /**
@@ -57,10 +67,38 @@ class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain>> {
    *
    * @return epigraph
    */
-  constexpr auto epigraph_impl() const {
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
     // (dakre) TODO - we have a cartesian product of K_i intersected with a
     // simplex defined by s_i
     return false;
+  }
+
+  /**
+   * @brief hypograph impl
+   *
+   * C = { (x_i + t, 1, s_i) | e^{x_i + 1} <= s_i, \sum_i s_i <= 1 }
+   *
+   * @return hypograph
+   */
+  constexpr auto hypograph_impl() const
+    requires(Tag == FnTag::Concave)
+  {
+    // (dakre) TODO same as above
+    return false;
+  }
+
+  /**
+   * @brief negate func
+   *
+   * @return negate f
+   */
+  constexpr auto negate_impl() const {
+    if constexpr (Tag == FnTag::Convex)
+      return LogSumExpFn<Domain, FnTag::Concave>();
+    else
+      return LogSumExpFn<Domain, FnTag::Convex>();
   }
 };
 

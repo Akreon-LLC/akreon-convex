@@ -347,6 +347,9 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     STATIC_REQUIRE(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).has_value());
     STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).value() -
                                  1.21428330036) < eps);
+
+    constexpr auto lse_concave = lse.negate();
+    STATIC_REQUIRE(ConvexFnLike<decltype(lse_concave.negate())>);
   }
 }
 
