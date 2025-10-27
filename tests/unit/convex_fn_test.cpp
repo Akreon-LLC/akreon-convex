@@ -327,6 +327,9 @@ TEST_CASE("Test quad over linear", "[convex_fn]") {
         epi_f.contains(std::tuple(Vectord<4>{1.0, 2.0, 1.0, 2.0}, 3.0)));
 
     constexpr auto qol_concave = qol.negate();
+    STATIC_REQUIRE(!qol_concave(Vectord<4>{}).has_value());
+    STATIC_REQUIRE(qol_concave(Vectord<4>{1.0, 2.0, 3.0, 2.0}).has_value());
+    STATIC_REQUIRE(qol_concave(Vectord<4>{1.0, 2.0, 3.0, 2.0}).value() == -7.0);
     constexpr auto hypo_f = qol_concave.hypograph();
     STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<4>{}, 1.0)));
     STATIC_REQUIRE(
@@ -349,6 +352,9 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
                                  1.21428330036) < eps);
 
     constexpr auto lse_concave = lse.negate();
+    STATIC_REQUIRE(lse_concave(Vectord<4>{}).has_value());
+    // STATIC_REQUIRE(
+    // constexpr_abs(lse_concave(Vectord<4>{}).value() + 1.38629436112) < eps);
     STATIC_REQUIRE(ConvexFnLike<decltype(lse_concave.negate())>);
   }
 }
@@ -365,6 +371,15 @@ TEST_CASE("Test log det fn", "[concave_fn]") {
     STATIC_REQUIRE(hypo_f.contains(std::tuple(I, 0.0)));
     STATIC_REQUIRE(!hypo_f.contains(std::tuple(I, 1.0)));
     STATIC_REQUIRE(!hypo_f.contains(std::tuple(-1.0 * I, 1.0)));
+
+    constexpr auto log_det_convex = log_det.negate();
+    STATIC_REQUIRE(log_det_convex(I).has_value());
+    STATIC_REQUIRE(log_det_convex(I).value() == 0.0);
+    constexpr auto epi_f = log_det_convex.epigraph();
+    STATIC_REQUIRE(epi_f.contains(std::tuple(I, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(I, 1.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(I, -1.0)));
+    STATIC_REQUIRE(ConvexFnLike<decltype(log_det_convex)>);
   }
 }
 

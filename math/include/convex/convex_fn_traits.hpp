@@ -39,8 +39,13 @@ template <linalg::RnSpace Space, FnTag Tag>
 class QuadOverLinearFn;
 
 /// @brief forward declaration - log sum exp fn
-template <linalg::RnSpace Domain, FnTag>
+template <linalg::RnSpace Domain, FnTag Tag>
 class LogSumExpFn;
+
+/// @brief forward declaration - log det fn
+template <linalg::RnSpace Domain, FnTag Tag>
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
+class LogDetFn;
 
 /// @brief fn traits
 template <class Fn>
@@ -83,6 +88,12 @@ struct convex_fn_traits<LogSumExpFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 
+/// @brief derived fn type traits - log det fn
+template <linalg::RnSpace Space>
+struct convex_fn_traits<LogDetFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
 /// @brief helpers to extract domain & function type
 template <class Fn>
 using convex_fn_domain_t =
@@ -90,7 +101,8 @@ using convex_fn_domain_t =
 
 /// @brief helper to extract convex convex_fn type
 template <class Fn>
-inline constexpr bool is_convex_fn_v = convex_fn_traits<Fn>{};
+inline constexpr bool is_convex_fn_v =
+    convex_fn_traits<linalg::remove_cvref_t<Fn>>{};
 
 /// @brief convex fn concept
 template <class Fn>

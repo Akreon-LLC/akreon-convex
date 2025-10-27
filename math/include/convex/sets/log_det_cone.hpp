@@ -70,7 +70,13 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
                                const T& /* tol */) const {
     const auto X = std::get<0>(lifted_X);
     const auto t = std::get<1>(lifted_X);
-    return LogDet<Space>()(X) >= t;
+    const auto res = LogDet<Space>()(X);
+    if (!res.has_value()) return false;
+
+    if constexpr (Tag == ViewTag::EpigraphCone)
+      return res.value() >= T(-1) * t;
+    else
+      return res.value() >= t;
   }
 
   /**
@@ -112,7 +118,10 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(LogDetCone<Space, ViewTag::ConvexCone>());
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(LogDetCone<Space, ViewTag::ConvexCone>());
+    else
+      return ConeView(LogDetCone<Space, Tag>());
   }
 
   /**

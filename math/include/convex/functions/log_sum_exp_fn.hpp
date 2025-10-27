@@ -45,10 +45,13 @@ class LogSumExpFn
     std::for_each(x.begin(), x.end(),
                   [&](const auto& pt) { sum += linalg::constexpr_exp(pt); });
 
+    const auto res = linalg::constexpr_ln(sum);
     if constexpr (Tag == FnTag::Convex)
-      return linalg::constexpr_ln(sum);
-    else
-      return T(-1) * linalg::constexpr_ln(sum);
+      return res;
+    else {
+      if (!res.has_value()) return std::nullopt;
+      return T(-1) * res.value();
+    }
   }
 
   /**

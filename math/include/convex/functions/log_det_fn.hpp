@@ -24,12 +24,18 @@ namespace convex {
  * Example 2 usage is barrier function in interior point methods for SDP & conic
  * optimization (blows up near boundary)
  */
-template <linalg::RnSpace Domain>
+template <linalg::RnSpace Domain, FnTag Tag = FnTag::Concave>
   requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
-class LogDetFn : public ConcaveFn<Domain, LogDetFn<Domain>> {
+class LogDetFn
+    : public std::conditional_t<Tag == FnTag::Concave,
+                                ConcaveFn<Domain, LogDetFn<Domain, Tag>>,
+                                ConvexFn<Domain, LogDetFn<Domain, Tag>>> {
  public:
   /// @brief bring into scope the concave fn alias / helpers
-  using ConvexBase = ConcaveFn<Domain, LogDetFn<Domain>>;
+  using ConvexBase =
+      std::conditional_t<Tag == FnTag::Concave,
+                         ConcaveFn<Domain, LogDetFn<Domain, Tag>>,
+                         ConvexFn<Domain, LogDetFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -47,7 +53,13 @@ class LogDetFn : public ConcaveFn<Domain, LogDetFn<Domain>> {
    * @return y \in R
    */
   constexpr std::optional<T> eval_impl(const Point& X) const {
-    return LogDet<Domain>()(X);
+    const auto res = LogDet<Domain>()(X);
+    if (!res.has_value()) return std::nullopt;
+
+    if constexpr (Tag == FnTag::Convex)
+      return T(-1) * res.value();
+    else
+      return res.value();
   }
 
   /**
@@ -60,8 +72,35 @@ class LogDetFn : public ConcaveFn<Domain, LogDetFn<Domain>> {
    *
    * @return hypograph
    */
-  constexpr auto hypograph_impl() const {
+  constexpr auto hypograph_impl() const
+    requires(Tag == FnTag::Concave)
+  {
     return LogDetCone<Domain>().cone_view();
+  }
+
+  /**
+   * @brief epigraph impl
+   *
+   * C = { (x, t) | \prod_i^n \lambda_i >= -exp(t) }
+   *
+   * @return epigraph
+   */
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
+    return LogDetCone<Domain, ViewTag::EpigraphCone>().cone_view();
+  }
+
+  /**
+   * @brief negate impl
+   *
+   * @return negated f
+   */
+  constexpr auto negate_impl() const {
+    if constexpr (Tag == FnTag::Concave)
+      return LogDetFn<Domain, FnTag::Convex>();
+    else
+      return LogDetFn<Domain, FnTag::Concave>();
   }
 };
 
