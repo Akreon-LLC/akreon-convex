@@ -15,10 +15,14 @@ namespace convex {
  * F(x) = max { x_1, x_2, ... x_n }, x \in R^n
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
+class MaxFn : public std::conditional_t<Tag == FnTag::Convex,
+                                        ConvexFn<Domain, MaxFn<Domain, Tag>>,
+                                        ConcaveFn<Domain, MaxFn<Domain, Tag>>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, MaxFn<Domain, Tag>>;
+  using ConvexBase = std::conditional_t<Tag == FnTag::Convex,
+                                        ConvexFn<Domain, MaxFn<Domain, Tag>>,
+                                        ConcaveFn<Domain, MaxFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -36,7 +40,10 @@ class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
     std::for_each(x.begin(), x.end(), [&mx](const auto& pt) {
       if (mx < pt) mx = pt;
     });
-    return mx;
+    if constexpr (Tag == FnTag::Convex)
+      return mx;
+    else
+      return T(-1) * mx;
   }
 
   /**
@@ -44,12 +51,43 @@ class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
    *
    * F(x) = max { x_1, x_2, ... x_n }, x \in R^n
    * graph(F(x)) = { (x, max(x)) | x \in dom f }
-   * epi(F(x)) = { (x, t) | max(x) <= t, x \in dom f, t >= 0 }
+   * epi(F(x)) = { (x, t) | max(x) <= t }
    *
    * @return Linf cone
    */
-  constexpr auto epigraph_impl() const {
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
     return NormCone<Domain, NormConeType::LinfCC>().cone_view();
+  }
+
+  /**
+   * @brief hypograph impl
+   *
+   * C = { (x, t) | max(x) <= -t }
+   *
+   * @return C
+   */
+  constexpr auto hypograph_impl() const
+    requires(Tag == FnTag::Concave)
+  {
+    return NormCone<Domain, NormConeType::LinfCC, ViewTag::HypographCone>()
+        .cone_view();
+  }
+
+  /**
+   * @brief negate impl
+   *
+   * if concave -> convex
+   * else convex -> concave
+   *
+   * @return negated f
+   */
+  constexpr auto negate_impl() const {
+    if constexpr (Tag == FnTag::Concave)
+      return MaxFn<Domain, FnTag::Convex>();
+    else
+      return MaxFn<Domain, FnTag::Concave>();
   }
 };
 

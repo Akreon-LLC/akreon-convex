@@ -87,7 +87,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
     // leaving the inequality unchanged
     if constexpr (Tag == ViewTag::HypographCone) t *= T(-1);
 
-    const bool zeros = linalg::all_zero(x);
+    const bool zeros = linalg::all_zero(x) && t == T(0);
 
     switch (Type) {
       case NormConeType::L2OC:

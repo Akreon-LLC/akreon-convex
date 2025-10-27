@@ -44,8 +44,8 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
   constexpr bool contains_impl(const Point& x_in, const T& tol) const {
     T y = x_in(N - 2);
     if (y < T(0)) return false;
-    T t = x_in(N - 1);
-    if (t < T(0)) return false;
+    T z = x_in(N - 1);
+    if (z < T(0)) return false;
     const auto x = std::get<0>(linalg::splice<N - 2>(x_in));
 
     const auto norm_x = linalg::L2<decltype(x)>()(x);
@@ -55,10 +55,10 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
 
     switch (Type) {
       case NormConeType::L2OC:
-        return norm_x * norm_x < y * t;
+        return norm_x * norm_x < y * z;
       case NormConeType::L2CC:
       default:
-        return zeros || norm_x * norm_x <= y * t + tol;
+        return zeros || norm_x * norm_x <= y * z + tol;
     }
   }
 

@@ -28,6 +28,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 1.0)));
 
     constexpr auto norm_concave = norm.negate();
+    STATIC_REQUIRE(norm_concave(Vectord<2>{1.0, 2.0}).value() == -3.0);
     constexpr auto hypo_f = norm_concave.hypograph();
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{}, 0.0)));
     STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 3.0)));
@@ -157,10 +158,16 @@ TEST_CASE("Test max fn") {
 
     constexpr auto epi_f = max_fn.epigraph();
     STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<5>{}, 1.0)));
-    STATIC_REQUIRE(epi_f.contains(
-        std::tuple(Vectord<5>{x(0), x(1), x(2), x(3), x(4)}, 5.0)));
-    STATIC_REQUIRE(!epi_f.contains(
-        std::tuple(Vectord<5>{x(0), x(1), x(2), x(3), x(4)}, 1.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(x, 5.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(x, 1.0)));
+
+    constexpr auto max_concave = max_fn.negate();
+    STATIC_REQUIRE(max_concave(x).value() == -5.0);
+    constexpr auto hypo_f = max_concave.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<5>{}, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<5>{}, 1.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(x, 5.0)));
+    STATIC_REQUIRE(ConvexFnLike<decltype(max_concave.negate())>);
   }
 }
 
