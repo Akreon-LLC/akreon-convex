@@ -11,8 +11,12 @@ namespace convex {
 /**
  * @brief power cone
  *
+ * Symmetric Power Cone (default)
  * { (x, y) \in R^n_+ x R | |y| <= x_1^\alpha_1 * x_2^\alpha_2 * ... , \sum_i^n
  * \alpha_i <= 1, \forall \alpha >= 0 }
+ *
+ * (dakre) TODO general lifted cone doesnt have abs on t ... need to evaluate
+ * efficacy of this approach
  */
 template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexCone>
   requires(linalg::space_dim_v<Space> ==
@@ -72,7 +76,10 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
     for (size_t i = 0; i < N; ++i)
       prod *= linalg::constexpr_nrt<T>(x(i), roots(i));
 
-    return prod >= t;
+    if constexpr (Tag == ViewTag::EpigraphCone)
+      return prod >= T(-1) * t;
+    else
+      return prod >= t;
   }
 
   /**
@@ -114,7 +121,10 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(PowerCone<Space, ViewTag::ConvexCone>(roots));
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(PowerCone<Space, ViewTag::ConvexCone>(roots));
+    else
+      return ConeView(PowerCone<Space, Tag>(roots));
   }
 
   /**

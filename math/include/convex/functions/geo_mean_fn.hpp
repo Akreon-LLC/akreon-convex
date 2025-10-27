@@ -14,11 +14,17 @@ namespace convex {
  * @brief geometric mean f(x) = (\prod_{i=1}^n x_i)^{1/n} is concave on dom f =
  * R^n_++
  */
-template <linalg::RnSpace Domain>
-class GeoMeanFn : public ConcaveFn<Domain, GeoMeanFn<Domain>> {
+template <linalg::RnSpace Domain, FnTag Tag = FnTag::Concave>
+class GeoMeanFn
+    : public std::conditional_t<Tag == FnTag::Concave,
+                                ConcaveFn<Domain, GeoMeanFn<Domain, Tag>>,
+                                ConvexFn<Domain, GeoMeanFn<Domain, Tag>>> {
  public:
   /// @brief bring into scope the concave fn alias / helpers
-  using ConvexBase = ConcaveFn<Domain, GeoMeanFn<Domain>>;
+  using ConvexBase =
+      std::conditional_t<Tag == FnTag::Concave,
+                         ConcaveFn<Domain, GeoMeanFn<Domain, Tag>>,
+                         ConvexFn<Domain, GeoMeanFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -37,7 +43,10 @@ class GeoMeanFn : public ConcaveFn<Domain, GeoMeanFn<Domain>> {
   constexpr std::optional<T> eval_impl(const Point& x) const {
     T prod(1);
     std::for_each(x.begin(), x.end(), [&](const auto& pt) { prod *= pt; });
-    return linalg::constexpr_nrt<T>(prod, N);
+    if constexpr (Tag == FnTag::Convex)
+      return T(-1) * linalg::constexpr_nrt<T>(prod, N);
+    else
+      return linalg::constexpr_nrt<T>(prod, N);
   }
 
   /**
@@ -53,6 +62,29 @@ class GeoMeanFn : public ConcaveFn<Domain, GeoMeanFn<Domain>> {
    */
   constexpr auto hypograph_impl() const {
     return PowerCone<Domain>().cone_view();
+  }
+
+  /**
+   * @brief epigraph impl
+   *
+   * C = { (x, t) | -\prod_i^n x_i^{1/n} >= |t| }
+   *
+   * @return epigraph
+   */
+  constexpr auto epigraph_impl() const {
+    return PowerCone<Domain>().cone_view();
+  }
+
+  /**
+   * @brief negate impl
+   *
+   * @return negated f
+   */
+  constexpr auto negate_impl() const {
+    if constexpr (Tag == FnTag::Convex)
+      return GeoMeanFn<Domain, FnTag::Concave>();
+    else
+      return GeoMeanFn<Domain, FnTag::Convex>();
   }
 };
 

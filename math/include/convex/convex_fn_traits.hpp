@@ -47,6 +47,10 @@ template <linalg::RnSpace Domain, FnTag Tag>
   requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
 class LogDetFn;
 
+/// @brief forward declaration - geo mean fn
+template <linalg::RnSpace Domain, FnTag Tag>
+class GeoMeanFn;
+
 /// @brief fn traits
 template <class Fn>
 struct convex_fn_traits : std::false_type {};
@@ -94,6 +98,12 @@ struct convex_fn_traits<LogDetFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 
+/// @brief derived fn type traits - log det fn
+template <linalg::RnSpace Space>
+struct convex_fn_traits<GeoMeanFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
 /// @brief helpers to extract domain & function type
 template <class Fn>
 using convex_fn_domain_t =
@@ -107,5 +117,9 @@ inline constexpr bool is_convex_fn_v =
 /// @brief convex fn concept
 template <class Fn>
 concept ConvexFnLike = is_convex_fn_v<Fn>;
+
+/// @brief concave fn concept
+template <class Fn>
+concept ConcaveFnLike = !is_convex_fn_v<Fn>;
 
 }  // namespace convex

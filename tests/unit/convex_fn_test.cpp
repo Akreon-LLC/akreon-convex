@@ -363,6 +363,7 @@ TEST_CASE("Test log det fn", "[concave_fn]") {
   SECTION("Test log det fn") {
     constexpr auto I = make_identity<double, 3>();
     constexpr auto log_det = LogDetFn<linalg::SymmetricMatrix<decltype(I)>>();
+    STATIC_REQUIRE(ConcaveFnLike<decltype(log_det)>);
     STATIC_REQUIRE(log_det(I).has_value());
     STATIC_REQUIRE(log_det(I).value() == 0.0);
     STATIC_REQUIRE(!log_det(-1.0 * I).has_value());
@@ -375,6 +376,7 @@ TEST_CASE("Test log det fn", "[concave_fn]") {
     constexpr auto log_det_convex = log_det.negate();
     STATIC_REQUIRE(log_det_convex(I).has_value());
     STATIC_REQUIRE(log_det_convex(I).value() == 0.0);
+
     constexpr auto epi_f = log_det_convex.epigraph();
     STATIC_REQUIRE(epi_f.contains(std::tuple(I, 0.0)));
     STATIC_REQUIRE(!hypo_f.contains(std::tuple(I, 1.0)));
@@ -387,6 +389,7 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
   SECTION("Test geometric mean fn") {
     using Space = Matrixd<1, 4>;
     constexpr auto geo_mean = GeoMeanFn<Space>();
+    STATIC_REQUIRE(ConcaveFnLike<decltype(geo_mean)>);
     STATIC_REQUIRE(geo_mean(Vectord<4>{1.0, 1.0, 1.0, 1.0}).has_value());
     STATIC_REQUIRE(geo_mean(Vectord<4>{1.0, 1.0, 1.0, 1.0}).value() == 1.0);
     STATIC_REQUIRE(
@@ -398,5 +401,15 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
         hypo_f.contains(std::tuple(Vectord<4>{1.0, 1.0, 1.0, 1.0}, 1.0)));
     STATIC_REQUIRE(
         !hypo_f.contains(std::tuple(Vectord<4>{1.0, 1.0, 1.0, 1.0}, 2.0)));
+
+    constexpr auto geo_mean_convex = geo_mean.negate();
+    STATIC_REQUIRE(geo_mean_convex(Vectord<4>{1.0, 1.0, 1.0, 1.0}).has_value());
+    STATIC_REQUIRE(geo_mean_convex(Vectord<4>{1.0, 1.0, 1.0, 1.0}).value() ==
+                   -1.0);
+
+    constexpr auto epi_f = geo_mean_convex.epigraph();
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<4>{}, 0.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<4>{}, 1.0)));
+    STATIC_REQUIRE(ConvexFnLike<decltype(geo_mean_convex)>);
   }
 }
