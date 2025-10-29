@@ -9,6 +9,30 @@
 
 namespace convex {
 
+/// @brief Exp Functor
+template <linalg::RnSpace Domain>
+  requires(linalg::space_dim_v<Domain> ==
+           linalg::vec_size_v<linalg::space_point_t<Domain>>)
+struct Exp {
+  using T = linalg::space_type_t<Domain>;
+  using Point = linalg::space_point_t<Domain>;
+
+  /**
+   * @brief compue exp
+   *
+   * f(x,y) = y e^{x / y} s.t. y > 0
+   *
+   * @param scalar x
+   * @param scalar y
+   *
+   * @return optional scalar \in R
+   */
+  constexpr std::optional<T> operator()(const T& x, const T& y) const {
+    if (y <= T(0)) return std::nullopt;
+    return y * linalg::constexpr_exp(x / y);
+  }
+};
+
 /**
  * @brief exponential cone
  *
@@ -41,8 +65,9 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
   constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
     if (x(0) > T(0) || x(1) < T(0) || x(2) < T(0)) return false;
     if (x(1) == T(0)) return true;
-    const auto res = x(1) * linalg::constexpr_exp(x(0) / x(1));
-    return res <= x(2);
+    const auto res = Exp<Space>()(x(0), x(1));
+    if (!res.has_value()) return false;
+    return res.value() <= x(2);
   }
 
   /**
@@ -87,8 +112,7 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    *
    * @return cone
    */
-  constexpr auto cone_view_impl() const
-  {
+  constexpr auto cone_view_impl() const {
     return ConeView(ExpCone<Space, ViewTag::ConvexCone>());
   }
 

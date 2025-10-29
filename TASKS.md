@@ -61,12 +61,18 @@ TODO to scope:
 - [x] norm func
 - [x] quad / linear func
 - [x] indicator func
-- [] log sum exp (TODO cartesian prod of exp cones \cap simplex)
+- [x] log sum exp
 - [x] log det func
 - [x] geometric mean func
 - [x] epigraph
 - [x] hypograph
-- [] convex fn -> concave fn (negation) + RT
+- [x] convex fn -> concave fn (negation) + RT
+- [] non-neg weighted sum
+- [] scalar composition
+- [] vector compositions
+- [] conjugate function
+- [] quasi-convex functions
+- [] log-convex & log-concave functions
 
 #### Convex Problems
 TODO

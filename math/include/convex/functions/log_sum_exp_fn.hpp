@@ -73,9 +73,7 @@ class LogSumExpFn
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    // (dakre) TODO - we have a cartesian product of K_i intersected with a
-    // simplex defined by s_i
-    return false;
+    return LogSumExpCone<Domain, ViewTag::EpigraphCone>().cone_view();
   }
 
   /**
@@ -88,8 +86,7 @@ class LogSumExpFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    // (dakre) TODO same as above
-    return false;
+    return LogSumExpCone<Domain, ViewTag::HypographCone>().cone_view();
   }
 
   /**

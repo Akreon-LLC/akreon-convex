@@ -75,7 +75,7 @@ class LogDetFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return LogDetCone<Domain>().cone_view();
+    return LogDetCone<Domain, ViewTag::HypographCone>().cone_view();
   }
 
   /**

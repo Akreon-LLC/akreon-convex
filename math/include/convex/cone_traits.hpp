@@ -453,4 +453,24 @@ struct cone_traits<PowerCone<Space, Tag>> {
   }
 };
 
+/// @brief log sum exp cone
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<LogSumExpCone<Space, Tag>> {
+  using ConeT = LogSumExpCone<Space, Tag>;
+  using T = linalg::space_type_t<Space>;
+
+  static constexpr ConeCheck is_closed(const ConeT& /* cone */) {
+    return ConeCheck::True;
+  }
+
+  static constexpr ConeCheck is_solid(const ConeT& cone) {
+    return cone.is_well_formed() ? ConeCheck::True : ConeCheck::False;
+  }
+
+  static constexpr ConeCheck is_pointed(const ConeT& /* cone */) {
+    return ConeCheck::True;
+  }
+};
+
 }  // namespace convex

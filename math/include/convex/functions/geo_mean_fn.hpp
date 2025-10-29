@@ -61,7 +61,7 @@ class GeoMeanFn
    * @return hypograph
    */
   constexpr auto hypograph_impl() const {
-    return PowerCone<Domain>().cone_view();
+    return PowerCone<Domain, ViewTag::HypographCone>().cone_view();
   }
 
   /**
@@ -72,7 +72,7 @@ class GeoMeanFn
    * @return epigraph
    */
   constexpr auto epigraph_impl() const {
-    return PowerCone<Domain>().cone_view();
+    return PowerCone<Domain, ViewTag::EpigraphCone>().cone_view();
   }
 
   /**

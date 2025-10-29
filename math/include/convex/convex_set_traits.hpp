@@ -138,6 +138,12 @@ template <linalg::RnSpace Space, ViewTag Tag>
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class PowerCone;
 
+/// @brief log sum exp cone type
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(linalg::space_dim_v<Space> ==
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
+class LogSumExpCone;
+
 /// @brief set traits
 template <class Set>
 struct set_traits;
@@ -310,6 +316,16 @@ struct set_traits<LogDetCone<Space, Tag>> {
 /// @brief derived set type traits - power cone
 template <linalg::RnSpace Space, ViewTag Tag>
 struct set_traits<PowerCone<Space, Tag>> {
+  using RnSpace = Space;
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t DIM = linalg::space_dim_v<Space>;
+  static constexpr ViewTag VIEW_TAG = Tag;
+};
+
+/// @brief derived set type traits - log sum exp
+template <linalg::RnSpace Space, ViewTag Tag>
+struct set_traits<LogSumExpCone<Space, Tag>> {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;

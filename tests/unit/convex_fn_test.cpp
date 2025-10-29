@@ -351,11 +351,18 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).value() -
                                  1.21428330036) < eps);
 
+    constexpr auto epi_f = lse.epigraph();
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<4>{}, 2.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<4>{}, 1.0)));
+
     constexpr auto lse_concave = lse.negate();
     STATIC_REQUIRE(lse_concave(Vectord<4>{}).has_value());
-    // STATIC_REQUIRE(
-    // constexpr_abs(lse_concave(Vectord<4>{}).value() + 1.38629436112) < eps);
+    STATIC_REQUIRE(
+        constexpr_abs(lse_concave(Vectord<4>{}).value() + 1.38629436112) < eps);
     STATIC_REQUIRE(ConvexFnLike<decltype(lse_concave.negate())>);
+
+    constexpr auto hypo_f = lse_concave.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<4>{}, -2.0)));
   }
 }
 
@@ -409,7 +416,7 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
 
     constexpr auto epi_f = geo_mean_convex.epigraph();
     STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<4>{}, 0.0)));
-    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<4>{}, 1.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<4>{}, 1.0)));
     STATIC_REQUIRE(ConvexFnLike<decltype(geo_mean_convex)>);
   }
 }

@@ -1050,3 +1050,21 @@ TEST_CASE("Test power cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<3>{}, 1.0)));
   }
 }
+
+TEST_CASE("Test log sum exp cone", "[convex_sets]") {
+  SECTION("Quick log sum exp cone") {
+    STATIC_REQUIRE(ConvexConeLike<LogSumExpCone<linalg::Matrixd<1, 3>>>);
+  }
+
+  SECTION("Test log sum exp cone") {
+    using Space = Matrixd<1, 4>;
+    constexpr auto lse_cone = LogSumExpCone<Space>();
+    STATIC_REQUIRE(lse_cone.is_well_formed());
+    STATIC_REQUIRE(!lse_cone.contains(std::tuple(Vectord<4>{}, 1.0)));
+    STATIC_REQUIRE(lse_cone.contains(std::tuple(Vectord<4>{}, 2.0)));
+    STATIC_REQUIRE(!lse_cone.contains(std::tuple(Vectord<4>{}, 0.0)));
+
+    constexpr auto cone_v = lse_cone.cone_view();
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
+  }
+}
