@@ -43,11 +43,12 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr ProjectiveMap<Matrix<double, 3, 3>, Matrix<double, 1, 3>>
         proj_map(I, Vectord<3>{}, as_row_vector(Vectord<3>{}), 1.0);
     constexpr auto x_proj =
-        hyperplane.project(proj_map, Vectord<3>{1.0, 1.0, 1.0});
+        hyperplane.projective_map(proj_map, Vectord<3>{1.0, 1.0, 1.0});
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(
-        !hyperplane.project(proj_map, Vectord<3>{1.0, 1.0, 2.0}).has_value());
+        !hyperplane.projective_map(proj_map, Vectord<3>{1.0, 1.0, 2.0})
+             .has_value());
 
     constexpr auto hyperplane_cone = hyperplane.cone_view();
     STATIC_REQUIRE(hyperplane_cone.contains(std::tuple(Vectord<3>{}, 0.0)));
@@ -116,11 +117,12 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr ProjectiveMap<Matrix<double, 4, 4>, Matrix<double, 1, 4>>
         proj_map(I, Vectord<4>{}, as_row_vector(Vectord<4>{}), 1.0);
     constexpr auto x_proj =
-        halfspace.project(proj_map, Vectord<4>{0.0, 0.0, 0.0, 1.9});
+        halfspace.projective_map(proj_map, Vectord<4>{0.0, 0.0, 0.0, 1.9});
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
-    STATIC_REQUIRE(!halfspace.project(proj_map, Vectord<4>{0.0, 0.0, 0.0, 2.0})
-                        .has_value());
+    STATIC_REQUIRE(
+        !halfspace.projective_map(proj_map, Vectord<4>{0.0, 0.0, 0.0, 2.0})
+             .has_value());
 
     constexpr auto halfspace_cone = halfspace.cone_view();
     STATIC_REQUIRE(!halfspace_cone.contains(std::tuple(Vectord<4>{}, 0.0)));
@@ -235,10 +237,11 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
-    constexpr auto x_proj = ellipsoid.project(proj_map, c);
+    constexpr auto x_proj = ellipsoid.projective_map(proj_map, c);
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
-    STATIC_REQUIRE(!ellipsoid.project(proj_map, Vectord<2>{}).has_value());
+    STATIC_REQUIRE(
+        !ellipsoid.projective_map(proj_map, Vectord<2>{}).has_value());
 
     constexpr auto cone = ellipsoid.cone_view();
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{}, 0.0)));
@@ -307,11 +310,11 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     constexpr auto I = make_identity<double, 3>();
     constexpr ProjectiveMap<Matrix<double, 3, 3>, Matrix<double, 1, 3>>
         proj_map(I, Vectord<3>{}, as_row_vector(Vectord<3>{}), 1.0);
-    constexpr auto x_proj = poly.project(proj_map, Vectord<3>{});
+    constexpr auto x_proj = poly.projective_map(proj_map, Vectord<3>{});
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
     STATIC_REQUIRE(
-        !poly.project(proj_map, Vectord<3>{1.0, 2.0, 3.0}).has_value());
+        !poly.projective_map(proj_map, Vectord<3>{1.0, 2.0, 3.0}).has_value());
 
     constexpr auto cone = poly.cone_view();
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{}, 0.0)));
@@ -422,10 +425,10 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     constexpr ProjectiveMap<Matrix<double, 3, 3>, Matrix<double, 1, 3>>
         proj_map(I, Vectord<3>{}, as_row_vector(Vectord<3>{}), 1.0);
     constexpr auto x_proj =
-        simplex.project(proj_map, Vectord<3>{0.7, 0.2, 0.1});
+        simplex.projective_map(proj_map, Vectord<3>{0.7, 0.2, 0.1});
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
-    STATIC_REQUIRE(!simplex.project(proj_map, Vectord<3>{}).has_value());
+    STATIC_REQUIRE(!simplex.projective_map(proj_map, Vectord<3>{}).has_value());
 
     constexpr auto cone = simplex.cone_view();
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.8, 0.1, 0.1}, 1.0)));
@@ -461,9 +464,10 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
                    set);
     // (1) projection checks
     STATIC_REQUIRE(
-        !set.project(ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>(
-                         I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 0.0),
-                     Vectord<2>{})
+        !set.projective_map(
+                ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>(
+                    I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 0.0),
+                Vectord<2>{})
              .has_value());
     // (2) cone checks
     constexpr auto cone = set.cone_view();
@@ -560,7 +564,7 @@ TEST_CASE("PSD cone", "[convex_sets]") {
 
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
-    constexpr auto x_proj = cone.project(proj_map, Matrixd<2, 2>{});
+    constexpr auto x_proj = cone.projective_map(proj_map, Matrixd<2, 2>{});
     STATIC_REQUIRE(!x_proj.has_value());
 
     // (2) cone view check
@@ -609,7 +613,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
-    constexpr auto x_proj = cone.project(proj_map, Vectord<2>{});
+    constexpr auto x_proj = cone.projective_map(proj_map, Vectord<2>{});
     STATIC_REQUIRE(!x_proj.has_value());
   }
 
@@ -645,7 +649,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
-    constexpr auto x_proj = cone.project(proj_map, Vectord<2>{});
+    constexpr auto x_proj = cone.projective_map(proj_map, Vectord<2>{});
     STATIC_REQUIRE(!x_proj.has_value());
   }
 
@@ -683,7 +687,7 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
-    constexpr auto x_proj = cone.project(proj_map, Vectord<2>{});
+    constexpr auto x_proj = cone.projective_map(proj_map, Vectord<2>{});
     STATIC_REQUIRE(!x_proj.has_value());
   }
 
@@ -738,10 +742,10 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto I = make_identity<double, 2>();
     constexpr ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
-    constexpr auto x_proj = ball.project(proj_map, c);
+    constexpr auto x_proj = ball.projective_map(proj_map, c);
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
-    STATIC_REQUIRE(!ball.project(proj_map, Vectord<2>{}).has_value());
+    STATIC_REQUIRE(!ball.projective_map(proj_map, Vectord<2>{}).has_value());
 
     constexpr auto cone = ball.cone_view();
     STATIC_REQUIRE(
@@ -814,10 +818,10 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
 
     constexpr ProjectiveMap<Matrix<double, 4, 4>, Matrix<double, 1, 4>>
         proj_map(I, Vectord<4>{}, as_row_vector(Vectord<4>{}), 1.0);
-    constexpr auto x_proj = ball.project(proj_map, c);
+    constexpr auto x_proj = ball.projective_map(proj_map, c);
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
-    STATIC_REQUIRE(!ball.project(proj_map, Vectord<4>{}).has_value());
+    STATIC_REQUIRE(!ball.projective_map(proj_map, Vectord<4>{}).has_value());
 
     constexpr auto cone = ball.cone_view();
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<4>{}, 0.0)));
@@ -871,10 +875,10 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr auto I = make_identity<double, 3>();
     constexpr ProjectiveMap<Matrix<double, 3, 3>, Matrix<double, 1, 3>>
         proj_map(I, Vectord<3>{}, as_row_vector(Vectord<3>{}), 1.0);
-    constexpr auto x_proj = ball.project(proj_map, c);
+    constexpr auto x_proj = ball.projective_map(proj_map, c);
     STATIC_REQUIRE(x_proj.has_value());
     STATIC_REQUIRE(x_proj.value() == x_proj);
-    STATIC_REQUIRE(!ball.project(proj_map, Vectord<3>{}).has_value());
+    STATIC_REQUIRE(!ball.projective_map(proj_map, Vectord<3>{}).has_value());
 
     constexpr auto cone = ball.cone_view();
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{}, 0.0)));

@@ -199,7 +199,7 @@ class Polyhedron
    */
   template <linalg::MatrixLike MA, linalg::MatrixLike MC>
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MA> + 1>>
-  project_impl(const ProjectiveMap<MA, MC>& map, const Point& x) const {
+  projective_map_impl(const ProjectiveMap<MA, MC>& map, const Point& x) const {
     if (!this->contains(x)) return std::nullopt;
     return map.apply(x);
   }

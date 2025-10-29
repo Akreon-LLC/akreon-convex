@@ -98,7 +98,7 @@ class ConvexSet {
   }
 
   /**
-   * @brief project x \in dom(C) by linear fractional function
+   * @brief projective_map x \in dom(C) by linear fractional function
    *
    * Q(x) -> [z; t] \in K (K = cone in N+1 dim space formed from inverse
    * perspective function)
@@ -114,8 +114,8 @@ class ConvexSet {
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
     requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  project(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
-    return self().project_impl(map, x);
+  projective_map(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
+    return self().projective_map_impl(map, x);
   }
 
   /**

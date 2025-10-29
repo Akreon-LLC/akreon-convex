@@ -46,7 +46,7 @@ class LogSumExpCone : public ConvexSet<Space, LogSumExpCone<Space, Tag>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& /*tol*/) const {
-    contains_impl(std::make_tuple(x, T(1)));
+    return contains_impl(std::make_tuple(x, T(1)));
   }
 
   /**
@@ -121,8 +121,8 @@ class LogSumExpCone : public ConvexSet<Space, LogSumExpCone<Space, Tag>> {
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  project_impl(const ProjectiveMap<MatA, MatC>& /* map */,
-               const Point& /* x */) const {
+  projectve_map_impl(const ProjectiveMap<MatA, MatC>& /* map */,
+                     const Point& /* x */) const {
     return std::nullopt;
   }
 };

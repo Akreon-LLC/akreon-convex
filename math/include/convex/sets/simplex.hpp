@@ -154,7 +154,8 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    */
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  project_impl(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
+  projective_map_impl(const ProjectiveMap<MatA, MatC>& map,
+                      const Point& x) const {
     if (!this->contains(x)) return std::nullopt;
     return map.apply(x);
   }
