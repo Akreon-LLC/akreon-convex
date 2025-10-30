@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
-#include <iostream>
 
 #include "math.hpp"
 #include "unit_test_helpers.hpp"

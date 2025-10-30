@@ -59,12 +59,31 @@ template <class Cone>
 using cone_view_cone_t =
     typename cone_view_traits<linalg::remove_cvref_t<Cone>>::K;
 
+/// @brief helper to get dim of point in cone
+template <class Cone>
+inline constexpr size_t cone_view_dim_v =
+    linalg::vec_size_v<cone_view_point_t<linalg::remove_cvref_t<Cone>>>;
+
 /// @brief cone traits
 template <class Cone>
 struct cone_traits;
 
 /// @brief cone check enum
 enum struct ConeCheck { False = 0, True, Unknown };
+
+/// @brief cone view concept
+template <typename Cone>
+concept ConeViewLike = requires(
+    const Cone& cone,
+    const std::tuple<cone_view_point_t<Cone>, cone_view_type_t<Cone>>& x,
+    const AffineMap<linalg::Matrix<
+        cone_view_type_t<Cone>, cone_view_dim_v<Cone>, cone_view_dim_v<Cone>>>&
+        map) {
+  { cone.is_proper() } -> std::convertible_to<ConeCheck>;
+  { cone.contains(x) } -> std::convertible_to<bool>;
+  { cone.compute_slack(map, x) } -> std::convertible_to<decltype(x)>;
+  { cone.dual_view() };
+};
 
 /// @brief derived cone type traits - lifted hyperplane
 template <linalg::RnSpace Space, ViewTag Tag>

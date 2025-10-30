@@ -29,14 +29,14 @@ class ConvexSet {
   /// @brief alias to extract underlying scalar type of convex set
   using T = linalg::space_type_t<Space>;
 
+  /// @brief alias for point
+  using Point = linalg::space_point_t<Space>;
+
   /// @brief helper to extract dimension of convex set
   static constexpr size_t Dim = linalg::space_dim_v<Space>;
 
   /// @brief helper to get n elements in point
-  static constexpr size_t N = linalg::vec_size_v<linalg::space_point_t<Space>>;
-
-  /// @brief alias for point
-  using Point = linalg::space_point_t<Space>;
+  static constexpr size_t N = linalg::vec_size_v<Point>;
 
   /// @brief alias for view tag
   static constexpr ViewTag Tag = set_view_tag_v<Derived>;
