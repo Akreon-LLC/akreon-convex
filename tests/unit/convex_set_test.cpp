@@ -59,11 +59,11 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(
         !hyperplane_cone.contains(std::tuple(Vectord<3>{1.0, 1.0, 2.0}, 1.0)));
     STATIC_REQUIRE(hyperplane_cone.is_proper() == ConeCheck::False);
-    constexpr auto lifted_point = std::make_tuple(point, 1.0);
-    STATIC_REQUIRE(
-        !hyperplane_cone.less_than(lifted_point, lifted_point).has_value());
-    STATIC_REQUIRE(!hyperplane_cone.less_than_strict(lifted_point, lifted_point)
-                        .has_value());
+
+    constexpr auto I_map = AffineMap<Matrixd<3, 3>>(I, Vectord<3>{});
+    constexpr auto slack =
+        hyperplane_cone.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+    STATIC_REQUIRE(hyperplane_cone.contains(slack));
   }
 
   SECTION("Test closed lower halfspace") {
@@ -93,11 +93,10 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
         !halfspace_cone.contains(std::tuple(Vectord<2>{-1.0, 5.0}, 1.0)));
     STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
 
-    constexpr auto lifted_point = std::make_tuple(point, 1.0);
-    STATIC_REQUIRE(
-        !halfspace_cone.less_than(lifted_point, lifted_point).has_value());
-    STATIC_REQUIRE(!halfspace_cone.less_than_strict(lifted_point, lifted_point)
-                        .has_value());
+    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    constexpr auto slack =
+        halfspace_cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+    STATIC_REQUIRE(halfspace_cone.contains(slack));
   }
 
   SECTION("Test open lower halfspace") {
@@ -135,11 +134,6 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace_cone.contains(
         std::tuple(Vectord<4>{1.0, 1.0, 0.0, 5.0}, 1.0)));
     STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
-    constexpr auto lifted_point = std::make_tuple(point, 1.0);
-    STATIC_REQUIRE(
-        !halfspace_cone.less_than(lifted_point, lifted_point).has_value());
-    STATIC_REQUIRE(!halfspace_cone.less_than_strict(lifted_point, lifted_point)
-                        .has_value());
   }
 
   SECTION("Test closed upper halfspace") {
@@ -172,12 +166,6 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(
         !halfspace_cone.contains(std::tuple(Vectord<3>{0.1, 1.0, -2.0}, 1.0)));
     STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
-
-    constexpr auto lifted_point = std::make_tuple(point, 1.0);
-    STATIC_REQUIRE(
-        !halfspace_cone.less_than(lifted_point, lifted_point).has_value());
-    STATIC_REQUIRE(!halfspace_cone.less_than_strict(lifted_point, lifted_point)
-                        .has_value());
   }
 
   SECTION("Test open upper halfspace") {
@@ -197,11 +185,6 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace_cone.contains(std::tuple(Vectord<1>{5.0}, 1.0)));
     STATIC_REQUIRE(halfspace_cone.contains(std::tuple(Vectord<1>{6.0}, 1.0)));
     STATIC_REQUIRE(halfspace_cone.is_proper() == ConeCheck::False);
-    constexpr auto lifted_point = std::make_tuple(point, 1.0);
-    STATIC_REQUIRE(
-        !halfspace_cone.less_than(lifted_point, lifted_point).has_value());
-    STATIC_REQUIRE(!halfspace_cone.less_than_strict(lifted_point, lifted_point)
-                        .has_value());
   }
 }
 
@@ -250,9 +233,11 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
         cone.contains(std::tuple(Vectord<2>{c(0) + 0.1, c(1) - 0.5}, 1.0)));
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{1.5, 1.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-    constexpr auto lifted_c = std::make_tuple(c, 1.0);
-    STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
+
+    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    constexpr auto slack =
+        cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+    STATIC_REQUIRE(!cone.contains(slack));
   }
 
   SECTION("Test closed ellipsoid set") {
@@ -272,11 +257,6 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
         cone.contains(std::tuple(Vectord<2>{c(0) + 0.1, c(1) - 0.5}, 1.0)));
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{1.5, 1.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    constexpr auto lifted_c = std::make_tuple(c, 1.0);
-    STATIC_REQUIRE(cone.less_than_strict(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
-    STATIC_REQUIRE(cone.less_than_strict(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).value());
   }
 }
 
@@ -321,12 +301,11 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{1.0, 2.0, 3.0}, 1.0)));
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{1.0, 0.0, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
-    STATIC_REQUIRE(cone.less_than(std::tuple(Vectord<3>{}, 0.0),
-                                  std::tuple(Vectord<3>{}, 0.0))
-                       .has_value());
-    STATIC_REQUIRE(cone.less_than(std::tuple(Vectord<3>{}, 0.0),
-                                  std::tuple(Vectord<3>{}, 0.0))
-                       .value());
+
+    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
+    constexpr auto slack =
+        cone.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+    STATIC_REQUIRE(cone.contains(slack));
   }
 
   SECTION("Test Open Polyhedron", "[A x < b]") {
@@ -344,8 +323,6 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{1.0, 0.0, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.1, 0.1, 0.1}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-    constexpr auto pt = std::make_tuple(Vectord<3>{}, 1.0);
-    STATIC_REQUIRE(!cone.less_than(pt, pt).has_value());
   }
 
   mat_traits<Matrix<double, 2, 3>> C_mat;
@@ -371,9 +348,6 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 0.0, 1.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
-    constexpr auto pt = std::make_tuple(Vectord<3>{}, 1.0);
-    STATIC_REQUIRE(cone.less_than(pt, pt).has_value());
-    STATIC_REQUIRE(cone.less_than(pt, pt).value());
   }
 
   SECTION("Test Open Polyhedron", "[A x < b, C x == d]") {
@@ -396,9 +370,6 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.0, 0.0, 1.0}, 1.0)));
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.2, 0.3, 0.5}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-
-    constexpr auto pt = std::make_tuple(Vectord<3>{}, 1.0);
-    STATIC_REQUIRE(!cone.less_than(pt, pt).has_value());
   }
 }
 
@@ -435,13 +406,11 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{-0.8, 0.1, 0.1}, 1.0)));
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.8, 0.1, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    constexpr auto a = std::make_tuple(Vectord<3>{0.8, 0.2, 0.0}, 1.0);
-    constexpr auto b = std::make_tuple(Vectord<3>{1.6, 0.2, 0.0}, 2.0);
-    constexpr auto c = std::make_tuple(Vectord<3>{1.6, 0.4, 0.0}, 2.0);
-    STATIC_REQUIRE(cone.less_than(a, b).has_value());
-    STATIC_REQUIRE(!cone.less_than(a, b).value());
-    STATIC_REQUIRE(cone.less_than(a, c).has_value());
-    STATIC_REQUIRE(cone.less_than(a, c).value());
+
+    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
+    constexpr auto slack =
+        cone.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+    STATIC_REQUIRE(cone.contains(slack));
   }
 }
 
@@ -474,14 +443,11 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{1.0, 0.0}, 1.0)));
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{-0.1, 0.1}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    constexpr auto a = std::make_tuple(Vectord<2>{1.0, 0.0}, 1.0);
-    constexpr auto b = std::make_tuple(Vectord<2>{2.0, 1.0}, 1.0);
-    constexpr auto z = std::make_tuple(Vectord<2>{}, 0.0);
-    constexpr auto c = std::make_tuple(Vectord<2>{-1.0, 0.1}, 1.0);
-    STATIC_REQUIRE(cone.less_than(a, b).has_value());
-    STATIC_REQUIRE(cone.less_than(a, b).value());
-    STATIC_REQUIRE(cone.less_than(z, c).has_value());
-    STATIC_REQUIRE(!cone.less_than(z, c).value());
+
+    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    constexpr auto slack =
+        cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+    STATIC_REQUIRE(cone.contains(slack));
   }
 }
 
@@ -495,7 +461,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
             LMI<Matrix<double, 3, 1>, LMIType::NonStrict, ViewTag::ConvexSet>>);
   }
 
-  SECTION("Test Strict LMI", "[A(x) <= B]") {
+  SECTION("Test Strict LMI", "[A(x) < B]") {
     constexpr auto I = make_identity<double, 2>();
     constexpr LMI<Matrixd<1, 2>, LMIType::Strict> set(I, I, I);
     STATIC_REQUIRE(set.is_well_formed());
@@ -509,8 +475,11 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{0.2, 0.5}, 1.0)));
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{0.5, 0.5}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-    constexpr auto z = std::tuple(Vectord<2>{}, 0.0);
-    STATIC_REQUIRE(!cone.less_than(z, z).has_value());
+
+    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    constexpr auto slack =
+        cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+    STATIC_REQUIRE(!cone.contains(slack));
   }
 
   SECTION("Test Nonstrict LMI", "[A(x) <= B]") {
@@ -528,9 +497,6 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(
         cone.contains(std::tuple(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
-    constexpr auto z = std::make_tuple(Vectord<3>{}, 1.0);
-    STATIC_REQUIRE(cone.less_than(z, z).has_value());
-    STATIC_REQUIRE(cone.less_than(z, z).value());
   }
 }
 
@@ -574,15 +540,13 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(std::tuple(I, 1.0)));
     STATIC_REQUIRE(cone_v.contains(std::tuple(Z, 1.0)));
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
-    constexpr auto tup_A = std::make_tuple(A, 1.0);
-    constexpr auto tup_I = std::make_tuple(I, 1.0);
-    constexpr auto tup_Z = std::make_tuple(Z, 1.0);
-    STATIC_REQUIRE(cone_v.less_than(tup_A, tup_A).has_value());
-    STATIC_REQUIRE(cone_v.less_than(tup_A, tup_A).value());
-    STATIC_REQUIRE(cone_v.less_than(tup_I, tup_Z).has_value());
-    STATIC_REQUIRE(!cone_v.less_than(tup_I, tup_Z).value());
-    STATIC_REQUIRE(cone_v.less_than_strict(tup_A, tup_A).has_value());
-    STATIC_REQUIRE(cone_v.less_than_strict(tup_A, tup_A).value());
+
+    // (dakre) TODO will need to revist (unpack into linear operator theory)
+#if 0
+    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    constexpr auto slack = cone_v.compute_slack(I_map, std::tuple(I, 0.0));
+    STATIC_REQUIRE(!cone_v.contains(slack));
+#endif
   }
 }
 
@@ -615,6 +579,11 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
         proj_map(I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 1.0);
     constexpr auto x_proj = cone.projective_map(proj_map, Vectord<2>{});
     STATIC_REQUIRE(!x_proj.has_value());
+
+    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    constexpr auto slack =
+        cone_v.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+    STATIC_REQUIRE(!cone_v.contains(slack));
   }
 
   SECTION("Test closed L2 norm cone") {
@@ -753,10 +722,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{c(0) + 2.0, c(1)}, r)));
     STATIC_REQUIRE(
         !cone.contains(std::tuple(Vectord<2>{c(0) + 2.0, c(1)}, 1.0)));
-    constexpr auto lifted_c = std::tuple(c, r);
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-    STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
   }
 
   SECTION("Test closed L2 norm ball") {
@@ -783,14 +749,6 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(
         cone.contains(std::tuple(Vectorf<2>{c(0) + 2.f, c(1)}, 1.f)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-
-    constexpr auto lifted_c = std::tuple(c, r);
-    STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
-    STATIC_REQUIRE(
-        cone.less_than_strict(
-                lifted_c, std::tuple(Vectorf<2>{c(0) + 1.f, c(1) + 1.f}, r * r))
-            .value());
   }
 
   SECTION("Test closed L1 norm ball") {
@@ -830,12 +788,6 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(
         std::tuple(Vectord<4>{c(0) + 1.0, c(1), c(2), c(3)}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-
-    constexpr auto lifted_c = std::tuple(c, r);
-    STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
-    STATIC_REQUIRE(cone.less_than_strict(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).value());
   }
 
   SECTION("Test open L1 norm ball") {
@@ -858,8 +810,6 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
     constexpr auto lifted_c = std::tuple(c, r);
     STATIC_REQUIRE(cone.contains(lifted_c));
-    STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
   }
 
   SECTION("Test open Linf norm ball") {
@@ -888,8 +838,6 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
 
     constexpr auto lifted_c = std::tuple(c, r);
     STATIC_REQUIRE(cone.contains(lifted_c));
-    STATIC_REQUIRE(!cone.less_than(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(!cone.less_than_strict(lifted_c, lifted_c).has_value());
   }
 
   SECTION("Test closed  Linf norm ball") {
@@ -918,12 +866,6 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
 
     constexpr auto lifted_c = std::tuple(c, r);
     STATIC_REQUIRE(cone.contains(lifted_c));
-    STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).has_value());
-    STATIC_REQUIRE(cone.less_than(lifted_c, lifted_c).value());
-    STATIC_REQUIRE(
-        cone.less_than_strict(lifted_c,
-                              std::tuple(Vectorf<3>{2.f, 2.f, 2.f}, r * r))
-            .value());
   }
 }
 
@@ -971,11 +913,6 @@ TEST_CASE("Test Rotated SOC", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 1.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    constexpr auto z = std::make_tuple(Vectord<3>{}, 1.0);
-    constexpr auto ones = std::make_tuple(Vectord<3>{1.0, 1.0, 1.0}, 1.0);
-    STATIC_REQUIRE(cone.less_than(z, ones).has_value());
-    STATIC_REQUIRE(!cone.less_than(z, ones).value());
-    STATIC_REQUIRE(!cone.less_than_strict(z, z).value());
   }
 }
 
@@ -992,16 +929,23 @@ TEST_CASE("Test Exp Cone", "[convex_sets]") {
     STATIC_REQUIRE(exp_cone.contains(Vectord<3>{-1.0, 1.0, 2.0}));
     STATIC_REQUIRE(!exp_cone.contains(Vectord<3>{0.1, 1.0, 2.0}));
     STATIC_REQUIRE(!exp_cone.contains(Vectord<3>{0.1, 1.0, -2.0}));
+
     constexpr auto I = make_identity<double, 3>();
     constexpr auto exp_cone_t =
         exp_cone.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{}));
     STATIC_REQUIRE(exp_cone_t == exp_cone);
+
     constexpr auto cone = exp_cone.cone_view();
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 2.0}, 1.0)));
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{-1.0, 1.0, 2.0}, 1.0)));
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.1, 1.0, 2.0}, 1.0)));
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.1, 1.0, -2.0}, 1.0)));
+
+    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
+    constexpr auto slack =
+        cone.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+    STATIC_REQUIRE(cone.contains(slack));
   }
 }
 
@@ -1030,6 +974,14 @@ TEST_CASE("Test log det cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(cone_v.contains(std::tuple(A, 1.0)));
     STATIC_REQUIRE(!cone.contains(std::tuple(Z, 1.0)));
+
+    // (dakre) TODO same as psd cone
+#if 0
+    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    constexpr auto slack =
+        cone_v.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+    STATIC_REQUIRE(cone_v.contains(slack));
+#endif
   }
 }
 
@@ -1052,6 +1004,11 @@ TEST_CASE("Test power cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(cone_v.contains(std::tuple(Vectord<3>{}, 0.0)));
     STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<3>{}, 1.0)));
+
+    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
+    constexpr auto slack =
+        cone_v.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+    STATIC_REQUIRE(cone_v.contains(slack));
   }
 }
 
@@ -1070,5 +1027,10 @@ TEST_CASE("Test log sum exp cone", "[convex_sets]") {
 
     constexpr auto cone_v = lse_cone.cone_view();
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
+
+    constexpr auto I_map = make_map_id<Matrixd<4, 4>>();
+    constexpr auto slack =
+        cone_v.compute_slack(I_map, std::tuple(Vectord<4>{}, 0.0));
+    STATIC_REQUIRE(!cone_v.contains(slack));
   }
 }

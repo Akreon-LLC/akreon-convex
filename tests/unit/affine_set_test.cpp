@@ -28,6 +28,7 @@ TEST_CASE("Test affine set", "[affine_sets]") {
     constexpr auto I_composed = I_map.compose(I_map_inv);
     STATIC_REQUIRE(all_equal(I_composed.linear_part(), I_map.linear_part()));
     STATIC_REQUIRE(all_equal(I_composed.translation(), I_map.translation()));
+    STATIC_REQUIRE(I_map(ones) == ones);
 
     constexpr auto F =
         Matrix<double, 2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{4.2, -2.0}};

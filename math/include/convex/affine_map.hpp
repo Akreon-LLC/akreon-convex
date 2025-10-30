@@ -17,6 +17,14 @@ using AffineMap2d = AffineMap<linalg::Matrix<T, 2, 2>>;
 template <linalg::FieldLike T>
 using AffineMap3d = AffineMap<linalg::Matrix<T, 3, 3>>;
 
+template <linalg::MatrixLike Mat>
+  requires(linalg::SquareMatrixLike<Mat>)
+constexpr AffineMap<Mat> make_map_id() {
+  using T = linalg::mat_type_t<Mat>;
+  static constexpr size_t N = linalg::mat_rows_v<Mat>;
+  return AffineMap<Mat>(linalg::make_identity<T, N>(), linalg::Vector<T, N>{});
+}
+
 /**
  * @brief AffineMap class definition
  *
@@ -132,6 +140,15 @@ class AffineMap {
   constexpr bool operator!=(const AffineMap<Mat>& other) const {
     return !is_equal(other);
   }
+
+  /**
+   * @brief transform point to coords
+   *
+   * @param point \in R^n
+   *
+   * @return transformed point
+   */
+  constexpr auto operator()(const DomVec& x) const { return U * x + c; }
 
  private:
   /** @brief member variables for affine map */
