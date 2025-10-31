@@ -70,10 +70,12 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * @brief contains function to see if x is in the lifted halfspace
    *
    * Standard inverse perspective function:
-   * C' = { (x,t) \in R^n x R_++ | a^T x <= b t }
+   * (1) C' = { (x,t) \in R^n x R_++ | a^T x <= b t }
    *
    * Epi / Hypo -> Lifted Halfspace
-   * C' = { (x,t) \in R^n x R | a^T x <= t - b }
+   * (2) Epi: C' = { (x,t) \in R^n x R | a^T x <= t - b }
+   * (3) Hypo: C' = { (x,t) \in R^n x R | t <= a^T x + b }
+   * { (x, t) \in R^n x R | -a^T x - b <= - t}
    *
    * @param (x, t) \in R^n x R_++ or \in R^n x R depending on lift
    * @param tolerance of type T (ignored)
@@ -85,9 +87,10 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
     const auto x = std::get<0>(x_in);
     auto t = std::get<1>(x_in);
 
-    if constexpr (Tag == ViewTag::EpigraphCone ||
-                  Tag == ViewTag::HypographCone) {
+    if constexpr (Tag == ViewTag::EpigraphCone) {
       t -= b;
+    } else if constexpr (Tag == ViewTag::HypographCone) {
+      t = T(-1) * t - b;
     } else {
       if (t == T(0) && !linalg::all_zero(x)) return false;
       if (t < T(0)) return false;
@@ -144,7 +147,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
     return Halfspace<Space, Type, Tag>(as_vector(aT_U),
-                                  b + (aT_U * map.translation())(0));
+                                       b + (aT_U * map.translation())(0));
   }
 
   /**

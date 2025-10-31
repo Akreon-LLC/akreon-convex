@@ -70,8 +70,11 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
   }
 
   /**
-   * @brief contains function to see if x is in the ellipsoid (x - c t)^T P^{-1}
-   * (x - c t) <= t^2
+   * @brief contains function to see if x is in the ellipsoid
+   *
+   * (1) Standard cone: { (x, t) \in R^n x R_+ | (x - c t) ^T P^{-1} (x - c t)
+   * <= t^2 }
+   * (2) Epi/Hypo N/A right now
    *
    * @param (x, t) \in R^n x R_++
    * @param tolerance of tyep T (ignored)
@@ -83,12 +86,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
     const auto x = std::get<0>(x_in);
     auto t = std::get<1>(x_in);
 
-    if (linalg::all_zero(x) && t == T(0)) {
-      if constexpr (EllipsoidType::OE == Type)
-        return false;
-      else
-        return true;
-    }
+    if (!linalg::all_zero(x) && t == T(0)) return false;
     if (t < T(0)) return false;
 
     const auto delta = as_col_vector(x - (t * c));

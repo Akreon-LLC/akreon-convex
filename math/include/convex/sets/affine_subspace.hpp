@@ -62,7 +62,8 @@ class AffineSubspace
   /**
    * @brief contains function for lifted subspace
    *
-   * (1) Standard Cone : C' = { (x,t) | A x = b t }
+   * (1) Standard Cone : C' = { (x,t) \in R^n x R_+ | A x = b t }
+   * (2) Epi/Hypo N/A right now
    *
    * @param (x,t) \in R^n x R
    * @param tolerance
@@ -74,7 +75,7 @@ class AffineSubspace
     const auto x = std::get<0>(x_in);
     auto t = std::get<1>(x_in);
     if (t < T(0)) return false;
-    if (t == T(0) && linalg::all_zero(x)) return true;
+    if (t == T(0) && !linalg::all_zero(x)) return false;
     t *= b;
     return linalg::L2<AmbientVec>()(A * x - t) < tol;
   }

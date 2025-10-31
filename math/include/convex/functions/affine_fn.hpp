@@ -74,6 +74,7 @@ class AffineFn
    * @brief hypograph impl
    *
    * opposite of epigraph for concave function
+   * { (x, t) | -a^T x - b <= -t }
    *
    * @return hypograph
    */
@@ -81,7 +82,7 @@ class AffineFn
     const auto A = map.linear_part();
     const auto b = map.translation();
     return Halfspace<Domain, HalfspaceType::CUH, ViewTag::HypographCone>(
-               linalg::as_vector(A), b(0))
+               T(-1) * linalg::as_vector(A), T(-1) * b(0))
         .cone_view();
   }
 

@@ -84,6 +84,8 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
                                const T& tol) const {
     const auto x = std::get<0>(x_in);
+    // (dakre) TODO (global) t is encoded in z with point, so does it make sense
+    // to scale z here or drop?
     return contains_impl(x, tol);
   }
 

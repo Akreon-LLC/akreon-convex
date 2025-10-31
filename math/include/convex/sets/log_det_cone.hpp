@@ -78,7 +78,7 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
     if (!res.has_value()) return false;
 
     if constexpr (Tag == ViewTag::EpigraphCone)
-      return res.value() >= T(-1) * t;
+      return res.value() <= t;
     else
       return res.value() >= t;
   }
