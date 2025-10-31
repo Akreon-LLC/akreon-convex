@@ -263,22 +263,22 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
   constexpr auto cone_view_impl() const {
     if constexpr (Type == NormBallType::L2OB)
       return ConeView(
-          NormCone<Space, NormConeType::L2OC, ViewTag::ConvexCone>(c, r));
+          NormCone<Space, NormConeType::L2OC, ViewTag::LiftedCone>(c, r));
     else if constexpr (Type == NormBallType::L2CB)
       return ConeView(
-          NormCone<Space, NormConeType::L2CC, ViewTag::ConvexCone>(c, r));
+          NormCone<Space, NormConeType::L2CC, ViewTag::LiftedCone>(c, r));
     else if constexpr (Type == NormBallType::L1OB)
       return ConeView(
-          NormCone<Space, NormConeType::L1OC, ViewTag::ConvexCone>(c, r));
+          NormCone<Space, NormConeType::L1OC, ViewTag::LiftedCone>(c, r));
     else if constexpr (Type == NormBallType::L1CB)
       return ConeView(
-          NormCone<Space, NormConeType::L1CC, ViewTag::ConvexCone>(c, r));
+          NormCone<Space, NormConeType::L1CC, ViewTag::LiftedCone>(c, r));
     else if constexpr (Type == NormBallType::LinfOB)
       return ConeView(
-          NormCone<Space, NormConeType::LinfOC, ViewTag::ConvexCone>(c, r));
+          NormCone<Space, NormConeType::LinfOC, ViewTag::LiftedCone>(c, r));
     else
       return ConeView(
-          NormCone<Space, NormConeType::LinfCC, ViewTag::ConvexCone>(c, r));
+          NormCone<Space, NormConeType::LinfCC, ViewTag::LiftedCone>(c, r));
   }
 
   /**

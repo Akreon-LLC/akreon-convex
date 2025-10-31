@@ -52,7 +52,9 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
   /**
    * @brief contains function to see if x is in the simplex
    *
-   * @param (x, t) \in R^n x R
+   * C' = { (x, t) \in R^n x R_++ | 1^T x == t }
+   *
+   * @param (x, t) \in R^n x R_++
    * @param tolerance (scalar)
    *
    * @return T/F
@@ -141,7 +143,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(Simplex<Space, ViewTag::ConvexCone>());
+    return ConeView(Simplex<Space, ViewTag::LiftedCone>());
   }
 
   /**

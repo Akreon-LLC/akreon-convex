@@ -492,4 +492,28 @@ struct cone_traits<LogSumExpCone<Space, Tag>> {
   }
 };
 
+/// @brief affine subspace -> zero cone
+template <linalg::RnSpace Space, linalg::MatrixLike Mat, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<AffineSubspace<Space, Mat, Tag>> {
+  using ConeT = AffineSubspace<Space, Mat, Tag>;
+
+  static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
+    return ConeCheck::True;
+  }
+
+  static constexpr ConeCheck is_solid(const ConeT& cone) {
+    return cone.is_well_formed() ? ConeCheck::True : ConeCheck::False;
+  }
+
+  /**
+   * @brief pointed test
+   *
+   * K \cap -K = { 0 }
+   */
+  static constexpr ConeCheck is_pointed(const ConeT& /* cone */) {
+    return ConeCheck::True;
+  }
+};
+
 }  // namespace convex

@@ -17,7 +17,7 @@ namespace convex {
  * C = k_1 x k_2 ... is the epigraph for log sum exp and is a cartesian product
  * of multiple exp cones
  */
-template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexCone>
+template <linalg::RnSpace Space, ViewTag Tag = ViewTag::LiftedCone>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class LogSumExpCone : public ConvexSet<Space, LogSumExpCone<Space, Tag>> {
@@ -50,12 +50,12 @@ class LogSumExpCone : public ConvexSet<Space, LogSumExpCone<Space, Tag>> {
   }
 
   /**
-   * @brief contains with (x,t) in cone
+   * @brief contains with (x,t) in cone (standard as epigraph)
    *
-   * Epigraph: { (x,t) | \sum_i e^{x_i - t} <= 1 }
-   * Hypograph: { (x,t) | \sum_i e^{x_i + t} <= 1 }
+   * (1) Epigraph lift: C' = { (x,t) \in R^n x R | \sum_i e^{x_i - t} <= 1 }
+   * (2) Hypograph lift: { (x,t) \in R^n x R | \sum_i e^{x_i + t} <= 1 }
    *
-   * @param (x,t) \in R^n x R
+   * @param (x,t) \in R^n x R_++ or R^n x R depending on lift
    * @param scalar tol
    *
    * @return T/F
@@ -106,7 +106,7 @@ class LogSumExpCone : public ConvexSet<Space, LogSumExpCone<Space, Tag>> {
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(LogSumExpCone<Space, ViewTag::ConvexCone>());
+      return ConeView(LogSumExpCone<Space, ViewTag::LiftedCone>());
     else
       return ConeView(LogSumExpCone<Space, Tag>());
   }

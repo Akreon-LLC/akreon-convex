@@ -63,8 +63,12 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
-    if (x(0) > T(0) || x(1) < T(0) || x(2) < T(0)) return false;
-    if (x(1) == T(0)) return true;
+    if (x(1) <= T(0)) {
+      if (x(0) <= T(0) && x(2) >= T(0))
+        return true;
+      else
+        return false;
+    }
     const auto res = Exp<Space>()(x(0), x(1));
     if (!res.has_value()) return false;
     return res.value() <= x(2);
@@ -113,7 +117,10 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(ExpCone<Space, ViewTag::ConvexCone>());
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(ExpCone<Space, ViewTag::LiftedCone>());
+    else
+      return ConeView(ExpCone<Space, Tag>());
   }
 
   /**

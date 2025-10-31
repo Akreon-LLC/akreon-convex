@@ -419,7 +419,7 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(ConvexSetLike<NonnegOrthant<Matrix<double, 1, 1>>>);
     STATIC_REQUIRE(ConvexConeLike<
-                   NonnegOrthant<Matrix<double, 1, 1>, ViewTag::ConvexCone>>);
+                   NonnegOrthant<Matrix<double, 1, 1>, ViewTag::LiftedCone>>);
   }
 
   SECTION("Test nonneg orthant", "[R^n_+]") {
@@ -504,10 +504,10 @@ TEST_CASE("Test LMI", "[convex_sets]") {
 TEST_CASE("PSD cone", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(ConvexConeLike<PsdCone<SymmetricMatrix<Matrix<double, 2, 2>>,
-                                          ViewTag::ConvexCone>>);
+                                          ViewTag::LiftedCone>>);
     STATIC_REQUIRE(
         ConvexConeLike<PsdCone<SymmetricMatrix<Matrix<float, 10, 10>>,
-                               ViewTag::ConvexCone>>);
+                               ViewTag::LiftedCone>>);
   }
 
   SECTION("PSD Cones") {
@@ -556,10 +556,10 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
     STATIC_REQUIRE(
         ConvexConeLike<NormCone<Matrix<double, 1, 2>, NormConeType::LinfOC,
-                                ViewTag::ConvexCone>>);
+                                ViewTag::LiftedCone>>);
     STATIC_REQUIRE(
         ConvexConeLike<NormCone<Matrix<float, 1, 10>, NormConeType::L1CC,
-                                ViewTag::ConvexCone>>);
+                                ViewTag::LiftedCone>>);
   }
 
   SECTION("Test open L2 norm cone") {
@@ -928,7 +928,7 @@ TEST_CASE("Test Exp Cone", "[convex_sets]") {
     STATIC_REQUIRE(exp_cone.is_well_formed());
     STATIC_REQUIRE(exp_cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
     STATIC_REQUIRE(exp_cone.contains(Vectord<3>{-1.0, 1.0, 2.0}));
-    STATIC_REQUIRE(!exp_cone.contains(Vectord<3>{0.1, 1.0, 2.0}));
+    STATIC_REQUIRE(exp_cone.contains(Vectord<3>{0.1, 1.0, 2.0}));
     STATIC_REQUIRE(!exp_cone.contains(Vectord<3>{0.1, 1.0, -2.0}));
 
     constexpr auto I = make_identity<double, 3>();
@@ -940,7 +940,7 @@ TEST_CASE("Test Exp Cone", "[convex_sets]") {
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 2.0}, 1.0)));
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{-1.0, 1.0, 2.0}, 1.0)));
-    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.1, 1.0, 2.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.1, 1.0, 2.0}, 1.0)));
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.1, 1.0, -2.0}, 1.0)));
 
     constexpr auto I_map = make_map_id<Matrixd<3, 3>>();

@@ -91,6 +91,8 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
   /**
    * @brief contains function to see if x is in the LMI defined as
    *
+   * { (x, t) \in R^n x R_++ | A(x) <= B t }
+   *
    * LMI
    * (i)  PSD: 0 <= t * B - A(x)
    * (ii) PD: 0 < t * B - A(x)
@@ -103,6 +105,8 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
                                const T& /*tol*/) const {
     const auto x = std::get<0>(x_in);
     const auto t = std::get<1>(x_in);
+    if (!linalg::all_zero(x) && t == T(0)) return false;
+    if (t < T(0)) return false;
     auto res = t * B;
     for (size_t i = 0; i < N; ++i) res = res + (x(i) * A(i));
     linalg::SymmetricMatrix S(res);
@@ -169,7 +173,10 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(LMI<Space, Type, ViewTag::ConvexCone>(A, B));
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(LMI<Space, Type, ViewTag::LiftedCone>(A, B));
+    else
+      return ConeView(LMI<Space, Type, Tag>(A, B));
   }
 
   /**

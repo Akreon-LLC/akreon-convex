@@ -67,9 +67,15 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
   }
 
   /**
-   * @brief contains function to see if x is in the halfspace a^T x <= b
+   * @brief contains function to see if x is in the lifted halfspace
    *
-   * @param (x, t) \in R^n x R
+   * Standard inverse perspective function:
+   * C' = { (x,t) \in R^n x R_++ | a^T x <= b t }
+   *
+   * Epi / Hypo -> Lifted Halfspace
+   * C' = { (x,t) \in R^n x R | a^T x <= t - b }
+   *
+   * @param (x, t) \in R^n x R_++ or \in R^n x R depending on lift
    * @param tolerance of type T (ignored)
    *
    * @return T/F
@@ -78,12 +84,15 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
                                const T& /*tol*/) const {
     const auto x = std::get<0>(x_in);
     auto t = std::get<1>(x_in);
-    if (t < T(0)) return false;
 
-    if constexpr (Tag == ViewTag::EpigraphCone || Tag == ViewTag::HypographCone)
+    if constexpr (Tag == ViewTag::EpigraphCone ||
+                  Tag == ViewTag::HypographCone) {
       t -= b;
-    else
+    } else {
+      if (t == T(0) && !linalg::all_zero(x)) return false;
+      if (t < T(0)) return false;
       t *= b;
+    }
 
     switch (Type) {
       case HalfspaceType::OUH:
@@ -134,7 +143,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
-    return Halfspace<Space, Type>(as_vector(aT_U),
+    return Halfspace<Space, Type, Tag>(as_vector(aT_U),
                                   b + (aT_U * map.translation())(0));
   }
 
@@ -154,7 +163,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(Halfspace<Space, Type, ViewTag::ConvexCone>(a, b));
+      return ConeView(Halfspace<Space, Type, ViewTag::LiftedCone>(a, b));
     else
       return ConeView(Halfspace<Space, Type, Tag>(a, b));
   }

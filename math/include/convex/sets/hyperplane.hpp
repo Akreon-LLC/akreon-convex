@@ -56,8 +56,10 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @brief contains function to see if x lies in the hyerplane defined by a^T x
    * == b t
    *
-   * When lifted to convex cone the pair (x,t) \in R^{n + 1}, so last elem of
+   * When lifted to convex cone the pair (x,t) \in R^n x R_++, so last elem of
    * point x is t
+   *
+   * K = { (x,t) | a^T x = b t } \cup { 0 }
    *
    * @param point x of type T (n-dim)
    * @param tolerance
@@ -68,6 +70,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
                                const T& tol) const {
     const auto x = std::get<0>(x_in);
     auto t = std::get<1>(x_in);
+    if (linalg::all_zero(x) && t == T(0)) return true;
     if (t < T(0)) return false;
     t *= b;
     return linalg::constexpr_abs(linalg::dot(a, x) - t) < tol;
@@ -101,8 +104,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
-    return Hyperplane<Space>(as_vector(aT_U),
-                             b + (aT_U * map.translation())(0));
+    return Hyperplane<Space, Tag>(as_vector(aT_U),
+                                  b + (aT_U * map.translation())(0));
   }
 
   /**
@@ -120,7 +123,10 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(Hyperplane<Space, ViewTag::ConvexCone>(a, b));
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(Hyperplane<Space, ViewTag::LiftedCone>(a, b));
+    else
+      return ConeView(Hyperplane<Space, Tag>(a, b));
   }
 
   /**

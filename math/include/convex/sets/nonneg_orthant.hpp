@@ -93,7 +93,7 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
   template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   projective_map_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
-               const Point& /*x*/) const {
+                      const Point& /*x*/) const {
     return std::nullopt;
   }
 
@@ -103,7 +103,10 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(NonnegOrthant<Space, ViewTag::ConvexCone>());
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(NonnegOrthant<Space, ViewTag::LiftedCone>());
+    else
+      return ConeView(NonnegOrthant<Space, Tag>());
   }
 };
 

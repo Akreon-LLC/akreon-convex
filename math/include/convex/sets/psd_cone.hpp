@@ -91,7 +91,10 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(PsdCone<Space, ViewTag::ConvexCone>());
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(PsdCone<Space, ViewTag::LiftedCone>());
+    else
+      return ConeView(PsdCone<Space, Tag>());
   }
 
   /**

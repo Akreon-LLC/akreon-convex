@@ -108,6 +108,8 @@ class Polyhedron
   /**
    * @brief check if candidate vector is in the set
    *
+   * C = { (x, t) \in R^n x R_++ | A x <= b t, C x = d t }
+   *
    * @param (x, t) \in R^n x R
    * @param scalar tolerance
    *
@@ -117,7 +119,14 @@ class Polyhedron
                                const T& tol) const {
     const auto x = std::get<0>(x_in);
     const auto t = std::get<1>(x_in);
-    if (t < T(0)) return false;
+    if (t == T(0) && linalg::all_zero(x)) {
+      if (Type == HalfspaceType::OLH || Type == HalfspaceType::OUH)
+        return false;
+      else
+        return true;
+    }
+
+    if (t <= T(0)) return false;
 
     // (0) check if x is in the halfspaces defined by A x <= b
     for (size_t i = 0; i < RowsA; ++i)
@@ -184,9 +193,12 @@ class Polyhedron
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(
-        Polyhedron<Space, Type, decltype(A), decltype(C), ViewTag::ConvexCone>(
-            A, b, C, d));
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(Polyhedron<Space, Type, decltype(A), decltype(C),
+                                 ViewTag::LiftedCone>(A, b, C, d));
+    else
+      return ConeView(
+          Polyhedron<Space, Type, decltype(A), decltype(C), Tag>(A, b, C, d));
   }
 
   /**

@@ -22,7 +22,7 @@ template <linalg::RnSpace Space, typename Derived>
 class ConvexSet;
 
 /// @brief convex set view tag
-enum struct ViewTag { ConvexSet = 0, ConvexCone, EpigraphCone, HypographCone };
+enum struct ViewTag { ConvexSet = 0, LiftedCone, EpigraphCone, HypographCone };
 
 /// @brief simple enum to describe type of halfspace
 enum struct HalfspaceType { CLH, OLH, CUH, OUH };
@@ -84,19 +84,19 @@ template <linalg::RnSpace Space, HalfspaceType Type, linalg::MatrixLike MatA,
 class Polyhedron;
 
 /// @brief forward declaration of simplex set
-template <linalg::RnSpace Space, ViewTag ViewTag>
+template <linalg::RnSpace Space, ViewTag Tag>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class Simplex;
 
 /// @brief forward declaration of nonneg orthant
-template <linalg::RnSpace Space, ViewTag ViewTag>
+template <linalg::RnSpace Space, ViewTag Tag>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class NonnegOrthant;
 
 /// @brief forward declaration of LMI type
-template <linalg::RnSpace Space, LMIType Type, ViewTag ViewTag>
+template <linalg::RnSpace Space, LMIType Type, ViewTag Tag>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class LMI;
@@ -132,6 +132,13 @@ template <linalg::RnSpace Space, ViewTag Tag>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class LogSumExpCone;
+
+/// @brief affine subspace type
+template <linalg::RnSpace Space, linalg::MatrixLike Mat, ViewTag Tag>
+  requires(linalg::space_dim_v<Space> ==
+               linalg::vec_size_v<linalg::space_point_t<Space>> &&
+           linalg::space_dim_v<Space> == linalg::mat_cols_v<Mat>)
+class AffineSubspace;
 
 /// @brief set traits
 template <class Set>
@@ -306,6 +313,16 @@ struct set_traits<LogSumExpCone<Space, Tag>> {
   static constexpr ViewTag VIEW_TAG = Tag;
 };
 
+/// @brief derived set type traits - log sum exp
+template <linalg::RnSpace Space, linalg::MatrixLike Mat, ViewTag Tag>
+struct set_traits<AffineSubspace<Space, Mat, Tag>> {
+  using RnSpace = Space;
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t DIM = linalg::space_dim_v<Space>;
+  static constexpr ViewTag VIEW_TAG = Tag;
+};
+
 /// @brief alias for vector space
 template <class Set>
 using set_space_t = typename set_traits<linalg::remove_cvref_t<Set>>::RnSpace;
@@ -351,7 +368,7 @@ concept ConvexSetLike =
 /// @brief cone set like concept
 template <class Set>
 concept ConvexConeLike =
-    LiftedSetLike<Set> && (set_view_tag_v<Set> == ViewTag::ConvexCone ||
+    LiftedSetLike<Set> && (set_view_tag_v<Set> == ViewTag::LiftedCone ||
                            set_view_tag_v<Set> == ViewTag::EpigraphCone ||
                            set_view_tag_v<Set> == ViewTag::HypographCone);
 

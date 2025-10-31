@@ -55,9 +55,9 @@ class AffineFn
   /**
    * @brief epigraph impl
    *
-   * F(x) = U x + b
-   * graph(F(x)) = { (x, U x + b) | x \in dom f }
-   * epi(F(x)) = epi(U x + b) = { (x, t) | U x + b <= t, x \in dom f } =
+   * F(x) = a^T x + b
+   * graph(F(x)) = { (x, a^T x + b) | x \in dom f }
+   * epi(F(x)) = epi(a^T x + b) = { (x, t) | a^T x + b <= t, x \in dom f } =
    * halfspace
    *
    * @return epigraph

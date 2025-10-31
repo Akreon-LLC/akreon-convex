@@ -13,7 +13,7 @@ namespace convex {
 /**
  * @brief Rotated second order cone
  *
- * { (x, y, z) | ||x||_2^2 <= y z }
+ * { (x, y, z) | ||x||_2^2 <= y z, y > 0, z >= 0 }
  */
 template <linalg::RnSpace Space, NormConeType Type,
           ViewTag Tag = ViewTag::ConvexSet>
@@ -110,7 +110,7 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(RotatedSOC<Space, Type, ViewTag::ConvexCone>());
+      return ConeView(RotatedSOC<Space, Type, ViewTag::LiftedCone>());
     else
       return ConeView(RotatedSOC<Space, Type, Tag>());
   }

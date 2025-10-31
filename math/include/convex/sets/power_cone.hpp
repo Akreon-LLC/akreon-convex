@@ -18,7 +18,7 @@ namespace convex {
  * (dakre) TODO general lifted cone doesnt have abs on t ... need to evaluate
  * efficacy of this approach
  */
-template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexCone>
+template <linalg::RnSpace Space, ViewTag Tag = ViewTag::LiftedCone>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
@@ -122,7 +122,7 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(PowerCone<Space, ViewTag::ConvexCone>(roots));
+      return ConeView(PowerCone<Space, ViewTag::LiftedCone>(roots));
     else
       return ConeView(PowerCone<Space, Tag>(roots));
   }

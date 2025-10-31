@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "linalg/symmetric_matrix.hpp"
 #include "convex_set.hpp"
+#include "linalg/symmetric_matrix.hpp"
 
 namespace convex {
 
@@ -39,7 +39,7 @@ struct LogDet {
  *
  * hypo(F(x)) = { (X, t) | log(det(X)) >= t, X \in S^n_++ }
  */
-template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexCone>
+template <linalg::RnSpace Space, ViewTag Tag = ViewTag::LiftedCone>
   requires(linalg::SquareMatrixLike<linalg::space_point_t<Space>>)
 class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
  public:
@@ -61,7 +61,11 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
   /**
    * @brief check if candidate matrix X \in S^n_++
    *
-   * @param point in vector space S^n
+   * (1) Epigraph lift C' = { (x, t) \in S^n_++ x R | log(det(X)) >= -t }
+   * (2) Standard & Hypograph lift C' = { (x, t) \in S^n_++ x R | log(det(X)) >=
+   * t }
+   *
+   * @param (x,t) \in S^n_++ x R_++ or S^n_++ x R depending on lift
    * @param scalar tol
    *
    * @return T/F
@@ -119,7 +123,7 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(LogDetCone<Space, ViewTag::ConvexCone>());
+      return ConeView(LogDetCone<Space, ViewTag::LiftedCone>());
     else
       return ConeView(LogDetCone<Space, Tag>());
   }

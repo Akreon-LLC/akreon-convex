@@ -73,7 +73,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    * @brief contains function to see if x is in the ellipsoid (x - c t)^T P^{-1}
    * (x - c t) <= t^2
    *
-   * @param (x, t) \in R^n x R
+   * @param (x, t) \in R^n x R_++
    * @param tolerance of tyep T (ignored)
    *
    * @return T/F
@@ -82,6 +82,13 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
                                const T& /*tol*/) const {
     const auto x = std::get<0>(x_in);
     auto t = std::get<1>(x_in);
+
+    if (linalg::all_zero(x) && t == T(0)) {
+      if constexpr (EllipsoidType::OE == Type)
+        return false;
+      else
+        return true;
+    }
     if (t < T(0)) return false;
 
     const auto delta = as_col_vector(x - (t * c));
@@ -135,8 +142,9 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
              std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto U_inv = linalg::inverse(map.linear_part());
-    return Ellipsoid<Space, Type>(map.linear_part() * c + map.translation(),
-                                  transpose(U_inv) * P * U_inv);
+    return Ellipsoid<Space, Type, Tag>(
+        map.linear_part() * c + map.translation(),
+        transpose(U_inv) * P * U_inv);
   }
 
   /**
@@ -156,7 +164,10 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(Ellipsoid<Space, Type, ViewTag::ConvexCone>(c, P));
+    if constexpr (Tag == ViewTag::ConvexSet)
+      return ConeView(Ellipsoid<Space, Type, ViewTag::LiftedCone>(c, P));
+    else
+      return ConeView(Ellipsoid<Space, Type, Tag>(c, P));
   }
 
   /**

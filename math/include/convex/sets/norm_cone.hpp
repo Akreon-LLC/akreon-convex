@@ -16,7 +16,7 @@ namespace convex {
  * { (x, t) | ||x|| < t }... open cone defined on L1, L2, Linf
  */
 template <linalg::RnSpace Space, NormConeType Type,
-          ViewTag Tag = ViewTag::ConvexCone>
+          ViewTag Tag = ViewTag::LiftedCone>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
@@ -65,7 +65,9 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
   /**
    * @brief contains function to see if x is in the norm cone (y, t) \in K
    *
-   * K = {(x, t) \in R^n x R | ||x|| <= t}
+   * (1) Standard Cone: K = {(x, t) \in R^n x R_+ | ||x|| <= t}
+   * (2) Epigraph Cone: K = {(x, t) \in R^n x R | ||x|| <= t}
+   * (3) Hypograph Cone: K = {(x, t) \in R^n x R | ||x|| <= -t}
    *
    * @param point (x,t) - lifted by default
    * @param tolerance
@@ -76,6 +78,9 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
                                const T& /* tol */) const {
     const auto x = std::get<0>(x_in);
     auto t = std::get<1>(x_in);
+
+    if constexpr (Tag == ViewTag::LiftedCone)
+      if (t < T(0)) return false;
 
     Point shift;
     if (r.has_value() && c.has_value()) {
@@ -141,7 +146,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(NormCone<Space, Type, ViewTag::ConvexCone>());
+      return ConeView(NormCone<Space, Type, ViewTag::LiftedCone>());
     else
       return ConeView(NormCone<Space, Type, Tag>());
   }
