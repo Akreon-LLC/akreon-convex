@@ -19,7 +19,14 @@ TEST_CASE("Test Simple Cone Program") {
 
     constexpr auto norm = NormFn<Space, L1<Vectord<3>>>();
     constexpr auto epi_f = norm.epigraph();
-    ConeProgram<Space, decltype(epi_f)> prog(epi_f);
+    constexpr ConeProgram<Space, decltype(epi_f)> prog(epi_f);
     STATIC_REQUIRE(prog.soft_check());
+
+    constexpr auto ellipsoid = Ellipsoid<Space, EllipsoidType::CE>(
+        Vectord<3>{}, make_identity<double, 3>());
+    constexpr auto cone = ellipsoid.cone_view();
+    constexpr ConeProgram<Space, decltype(epi_f), decltype(cone)> prog2(epi_f,
+                                                                        cone);
+    STATIC_REQUIRE(prog2.soft_check());
   }
 }

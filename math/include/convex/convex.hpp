@@ -5,8 +5,6 @@
 
 #pragma once
 
-#include "affine_map.hpp"
-#include "affine_transforms.hpp"
 #include "cone_program.hpp"
 #include "cone_view.hpp"
 #include "convex_ops.hpp"

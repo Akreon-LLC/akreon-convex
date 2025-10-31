@@ -98,7 +98,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
   template <linalg::SquareMatrixLike Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
              std::same_as<linalg::mat_type_t<Mat>, T>)
-  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+  constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
     return Hyperplane<Space>(as_vector(aT_U),

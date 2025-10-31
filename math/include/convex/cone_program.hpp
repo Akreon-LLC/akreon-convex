@@ -12,8 +12,19 @@ namespace convex {
 /**
  * @brief Cone Program formulation
  *
- * min  c^T x
+ * min. c^T x
  * s.t. F x + b <=_k 0
+ *
+ * AKA
+ * min. c^T x
+ * s.t. [s_0 s_1 ... s_m]^T = [A F_1 F_2 ... F_{m-1}]^T x + [-b g_1 g_2 ...
+ * g_{m-1}]^T
+ *
+ * where s vector \in K_0 x K_1 ... K_m cartesian product of cones
+ *
+ * so equivalent problem becomes the following:
+ * min. c^T z
+ * s.t. F z + b \in K
  */
 template <linalg::RnSpace Domain, ConeViewLike... CVs>
 class ConeProgram {

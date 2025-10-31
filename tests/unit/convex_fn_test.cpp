@@ -11,6 +11,7 @@
 
 using namespace linalg;
 using namespace convex;
+using namespace affine;
 using namespace unit_test;
 
 TEST_CASE("Test norm fn", "[convex_fn]") {

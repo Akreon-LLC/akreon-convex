@@ -81,7 +81,7 @@ class PsdCone : public ConvexSet<Space, PsdCone<Space, Tag>> {
    */
   template <linalg::MatrixLike Mat>
     requires(Tag == ViewTag::ConvexSet)
-  constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
+  constexpr auto transform_impl(const affine::AffineMap<Mat>& /* map */) const {
     return *this;
   }
 

@@ -99,7 +99,7 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
-  constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
+  constexpr auto transform_impl(const affine::AffineMap<Mat>& /* map */) const {
     return *this;
   }
 

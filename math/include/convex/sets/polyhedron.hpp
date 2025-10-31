@@ -150,7 +150,7 @@ class Polyhedron
   template <linalg::SquareMatrixLike Mat>
     requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
              linalg::mat_cols_v<Mat> == N)
-  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+  constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto& U = map.linear_part();
     const auto& trans = map.translation();
 

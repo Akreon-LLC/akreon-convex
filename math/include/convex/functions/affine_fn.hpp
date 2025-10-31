@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../affine_map.hpp"
+#include "affine/affine_map.hpp"
 #include "concave_fn.hpp"
 #include "convex_fn.hpp"
 
@@ -37,7 +37,8 @@ class AffineFn
    *
    * @param AffineMap object
    */
-  constexpr explicit AffineFn(const AffineMap<Mat>& map_in) : map(map_in) {}
+  constexpr explicit AffineFn(const affine::AffineMap<Mat>& map_in)
+      : map(map_in) {}
 
   /**
    * @brief eval impl
@@ -98,6 +99,6 @@ class AffineFn
 
  private:
   /** @brief member vars */
-  AffineMap<Mat> map;
+  affine::AffineMap<Mat> map;
 };
 }  // namespace convex

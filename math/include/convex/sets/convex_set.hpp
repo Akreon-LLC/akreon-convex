@@ -93,7 +93,7 @@ class ConvexSet {
    */
   template <linalg::MatrixLike Mat>
     requires(Tag == ViewTag::ConvexSet)
-  constexpr auto transform(const AffineMap<Mat>& map) const {
+  constexpr auto transform(const affine::AffineMap<Mat>& map) const {
     return self().transform_impl(map);
   }
 

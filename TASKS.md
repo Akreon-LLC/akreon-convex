@@ -75,8 +75,8 @@ TODO to scope:
 - [] log-convex & log-concave functions
 
 #### Convex Problems
-- [] form cone blocks 
-- [] convex problem base
+- [x] form cone blocks (slacks)
+- [] cone program base
 
 #### Duality
 - [] duality & KKT

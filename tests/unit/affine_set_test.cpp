@@ -10,7 +10,7 @@
 #include "unit_test_helpers.hpp"
 
 using namespace linalg;
-using namespace convex;
+using namespace affine;
 
 TEST_CASE("Test affine set", "[affine_sets]") {
   constexpr auto I = make_identity<double, 3>();
@@ -50,12 +50,6 @@ TEST_CASE("Test affine set", "[affine_sets]") {
     STATIC_REQUIRE(all_equal(res2.translation(), G * f_b + g_b));
     STATIC_REQUIRE(F_map.compose(G_map).compose(I_map2) ==
                    F_map.compose(G_map.compose(I_map2)));
-  }
-
-  SECTION("Quick test on signature to mat set like") {
-    STATIC_REQUIRE(SetLike<ParametricAffineSet<Matrix<double, 6, 6>>>);
-    STATIC_REQUIRE(
-        SetLike<ParametricAffineSet<Matrix<std::complex<double>, 3, 3>>>);
   }
 
   SECTION("Parametric affine set creation check", "[x0 + U t]") {

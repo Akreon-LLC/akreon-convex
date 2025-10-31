@@ -103,7 +103,7 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    * @return self
    */
   template <linalg::MatrixLike Mat>
-  constexpr auto transform_impl(const AffineMap<Mat>& /* map */) const {
+  constexpr auto transform_impl(const affine::AffineMap<Mat>& /* map */) const {
     return *this;
   }
 
@@ -128,7 +128,7 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
     requires(Tag == ViewTag::ConvexSet)
   constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
   projective_map_impl(const ProjectiveMap<MatA, MatC>& /* map */,
-               const Point& /* x */) const {
+                      const Point& /* x */) const {
     return std::nullopt;
   }
 };

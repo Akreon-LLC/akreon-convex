@@ -76,7 +76,7 @@ template <typename Cone>
 concept ConeViewLike = requires(
     const Cone& cone,
     const std::tuple<cone_view_point_t<Cone>, cone_view_type_t<Cone>>& x,
-    const AffineMap<linalg::Matrix<
+    const affine::AffineMap<linalg::Matrix<
         cone_view_type_t<Cone>, cone_view_dim_v<Cone>, cone_view_dim_v<Cone>>>&
         map) {
   { cone.is_proper() } -> std::convertible_to<ConeCheck>;

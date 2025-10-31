@@ -5,13 +5,10 @@
 
 #pragma once
 
+#include "../affine/affine_traits.hpp"
 #include "../algebra/algebra_traits.hpp"
 
 namespace convex {
-
-/// @brief forward declaration of affine map
-template <linalg::MatrixLike Mat>
-class AffineMap;
 
 /// @brief forward declaration of projective map
 template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
@@ -19,14 +16,6 @@ template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
            linalg::mat_cols_v<MatA> == linalg::mat_cols_v<MatC> &&
            linalg::mat_rows_v<MatC> == 1)
 class ProjectiveMap;
-
-/// @brief forward declaration of affine set
-template <linalg::MatrixLike Mat, typename Derived>
-class AffineSet;
-
-/// @brief forward declaration of parametric affine set
-template <linalg::MatrixLike Mat>
-class ParametricAffineSet;
 
 /// @brief forward declaration of convex set
 template <linalg::RnSpace Space, typename Derived>
@@ -155,22 +144,6 @@ struct set_traits<Space> {
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
   static constexpr size_t DIM = linalg::space_dim_v<Space>;
-};
-
-/// @brief derived set type traits - affine sets
-template <linalg::MatrixLike Mat, typename Derived>
-struct set_traits<AffineSet<Mat, Derived>> {
-  using value_type = typename linalg::mat_type_t<Mat>;
-  using Point = linalg::Vector<value_type, linalg::mat_cols_v<Mat>>;
-  static constexpr size_t DIM = linalg::mat_rows_v<Mat>;
-};
-
-/// @brief derived set type traits - parametric affine sets
-template <linalg::MatrixLike Mat>
-struct set_traits<ParametricAffineSet<Mat>> {
-  using value_type = typename linalg::mat_type_t<Mat>;
-  using Point = linalg::Vector<value_type, linalg::mat_cols_v<Mat>>;
-  static constexpr size_t DIM = linalg::mat_rows_v<Mat>;
 };
 
 /// @brief derived set type traits - convex sets

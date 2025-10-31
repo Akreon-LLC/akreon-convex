@@ -53,7 +53,7 @@ struct ConeView : ConeViewBase<ConeView<Cone>> {
    *
    * @return s \in R^n x R
    */
-  constexpr auto compute_slack(const AffineMap<Mat>& map,
+  constexpr auto compute_slack(const affine::AffineMap<Mat>& map,
                                const std::tuple<Point, T>& x_in) const {
     const auto x = std::get<0>(x_in);
     const auto t = std::get<1>(x_in);

@@ -105,7 +105,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    */
   template <linalg::MatrixLike Mat>
     requires(std::same_as<T, linalg::mat_type_t<Mat>>)
-  constexpr auto transform_impl(const AffineMap<Mat>& map) const {
+  constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto& U = map.linear_part();
     const auto& t = map.translation();
     const auto U_inv = linalg::inverse(U);

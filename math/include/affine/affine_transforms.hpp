@@ -7,7 +7,7 @@
 
 #include "affine_map.hpp"
 
-namespace convex {
+namespace affine {
 
 /**
  * @TODO (dakre) add quaternions and SO(3) reps
@@ -92,4 +92,4 @@ struct Shear {
   }
 };
 
-}  // namespace convex
+}  // namespace affine

@@ -12,6 +12,7 @@
 
 using namespace linalg;
 using namespace convex;
+using namespace affine;
 
 TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {

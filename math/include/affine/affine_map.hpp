@@ -5,9 +5,10 @@
 
 #pragma once
 
-#include "sets/affine_set.hpp"
+#include "../linalg/matrix_inverse.hpp"
+#include "affine_set.hpp"
 
-namespace convex {
+namespace affine {
 
 /// @brief general affine map thats 2D
 template <linalg::FieldLike T>
@@ -171,4 +172,4 @@ class AffineMap {
   }
 };
 
-}  // namespace convex
+}  // namespace affine
