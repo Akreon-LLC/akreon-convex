@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../linalg/matrix_inverse.hpp"
+#include "linalg/matrix_inverse.hpp"
 #include "affine_set.hpp"
 
 namespace affine {

@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../sets/norm_cone.hpp"
+#include "convex/sets/norm_cone.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {

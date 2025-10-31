@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "../affine/affine_traits.hpp"
-#include "../algebra/algebra_traits.hpp"
+#include "affine/affine_traits.hpp"
+#include "algebra/algebra_traits.hpp"
 
 namespace convex {
 

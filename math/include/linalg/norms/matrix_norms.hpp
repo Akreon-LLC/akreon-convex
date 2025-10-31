@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../linalg/matrix_ops.hpp"
+#include "linalg/matrix_ops.hpp"
 
 namespace linalg {
 

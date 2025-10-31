@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../sets/power_cone.hpp"
+#include "convex/sets/power_cone.hpp"
 #include "concave_fn.hpp"
 
 namespace convex {

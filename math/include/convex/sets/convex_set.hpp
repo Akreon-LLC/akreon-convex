@@ -7,9 +7,9 @@
 
 #include <optional>
 
-#include "../../algebra/algebra_util.hpp"
-#include "../cone_view.hpp"
-#include "../convex_set_traits.hpp"
+#include "algebra/algebra_util.hpp"
+#include "convex/cone_view.hpp"
+#include "convex/convex_set_traits.hpp"
 
 namespace convex {
 

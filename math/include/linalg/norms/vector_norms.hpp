@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../linalg/vector_ops.hpp"
+#include "linalg/vector_ops.hpp"
 #include "norm_traits.hpp"
 
 namespace linalg {

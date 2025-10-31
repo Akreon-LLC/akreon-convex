@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "../cone_view.hpp"
-#include "../convex_fn_traits.hpp"
+#include "convex/cone_view.hpp"
+#include "convex/convex_fn_traits.hpp"
 
 namespace convex {
 /**

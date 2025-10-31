@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../algebra/algebra_traits.hpp"
+#include "algebra/algebra_traits.hpp"
 
 namespace affine {
 

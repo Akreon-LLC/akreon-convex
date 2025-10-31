@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "../../linalg/symmetric_matrix.hpp"
-#include "../sets/log_det_cone.hpp"
 #include "concave_fn.hpp"
+#include "convex/sets/log_det_cone.hpp"
+#include "linalg/symmetric_matrix.hpp"
 
 namespace convex {
 

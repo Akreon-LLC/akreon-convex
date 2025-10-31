@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../sets/rsoc.hpp"
+#include "convex/sets/rsoc.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {

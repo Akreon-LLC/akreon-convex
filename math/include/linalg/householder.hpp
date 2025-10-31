@@ -6,6 +6,7 @@
 #pragma once
 
 #include "matrix.hpp"
+#include "norms/vector_norms.hpp"
 #include "vector_ops.hpp"
 
 namespace linalg {

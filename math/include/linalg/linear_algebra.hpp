@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "../norms/matrix_norms.hpp"
-#include "../norms/vector_norms.hpp"
 #include "hessenberg.hpp"
 #include "householder.hpp"
+#include "norms/matrix_norms.hpp"
+#include "norms/vector_norms.hpp"
 #include "solver_traits.hpp"
 
 /* (dakre) Global TODO

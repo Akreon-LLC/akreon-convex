@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../../linalg/symmetric_matrix.hpp"
+#include "linalg/symmetric_matrix.hpp"
 #include "convex_set.hpp"
 
 namespace convex {

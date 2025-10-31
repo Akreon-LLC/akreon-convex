@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../linalg/linear_algebra.hpp"
+#include "linalg/linear_algebra.hpp"
 #include "affine_traits.hpp"
 
 namespace affine {
