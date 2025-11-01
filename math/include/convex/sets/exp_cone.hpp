@@ -41,7 +41,7 @@ struct Exp {
 template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           linalg::space_dim_v<Space> == 3)
+           linalg::space_dim_v<Space> == 2)
 class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
@@ -62,16 +62,8 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
-    if (x(1) <= T(0)) {
-      if (x(0) <= T(0) && x(2) >= T(0))
-        return true;
-      else
-        return false;
-    }
-    const auto res = Exp<Space>()(x(0), x(1));
-    if (!res.has_value()) return false;
-    return res.value() <= x(2);
+  constexpr bool contains_impl(const Point& x, const T& tol) const {
+    return contains_impl(std::tuple(x, T(1)), tol);
   }
 
   /**
@@ -82,11 +74,18 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    * @return T/F
    */
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
-                               const T& tol) const {
+                               const T& /*tol*/) const {
     const auto x = std::get<0>(x_in);
-    // (dakre) TODO (global) t is encoded in z with point, so does it make sense
-    // to scale z here or drop?
-    return contains_impl(x, tol);
+    const auto t = std::get<1>(x_in);
+    if (x(1) <= T(0)) {
+      if (x(0) <= T(0) && t >= T(0))
+        return true;
+      else
+        return false;
+    }
+    const auto res = Exp<Space>()(x(0), x(1));
+    if (!res.has_value()) return false;
+    return res.value() <= t;
   }
 
   /**

@@ -919,33 +919,33 @@ TEST_CASE("Test Rotated SOC", "[convex_sets]") {
 
 TEST_CASE("Test Exp Cone", "[convex_sets]") {
   SECTION("Quick exp cone") {
-    STATIC_REQUIRE(ConvexSetLike<ExpCone<Matrixd<1, 3>, ViewTag::ConvexSet>>);
+    STATIC_REQUIRE(ConvexSetLike<ExpCone<Matrixd<1, 2>, ViewTag::ConvexSet>>);
   }
 
   SECTION("Test exp cone") {
-    using Space = linalg::Matrixd<1, 3>;
+    using Space = linalg::Matrixd<1, 2>;
     constexpr auto exp_cone = ExpCone<Space>();
     STATIC_REQUIRE(exp_cone.is_well_formed());
-    STATIC_REQUIRE(exp_cone.contains(Vectord<3>{0.0, 1.0, 2.0}));
-    STATIC_REQUIRE(exp_cone.contains(Vectord<3>{-1.0, 1.0, 2.0}));
-    STATIC_REQUIRE(exp_cone.contains(Vectord<3>{0.1, 1.0, 2.0}));
-    STATIC_REQUIRE(!exp_cone.contains(Vectord<3>{0.1, 1.0, -2.0}));
+    STATIC_REQUIRE(exp_cone.contains(Vectord<2>{0.0, 1.0}));
+    STATIC_REQUIRE(exp_cone.contains(Vectord<2>{-1.0, 1.0}));
+    STATIC_REQUIRE(!exp_cone.contains(Vectord<2>{2.0, 1.0}));
+    STATIC_REQUIRE(!exp_cone.contains(Vectord<2>{0.1, 1.0}));
 
-    constexpr auto I = make_identity<double, 3>();
+    constexpr auto I = make_identity<double, 2>();
     constexpr auto exp_cone_t =
-        exp_cone.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{}));
+        exp_cone.transform(AffineMap<Matrixd<2, 2>>(I, Vectord<2>{}));
     STATIC_REQUIRE(exp_cone_t == exp_cone);
 
     constexpr auto cone = exp_cone.cone_view();
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.0, 1.0, 2.0}, 1.0)));
-    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{-1.0, 1.0, 2.0}, 1.0)));
-    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{0.1, 1.0, 2.0}, 1.0)));
-    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.1, 1.0, -2.0}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{0.0, 1.0}, 2.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{-1.0, 1.0}, 2.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{0.1, 1.0}, 2.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{0.1, 1.0}, -2.0)));
 
-    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
+    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
     constexpr auto slack =
-        cone.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+        cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
     STATIC_REQUIRE(cone.contains(slack));
   }
 }

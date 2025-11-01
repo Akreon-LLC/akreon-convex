@@ -113,7 +113,7 @@ class RotatedSOC;
 template <linalg::RnSpace Space, ViewTag Tag>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           linalg::space_dim_v<Space> == 3)
+           linalg::space_dim_v<Space> == 2)
 class ExpCone;
 
 /// @brief log det cone type
