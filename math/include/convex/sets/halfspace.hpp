@@ -75,7 +75,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * Epi / Hypo -> Lifted Halfspace
    * (2) Epi: C' = { (x,t) \in R^n x R | a^T x <= t - b }
    * (3) Hypo: C' = { (x,t) \in R^n x R | t <= a^T x + b }
-   * { (x, t) \in R^n x R | -a^T x - b <= - t}
+   * { (x, t) \in R^n x R | -a^T x <= b - t}
    *
    * @param (x, t) \in R^n x R_++ or \in R^n x R depending on lift
    * @param tolerance of type T (ignored)
@@ -90,7 +90,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
     if constexpr (Tag == ViewTag::EpigraphCone) {
       t -= b;
     } else if constexpr (Tag == ViewTag::HypographCone) {
-      t = T(-1) * t - b;
+      t = b - t;
     } else {
       if (t == T(0) && !linalg::all_zero(x)) return false;
       if (t < T(0)) return false;
@@ -167,6 +167,9 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
       return ConeView(Halfspace<Space, Type, ViewTag::LiftedCone>(a, b));
+    else if constexpr (Tag == ViewTag::HypographCone)
+      return ConeView(
+          Halfspace<Space, Type, ViewTag::HypographCone>(T(-1) * a, T(-1) * b));
     else
       return ConeView(Halfspace<Space, Type, Tag>(a, b));
   }
