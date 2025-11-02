@@ -85,8 +85,6 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
                                const T& /*tol*/) const {
     const auto x = std::get<0>(x_in);
     auto t = std::get<1>(x_in);
-
-    if (!linalg::all_zero(x) && t == T(0)) return false;
     if (t < T(0)) return false;
 
     const auto delta = as_col_vector(x - (t * c));

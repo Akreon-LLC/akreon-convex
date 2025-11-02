@@ -55,7 +55,7 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
       if (i == 0)
         B = x;
       else
-        A[i - 1] = T(-1) * x;
+        A[i - 1] = x;
       i++;
     };
     ((void)set_mat(std::forward<Fs>(xs)), ...);
@@ -81,11 +81,8 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /*tol*/) const {
-    auto res = B;
-    for (size_t i = 0; i < N; ++i) res = res + (x(i) * A(i));
-    linalg::SymmetricMatrix S(res);
-    return check_definiteness(S);
+  constexpr bool contains_impl(const Point& x, const T& tol) const {
+    return contains_impl(std::tuple(x, T(1)), tol);
   }
 
   /**
@@ -105,10 +102,9 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
                                const T& /*tol*/) const {
     const auto x = std::get<0>(x_in);
     const auto t = std::get<1>(x_in);
-    if (!linalg::all_zero(x) && t == T(0)) return false;
     if (t < T(0)) return false;
     auto res = t * B;
-    for (size_t i = 0; i < N; ++i) res = res + (x(i) * A(i));
+    for (size_t i = 0; i < N; ++i) res = res - (x(i) * A(i));
     linalg::SymmetricMatrix S(res);
     return check_definiteness(S);
   }

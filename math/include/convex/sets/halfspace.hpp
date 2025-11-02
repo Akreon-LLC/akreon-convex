@@ -92,7 +92,6 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
     } else if constexpr (Tag == ViewTag::HypographCone) {
       t = b - t;
     } else {
-      if (t == T(0) && !linalg::all_zero(x)) return false;
       if (t < T(0)) return false;
       t *= b;
     }

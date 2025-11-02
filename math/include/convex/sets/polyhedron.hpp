@@ -119,14 +119,7 @@ class Polyhedron
                                const T& tol) const {
     const auto x = std::get<0>(x_in);
     const auto t = std::get<1>(x_in);
-    if (t == T(0) && linalg::all_zero(x)) {
-      if (Type == HalfspaceType::OLH || Type == HalfspaceType::OUH)
-        return false;
-      else
-        return true;
-    }
-
-    if (t <= T(0)) return false;
+    if (t < T(0)) return false;
 
     // (0) check if x is in the halfspaces defined by A x <= b
     for (size_t i = 0; i < RowsA; ++i)
