@@ -63,6 +63,7 @@ class AffineSubspace
    * @brief contains function for lifted subspace
    *
    * (1) Standard Cone : C' = { (x,t) \in R^n x R_+ | A x = b t }
+   * -> zero cone : C' = { (x,t) \in R^n x R_+ | Ax - bt = 0 }
    * (2) Epi/Hypo N/A right now
    *
    * @param (x,t) \in R^n x R

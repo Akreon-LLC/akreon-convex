@@ -355,7 +355,8 @@ concept MatrixLike = FieldLike<mat_type_t<Mat>> && requires {
 /// @brief concept square matrix like
 template <class Mat>
 concept SquareMatrixLike =
-    MatrixLike<Mat> && mat_rows_v<Mat> == mat_cols_v<Mat>;
+    MatrixLike<Mat> && mat_rows_v<Mat> == mat_cols_v<Mat> &&
+    mat_cols_v<Mat> > 1;
 
 /// @brief concept for matrix vector mul compatibility
 template <class Mat, class Vec>

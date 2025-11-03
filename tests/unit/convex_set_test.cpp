@@ -542,12 +542,10 @@ TEST_CASE("PSD cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(std::tuple(Z, 1.0)));
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
 
-    // (dakre) TODO will need to revist (unpack into linear operator theory)
-#if 0
     constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    STATIC_REQUIRE(linalg::SquareMatrixLike<decltype(I)>);
     constexpr auto slack = cone_v.compute_slack(I_map, std::tuple(I, 0.0));
-    STATIC_REQUIRE(!cone_v.contains(slack));
-#endif
+    STATIC_REQUIRE(cone_v.contains(slack));
   }
 }
 
@@ -976,13 +974,9 @@ TEST_CASE("Test log det cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(std::tuple(A, 1.0)));
     STATIC_REQUIRE(!cone.contains(std::tuple(Z, 1.0)));
 
-    // (dakre) TODO same as psd cone
-#if 0
     constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
-    constexpr auto slack =
-        cone_v.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+    constexpr auto slack = cone_v.compute_slack(I_map, std::tuple(I, 0.0));
     STATIC_REQUIRE(cone_v.contains(slack));
-#endif
   }
 }
 

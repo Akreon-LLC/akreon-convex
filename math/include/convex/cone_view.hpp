@@ -55,11 +55,18 @@ struct ConeView : ConeViewBase<ConeView<Cone>> {
    */
   constexpr auto compute_slack(const affine::AffineMap<Mat>& map,
                                const std::tuple<Point, T>& x_in) const {
-    const auto x = std::get<0>(x_in);
-    const auto t = std::get<1>(x_in);
+    // (dakre) TODO evaluate this map for congruence later on (i.e., X -> A X
+    // A^T + B, B >= 0)... but we're already in cone coords so isomorphic map
+    // (i.e., no-op) is okay for now
+    if constexpr (linalg::SquareMatrixLike<Point>)
+      return x_in;
+    else {
+      const auto x = std::get<0>(x_in);
+      const auto t = std::get<1>(x_in);
 
-    const auto x_proj = map(x);
-    return std::tuple(x_proj, t);
+      const auto x_proj = map(x);
+      return std::tuple(x_proj, t);
+    }
   }
 
   /**
