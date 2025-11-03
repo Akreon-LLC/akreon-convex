@@ -56,7 +56,7 @@ class AffineSubspace
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
-    return linalg::L2<AmbientVec>()(A * x - b) < tol;
+    return contains_impl(std::tuple(x, T(1)), tol);
   }
 
   /**
@@ -73,11 +73,10 @@ class AffineSubspace
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
                                const T& tol) const {
     const auto x = std::get<0>(x_in);
-    auto t = std::get<1>(x_in);
+    const auto t = std::get<1>(x_in);
     if (t < T(0)) return false;
     if (t == T(0) && !linalg::all_zero(x)) return false;
-    t *= b;
-    return linalg::L2<AmbientVec>()(A * x - t) < tol;
+    return linalg::L2<AmbientVec>()(A * x - t * b) < tol;
   }
 
   /**

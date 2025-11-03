@@ -1035,3 +1035,25 @@ TEST_CASE("Test log sum exp cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone_v.contains(slack));
   }
 }
+
+TEST_CASE("Test affine subspace", "[convex_sets]") {
+  SECTION("Quick affine subspace check") {
+    STATIC_REQUIRE(ConvexSetLike<AffineSubspace<Matrixd<1, 4>, Matrixd<4, 4>>>);
+  }
+
+  SECTION("Test affine subspace") {
+    using Space = Matrixd<1, 3>;
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto affine_set =
+        AffineSubspace<Space, Matrixd<3, 3>>(I, Vectord<3>{});
+    STATIC_REQUIRE(affine_set.is_well_formed());
+    STATIC_REQUIRE(affine_set.contains(Vectord<3>{}));
+    STATIC_REQUIRE(!affine_set.contains(Vectord<3>{1.0, 1.0, 1.0}));
+
+    constexpr auto affine_cone = affine_set.cone_view();
+    STATIC_REQUIRE(affine_cone.is_proper() == ConeCheck::True);
+    STATIC_REQUIRE(affine_cone.contains(std::tuple(Vectord<3>{}, 1.0)));
+    STATIC_REQUIRE(
+        !affine_cone.contains(std::tuple(Vectord<3>{1.0, 2.0, 3.0}, 1.0)));
+  }
+}
