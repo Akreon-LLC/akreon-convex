@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "affine/affine_traits.hpp"
@@ -150,11 +149,11 @@ class AffineSubspace;
 
 /// @brief set traits
 template <class Set>
-struct set_traits;
+struct set_traits : std::false_type {};
 
 /// @brief derived set type traits - R^n
 template <linalg::RnSpace Space>
-struct set_traits<Space> {
+struct set_traits<Space> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -163,7 +162,7 @@ struct set_traits<Space> {
 
 /// @brief derived set type traits - convex sets
 template <linalg::RnSpace Space, typename Derived>
-struct set_traits<ConvexSet<Space, Derived>> {
+struct set_traits<ConvexSet<Space, Derived>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -172,7 +171,7 @@ struct set_traits<ConvexSet<Space, Derived>> {
 
 /// @brief derived set type traits - hyperplane
 template <linalg::RnSpace Space, ViewTag Tag>
-struct set_traits<Hyperplane<Space, Tag>> {
+struct set_traits<Hyperplane<Space, Tag>> : std::true_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -182,7 +181,7 @@ struct set_traits<Hyperplane<Space, Tag>> {
 
 /// @brief derived set type traits - halfspaces
 template <linalg::RnSpace Space, HalfspaceType Type, ViewTag Tag>
-struct set_traits<Halfspace<Space, Type, Tag>> {
+struct set_traits<Halfspace<Space, Type, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -192,7 +191,7 @@ struct set_traits<Halfspace<Space, Type, Tag>> {
 
 /// @brief derived set type traits - norm ball
 template <linalg::RnSpace Space, NormBallType Type, ViewTag Tag>
-struct set_traits<NormBall<Space, Type, Tag>> {
+struct set_traits<NormBall<Space, Type, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -202,7 +201,7 @@ struct set_traits<NormBall<Space, Type, Tag>> {
 
 /// @brief derived set type traits - ellipsoid
 template <linalg::RnSpace Space, EllipsoidType Type, ViewTag Tag>
-struct set_traits<Ellipsoid<Space, Type, Tag>> {
+struct set_traits<Ellipsoid<Space, Type, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -212,7 +211,7 @@ struct set_traits<Ellipsoid<Space, Type, Tag>> {
 
 /// @brief derived set type traits - norm cone
 template <linalg::RnSpace Space, NormConeType Type, ViewTag Tag>
-struct set_traits<NormCone<Space, Type, Tag>> {
+struct set_traits<NormCone<Space, Type, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -222,7 +221,7 @@ struct set_traits<NormCone<Space, Type, Tag>> {
 
 /// @brief derived set type traits - psd cone
 template <linalg::RnSpace Space, ViewTag Tag>
-struct set_traits<PsdCone<Space, Tag>> {
+struct set_traits<PsdCone<Space, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -233,7 +232,7 @@ struct set_traits<PsdCone<Space, Tag>> {
 /// @brief derived set type traits - polyhedron
 template <linalg::RnSpace Space, HalfspaceType Type, linalg::MatrixLike MatA,
           linalg::MatrixLike MatC, ViewTag Tag>
-struct set_traits<Polyhedron<Space, Type, MatA, MatC, Tag>> {
+struct set_traits<Polyhedron<Space, Type, MatA, MatC, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -243,7 +242,7 @@ struct set_traits<Polyhedron<Space, Type, MatA, MatC, Tag>> {
 
 /// @brief derived set type traits - simplex
 template <linalg::RnSpace Space, ViewTag Tag>
-struct set_traits<Simplex<Space, Tag>> {
+struct set_traits<Simplex<Space, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -253,7 +252,7 @@ struct set_traits<Simplex<Space, Tag>> {
 
 /// @brief derived set type traits - nonneg orthant
 template <linalg::RnSpace Space, ViewTag Tag>
-struct set_traits<NonnegOrthant<Space, Tag>> {
+struct set_traits<NonnegOrthant<Space, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -263,7 +262,7 @@ struct set_traits<NonnegOrthant<Space, Tag>> {
 
 /// @brief derived set type traits - LMI
 template <linalg::RnSpace Space, LMIType Type, ViewTag Tag>
-struct set_traits<LMI<Space, Type, Tag>> {
+struct set_traits<LMI<Space, Type, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -273,7 +272,7 @@ struct set_traits<LMI<Space, Type, Tag>> {
 
 /// @brief derived set type traits - RSOC
 template <linalg::RnSpace Space, NormConeType Type, ViewTag Tag>
-struct set_traits<RotatedSOC<Space, Type, Tag>> {
+struct set_traits<RotatedSOC<Space, Type, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -283,7 +282,7 @@ struct set_traits<RotatedSOC<Space, Type, Tag>> {
 
 /// @brief derived set type traits - Exp cone
 template <linalg::RnSpace Space, ViewTag Tag>
-struct set_traits<ExpCone<Space, Tag>> {
+struct set_traits<ExpCone<Space, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -293,7 +292,7 @@ struct set_traits<ExpCone<Space, Tag>> {
 
 /// @brief derived set type traits - Log det cone
 template <linalg::RnSpace Space, ViewTag Tag>
-struct set_traits<LogDetCone<Space, Tag>> {
+struct set_traits<LogDetCone<Space, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -303,7 +302,7 @@ struct set_traits<LogDetCone<Space, Tag>> {
 
 /// @brief derived set type traits - power cone
 template <linalg::RnSpace Space, ViewTag Tag>
-struct set_traits<PowerCone<Space, Tag>> {
+struct set_traits<PowerCone<Space, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -313,7 +312,7 @@ struct set_traits<PowerCone<Space, Tag>> {
 
 /// @brief derived set type traits - log sum exp
 template <linalg::RnSpace Space, ViewTag Tag>
-struct set_traits<LogSumExpCone<Space, Tag>> {
+struct set_traits<LogSumExpCone<Space, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -323,7 +322,7 @@ struct set_traits<LogSumExpCone<Space, Tag>> {
 
 /// @brief derived set type traits - log sum exp
 template <linalg::RnSpace Space, linalg::MatrixLike Mat, ViewTag Tag>
-struct set_traits<AffineSubspace<Space, Mat, Tag>> {
+struct set_traits<AffineSubspace<Space, Mat, Tag>> : std::true_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;
@@ -343,9 +342,15 @@ using set_type_t = typename set_traits<linalg::remove_cvref_t<Set>>::value_type;
 template <class Set>
 using set_point_t = typename set_traits<linalg::remove_cvref_t<Set>>::Point;
 
+/// @brief helper to see if set is affine
+template <class Set>
+inline constexpr bool is_affine_set_v =
+    set_traits<linalg::remove_cvref_t<Set>>{};
+
 /// @brief helper to get convex set view tag
 template <class Set>
-inline constexpr ViewTag set_view_tag_v = set_traits<Set>::VIEW_TAG;
+inline constexpr ViewTag set_view_tag_v =
+    set_traits<linalg::remove_cvref_t<Set>>::VIEW_TAG;
 
 /// @brief helper to get dimension of space underpinning set
 template <class Set>
@@ -379,5 +384,9 @@ concept ConvexConeLike =
     LiftedSetLike<Set> && (set_view_tag_v<Set> == ViewTag::LiftedCone ||
                            set_view_tag_v<Set> == ViewTag::EpigraphCone ||
                            set_view_tag_v<Set> == ViewTag::HypographCone);
+
+/// @brief affine set like concept
+template <class Set>
+concept AffineSetLike = is_affine_set_v<Set>;
 
 }  // namespace convex

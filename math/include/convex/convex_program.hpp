@@ -26,7 +26,7 @@ namespace convex {
  *
  * where f_i are convex and A x = b is an affine equality
  */
-template <linalg::RnSpace Domain, typename... Fns>
+template <linalg::RnSpace Domain, typename... Constraints>
 class ConvexProgram {
  public:
   /// @brief alias to extract type traints from domain
@@ -35,16 +35,16 @@ class ConvexProgram {
 
   /// @brief helper to get dimension of domain
   static constexpr size_t N = linalg::vec_size_v<Point>;
-  static constexpr size_t M = sizeof...(Fns);
+  static constexpr size_t M = sizeof...(Constraints);
 
   /**
    * @brief CTOR
    *
    * @param parameter pack of functions
    */
-  constexpr explicit ConvexProgram(Fns... fns)
-      : funcs(std::forward<Fns>(fns)...) {
-    (perform_checks(fns), ...);
+  constexpr explicit ConvexProgram(Constraints... cs)
+      : constraints(std::forward<Constraints>(cs)...) {
+    (perform_checks(cs), ...);
   }
 
   /**
@@ -53,7 +53,7 @@ class ConvexProgram {
    * @return T/F
    */
   constexpr bool solve() const {
-    const auto cones = transform_funcs_to_cones();
+    const auto cones = transform_constraints_to_cones();
     auto make_cone_prog = [](const auto&... args) {
       return ConeProgram<Domain, decltype(args)...>(
           std::forward<decltype(args)>(args)...);
@@ -64,26 +64,31 @@ class ConvexProgram {
 
  private:
   /**
-   * @brief transform functions to cones
+   * @brief transform convex constraints to cones
    *
    * (1) Convex Fn -> epigraph -> cone view
    * (2) Concave Fn -> negate to convex fn -> epigraph -> cone view
-   * (3) TODO nested functions
+   * (3) Affine Equality -> cone lift (view)
+   * (4) TODO handle nested functions
    *
    * @return tuple of cones
    */
-  constexpr auto transform_funcs_to_cones() const {
-    auto to_epi = [&](const auto& fn) {
-      if constexpr (ConvexFnLike<decltype(fn)>)
-        return fn.epigraph();
+  constexpr auto transform_constraints_to_cones() const {
+    auto to_epi = [&](const auto& arg) {
+      if constexpr (AffineSetLike<decltype(arg)>)
+        return arg.cone_view();
+      else if constexpr (ConvexFnLike<decltype(arg)>)
+        return arg.epigraph();
+      else if constexpr (ConcaveFnLike<decltype(arg)>)
+        return arg.negate().epigraph();
       else
-        return fn.negate().epigraph();
+        static_assert(false, "This should never get hit!");
     };
     return std::apply(
-        [&](const auto&... fns) {
-          return std::make_tuple(to_epi(std::forward<decltype(fns)>(fns))...);
+        [&](const auto&... cs) {
+          return std::make_tuple(to_epi(std::forward<decltype(cs)>(cs))...);
         },
-        funcs);
+        constraints);
   }
 
   /**
@@ -93,19 +98,26 @@ class ConvexProgram {
    *
    * @return T/F
    */
-  constexpr void perform_checks(const auto& fn) const {
-    using FnDom = convex_fn_domain_t<decltype(fn)>;
-    using FnT = linalg::space_type_t<FnDom>;
-    static_assert(std::same_as<FnT, T>,
-                  "Function domain type is mismatched with problem domain");
-    static_assert(N == linalg::space_dim_v<FnDom>,
-                  "Function domain dim is mismatched with problem dim");
-    static_assert(ConvexFnLike<decltype(fn)> || ConcaveFnLike<decltype(fn)>,
-                  "Provided function does not meet convex or concave criteria");
+  constexpr void perform_checks(const auto& constraint) const {
+    static_assert(ConvexFnLike<decltype(constraint)> ||
+                      ConcaveFnLike<decltype(constraint)> ||
+                      AffineSetLike<decltype(constraint)>,
+                  "Constraint function does not meet convex, concave, or "
+                  "affine criteria");
+    if constexpr (AffineSetLike<decltype(constraint)>) {
+      using ConstraintDom = set_point_t<decltype(constraint)>;
+      static_assert(std::same_as<ConstraintDom, set_point_t<Domain>>,
+                    "Constraint domain is mismatched with problem domain");
+    } else {
+      using ConstraintDom = convex_fn_domain_t<decltype(constraint)>;
+      static_assert(std::same_as<ConstraintDom, Domain>,
+                    "Constraint domain is mismatched with problem domain");
+    }
   }
 
   /** @brief member vars for convex program */
-  std::tuple<Fns...> funcs;  //< tuple of functions
+  std::tuple<Constraints...>
+      constraints;  //< tuple of constraints (convex + affine)
 };
 
 }  // namespace convex
