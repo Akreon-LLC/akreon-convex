@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "cone_traits.hpp"
@@ -86,6 +85,13 @@ class ConeProgram {
                cone_blocks);
     return rv;
   }
+
+  /**
+   * @brief solve
+   *
+   * @return T/F
+   */
+  constexpr bool solve() const { return true; }
 
  private:
   /** @brief member vars for cone program */

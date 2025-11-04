@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
@@ -36,5 +35,16 @@ TEST_CASE("Test Simple Cone Program") {
     constexpr ConeProgram<Space, decltype(epi_f), decltype(cone)> prog2(epi_f,
                                                                         cone);
     STATIC_REQUIRE(prog2.soft_check());
+  }
+}
+
+TEST_CASE("Test Simple Convex Program") {
+  SECTION("Simple Convex Program Construction") {
+    using Space = Matrixd<1, 4>;
+
+    constexpr auto norm = NormFn<Space, L2<Vectord<4>>>();
+    constexpr auto qol = QuadOverLinearFn<Space>();
+    constexpr ConvexProgram<Space, decltype(norm), decltype(qol)> prog(norm, qol);
+    STATIC_REQUIRE(prog.solve());
   }
 }

@@ -10,12 +10,12 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "cone_program.hpp"
 #include "cone_view.hpp"
 #include "convex_ops.hpp"
+#include "convex_program.hpp"
 #include "dual_cone_view.hpp"
 #include "functions/affine_fn.hpp"
 #include "functions/geo_mean_fn.hpp"
