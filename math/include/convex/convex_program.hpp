@@ -20,7 +20,7 @@ namespace convex {
 /**
  * @brief Convex Program formulation
  *
- * min  f_(x)
+ * min  f_0(x)
  * s.t. f_i(x) <= 0
  *      A x = b
  *
@@ -39,6 +39,13 @@ class ConvexProgram {
 
   /**
    * @brief CTOR
+   *
+   * Objective function casted to epigraph convex problem -> cone program
+   *
+   * min t
+   * s.t. f_0(x) - t <= 0
+   *      f_i(x) <= 0
+   *      A x = b
    *
    * @param parameter pack of functions
    */

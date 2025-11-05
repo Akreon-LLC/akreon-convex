@@ -10,14 +10,13 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
+#include "algebra/solver_traits.hpp"
 #include "hessenberg.hpp"
 #include "householder.hpp"
 #include "norms/matrix_norms.hpp"
 #include "norms/vector_norms.hpp"
-#include "solver_traits.hpp"
 
 /* (dakre) Global TODO
  * 1. punting on cholesky and LDL right now, with current approach and checking

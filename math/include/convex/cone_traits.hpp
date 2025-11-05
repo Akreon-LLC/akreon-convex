@@ -523,4 +523,24 @@ struct cone_traits<AffineSubspace<Space, Mat, Tag>> {
   }
 };
 
+/// @brief derived cone type traits for neg orthant
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(Tag != ViewTag::ConvexSet)
+struct cone_traits<NegOrthant<Space, Tag>> {
+  using ConeT = NegOrthant<Space, Tag>;
+  static constexpr ConeCheck is_closed(const ConeT& /*cone*/) {
+    return ConeCheck::True;
+  }
+
+  static constexpr ConeCheck is_solid(const ConeT& cone) {
+    return cone.is_well_formed() && linalg::space_dim_v<Space> > 0
+               ? ConeCheck::True
+               : ConeCheck::False;
+  }
+
+  static constexpr ConeCheck is_pointed(const ConeT& /*cone*/) {
+    return ConeCheck::True;
+  }
+};
+
 }  // namespace convex

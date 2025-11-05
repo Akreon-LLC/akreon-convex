@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
@@ -1057,5 +1056,44 @@ TEST_CASE("Test affine subspace", "[convex_sets]") {
     STATIC_REQUIRE(affine_cone.contains(std::tuple(Vectord<3>{}, 1.0)));
     STATIC_REQUIRE(
         !affine_cone.contains(std::tuple(Vectord<3>{1.0, 2.0, 3.0}, 1.0)));
+  }
+}
+
+TEST_CASE("Test Neg Orthant", "[convex_sets]") {
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(ConvexSetLike<NegOrthant<Matrix<double, 1, 1>>>);
+    STATIC_REQUIRE(
+        ConvexConeLike<NegOrthant<Matrix<double, 1, 1>, ViewTag::LiftedCone>>);
+  }
+
+  SECTION("Test Neg orthant", "[R^n_-]") {
+    // (0) nominal checks
+    constexpr NegOrthant<Matrixd<1, 2>> set;
+    STATIC_REQUIRE(set.is_well_formed());
+    STATIC_REQUIRE(set == set);
+    STATIC_REQUIRE(!set.contains(Vectord<2>{1.0, 0.0}));
+    STATIC_REQUIRE(!set.contains(Vectord<2>{-0.1, 0.1}));
+    STATIC_REQUIRE(set.contains(Vectord<2>{-0.1, 0.0}));
+    constexpr auto I = make_identity<double, 2>();
+    STATIC_REQUIRE(set.transform(AffineMap<Matrixd<2, 2>>(I, Vectord<2>{})) ==
+                   set);
+    // (1) projection checks
+    STATIC_REQUIRE(
+        !set.projective_map(
+                ProjectiveMap<Matrix<double, 2, 2>, Matrix<double, 1, 2>>(
+                    I, Vectord<2>{}, as_row_vector(Vectord<2>{}), 0.0),
+                Vectord<2>{})
+             .has_value());
+    // (2) cone checks
+    constexpr auto cone = set.cone_view();
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{1.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{-0.1, 0.1}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{-0.1, 0.0}, 1.0)));
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
+
+    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    constexpr auto slack =
+        cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+    STATIC_REQUIRE(cone.contains(slack));
   }
 }

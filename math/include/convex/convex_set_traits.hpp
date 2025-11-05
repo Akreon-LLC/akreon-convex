@@ -147,6 +147,12 @@ template <linalg::RnSpace Space, linalg::MatrixLike Mat, ViewTag Tag>
            linalg::space_dim_v<Space> == linalg::mat_cols_v<Mat>)
 class AffineSubspace;
 
+/// @brief forward declaration of nonneg orthant
+template <linalg::RnSpace Space, ViewTag Tag>
+  requires(linalg::space_dim_v<Space> ==
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
+class NegOrthant;
+
 /// @brief set traits
 template <class Set>
 struct set_traits : std::false_type {};
@@ -323,6 +329,16 @@ struct set_traits<LogSumExpCone<Space, Tag>> : std::false_type {
 /// @brief derived set type traits - log sum exp
 template <linalg::RnSpace Space, linalg::MatrixLike Mat, ViewTag Tag>
 struct set_traits<AffineSubspace<Space, Mat, Tag>> : std::true_type {
+  using RnSpace = Space;
+  using value_type = typename linalg::space_type_t<Space>;
+  using Point = typename linalg::space_point_t<Space>;
+  static constexpr size_t DIM = linalg::space_dim_v<Space>;
+  static constexpr ViewTag VIEW_TAG = Tag;
+};
+
+/// @brief derived set type traits - log sum exp
+template <linalg::RnSpace Space, ViewTag Tag>
+struct set_traits<NegOrthant<Space, Tag>> : std::false_type {
   using RnSpace = Space;
   using value_type = typename linalg::space_type_t<Space>;
   using Point = typename linalg::space_point_t<Space>;

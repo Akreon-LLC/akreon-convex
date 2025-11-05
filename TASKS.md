@@ -40,7 +40,8 @@ TODO to scope:
 - [x] psd cone
 - [x] simplex
 - [x] polyhedron
-- [x] nonnegative orthant
+- [x] nonnegative orthant (x >= 0)
+- [x] neg orthant (x <= 0)
 - [x] LMI
 - [x] rotated soc cone
 - [x] exp cone
@@ -76,7 +77,8 @@ TODO to scope:
 
 #### Convex Problems
 - [x] form cone blocks (slacks)
-- [] cone program base
+- [x] cone program base (min. c^T x s.t. F z + g \in K)
+- [x] convex program base (min. f_0(x) s.t. f_i(x) <= 0, A x = b)
 
 #### Duality
 - [] duality & KKT

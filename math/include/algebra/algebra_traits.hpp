@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include <algorithm>
@@ -30,14 +29,6 @@ struct Vector;
 /// @brief alias for matrix definition
 template <typename T, size_t Rows, size_t Cols>
 using Matrix = Vector<Vector<T, Cols>, Rows>;
-
-/// @brief concrete matrix type traits to separate vector from matrix at compile
-/// time
-template <typename T>
-struct is_matrix : std::false_type {};
-
-template <typename T, size_t Rows, size_t Cols>
-struct is_matrix<Matrix<T, Rows, Cols>> : std::true_type {};
 
 /// @brief base type traits definition for vector
 template <class Vec>
