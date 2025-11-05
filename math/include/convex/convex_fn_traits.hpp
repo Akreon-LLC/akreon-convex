@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set_traits.hpp"
@@ -21,8 +20,12 @@ namespace convex {
 enum struct FnTag { Convex = 0, Concave };
 
 /// @brief forward declaration - convex fn
-template <ConvexSetLike Space, typename Derived>
+template <ConvexSetLike Set, typename Derived>
 class ConvexFn;
+
+/// @brief forward declaration - concave fn
+template <ConvexSetLike Set, typename Derived>
+class ConcaveFn;
 
 /// @brief forward declaration - affine fn
 template <linalg::RnSpace Space, FnTag Tag>
@@ -58,6 +61,16 @@ class LogDetFn;
 /// @brief forward declaration - geo mean fn
 template <linalg::RnSpace Domain, FnTag Tag>
 class GeoMeanFn;
+
+/// @brief forward declaration - exp fn
+template <linalg::RnSpace Domain, FnTag Tag>
+  requires(linalg::space_dim_v<Domain> == 1)
+class ExpFn;
+
+/// @brief forward declaration - log fn
+template <linalg::RnSpace Domain, FnTag Tag>
+  requires(linalg::space_dim_v<Domain> == 1)
+class LogFn;
 
 /// @brief fn traits
 template <class Fn>
@@ -109,6 +122,18 @@ struct convex_fn_traits<LogDetFn<Space, FnTag::Convex>> : std::true_type {
 /// @brief derived fn type traits - log det fn
 template <linalg::RnSpace Space>
 struct convex_fn_traits<GeoMeanFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
+/// @brief derived fn type traits - exp fn
+template <linalg::RnSpace Space>
+struct convex_fn_traits<ExpFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
+/// @brief derived fn type traits - log fn
+template <linalg::RnSpace Space>
+struct convex_fn_traits<LogFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 

@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set.hpp"
@@ -70,6 +69,12 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
 
   /**
    * @brief power cone contains \subset R^n_+ x R
+   *
+   * Hypograph Cone (same as power)
+   * { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= t }
+   *
+   * Epigraph Cone
+   * { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= -t }
    *
    * @param (x, t) \in R^n_+ x R
    *

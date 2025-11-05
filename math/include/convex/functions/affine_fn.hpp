@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "affine/affine_map.hpp"
@@ -82,6 +81,7 @@ class AffineFn
    * @brief hypograph impl
    *
    * opposite of epigraph for concave function
+   * { (x, t) | a^T x + b >= t } \equiv
    * { (x, t) | -a^T x - b <= -t }, negation handled in cone view
    *
    * @return hypograph

@@ -87,6 +87,13 @@ class LogSumExpFn
   /**
    * @brief hypograph impl
    *
+   * F(x) = -log(\sum_i^n exp(x_i))
+   * graph(F(x)) = { (x, log(\sum_i^n exp(x_i))) | x \in dom f }
+   * hypo(F(x)) = { (x, t) | -log(\sum_i^n exp(x_i)) >= t } \equiv
+   * { (x, t) | log(\sum_i^n exp(x_i)) <= -t } \equiv
+   * { (x, t) | \sum_i^n exp(x_i) <= exp(-t) } \equiv
+   * { (x, t) | \sum_i^n exp(x_i + t) <= 1 }
+   *
    * C = { (x_i + t, 1, s_i) | e^{x_i + 1} <= s_i, \sum_i s_i <= 1 }
    *
    * @return hypograph

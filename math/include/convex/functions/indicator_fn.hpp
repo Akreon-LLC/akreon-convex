@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_fn.hpp"
@@ -35,7 +34,7 @@ class IndicatorFn : public ConvexFn<Set, IndicatorFn<Set>> {
   /**
    * @brief CTOR
    *
-   * convex set in ctor
+   * @param convex set in ctor
    */
   constexpr explicit IndicatorFn(const Set& set_in) : set(set_in) {}
 
@@ -61,6 +60,15 @@ class IndicatorFn : public ConvexFn<Set, IndicatorFn<Set>> {
    * @return cone of C
    */
   constexpr auto epigraph_impl() const { return set.cone_view(); }
+
+  /**
+   * @brief negate impl
+   *
+   * no-op return self
+   *
+   * @return self
+   */
+  constexpr auto negate_impl() const { return this->self(); }
 
  private:
   /** @brief member vars */

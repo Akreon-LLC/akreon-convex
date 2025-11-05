@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set.hpp"
@@ -23,10 +22,9 @@ template <linalg::RnSpace Domain>
            linalg::vec_size_v<linalg::space_point_t<Domain>>)
 struct Exp {
   using T = linalg::space_type_t<Domain>;
-  using Point = linalg::space_point_t<Domain>;
 
   /**
-   * @brief compue exp
+   * @brief compute exp
    *
    * f(x,y) = y e^{x / y} s.t. y > 0
    *
@@ -44,12 +42,19 @@ struct Exp {
 /**
  * @brief exponential cone
  *
+ * Standard Form
  * { (x, y, z) | y e^{x/y} <= z, y > 0 } \cup { (x, 0, z) | x <= 0, z >= 0 }
+ *
+ * Epigraph
+ * { (x, y, z) | y e^{x/y} <= z, y > 0, z >= 0 }
+ *
+ * Hypograph with implicit slack on z
+ * { (x, y, z) | y e^{x/y} <= -z, y > 0, z <= 0 }
  */
 template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           linalg::space_dim_v<Space> == 2)
+           (linalg::space_dim_v<Space> == 1 || linalg::space_dim_v<Space> == 2))
 class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
@@ -64,9 +69,9 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
   /**
-   * @brief exp cone \subset R^3
+   * @brief exp cone \subset R^2
    *
-   * @param Point \in R^3
+   * @param Point \in R^2
    *
    * @return T/F
    */
@@ -75,9 +80,9 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
   }
 
   /**
-   * @brief exp cone \subset R^3
+   * @brief exp cone \subset R^2
    *
-   * @param Point \in R^3 x R
+   * @param Point \in R^2 x R
    *
    * @return T/F
    */
@@ -85,13 +90,21 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
                                const T& /*tol*/) const {
     const auto x = std::get<0>(x_in);
     const auto t = std::get<1>(x_in);
-    if (x(1) <= T(0)) {
-      if (x(0) <= T(0) && t >= T(0))
-        return true;
-      else
-        return false;
+    T y(1);
+    if constexpr (Tag == ViewTag::EpigraphCone) {
+      if (t < T(0)) return false;
+    } else if constexpr (Tag == ViewTag::HypographCone) {
+      if (t > T(0)) return false;
+    } else {
+      if (x(1) <= T(0)) {
+        if (x(0) <= T(0) && t >= T(0))
+          return true;
+        else
+          return false;
+      }
+      y = x(1);
     }
-    const auto res = Exp<Space>()(x(0), x(1));
+    const auto res = Exp<Space>()(x(0), y);
     if (!res.has_value()) return false;
     return res.value() <= t;
   }

@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set.hpp"
@@ -176,7 +175,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
       return ConeView(Halfspace<Space, Type, ViewTag::LiftedCone>(a, b));
     else if constexpr (Tag == ViewTag::HypographCone)
       return ConeView(
-          Halfspace<Space, Type, ViewTag::HypographCone>(T(-1) * a, T(-1) * b));
+          Halfspace<Space, Type, ViewTag::HypographCone>(T(-1) * a, b));
     else
       return ConeView(Halfspace<Space, Type, Tag>(a, b));
   }
