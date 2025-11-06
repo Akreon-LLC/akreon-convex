@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set.hpp"
@@ -18,9 +17,25 @@
 namespace convex {
 
 /**
+ * @brief default coordinate map for hyperplane
+ *
+ * halfspace coords: (x, b) -> a^T x = b
+ *
+ * @return affine map -> halfspace coords
+ */
+template <linalg::SquareMatrixLike CoordMat>
+constexpr auto default_hyperplane_map(const linalg::mat_type_t<CoordMat>& b) {
+  using T = linalg::mat_type_t<CoordMat>;
+  static constexpr size_t N = linalg::mat_rows_v<CoordMat>;
+  auto I = linalg::make_identity<T, N>();
+  I[N - 1][N - 1] = b;
+  return affine::AffineMap<CoordMat>(I, linalg::Vector<T, N>{});
+}
+
+/**
  * @brief Hyperplane defition defined on valid vector space
  *
- * H = { x | a^T x = b }
+ * H = { x | a^T x = b } \equiv { x | a^T x - b = 0 }
  */
 template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
@@ -29,6 +44,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, Hyperplane<Space, Tag>>;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -45,7 +61,18 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @param b bias scalar
    */
   constexpr explicit Hyperplane(const Point& a_in, const T& b_in)
-      : a(a_in), b(b_in) {}
+      : ConvexBase(default_hyperplane_map<CoordMat>(b_in)), a(a_in), b(b_in) {}
+
+  /**
+   * @brief CTOR for hyperplane
+   *
+   * @param Point \in R^n
+   * @param b bias scalar
+   * @param affine map -> cone coords
+   */
+  constexpr explicit Hyperplane(const Point& a_in, const T& b_in,
+                                const affine::AffineMap<CoordMat>& map_in)
+      : ConvexBase(map_in), a(a_in), b(b_in) {}
 
   /**
    * @brief contains function to see if x lies in the hyerplane defined by a^T x
@@ -57,7 +84,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
-    return linalg::constexpr_abs(linalg::dot(a, x) - b) < tol;
+    return contains_impl(std::tuple(x, T(1)), tol);
   }
 
   /**
@@ -68,6 +95,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * point x is t
    *
    * K = { (x,t) | a^T x = b t } \cup { 0 }
+   * \equiv { (x,t) | a^T x - b t = 0 }
    *
    * @param point x of type T (n-dim)
    * @param tolerance
@@ -76,11 +104,10 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    */
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
                                const T& tol) const {
-    const auto x = std::get<0>(x_in);
-    auto t = std::get<1>(x_in);
-    if (t < T(0)) return false;
-    t *= b;
-    return linalg::constexpr_abs(linalg::dot(a, x) - t) < tol;
+    const auto x_proj = this->project(x_in);
+    const auto x = std::get<0>(x_proj);
+    const auto s = std::get<1>(x_proj);
+    return linalg::constexpr_abs(linalg::dot(a, x) - s) < tol;
   }
 
   /**
@@ -130,10 +157,14 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(Hyperplane<Space, ViewTag::LiftedCone>(a, b));
-    else
-      return ConeView(Hyperplane<Space, Tag>(a, b));
+    if constexpr (Tag == ViewTag::ConvexSet) {
+      auto I = linalg::make_identity<T, N + 1>();
+      I[N][N] *= b;
+      const affine::AffineMap<CoordMat> map(I, linalg::Vector<T, N + 1>{});
+      return ConeView(Hyperplane<Space, ViewTag::LiftedCone>(a, b, map));
+    } else {
+      return ConeView(Hyperplane<Space, Tag>(a, b, this->map));
+    }
   }
 
  private:

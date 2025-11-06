@@ -33,6 +33,9 @@ class ConvexFn {
   static constexpr size_t Dim = set_dim_v<Domain>;
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
+  /// @brief coord map mat type to lifted hypograph
+  using CoordMat = linalg::Matrix<T, N + 1, N + 1>;
+
   /**
    * @brief operator overload for evaluation fn
    *

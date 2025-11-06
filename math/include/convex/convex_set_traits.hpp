@@ -17,19 +17,12 @@
 
 namespace convex {
 
-/// @brief forward declaration of projective map
-template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-  requires(std::same_as<linalg::mat_type_t<MatA>, linalg::mat_type_t<MatC>> &&
-           linalg::mat_cols_v<MatA> == linalg::mat_cols_v<MatC> &&
-           linalg::mat_rows_v<MatC> == 1)
-class ProjectiveMap;
-
 /// @brief forward declaration of convex set
 template <linalg::RnSpace Space, typename Derived>
 class ConvexSet;
 
 /// @brief convex set view tag
-enum struct ViewTag { ConvexSet = 0, LiftedCone, EpigraphCone, HypographCone };
+enum struct ViewTag { ConvexSet = 0, LiftedCone };
 
 /// @brief simple enum to describe type of halfspace
 enum struct HalfspaceType { CLH, OLH, CUH, OUH };
@@ -397,9 +390,7 @@ concept ConvexSetLike =
 /// @brief cone set like concept
 template <class Set>
 concept ConvexConeLike =
-    LiftedSetLike<Set> && (set_view_tag_v<Set> == ViewTag::LiftedCone ||
-                           set_view_tag_v<Set> == ViewTag::EpigraphCone ||
-                           set_view_tag_v<Set> == ViewTag::HypographCone);
+    LiftedSetLike<Set> && (set_view_tag_v<Set> == ViewTag::LiftedCone);
 
 /// @brief affine set like concept
 template <class Set>

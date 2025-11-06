@@ -12,12 +12,15 @@
 
 #pragma once
 
-#include "cone_program.hpp"
 #include "cone_view.hpp"
 #include "convex_ops.hpp"
-#include "convex_program.hpp"
 #include "dual_cone_view.hpp"
 #include "functions/affine_fn.hpp"
+#include "sets/halfspace.hpp"
+#include "sets/hyperplane.hpp"
+#if 0
+#include "cone_program.hpp"
+#include "convex_program.hpp"
 #include "functions/exp_fn.hpp"
 #include "functions/geo_mean_fn.hpp"
 #include "functions/indicator_fn.hpp"
@@ -31,8 +34,6 @@
 #include "sets/convex_set.hpp"
 #include "sets/ellipsoid.hpp"
 #include "sets/exp_cone.hpp"
-#include "sets/halfspace.hpp"
-#include "sets/hyperplane.hpp"
 #include "sets/lmi.hpp"
 #include "sets/log_det_cone.hpp"
 #include "sets/log_sum_exp_cone.hpp"
@@ -45,3 +46,4 @@
 #include "sets/psd_cone.hpp"
 #include "sets/rsoc.hpp"
 #include "sets/simplex.hpp"
+#endif

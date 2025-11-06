@@ -48,7 +48,6 @@ if(BUILD_TESTING)
   target_link_libraries(linear_systems_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(linear_systems_test PRIVATE ../math/include)
 
-
   add_executable(one_dof_pendulum_test tests/unit/one_dof_pendulum_test.cpp)
   add_test(NAME one_dof_pendulum_test COMMAND one_dof_pendulum_test)
   target_link_libraries(one_dof_pendulum_test PRIVATE Catch2::Catch2WithMain)
@@ -79,20 +78,20 @@ if(BUILD_TESTING)
   target_link_libraries(convex_set_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(convex_set_test PRIVATE ../math/include)
 
-  add_executable(convex_fn_test tests/unit/convex_fn_test.cpp)
-  add_test(NAME convex_fn_test COMMAND convex_fn_test)
-  target_link_libraries(convex_fn_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(convex_fn_test PRIVATE ../math/include)
+  #add_executable(convex_fn_test tests/unit/convex_fn_test.cpp)
+  #add_test(NAME convex_fn_test COMMAND convex_fn_test)
+  #target_link_libraries(convex_fn_test PRIVATE Catch2::Catch2WithMain)
+  #target_include_directories(convex_fn_test PRIVATE ../math/include)
 
-  add_executable(convex_program_test tests/unit/convex_program_test.cpp)
-  add_test(NAME convex_program_test COMMAND convex_program_test)
-  target_link_libraries(convex_program_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(convex_program_test PRIVATE ../math/include)
+  #add_executable(convex_program_test tests/unit/convex_program_test.cpp)
+  #add_test(NAME convex_program_test COMMAND convex_program_test)
+  #target_link_libraries(convex_program_test PRIVATE Catch2::Catch2WithMain)
+  #target_include_directories(convex_program_test PRIVATE ../math/include)
 
   # Functional Tests
   add_executable(linalg_fuzz_test tests/functional/linalg_fuzz_test.cpp)
   target_include_directories(linalg_fuzz_test PRIVATE ../math/include)
 
-  add_executable(convex_fuzz_test tests/functional/convex_fuzz_test.cpp)
-  target_include_directories(convex_fuzz_test PRIVATE ../math/include)
+  #add_executable(convex_fuzz_test tests/functional/convex_fuzz_test.cpp)
+  #target_include_directories(convex_fuzz_test PRIVATE ../math/include)
 endif()

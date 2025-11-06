@@ -33,6 +33,7 @@ class AffineFn
                          ConcaveFn<Domain, AffineFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -64,17 +65,23 @@ class AffineFn
    *
    * F(x) = a^T x + b
    * graph(F(x)) = { (x, a^T x + b) | x \in dom f }
-   * epi(F(x)) = epi(a^T x + b) = { (x, t) | a^T x + b <= t, x \in dom f } =
-   * halfspace
+   * epi(F(x)) = epi(a^T x + b) = { (x, t) | a^T x + b <= t, x \in dom f }
+   * \equiv { (x,t) \in R^n x R | a^T x <= t - b }
+   *
+   * halfspace coords: (x, t - b)
    *
    * @return epigraph
    */
   constexpr auto epigraph_impl() const {
     const auto A = map.linear_part();
     const auto b = map.translation();
-    return Halfspace<Domain, HalfspaceType::CLH, ViewTag::EpigraphCone>(
-               linalg::as_vector(A), b(0))
-        .cone_view();
+
+    const auto I = linalg::make_identity<T, N + 1>();
+    linalg::Vector<T, N + 1> b_tilde;
+    b_tilde[N] = T(-1) * b(0);
+    const affine::AffineMap<CoordMat> coord_map(I, b_tilde);
+    return Halfspace<Domain, HalfspaceType::CLH, ViewTag::LiftedCone>(
+        linalg::as_vector(A), b(0), coord_map);
   }
 
   /**
@@ -83,15 +90,22 @@ class AffineFn
    * opposite of epigraph for concave function
    * { (x, t) | a^T x + b >= t } \equiv
    * { (x, t) | -a^T x - b <= -t }, negation handled in cone view
+   * { (x, t) \in R^n x R | -a^T x <= b - t}
+   *
+   * halfspace coords: (-x, b - t)
    *
    * @return hypograph
    */
   constexpr auto hypograph_impl() const {
     const auto A = map.linear_part();
     const auto b = map.translation();
-    return Halfspace<Domain, HalfspaceType::CUH, ViewTag::HypographCone>(
-               linalg::as_vector(A), b(0))
-        .cone_view();
+
+    const auto I = T(-1) * make_identity<T, N + 1>();
+    linalg::Vector<T, N + 1> b_tilde;
+    b_tilde[N] = b(0);
+    const affine::AffineMap<CoordMat> coord_map(I, b_tilde);
+    return Halfspace<Domain, HalfspaceType::CUH, ViewTag::LiftedCone>(
+        linalg::as_vector(A), b(0), coord_map);
   }
 
   /**

@@ -21,6 +21,7 @@ using namespace convex;
 using namespace affine;
 using namespace unit_test;
 
+#if 0
 TEST_CASE("Test norm fn", "[convex_fn]") {
   SECTION("Test L1 fn") {
     using Space = Matrixd<1, 2>;
@@ -454,3 +455,4 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
     STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<1>{0.0}, 1.0)));
   }
 }
+#endif

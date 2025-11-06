@@ -14,6 +14,7 @@
 
 #include <optional>
 
+#include "affine/affine_map.hpp"
 #include "algebra/algebra_util.hpp"
 #include "convex/cone_view.hpp"
 #include "convex/convex_set_traits.hpp"
@@ -47,6 +48,24 @@ class ConvexSet {
 
   /// @brief alias for view tag
   static constexpr ViewTag Tag = set_view_tag_v<Derived>;
+
+  /// @brief coord map matrix type
+  using CoordMat = linalg::Matrix<T, N + 1, N + 1>;
+
+  /**
+   * @brief CTOR for convex set
+   *
+   * @param affine map to cone coordinates
+   */
+  constexpr explicit ConvexSet() : coord_map(affine::make_map_id<CoordMat>()) {}
+
+  /**
+   * @brief CTOR for convex set
+   *
+   * @param affine map to cone coordinates
+   */
+  constexpr explicit ConvexSet(const affine::AffineMap<CoordMat>& map_in)
+      : coord_map(map_in) {}
 
   /**
    * @brief is_well_formed
@@ -114,6 +133,29 @@ class ConvexSet {
   constexpr auto cone_view() const { return self().cone_view_impl(); }
 
   /**
+   * @brief project (x,t) onto cone coordinates
+   *
+   * @param x_in (x,t) \in R^n x R to cone coords via coord map
+   *
+   * @return projected point
+   */
+  constexpr auto project(const std::tuple<Point, T>& x_in) const {
+    auto x = std::get<0>(x_in);
+    const auto t = std::get<1>(x_in);
+
+    linalg::Vector<T, N + 1> x_cat;
+    for (size_t i = 0; i < N; ++i) x_cat[i] = x(i);
+    x_cat[N] = t;
+
+    const auto x_proj = this->coord_map(x_cat);
+
+    x = std::get<0>(linalg::splice<N>(x_proj));
+    const auto s = x_proj(N);
+
+    return std::tuple(x, s);
+  }
+
+  /**
    * @brief equality comparison overload
    *
    * @param convex set
@@ -143,6 +185,9 @@ class ConvexSet {
   constexpr const Derived& self() const {
     return static_cast<const Derived&>(*this);
   }
+
+  /** @brief member vars for CRTP base */
+  affine::AffineMap<CoordMat> coord_map;  //< map (x, t) \in R^n x R -> cone
 };
 
 }  // namespace convex
