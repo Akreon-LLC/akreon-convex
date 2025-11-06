@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include <optional>
@@ -103,27 +102,6 @@ class ConvexSet {
     requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform(const affine::AffineMap<Mat>& map) const {
     return self().transform_impl(map);
-  }
-
-  /**
-   * @brief projective_map x \in dom(C) by linear fractional function
-   *
-   * Q(x) -> [z; t] \in K (K = cone in N+1 dim space formed from inverse
-   * perspective function)
-   * [z; t] \in P^{-1}(C) \equiv K
-   *
-   * AKA perspective function composed with an affine func: x_proj = g(f(x))
-   *
-   * @param projective map
-   * @param point in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-    requires(Tag == ViewTag::ConvexSet)
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map(const ProjectiveMap<MatA, MatC>& map, const Point& x) const {
-    return self().projective_map_impl(map, x);
   }
 
   /**

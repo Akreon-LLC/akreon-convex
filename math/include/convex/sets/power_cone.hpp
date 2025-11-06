@@ -140,24 +140,9 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
       return ConeView(PowerCone<Space, Tag>(roots));
   }
 
-  /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-    requires(Tag == ViewTag::ConvexSet)
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map_impl(const ProjectiveMap<MatA, MatC>& /* map */,
-                      const Point& /* x */) const {
-    return std::nullopt;
-  }
-
  private:
   /** @brief member vars */
   linalg::Vector<size_t, N> roots;  //< alphas encoded as roots
 };
+
 }  // namespace convex

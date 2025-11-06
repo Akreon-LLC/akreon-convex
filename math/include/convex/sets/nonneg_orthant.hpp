@@ -90,21 +90,6 @@ class NonnegOrthant : public ConvexSet<Space, NonnegOrthant<Space, Tag>> {
   }
 
   /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param point in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
-                      const Point& /*x*/) const {
-    return std::nullopt;
-  }
-
-  /**
    * @brief to cone
    *
    * @return cone

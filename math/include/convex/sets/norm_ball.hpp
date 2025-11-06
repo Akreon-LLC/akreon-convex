@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set.hpp"
@@ -287,22 +286,6 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
     else
       return ConeView(
           NormCone<Space, NormConeType::LinfCC, ViewTag::LiftedCone>(c, r));
-  }
-
-  /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param point in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map_impl(const ProjectiveMap<MatA, MatC>& map,
-                      const Point& x) const {
-    if (!this->contains(x)) return std::nullopt;
-    return map.apply(x);
   }
 
  private:

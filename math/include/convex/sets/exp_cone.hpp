@@ -144,22 +144,6 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
     else
       return ConeView(ExpCone<Space, Tag>());
   }
-
-  /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-    requires(Tag == ViewTag::ConvexSet)
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map_impl(const ProjectiveMap<MatA, MatC>& /* map */,
-                      const Point& /* x */) const {
-    return std::nullopt;
-  }
 };
 
 }  // namespace convex

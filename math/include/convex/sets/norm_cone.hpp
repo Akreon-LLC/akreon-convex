@@ -157,21 +157,6 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
       return ConeView(NormCone<Space, Type, Tag>());
   }
 
-  /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param point in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
-                      const Point& /*x*/) const {
-    return std::nullopt;
-  }
-
  private:
   /** @brief member variables in the norm cone */
   std::optional<Point> c;  //< center point from norm ball -> cone

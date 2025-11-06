@@ -141,22 +141,6 @@ class AffineSubspace
       return ConeView(AffineSubspace<Space, Mat, Tag>(A, b));
   }
 
-  /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param point in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map_impl(const ProjectiveMap<MatA, MatC>& map,
-                      const Point& x) const {
-    if (!this->contains(x)) return std::nullopt;
-    return map.apply(x);
-  }
-
  private:
   /** @brief private data members for affine subspace */
   Mat A;         //< basis that spans the space of R^n

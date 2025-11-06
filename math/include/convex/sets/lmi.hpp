@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set.hpp"
@@ -154,21 +153,6 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
   template <linalg::MatrixLike Mat>
   constexpr auto transform_impl(const affine::AffineMap<Mat>& /* map */) const {
     return *this;
-  }
-
-  /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param point in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map_impl(const ProjectiveMap<MatA, MatC>& /*map*/,
-                      const Point& /*x*/) const {
-    return std::nullopt;
   }
 
   /**

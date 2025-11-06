@@ -129,20 +129,6 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
     else
       return ConeView(RotatedSOC<Space, Type, Tag>());
   }
-
-  /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map_impl(const ProjectiveMap<MatA, MatC>& /* map */,
-                      const Point& /* x */) const {
-    return std::nullopt;
-  }
 };
+
 }  // namespace convex

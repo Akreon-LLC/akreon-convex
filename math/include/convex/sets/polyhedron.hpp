@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "halfspace.hpp"
@@ -200,21 +199,6 @@ class Polyhedron
     else
       return ConeView(
           Polyhedron<Space, Type, decltype(A), decltype(C), Tag>(A, b, C, d));
-  }
-
-  /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param point in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MA, linalg::MatrixLike MC>
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MA> + 1>>
-  projective_map_impl(const ProjectiveMap<MA, MC>& map, const Point& x) const {
-    if (!this->contains(x)) return std::nullopt;
-    return map.apply(x);
   }
 
   /**

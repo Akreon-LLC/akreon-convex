@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set.hpp"
@@ -172,22 +171,6 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
       return ConeView(Ellipsoid<Space, Type, ViewTag::LiftedCone>(c, P));
     else
       return ConeView(Ellipsoid<Space, Type, Tag>(c, P));
-  }
-
-  /**
-   * @brief project impl
-   *
-   * @param project map
-   * @param point in set
-   *
-   * @return projected set
-   */
-  template <linalg::MatrixLike MatA, linalg::MatrixLike MatC>
-  constexpr std::optional<linalg::Vector<T, linalg::mat_cols_v<MatA> + 1>>
-  projective_map_impl(const ProjectiveMap<MatA, MatC>& map,
-                      const Point& x) const {
-    if (!this->contains(x)) return std::nullopt;
-    return map.apply(x);
   }
 
  private:
