@@ -100,7 +100,7 @@ class AffineFn
     const auto A = map.linear_part();
     const auto b = map.translation();
 
-    const auto I = T(-1) * make_identity<T, N + 1>();
+    const auto I = T(-1) * linalg::make_identity<T, N + 1>();
     linalg::Vector<T, N + 1> b_tilde;
     b_tilde[N] = b(0);
     const affine::AffineMap<CoordMat> coord_map(I, b_tilde);

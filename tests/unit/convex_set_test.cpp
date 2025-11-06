@@ -178,7 +178,6 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   }
 }
 
-#if 0
 TEST_CASE("Test ellipsoid set", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(SetLike<Ellipsoid<Matrix<double, 1, 5>, EllipsoidType::OE>>);
@@ -190,7 +189,7 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     constexpr auto P = make_identity<double, 2>();
     constexpr auto ellipsoid =
         Ellipsoid<Matrix<double, 1, 2>, EllipsoidType::OE>(c, P);
-    REQUIRE(ellipsoid.is_well_formed());
+    STATIC_REQUIRE(ellipsoid.is_well_formed());
     STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
     STATIC_REQUIRE(ellipsoid.contains(c));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
@@ -216,10 +215,12 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{1.5, 1.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
 
-    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    // TODO - revist
+#if 0
     constexpr auto slack =
-        cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+        cone.compute_slack(std::tuple(Vectord<2>{}, 0.0));
     STATIC_REQUIRE(!cone.contains(slack));
+#endif
   }
 
   SECTION("Test closed ellipsoid set") {
@@ -242,6 +243,7 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
   }
 }
 
+#if 0
 TEST_CASE("Polyhedron", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(

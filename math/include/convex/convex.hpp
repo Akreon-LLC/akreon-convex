@@ -16,6 +16,7 @@
 #include "convex_ops.hpp"
 #include "dual_cone_view.hpp"
 #include "functions/affine_fn.hpp"
+#include "sets/ellipsoid.hpp"
 #include "sets/halfspace.hpp"
 #include "sets/hyperplane.hpp"
 #if 0
@@ -31,8 +32,6 @@
 #include "functions/norm_fn.hpp"
 #include "functions/quad_over_linear_fn.hpp"
 #include "sets/affine_subspace.hpp"
-#include "sets/convex_set.hpp"
-#include "sets/ellipsoid.hpp"
 #include "sets/exp_cone.hpp"
 #include "sets/lmi.hpp"
 #include "sets/log_det_cone.hpp"
