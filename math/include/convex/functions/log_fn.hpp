@@ -51,29 +51,33 @@ class LogFn : public std::conditional_t<Tag == FnTag::Concave,
    * @brief hypograph impl
    *
    * C = { (x, t) | log(x) >= t } \equiv
-   * C = { (x, t) | exp(x) >= exp(t) } \equiv
-   * C = { (x, t) | exp(x - t) >= 1 }
+   * C = { (x, t) | x >= e^t}
+   *
+   * exp cone coords (t, 1, x)
    *
    * @return cone
    */
-  constexpr auto hypograph_impl() const {
-    // TODO - impl
-    return true;
+  constexpr auto hypograph_impl() const
+    requires(Tag == FnTag::Concave)
+  {
+    return ExpCone<Domain, ViewTag::HypographCone>().cone_view();
   }
 
   /**
    * @brief epigraph impl
    *
    * C = { (x, t) | -log(x) <= t } \equiv
-   * C = { (x, t) | log(x) >= -t } \equiv
-   * C = { (x, t) | exp(x) >= exp(-t) } \equiv
-   * C = { (x, t) | exp(x + t) >= 1 }
+   * C = { (x, t) | 1/x <= e^t } \equiv
+   * C = { (x, t) | e^{-1} <= x }
+   *
+   * exp cone coords (-t, 1, x)
    *
    * @return cone
    */
-  constexpr auto epigraph_impl() const {
-    // TODO -impl
-    return true;
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
+    return ExpCone<Domain, ViewTag::EpigraphCone>().cone_view();
   }
 
   /**

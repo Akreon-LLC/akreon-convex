@@ -55,6 +55,7 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
    *
    * C = { (x, t) | exp(x) <= t }, expressed as exp cone
    * K_exp = { (x, t) | e^{x} <= t }
+   * exp coords (x, 1, z=t)
    *
    * @return exp cone
    */
@@ -68,7 +69,8 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
    * @brief hypograph impl
    *
    * C = { (x, t) | -exp(x) >= t }, to exp cone
-   * K_exp = { (x, -t) | exp(x) <= -t }
+   * K_exp = { (x, -t) | e^{x} <= -t }
+   * exp coords (x, 1, z=-t)
    *
    * @return hypo cone
    */
