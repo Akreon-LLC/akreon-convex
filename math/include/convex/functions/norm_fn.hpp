@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex/sets/norm_cone.hpp"
@@ -76,7 +75,7 @@ class NormFn
   /**
    * @brief hypograph impl (for negated form)
    *
-   * C = { (x,t) | - ||x|| >= t }
+   * C = { (x,t) | -||x|| >= t }
    *
    * @return hypograph
    */

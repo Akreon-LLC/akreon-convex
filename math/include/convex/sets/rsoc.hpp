@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include <iostream>
@@ -56,7 +55,16 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
   /**
    * @brief contains to see if x is in rotated soc
    *
-   * @param x \in R^{n-2}, y \in R_++, z \in R_+
+   * Standard cone
+   * C = { (x, y, z) \in R^n x R_++ x R_+ | ||x||_2^2 <= y z }
+   *
+   * Epigraph cone
+   * C = { (x, y, z = t) \in R^n x R_++ x R | ||x||_2^2 <= y z }
+   *
+   * Hypograph cone
+   * C = { (x, y, z = -t) \in R^n x R_++ x R | ||x||_2^2 <= y z }
+   *
+   * @param x \in R^{n-2}, y \in R_++, z \in (R_+ or R)
    *
    * @return T/F
    */
@@ -65,18 +73,17 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
     T y = x_tmp(N - 1);
     if (y <= T(0)) return false;
     T z = std::get<1>(x_in);
-    if (z < T(0)) return false;
-    const auto x = std::get<0>(linalg::splice<N - 1>(x_tmp));
+    if constexpr (Tag == ViewTag::LiftedCone || Tag == ViewTag::ConvexSet) {
+      if (z < T(0)) return false;
+    } else if constexpr (Tag == ViewTag::HypographCone) {
+      if (z > T(0)) return false;
+    }
 
+    const auto x = std::get<0>(linalg::splice<N - 1>(x_tmp));
     const auto norm_x = linalg::L2<decltype(x)>()(x);
     const bool zeros = linalg::all_zero(x) && z == T(0);
 
     y = y == T(0) ? tol : y;
-
-    if constexpr (Tag == ViewTag::HypographCone) {
-      z *= T(-1);
-      tol *= T(-1);
-    }
 
     switch (Type) {
       case NormConeType::L2OC:

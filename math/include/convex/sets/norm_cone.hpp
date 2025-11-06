@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set.hpp"
@@ -75,7 +74,7 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
    *
    * (1) Standard Cone: K = {(x, t) \in R^n x R_+ | ||x|| <= t}
    * (2) Epigraph Cone: K = {(x, t) \in R^n x R | ||x|| <= t}
-   * (3) Hypograph Cone: K = {(x, t) \in R^n x R | ||x|| <= -t}
+   * (3) Hypograph Cone: K = {(x, z = -t) \in R^n x R | ||x|| <= z}
    *
    * @param point (x,t) - lifted by default
    * @param tolerance
@@ -87,18 +86,17 @@ class NormCone : public ConvexSet<Space, NormCone<Space, Type, Tag>> {
     const auto x = std::get<0>(x_in);
     auto t = std::get<1>(x_in);
 
-    if constexpr (Tag == ViewTag::LiftedCone)
+    if constexpr (Tag == ViewTag::LiftedCone) {
       if (t < T(0)) return false;
+    } else if constexpr (Tag == ViewTag::HypographCone) {
+      if (t > T(0)) return false;
+    }
 
     Point shift;
     if (r.has_value() && c.has_value()) {
       t *= r.value();
       shift = c.value();
     }
-
-    // (dakre) negated norm function hypograph has opposite sign on the t
-    // leaving the inequality unchanged
-    if constexpr (Tag == ViewTag::HypographCone) t *= T(-1);
 
     const bool zeros = linalg::all_zero(x) && t == T(0);
 

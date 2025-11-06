@@ -58,7 +58,9 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
    *
    * @return exp cone
    */
-  constexpr auto epigraph_impl() const {
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
     return ExpCone<Domain, ViewTag::EpigraphCone>().cone_view();
   }
 
@@ -70,7 +72,9 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
    *
    * @return hypo cone
    */
-  constexpr auto hypograph_impl() const {
+  constexpr auto hypograph_impl() const
+    requires(Tag == FnTag::Concave)
+  {
     return ExpCone<Domain, ViewTag::HypographCone>().cone_view();
   }
 

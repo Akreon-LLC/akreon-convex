@@ -10,11 +10,10 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
-#include "convex/sets/power_cone.hpp"
 #include "concave_fn.hpp"
+#include "convex/sets/power_cone.hpp"
 
 namespace convex {
 
@@ -68,7 +67,9 @@ class GeoMeanFn
    *
    * @return hypograph
    */
-  constexpr auto hypograph_impl() const {
+  constexpr auto hypograph_impl() const
+    requires(Tag == FnTag::Concave)
+  {
     return PowerCone<Domain, ViewTag::HypographCone>().cone_view();
   }
 
@@ -79,7 +80,9 @@ class GeoMeanFn
    *
    * @return epigraph
    */
-  constexpr auto epigraph_impl() const {
+  constexpr auto epigraph_impl() const
+    requires(Tag == FnTag::Convex)
+  {
     return PowerCone<Domain, ViewTag::EpigraphCone>().cone_view();
   }
 

@@ -74,7 +74,7 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    * { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= t }
    *
    * Epigraph Cone
-   * { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= -t }
+   * { (x, z = -t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= z }
    *
    * @param (x, t) \in R^n_+ x R
    *
@@ -84,15 +84,15 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
                                const T& /*tol*/) const {
     const auto x = std::get<0>(x_in);
     const auto t = std::get<1>(x_in);
+    if constexpr (Tag == ViewTag::EpigraphCone) {
+      if (t > T(0)) return false;
+    }
 
     T prod(1);
     for (size_t i = 0; i < N; ++i)
       prod *= linalg::constexpr_nrt<T>(x(i), roots(i));
 
-    if constexpr (Tag == ViewTag::EpigraphCone)
-      return prod >= T(-1) * t;
-    else
-      return prod >= t;
+    return prod >= t;
   }
 
   /**

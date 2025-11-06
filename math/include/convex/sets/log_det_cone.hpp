@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "convex_set.hpp"
@@ -69,11 +68,23 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
   /**
    * @brief check if candidate matrix X \in S^n_++
    *
-   * (1) Epigraph lift C' = { (x, t) \in S^n_++ x R | log(det(X)) >= -t }
-   * (2) Standard & Hypograph lift C' = { (x, t) \in S^n_++ x R | log(det(X)) >=
-   * t }
+   * @param point in vector space S^n
+   * @param scalar tol
    *
-   * @param (x,t) \in S^n_++ x R_++ or S^n_++ x R depending on lift
+   * @return T/F
+   */
+  constexpr bool contains_impl(const Point& X, const T& /* tol */) const {
+    return contains_impl(std::make_tuple(X, T(1)));
+  }
+
+  /**
+   * @brief check if candidate matrix X \in S^n_++
+   *
+   * (1) Epigraph lift C' = { (x, z = -t) \in S^n_++ x R | log(det(X)) >= z }
+   * (2) Hypograph lift C' = { (x, t) \in S^n_++ x R | log(det(X)) >= t } \equiv
+   * lifted cone
+   *
+   * @param (x,t) \in S^n_++ x R
    * @param scalar tol
    *
    * @return T/F
@@ -82,25 +93,14 @@ class LogDetCone : public ConvexSet<Space, LogDetCone<Space, Tag>> {
                                const T& /* tol */) const {
     const auto X = std::get<0>(lifted_X);
     const auto t = std::get<1>(lifted_X);
+    if constexpr (Tag == ViewTag::EpigraphCone) {
+      if (t > T(0)) return false;
+    }
+
     const auto res = LogDet<Space>()(X);
     if (!res.has_value()) return false;
 
-    if constexpr (Tag == ViewTag::EpigraphCone)
-      return res.value() <= t;
-    else
-      return res.value() >= t;
-  }
-
-  /**
-   * @brief check if candidate matrix X \in S^n_++
-   *
-   * @param point in vector space S^n
-   * @param scalar tol
-   *
-   * @return T/F
-   */
-  constexpr bool contains_impl(const Point& X, const T& /* tol */) const {
-    return contains_impl(std::make_tuple(X, T(1)));
+    return res.value() >= t;
   }
 
   /**

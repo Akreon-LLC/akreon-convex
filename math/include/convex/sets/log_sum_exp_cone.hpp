@@ -60,7 +60,9 @@ class LogSumExpCone : public ConvexSet<Space, LogSumExpCone<Space, Tag>> {
    * @brief contains with (x,t) in cone (standard as epigraph)
    *
    * (1) Epigraph lift: C' = { (x,t) \in R^n x R | \sum_i e^{x_i - t} <= 1 }
-   * (2) Hypograph lift: { (x,t) \in R^n x R | \sum_i e^{x_i + t} <= 1 }
+   * {(x_i - t, 1, s_i) | e^{x_i - t} <= s_i, \sum_i s_i <= 1, \forall s_i >= 0}
+   * (2) Hypograph lift: { (x,t) \in R^n x R | \sum_i e^{x_i + t} <= 1 } {
+   * {(x_i + t, 1, s_i) | e^{x_i + t} <= s_i, \sum_i s_i <= 1, \forall s_i >= 0}
    *
    * @param (x,t) \in R^n x R_++ or R^n x R depending on lift
    * @param scalar tol
