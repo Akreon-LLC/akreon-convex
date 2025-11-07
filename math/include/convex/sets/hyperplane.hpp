@@ -148,7 +148,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().a == a && other.self().b == b;
+    return other.self().a == a && other.self().b == b &&
+           other.coord_map == this->coord_map;
   }
 
   /**

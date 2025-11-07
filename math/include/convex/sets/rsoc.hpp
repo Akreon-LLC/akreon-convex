@@ -138,8 +138,8 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
   /**
    * @brief is equal impl
    */
-  constexpr bool is_equal_impl(const ConvexBase& /* other */) const {
-    return true;
+  constexpr bool is_equal_impl(const ConvexBase& other) const {
+    return other.coord_map == this->coord_map;
   }
 
   /**

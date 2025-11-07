@@ -890,7 +890,68 @@ TEST_CASE("Test Rotated SOC", "[convex_sets]") {
   }
 }
 
+TEST_CASE("Test log det cone", "[convex_sets]") {
+  SECTION("Quick log det cone") {
+    STATIC_REQUIRE(
+        ConvexConeLike<LogDetCone<SymmetricMatrix<Matrix<double, 2, 2>>>>);
+  }
+
+  SECTION("Test log det cone") {
+    constexpr auto A =
+        Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
+    constexpr auto B =
+        Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
+    constexpr auto I = make_identity<double, 2>();
+    constexpr auto Z = Matrixd<2, 2>{};
+    constexpr auto cone = LogDetCone<SymmetricMatrix<Matrix<double, 2, 2>>>();
+    STATIC_REQUIRE(cone.is_well_formed());
+    STATIC_REQUIRE(cone.contains(std::tuple(A, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(B, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(I, 0.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(I, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Z, 1.0)));
+
+    constexpr auto cone_v = cone.cone_view();
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
+    STATIC_REQUIRE(cone_v.contains(std::tuple(A, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Z, 1.0)));
+
+    // TODO - revisit
 #if 0
+    constexpr auto slack = cone_v.compute_slack(std::tuple(I, 0.0));
+    STATIC_REQUIRE(cone_v.contains(slack));
+#endif
+  }
+}
+
+#if 0
+TEST_CASE("Test power cone", "[convex_sets]") {
+  SECTION("Quick power cone") {
+    STATIC_REQUIRE(ConvexConeLike<PowerCone<linalg::Matrixd<1, 3>>>);
+  }
+
+  SECTION("Test power cone") {
+    using Space = Matrixd<1, 3>;
+    constexpr Vector<size_t, 3> roots{3UL, 3UL, 3UL};
+    constexpr auto power_cone = PowerCone<Space>(roots);
+    STATIC_REQUIRE(power_cone.is_well_formed());
+    STATIC_REQUIRE(power_cone.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(
+        power_cone.contains(std::tuple(Vectord<3>{1.0, 1.0, 1.0}, 1.0)));
+    STATIC_REQUIRE(!power_cone.contains(std::tuple(Vectord<3>{}, 1.0)));
+
+    constexpr auto cone_v = power_cone.cone_view();
+    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
+    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectord<3>{}, 0.0)));
+    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<3>{}, 1.0)));
+
+    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
+    constexpr auto slack =
+        cone_v.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+    STATIC_REQUIRE(cone_v.contains(slack));
+  }
+}
+
 TEST_CASE("Test Exp Cone", "[convex_sets]") {
   SECTION("Quick exp cone") {
     STATIC_REQUIRE(ConvexSetLike<ExpCone<Matrixd<1, 2>, ViewTag::ConvexSet>>);
@@ -921,65 +982,6 @@ TEST_CASE("Test Exp Cone", "[convex_sets]") {
     constexpr auto slack =
         cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
     STATIC_REQUIRE(cone.contains(slack));
-  }
-}
-
-TEST_CASE("Test log det cone", "[convex_sets]") {
-  SECTION("Quick log det cone") {
-    STATIC_REQUIRE(
-        ConvexConeLike<LogDetCone<SymmetricMatrix<Matrix<double, 2, 2>>>>);
-  }
-
-  SECTION("Test log det cone") {
-    constexpr auto A =
-        Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
-    constexpr auto B =
-        Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
-    constexpr auto I = make_identity<double, 2>();
-    constexpr auto Z = Matrixd<2, 2>{};
-    constexpr auto cone = LogDetCone<SymmetricMatrix<Matrix<double, 2, 2>>>();
-    STATIC_REQUIRE(cone.is_well_formed());
-    STATIC_REQUIRE(cone.contains(std::tuple(A, 1.0)));
-    STATIC_REQUIRE(cone.contains(std::tuple(B, 1.0)));
-    STATIC_REQUIRE(cone.contains(std::tuple(I, 0.0)));
-    STATIC_REQUIRE(!cone.contains(std::tuple(I, 1.0)));
-    STATIC_REQUIRE(!cone.contains(std::tuple(Z, 1.0)));
-
-    constexpr auto cone_v = cone.cone_view();
-    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(cone_v.contains(std::tuple(A, 1.0)));
-    STATIC_REQUIRE(!cone.contains(std::tuple(Z, 1.0)));
-
-    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
-    constexpr auto slack = cone_v.compute_slack(I_map, std::tuple(I, 0.0));
-    STATIC_REQUIRE(cone_v.contains(slack));
-  }
-}
-
-TEST_CASE("Test power cone", "[convex_sets]") {
-  SECTION("Quick power cone") {
-    STATIC_REQUIRE(ConvexConeLike<PowerCone<linalg::Matrixd<1, 3>>>);
-  }
-
-  SECTION("Test power cone") {
-    using Space = Matrixd<1, 3>;
-    constexpr Vector<size_t, 3> roots{3UL, 3UL, 3UL};
-    constexpr auto power_cone = PowerCone<Space>(roots);
-    STATIC_REQUIRE(power_cone.is_well_formed());
-    STATIC_REQUIRE(power_cone.contains(std::tuple(Vectord<3>{}, 0.0)));
-    STATIC_REQUIRE(
-        power_cone.contains(std::tuple(Vectord<3>{1.0, 1.0, 1.0}, 1.0)));
-    STATIC_REQUIRE(!power_cone.contains(std::tuple(Vectord<3>{}, 1.0)));
-
-    constexpr auto cone_v = power_cone.cone_view();
-    STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(cone_v.contains(std::tuple(Vectord<3>{}, 0.0)));
-    STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<3>{}, 1.0)));
-
-    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
-    constexpr auto slack =
-        cone_v.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
-    STATIC_REQUIRE(cone_v.contains(slack));
   }
 }
 

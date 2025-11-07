@@ -45,6 +45,7 @@ class LogDetFn
                          ConvexFn<Domain, LogDetFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -82,7 +83,7 @@ class LogDetFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return LogDetCone<Domain, ViewTag::HypographCone>().cone_view();
+    return LogDetCone<Domain, ViewTag::LiftedCone>().cone_view();
   }
 
   /**
@@ -95,7 +96,9 @@ class LogDetFn
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    return LogDetCone<Domain, ViewTag::EpigraphCone>().cone_view();
+    return LogDetCone<Domain, ViewTag::LiftedCone>(
+               default_log_det_map<CoordMat>(T(-1)))
+        .cone_view();
   }
 
   /**

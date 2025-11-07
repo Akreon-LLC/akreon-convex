@@ -171,7 +171,8 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return other.self().c == c && other.self().P == P;
+    return other.self().c == c && other.self().P == P &&
+           other.coord_map == this->coord_map;
   }
 
   /**

@@ -144,7 +144,8 @@ class AffineSubspace
    * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
-    return A == other.self().A && b == other.self().b;
+    return A == other.self().A && b == other.self().b &&
+           other.coord_map == this->coord_map;
   }
 
   /**

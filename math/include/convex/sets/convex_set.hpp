@@ -18,6 +18,7 @@
 #include "algebra/algebra_util.hpp"
 #include "convex/cone_view.hpp"
 #include "convex/convex_set_traits.hpp"
+#include "linalg/symmetric_matrix.hpp"
 
 namespace convex {
 
@@ -140,19 +141,42 @@ class ConvexSet {
    * @return projected point
    */
   constexpr auto project(const std::tuple<Point, T>& x_in) const {
-    auto x = std::get<0>(x_in);
-    const auto t = std::get<1>(x_in);
+    if constexpr (std::same_as<Point, linalg::Vector<T, N>>) {
+      auto x = std::get<0>(x_in);
+      const auto t = std::get<1>(x_in);
 
-    linalg::Vector<T, N + 1> x_cat;
-    for (size_t i = 0; i < N; ++i) x_cat[i] = x(i);
-    x_cat[N] = t;
+      linalg::Vector<T, N + 1> x_cat;
+      for (size_t i = 0; i < N; ++i) x_cat[i] = x(i);
+      x_cat[N] = t;
 
-    const auto x_proj = coord_map(x_cat);
+      const auto x_proj = coord_map(x_cat);
 
-    x = std::get<0>(linalg::splice<N>(x_proj));
-    const auto s = x_proj(N);
+      x = std::get<0>(linalg::splice<N>(x_proj));
+      const auto s = x_proj(N);
 
-    return std::tuple(x, s);
+      return std::tuple(x, s);
+    } else {
+      const auto U = coord_map.linear_part();
+      const auto t = std::get<1>(x_in);
+      return std::tuple(std::get<0>(x_in), t * U(N)(N));
+
+      // TODO - get similarity transform working
+#if 0
+      auto x = std::get<0>(x_in);
+      const auto t = std::get<1>(x_in);
+
+      CoordMat A;
+      A = linalg::set_block<0, N, 0, N>(A, x);
+      A[N][N] = t;
+
+      // (dakre) perhaps enforce congruence map for faster execution
+      const auto UTAU = linalg::inverse(U) * (A * U);
+      const auto x_prime = linalg::get_block<0, N, 0, N>(UTAU);
+      const auto s = UTAU(N)(N);
+
+      return std::tuple(x_prime, s);
+#endif
+    }
   }
 
   /**
