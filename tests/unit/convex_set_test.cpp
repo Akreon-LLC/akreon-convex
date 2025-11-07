@@ -924,7 +924,6 @@ TEST_CASE("Test log det cone", "[convex_sets]") {
   }
 }
 
-#if 0
 TEST_CASE("Test power cone", "[convex_sets]") {
   SECTION("Quick power cone") {
     STATIC_REQUIRE(ConvexConeLike<PowerCone<linalg::Matrixd<1, 3>>>);
@@ -945,13 +944,16 @@ TEST_CASE("Test power cone", "[convex_sets]") {
     STATIC_REQUIRE(cone_v.contains(std::tuple(Vectord<3>{}, 0.0)));
     STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<3>{}, 1.0)));
 
-    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
+    // TODO - revisit
+#if 0
     constexpr auto slack =
-        cone_v.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+        cone_v.compute_slack(std::tuple(Vectord<3>{}, 0.0));
     STATIC_REQUIRE(cone_v.contains(slack));
+#endif
   }
 }
 
+#if 0
 TEST_CASE("Test Exp Cone", "[convex_sets]") {
   SECTION("Quick exp cone") {
     STATIC_REQUIRE(ConvexSetLike<ExpCone<Matrixd<1, 2>, ViewTag::ConvexSet>>);

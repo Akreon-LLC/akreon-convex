@@ -15,6 +15,21 @@
 #include "convex_set.hpp"
 
 namespace convex {
+
+/**
+ * @brief default coord map for power cone
+ *
+ * coords: (x, t)
+ */
+template <linalg::SquareMatrixLike CoordMat>
+constexpr auto default_pow_cone_map(const linalg::mat_type_t<CoordMat>& t) {
+  using T = linalg::mat_type_t<CoordMat>;
+  static constexpr size_t N = linalg::mat_rows_v<CoordMat>;
+  auto I = linalg::make_identity<T, N>();
+  I[N - 1][N - 1] = t;
+  return affine::AffineMap<CoordMat>(I, linalg::Vector<T, N>{});
+}
+
 /**
  * @brief power cone
  *
@@ -32,6 +47,7 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, PowerCone<Space, Tag>>;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -44,7 +60,16 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
   /**
    * @brief default power cone CTOR
    */
-  constexpr explicit PowerCone() {
+  constexpr explicit PowerCone()
+      : ConvexBase(default_pow_cone_map<CoordMat>(T(1))) {
+    for (size_t i = 0; i < N; ++i) roots[i] = N;
+  }
+
+  /**
+   * @brief default power cone CTOR
+   */
+  constexpr explicit PowerCone(const affine::AffineMap<CoordMat>& map_in)
+      : ConvexBase(map_in) {
     for (size_t i = 0; i < N; ++i) roots[i] = N;
   }
 
@@ -54,7 +79,17 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    * @param roots \in N
    */
   constexpr explicit PowerCone(const linalg::Vector<size_t, N>& roots_in)
-      : roots(roots_in) {}
+      : ConvexBase(default_pow_cone_map<CoordMat>(T(1))), roots(roots_in) {}
+
+  /**
+   * @brief power cone (roots provided)
+   *
+   * @param affine map (coord map)
+   * @param roots \in N
+   */
+  constexpr explicit PowerCone(const affine::AffineMap<CoordMat>& map_in,
+                               const linalg::Vector<size_t, N>& roots_in)
+      : ConvexBase(map_in), roots(roots_in) {}
 
   /**
    * @brief power cone contains \subset R^n_+ x R
@@ -70,11 +105,8 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
   /**
    * @brief power cone contains \subset R^n_+ x R
    *
-   * Hypograph Cone (same as power)
+   * Power Cone
    * { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= t }
-   *
-   * Epigraph Cone
-   * { (x, z = -t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= z }
    *
    * @param (x, t) \in R^n_+ x R
    *
@@ -82,17 +114,15 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    */
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
                                const T& /*tol*/) const {
-    const auto x = std::get<0>(x_in);
-    const auto t = std::get<1>(x_in);
-    if constexpr (Tag == ViewTag::EpigraphCone) {
-      if (t > T(0)) return false;
-    }
+    const auto x_proj = this->project(x_in);
+    const auto x = std::get<0>(x_proj);
+    const auto s = std::get<1>(x_proj);
 
     T prod(1);
     for (size_t i = 0; i < N; ++i)
       prod *= linalg::constexpr_nrt<T>(x(i), roots(i));
 
-    return prod >= t;
+    return prod >= s;
   }
 
   /**
@@ -113,6 +143,8 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    * @brief is equal impl
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
+    if (other.coord_map != this->coord_map) return false;
+
     for (size_t i = 0; i < N; ++i)
       if (other.self().roots(i) != roots(i)) return false;
     return true;
@@ -135,9 +167,10 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(PowerCone<Space, ViewTag::LiftedCone>(roots));
+      return ConeView(
+          PowerCone<Space, ViewTag::LiftedCone>(this->coord_map, roots));
     else
-      return ConeView(PowerCone<Space, Tag>(roots));
+      return ConeView(PowerCone<Space, Tag>(this->coord_map, roots));
   }
 
  private:

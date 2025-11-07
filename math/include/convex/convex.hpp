@@ -16,6 +16,7 @@
 #include "convex_ops.hpp"
 #include "dual_cone_view.hpp"
 #include "functions/affine_fn.hpp"
+#include "functions/geo_mean_fn.hpp"
 #include "functions/indicator_fn.hpp"
 #include "functions/log_det_fn.hpp"
 #include "functions/max_fn.hpp"
@@ -32,17 +33,18 @@
 #include "sets/norm_ball.hpp"
 #include "sets/norm_cone.hpp"
 #include "sets/polyhedron.hpp"
+#include "sets/power_cone.hpp"
 #include "sets/psd_cone.hpp"
 #include "sets/rsoc.hpp"
 #include "sets/simplex.hpp"
 #if 0
-#include "cone_program.hpp"
-#include "convex_program.hpp"
 #include "functions/exp_fn.hpp"
-#include "functions/geo_mean_fn.hpp"
 #include "functions/log_fn.hpp"
 #include "functions/log_sum_exp_fn.hpp"
 #include "sets/exp_cone.hpp"
 #include "sets/log_sum_exp_cone.hpp"
-#include "sets/power_cone.hpp"
+
+// TODO - need slacks for these
+#include "cone_program.hpp"
+#include "convex_program.hpp"
 #endif

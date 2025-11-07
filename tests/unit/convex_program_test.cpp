@@ -20,7 +20,6 @@ using namespace linalg;
 using namespace convex;
 using namespace unit_test;
 
-#if 0
 TEST_CASE("Test Simple Cone Program") {
   SECTION("Simple Cone Program Construction") {
     using Space = Matrixd<1, 3>;
@@ -56,4 +55,3 @@ TEST_CASE("Test Simple Convex Program") {
     STATIC_REQUIRE(prog2.solve());
   }
 }
-#endif

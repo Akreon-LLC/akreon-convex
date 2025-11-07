@@ -34,6 +34,7 @@ class GeoMeanFn
                          ConvexFn<Domain, GeoMeanFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -62,7 +63,7 @@ class GeoMeanFn
    * F(x) = (\prod_i^n x_i)^{1/n}
    * graph(F(x)) = { (x, \prod_i^n x_i)^{1/n} | x \in dom f}
    * hypo(F(x)) = { (x, t) | (\prod_i^n x_i)^{1/n} >= t, x \in dom f }
-   * \equiv = { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= |t| } which is the
+   * \equiv = { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= t } which is the
    * power cone
    *
    * @return hypograph
@@ -70,20 +71,22 @@ class GeoMeanFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return PowerCone<Domain, ViewTag::HypographCone>().cone_view();
+    return PowerCone<Domain, ViewTag::LiftedCone>().cone_view();
   }
 
   /**
    * @brief epigraph impl
    *
-   * C = { (x, t) | -\prod_i^n x_i^{1/n} >= |t| }
+   * C = { (x, t) | -\prod_i^n x_i^{1/n} >= t }
    *
    * @return epigraph
    */
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    return PowerCone<Domain, ViewTag::EpigraphCone>().cone_view();
+    return PowerCone<Domain, ViewTag::LiftedCone>(
+               default_pow_cone_map<CoordMat>(T(-1)))
+        .cone_view();
   }
 
   /**
