@@ -48,12 +48,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
-    T sum(0);
-    for (size_t i = 0; i < N; ++i) {
-      if (x(i) < T(0)) return false;
-      sum += x(i);
-    }
-    return linalg::constexpr_abs(sum - T(1)) <= tol;
+    return contains_impl(std::tuple(x, T(1)), tol);
   }
 
   /**
@@ -68,10 +63,9 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    */
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
                                const T& tol) const {
+    // (dakre) projected map would just be id
     const auto x = std::get<0>(x_in);
-    auto t = std::get<1>(x_in);
-    if (t < T(0)) return false;
-
+    const auto t = std::get<1>(x_in);
     T sum(0);
     for (size_t i = 0; i < N; ++i) {
       if (x(i) < T(0)) return false;
@@ -150,7 +144,11 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    * @return cone
    */
   constexpr auto cone_view_impl() const {
-    return ConeView(Simplex<Space, ViewTag::LiftedCone>());
+    if constexpr (Tag == ViewTag::ConvexSet) {
+      return ConeView(Simplex<Space, ViewTag::LiftedCone>());
+    } else {
+      return ConeView(Simplex<Space, Tag>());
+    }
   }
 };
 

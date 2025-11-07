@@ -349,7 +349,6 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
   }
 }
 
-#if 0
 TEST_CASE("Test Simplex", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(ConvexSetLike<Simplex<Matrix<double, 1, 3>>>);
@@ -376,10 +375,12 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<3>{0.8, 0.1, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
 
-    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
+    // TODO - revisit
+#if 0
     constexpr auto slack =
-        cone.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+        cone.compute_slack(std::tuple(Vectord<3>{}, 0.0));
     STATIC_REQUIRE(cone.contains(slack));
+#endif
   }
 }
 
@@ -406,13 +407,72 @@ TEST_CASE("Test Nonneg Orthant", "[convex_sets]") {
     STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{-0.1, 0.1}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
 
-    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    // TODO - revisit
+#if 0
     constexpr auto slack =
-        cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+        cone.compute_slack(std::tuple(Vectord<2>{}, 0.0));
     STATIC_REQUIRE(cone.contains(slack));
+#endif
   }
 }
 
+TEST_CASE("Test Neg Orthant", "[convex_sets]") {
+  SECTION("Quick test to check convex sets types") {
+    STATIC_REQUIRE(ConvexSetLike<NegOrthant<Matrix<double, 1, 1>>>);
+    STATIC_REQUIRE(
+        ConvexConeLike<NegOrthant<Matrix<double, 1, 1>, ViewTag::LiftedCone>>);
+  }
+
+  SECTION("Test Neg orthant", "[R^n_-]") {
+    // (0) nominal checks
+    constexpr NegOrthant<Matrixd<1, 2>> set;
+    STATIC_REQUIRE(set.is_well_formed());
+    STATIC_REQUIRE(set == set);
+    STATIC_REQUIRE(!set.contains(Vectord<2>{1.0, 0.0}));
+    STATIC_REQUIRE(!set.contains(Vectord<2>{-0.1, 0.1}));
+    STATIC_REQUIRE(set.contains(Vectord<2>{-0.1, 0.0}));
+    constexpr auto I = make_identity<double, 2>();
+    STATIC_REQUIRE(set.transform(AffineMap<Matrixd<2, 2>>(I, Vectord<2>{})) ==
+                   set);
+    // (1) cone checks
+    constexpr auto cone = set.cone_view();
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{1.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{-0.1, 0.1}, 1.0)));
+    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{-0.1, 0.0}, 1.0)));
+    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
+
+    // TODO - revisit
+#if 0
+    constexpr auto slack =
+        cone.compute_slack(std::tuple(Vectord<2>{}, 0.0));
+    STATIC_REQUIRE(cone.contains(slack));
+#endif
+  }
+}
+
+TEST_CASE("Test affine subspace", "[convex_sets]") {
+  SECTION("Quick affine subspace check") {
+    STATIC_REQUIRE(ConvexSetLike<AffineSubspace<Matrixd<1, 4>, Matrixd<4, 4>>>);
+  }
+
+  SECTION("Test affine subspace") {
+    using Space = Matrixd<1, 3>;
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto affine_set =
+        AffineSubspace<Space, Matrixd<3, 3>>(I, Vectord<3>{});
+    STATIC_REQUIRE(affine_set.is_well_formed());
+    STATIC_REQUIRE(affine_set.contains(Vectord<3>{}));
+    STATIC_REQUIRE(!affine_set.contains(Vectord<3>{1.0, 1.0, 1.0}));
+
+    constexpr auto affine_cone = affine_set.cone_view();
+    STATIC_REQUIRE(affine_cone.is_proper() == ConeCheck::True);
+    STATIC_REQUIRE(affine_cone.contains(std::tuple(Vectord<3>{}, 1.0)));
+    STATIC_REQUIRE(
+        !affine_cone.contains(std::tuple(Vectord<3>{1.0, 2.0, 3.0}, 1.0)));
+  }
+}
+
+#if 0
 TEST_CASE("Test LMI", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(
@@ -941,57 +1001,4 @@ TEST_CASE("Test log sum exp cone", "[convex_sets]") {
   }
 }
 
-TEST_CASE("Test affine subspace", "[convex_sets]") {
-  SECTION("Quick affine subspace check") {
-    STATIC_REQUIRE(ConvexSetLike<AffineSubspace<Matrixd<1, 4>, Matrixd<4, 4>>>);
-  }
-
-  SECTION("Test affine subspace") {
-    using Space = Matrixd<1, 3>;
-    constexpr auto I = make_identity<double, 3>();
-    constexpr auto affine_set =
-        AffineSubspace<Space, Matrixd<3, 3>>(I, Vectord<3>{});
-    STATIC_REQUIRE(affine_set.is_well_formed());
-    STATIC_REQUIRE(affine_set.contains(Vectord<3>{}));
-    STATIC_REQUIRE(!affine_set.contains(Vectord<3>{1.0, 1.0, 1.0}));
-
-    constexpr auto affine_cone = affine_set.cone_view();
-    STATIC_REQUIRE(affine_cone.is_proper() == ConeCheck::True);
-    STATIC_REQUIRE(affine_cone.contains(std::tuple(Vectord<3>{}, 1.0)));
-    STATIC_REQUIRE(
-        !affine_cone.contains(std::tuple(Vectord<3>{1.0, 2.0, 3.0}, 1.0)));
-  }
-}
-
-TEST_CASE("Test Neg Orthant", "[convex_sets]") {
-  SECTION("Quick test to check convex sets types") {
-    STATIC_REQUIRE(ConvexSetLike<NegOrthant<Matrix<double, 1, 1>>>);
-    STATIC_REQUIRE(
-        ConvexConeLike<NegOrthant<Matrix<double, 1, 1>, ViewTag::LiftedCone>>);
-  }
-
-  SECTION("Test Neg orthant", "[R^n_-]") {
-    // (0) nominal checks
-    constexpr NegOrthant<Matrixd<1, 2>> set;
-    STATIC_REQUIRE(set.is_well_formed());
-    STATIC_REQUIRE(set == set);
-    STATIC_REQUIRE(!set.contains(Vectord<2>{1.0, 0.0}));
-    STATIC_REQUIRE(!set.contains(Vectord<2>{-0.1, 0.1}));
-    STATIC_REQUIRE(set.contains(Vectord<2>{-0.1, 0.0}));
-    constexpr auto I = make_identity<double, 2>();
-    STATIC_REQUIRE(set.transform(AffineMap<Matrixd<2, 2>>(I, Vectord<2>{})) ==
-                   set);
-    // (1) cone checks
-    constexpr auto cone = set.cone_view();
-    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{1.0, 0.0}, 1.0)));
-    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{-0.1, 0.1}, 1.0)));
-    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{-0.1, 0.0}, 1.0)));
-    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-
-    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
-    constexpr auto slack =
-        cone.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
-    STATIC_REQUIRE(cone.contains(slack));
-  }
-}
 #endif
