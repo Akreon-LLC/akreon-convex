@@ -34,6 +34,7 @@ class NormFn
                          ConcaveFn<Domain, NormFn<Domain, Norm, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -75,21 +76,26 @@ class NormFn
   /**
    * @brief hypograph impl (for negated form)
    *
-   * C = { (x,t) | -||x|| >= t }
+   * C = { (x, t) | -||x|| >= t }
+   * C = { (x, z=-t) | ||x|| <= z }
    *
    * @return hypograph
    */
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
+    const linalg::Vector<T, N> c;
     if constexpr (std::same_as<Norm, linalg::L2<Point>>)
-      return NormCone<Domain, NormConeType::L2CC, ViewTag::HypographCone>()
+      return NormCone<Domain, NormConeType::L2CC, ViewTag::LiftedCone>(
+                 default_cone_map<CoordMat>(c, T(-1)))
           .cone_view();
     else if constexpr (std::same_as<Norm, linalg::L1<Point>>)
-      return NormCone<Domain, NormConeType::L1CC, ViewTag::HypographCone>()
+      return NormCone<Domain, NormConeType::L1CC, ViewTag::LiftedCone>(
+                 default_cone_map<CoordMat>(c, T(-1)))
           .cone_view();
     else
-      return NormCone<Domain, NormConeType::LinfCC, ViewTag::HypographCone>()
+      return NormCone<Domain, NormConeType::LinfCC, ViewTag::LiftedCone>(
+                 default_cone_map<CoordMat>(c, T(-1)))
           .cone_view();
   }
 

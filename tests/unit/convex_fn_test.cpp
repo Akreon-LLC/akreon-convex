@@ -21,7 +21,6 @@ using namespace convex;
 using namespace affine;
 using namespace unit_test;
 
-#if 0
 TEST_CASE("Test norm fn", "[convex_fn]") {
   SECTION("Test L1 fn") {
     using Space = Matrixd<1, 2>;
@@ -40,7 +39,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     constexpr auto hypo_f = norm_concave.hypograph();
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{}, 0.0)));
     STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 3.0)));
-    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -3.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -3.0)));
     STATIC_REQUIRE(ConvexFnLike<decltype(norm_concave.negate())>);
   }
 
@@ -63,7 +62,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{}, 0.0)));
     STATIC_REQUIRE(!hypo_f.contains(
         std::tuple(Vectord<2>{1.0, 2.0}, constexpr_sqrt(5.0))));
-    STATIC_REQUIRE(!hypo_f.contains(
+    STATIC_REQUIRE(hypo_f.contains(
         std::tuple(Vectord<2>{1.0, 2.0}, -1.0 * constexpr_sqrt(5.0))));
     STATIC_REQUIRE(ConvexFnLike<decltype(norm_concave.negate())>);
   }
@@ -84,7 +83,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     constexpr auto hypo_f = norm_concave.hypograph();
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{}, 0.0)));
     STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, 2.0)));
-    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -2.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -2.0)));
     STATIC_REQUIRE(ConvexFnLike<decltype(norm_concave.negate())>);
   }
 }
@@ -147,6 +146,7 @@ TEST_CASE("Test affine fn", "[convex_fn]") {
   }
 }
 
+#if 0
 TEST_CASE("Test max fn") {
   SECTION("Test max fn (trivial)") {
     using Space = Matrixd<1, 2>;

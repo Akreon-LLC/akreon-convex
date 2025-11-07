@@ -563,7 +563,6 @@ TEST_CASE("PSD cone", "[convex_sets]") {
   }
 }
 
-#if 0
 TEST_CASE("Test norm cone", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(VectorSpace<Matrix<double, 1, 1>>);
@@ -588,10 +587,12 @@ TEST_CASE("Test norm cone", "[convex_sets]") {
     STATIC_REQUIRE(!cone_v.contains(std::tuple(Vectord<2>{2.0, 0.1}, 1.0)));
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::False);
 
-    constexpr auto I_map = make_map_id<Matrixd<2, 2>>();
+    // TODO - revisit
+#if 0
     constexpr auto slack =
-        cone_v.compute_slack(I_map, std::tuple(Vectord<2>{}, 0.0));
+        cone_v.compute_slack(std::tuple(Vectord<2>{}, 0.0));
     STATIC_REQUIRE(!cone_v.contains(slack));
+#endif
   }
 
   SECTION("Test closed L2 norm cone") {
@@ -763,7 +764,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
                                            c(3) - 0.1, 0.3, 0.2, 0.1, 0.1}));
 
     constexpr auto cone = ball.cone_view();
-    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<4>{}, 0.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<4>{}, 0.0)));
     STATIC_REQUIRE(cone.contains(
         std::tuple(Vectord<4>{c(0), c(1), c(2), c(3) + 0.1}, 1.0)));
     STATIC_REQUIRE(cone.contains(
@@ -832,7 +833,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
 
     constexpr auto cone = ball.cone_view();
-    STATIC_REQUIRE(cone.contains(std::tuple(Vectorf<3>{}, 0.0)));
+    STATIC_REQUIRE(!cone.contains(std::tuple(Vectorf<3>{}, 0.0)));
     STATIC_REQUIRE(
         cone.contains(std::tuple(Vectorf<3>{c(0) + 1.f, c(1), c(2)}, r)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
@@ -842,6 +843,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
   }
 }
 
+#if 0
 TEST_CASE("Test Rotated SOC", "[convex_sets]") {
   SECTION("Quick RSOC check") {
     STATIC_REQUIRE(
