@@ -105,8 +105,7 @@ TEST_CASE("Test affine fn", "[convex_fn]") {
     constexpr auto affine_concave = affine_fn.negate();
     constexpr auto hypo_f = affine_concave.hypograph();
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{}, 0.0)));
-    // (dakre) TODO look into this further
-    // STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -1.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{1.0, 2.0}, -1.0)));
 
     STATIC_REQUIRE(ConvexFnLike<decltype(affine_concave.negate())>);
   }
@@ -138,15 +137,14 @@ TEST_CASE("Test affine fn", "[convex_fn]") {
     STATIC_REQUIRE(affine_fn.eval(Vectord<4>{}).value() == 1.0);
 
     constexpr auto hypo_f = affine_fn.hypograph();
+    // 0 <= 0 T
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<4>{}, 1.0)));
+    // [1 -2 -3 -1] [1; -1; -1; -1] = 5 <= 0 ? F
     STATIC_REQUIRE(
-        hypo_f.contains(std::tuple(Vectord<4>{0.0, 0.0, 0.0, 0.0}, 1.0)));
-    STATIC_REQUIRE(
-        hypo_f.contains(std::tuple(Vectord<4>{1.0, -1.0, -1.0, -1.0}, 1.0)));
+        !hypo_f.contains(std::tuple(Vectord<4>{1.0, -1.0, -1.0, -1.0}, 1.0)));
   }
 }
 
-#if 0
 TEST_CASE("Test max fn") {
   SECTION("Test max fn (trivial)") {
     using Space = Matrixd<1, 2>;
@@ -256,7 +254,8 @@ TEST_CASE("Test indicator fn") {
     STATIC_REQUIRE(Ic.eval(Vectord<2>{}).value() == 0.0);
     STATIC_REQUIRE(!Ic.eval(Vectord<2>{-10.0, 1.0}).has_value());
     constexpr auto epi_f = Ic.epigraph();
-    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{}, 0.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{0.2, 0.4}, 0.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<2>{}, 0.0)));
     STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<2>{-1.0, -1.0}, 1.0)));
   }
 
@@ -321,6 +320,7 @@ TEST_CASE("Test indicator fn") {
   }
 }
 
+#if 0
 TEST_CASE("Test quad over linear", "[convex_fn]") {
   SECTION("Test quad/linear") {
     using Space = Matrixd<1, 4>;

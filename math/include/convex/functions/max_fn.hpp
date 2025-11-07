@@ -78,7 +78,8 @@ class MaxFn : public std::conditional_t<Tag == FnTag::Convex,
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return NormCone<Domain, NormConeType::LinfCC, ViewTag::HypographCone>()
+    return NormCone<Domain, NormConeType::LinfCC, ViewTag::LiftedCone>(
+               linalg::Vector<T, N>{}, T(-1))
         .cone_view();
   }
 

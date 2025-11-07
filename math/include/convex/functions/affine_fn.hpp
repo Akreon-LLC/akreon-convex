@@ -104,7 +104,7 @@ class AffineFn
     linalg::Vector<T, N + 1> b_tilde;
     b_tilde[N] = b(0);
     const affine::AffineMap<CoordMat> coord_map(I, b_tilde);
-    return Halfspace<Domain, HalfspaceType::CUH, ViewTag::LiftedCone>(
+    return Halfspace<Domain, HalfspaceType::CLH, ViewTag::LiftedCone>(
         linalg::as_vector(A), b(0), coord_map);
   }
 
