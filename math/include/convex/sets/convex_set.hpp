@@ -49,6 +49,24 @@ class ConvexSet {
   /// @brief alias for view tag
   static constexpr ViewTag Tag = set_view_tag_v<Derived>;
 
+  /// @brief alias for coord map mat type
+  using CoordMat = linalg::Matrix<T, N + 1, N + 1>;
+
+  /**
+   * @brief CTOR for convex set
+   *
+   * @param affine map to cone coordinates
+   */
+  constexpr explicit ConvexSet() : coord_map(affine::make_map_id<CoordMat>()) {}
+
+  /**
+   * @brief CTOR for convex set
+   *
+   * @param affine map to cone coordinates
+   */
+  constexpr explicit ConvexSet(const affine::AffineMap<CoordMat>& map_in)
+      : coord_map(map_in) {}
+
   /**
    * @brief is_well_formed
    *
@@ -129,7 +147,7 @@ class ConvexSet {
     for (size_t i = 0; i < N; ++i) x_cat[i] = x(i);
     x_cat[N] = t;
 
-    const auto x_proj = self().coord_map(x_cat);
+    const auto x_proj = coord_map(x_cat);
 
     x = std::get<0>(linalg::splice<N>(x_proj));
     const auto s = x_proj(N);
@@ -167,6 +185,9 @@ class ConvexSet {
   constexpr const Derived& self() const {
     return static_cast<const Derived&>(*this);
   }
+
+  /** @brief member vars */
+  affine::AffineMap<CoordMat> coord_map;  //< map (x, t) \in R^n x R -> cone
 };
 
 }  // namespace convex

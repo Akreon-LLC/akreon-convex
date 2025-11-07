@@ -109,7 +109,6 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
                                const T& /*tol*/) const {
     const auto x = std::get<0>(x_in);
     const auto t = std::get<1>(x_in);
-    if (t < T(0)) return false;
     auto res = t * B;
     for (size_t i = 0; i < N; ++i) res = res - (x(i) * A(i));
     linalg::SymmetricMatrix S(res);

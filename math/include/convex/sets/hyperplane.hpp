@@ -44,6 +44,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, Hyperplane<Space, Tag>>;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -53,9 +54,6 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
-  /// @brief coord map matrix type
-  using CoordMat = linalg::Matrix<T, N + 1, N + 1>;
-
   /**
    * @brief CTOR for hyperplane
    *
@@ -63,7 +61,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    * @param b bias scalar
    */
   constexpr explicit Hyperplane(const Point& a_in, const T& b_in)
-      : coord_map(default_hyperplane_map<CoordMat>(b_in)), a(a_in), b(b_in) {}
+      : ConvexBase(default_hyperplane_map<CoordMat>(b_in)), a(a_in), b(b_in) {}
 
   /**
    * @brief CTOR for hyperplane
@@ -74,7 +72,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
    */
   constexpr explicit Hyperplane(const Point& a_in, const T& b_in,
                                 const affine::AffineMap<CoordMat>& map_in)
-      : coord_map(map_in), a(a_in), b(b_in) {}
+      : ConvexBase(map_in), a(a_in), b(b_in) {}
 
   /**
    * @brief contains function to see if x lies in the hyerplane defined by a^T x
@@ -165,14 +163,9 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space, Tag>> {
       const affine::AffineMap<CoordMat> map(I, linalg::Vector<T, N + 1>{});
       return ConeView(Hyperplane<Space, ViewTag::LiftedCone>(a, b, map));
     } else {
-      return ConeView(Hyperplane<Space, Tag>(a, b, coord_map));
+      return ConeView(Hyperplane<Space, Tag>(a, b, this->coord_map));
     }
   }
-
- protected:
-  /** @brief member vars in the halfspace */
-  friend ConvexBase;
-  affine::AffineMap<CoordMat> coord_map;  //< map (x, t) \in R^n x R -> cone
 
  private:
   /** @brief member var in hyperplane */

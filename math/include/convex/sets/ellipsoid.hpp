@@ -54,6 +54,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, Ellipsoid<Space, Type, Tag>>;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -64,9 +65,6 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
   /// @brief common mat type for P
   using Mat = linalg::Matrix<T, N, N>;
 
-  /// @brief coord map matrix type
-  using CoordMat = linalg::Matrix<T, N + 1, N + 1>;
-
   /**
    * @brief CTOR for ellipsoidal set
    *
@@ -74,7 +72,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    * @param P \in S^n_+
    */
   constexpr explicit Ellipsoid(const Point& c_in, const Mat& P_in)
-      : coord_map(default_ellipsoid_map<CoordMat>(c_in)), c(c_in), P(P_in) {}
+      : ConvexBase(default_ellipsoid_map<CoordMat>(c_in)), c(c_in), P(P_in) {}
 
   /**
    * @brief CTOR for ellipsoid set
@@ -85,7 +83,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
    */
   constexpr explicit Ellipsoid(const Point& c_in, const Mat& P_in,
                                const affine::AffineMap<CoordMat>& map_in)
-      : coord_map(map_in), c(c_in), P(P_in) {}
+      : ConvexBase(map_in), c(c_in), P(P_in) {}
 
   /**
    * @brief contains function to see if x is in the ellipsoid (x - c)^T P^{-1}
@@ -196,14 +194,9 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type, Tag>> {
       affine::AffineMap<CoordMat> map(U, linalg::Vector<T, N + 1>{});
       return ConeView(Ellipsoid<Space, Type, ViewTag::LiftedCone>(c, P, map));
     } else {
-      return ConeView(Ellipsoid<Space, Type, Tag>(c, P, coord_map));
+      return ConeView(Ellipsoid<Space, Type, Tag>(c, P, this->coord_map));
     }
   }
-
- protected:
-  /** @brief member vars in the halfspace */
-  friend ConvexBase;
-  affine::AffineMap<CoordMat> coord_map;  //< map (x, t) \in R^n x R -> cone
 
  private:
   /** @brief member variables in the ellipsoid */

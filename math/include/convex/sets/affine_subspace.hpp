@@ -59,6 +59,7 @@ class AffineSubspace
  public:
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, AffineSubspace<Space, Mat, Tag>>;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -72,9 +73,6 @@ class AffineSubspace
   /// @brief alias for ambient vector
   using AmbientVec = linalg::Vector<T, M>;
 
-  /// @brief alias for coord map mat type
-  using CoordMat = linalg::Matrix<T, M + 1, N + 1>;
-
   /**
    * @brief CTOR for affine subspace
    *
@@ -82,7 +80,9 @@ class AffineSubspace
    * @param b \in R^m
    */
   constexpr explicit AffineSubspace(const Mat& A_in, const AmbientVec& b_in)
-      : coord_map(default_affine_map<CoordMat>(A_in, b_in)), A(A_in), b(b_in) {}
+      : ConvexBase(default_affine_map<CoordMat>(A_in, b_in)),
+        A(A_in),
+        b(b_in) {}
 
   /**
    * @brief CTOR for affine subspace
@@ -93,7 +93,7 @@ class AffineSubspace
    */
   constexpr explicit AffineSubspace(const Mat& A_in, const AmbientVec& b_in,
                                     const affine::AffineMap<CoordMat>& map_in)
-      : coord_map(map_in), A(A_in), b(b_in) {}
+      : ConvexBase(map_in), A(A_in), b(b_in) {}
 
   /**
    * @brief contains function
@@ -175,17 +175,12 @@ class AffineSubspace
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet) {
-      return ConeView(
-          AffineSubspace<Space, Mat, ViewTag::LiftedCone>(A, b, coord_map));
+      return ConeView(AffineSubspace<Space, Mat, ViewTag::LiftedCone>(
+          A, b, this->coord_map));
     } else {
-      return ConeView(AffineSubspace<Space, Mat, Tag>(A, b, coord_map));
+      return ConeView(AffineSubspace<Space, Mat, Tag>(A, b, this->coord_map));
     }
   }
-
- protected:
-  /** @brief member vars in the halfspace */
-  friend ConvexBase;
-  affine::AffineMap<CoordMat> coord_map;  //< map (x, t) \in R^n x R -> cone
 
  private:
   /** @brief private data members for affine subspace */

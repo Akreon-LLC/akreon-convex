@@ -49,6 +49,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, Halfspace<Space, Type, Tag>>;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -58,9 +59,6 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
-  /// @brief coord map matrix type
-  using CoordMat = linalg::Matrix<T, N + 1, N + 1>;
-
   /**
    * @brief CTOR for halfspace set
    *
@@ -68,7 +66,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    * @param b bias scalar
    */
   constexpr explicit Halfspace(const Point& a_in, const T& b_in)
-      : coord_map(default_halfspace_map<CoordMat>(b_in)), a(a_in), b(b_in) {}
+      : ConvexBase(default_halfspace_map<CoordMat>(b_in)), a(a_in), b(b_in) {}
 
   /**
    * @brief CTOR for halfspace cone
@@ -79,7 +77,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
    */
   constexpr explicit Halfspace(const Point& a_in, const T& b_in,
                                const affine::AffineMap<CoordMat>& map_in)
-      : coord_map(map_in), a(a_in), b(b_in) {}
+      : ConvexBase(map_in), a(a_in), b(b_in) {}
 
   /**
    * @brief contains function to see if x is in the halfspace a^T x <= b
@@ -187,14 +185,9 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type, Tag>> {
       return ConeView(
           Halfspace<Space, Type, ViewTag::LiftedCone>(a, b, lifted_map));
     } else {
-      return ConeView(Haflspace<Space, Type, Tag>(a, b, coord_map));
+      return ConeView(Haflspace<Space, Type, Tag>(a, b, this->coord_map));
     }
   }
-
- protected:
-  /** @brief member vars in the halfspace */
-  friend ConvexBase;
-  affine::AffineMap<CoordMat> coord_map;  //< map (x, t) \in R^n x R -> cone
 
  private:
   /** @brief member variables in the halfspace */
