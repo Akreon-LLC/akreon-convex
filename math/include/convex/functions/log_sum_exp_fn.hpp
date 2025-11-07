@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "../sets/exp_cone.hpp"
+#include "../sets/log_sum_exp_cone.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {
@@ -34,6 +36,7 @@ class LogSumExpFn
                          ConcaveFn<Domain, LogSumExpFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -80,7 +83,7 @@ class LogSumExpFn
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    return LogSumExpCone<Domain, ViewTag::EpigraphCone>().cone_view();
+    return LogSumExpCone<Domain, ViewTag::LiftedCone>().cone_view();
   }
 
   /**
@@ -100,7 +103,10 @@ class LogSumExpFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return LogSumExpCone<Domain, ViewTag::HypographCone>().cone_view();
+    return LogSumExpCone<Domain, ViewTag::LiftedCone>(
+               default_lsec_map<CoordMat>(
+                   linalg::vec_traits<Point>().fill(T(1))))
+        .cone_view();
   }
 
   /**

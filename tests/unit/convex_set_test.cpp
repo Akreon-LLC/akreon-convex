@@ -988,7 +988,6 @@ TEST_CASE("Test Exp Cone", "[convex_sets]") {
   }
 }
 
-#if 0
 TEST_CASE("Test log sum exp cone", "[convex_sets]") {
   SECTION("Quick log sum exp cone") {
     STATIC_REQUIRE(ConvexConeLike<LogSumExpCone<linalg::Matrixd<1, 3>>>);
@@ -1005,10 +1004,11 @@ TEST_CASE("Test log sum exp cone", "[convex_sets]") {
     constexpr auto cone_v = lse_cone.cone_view();
     STATIC_REQUIRE(cone_v.is_proper() == ConeCheck::True);
 
-    constexpr auto I_map = make_map_id<Matrixd<4, 4>>();
+    // TODO - revisit
+#if 0
     constexpr auto slack =
-        cone_v.compute_slack(I_map, std::tuple(Vectord<4>{}, 0.0));
+        cone_v.compute_slack(std::tuple(Vectord<4>{}, 0.0));
     STATIC_REQUIRE(!cone_v.contains(slack));
+#endif
   }
 }
-#endif

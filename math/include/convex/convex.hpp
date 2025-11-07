@@ -20,6 +20,7 @@
 #include "functions/geo_mean_fn.hpp"
 #include "functions/indicator_fn.hpp"
 #include "functions/log_det_fn.hpp"
+#include "functions/log_sum_exp_fn.hpp"
 #include "functions/max_fn.hpp"
 #include "functions/norm_fn.hpp"
 #include "functions/quad_over_linear_fn.hpp"
@@ -30,6 +31,7 @@
 #include "sets/hyperplane.hpp"
 #include "sets/lmi.hpp"
 #include "sets/log_det_cone.hpp"
+#include "sets/log_sum_exp_cone.hpp"
 #include "sets/neg_orthant.hpp"
 #include "sets/nonneg_orthant.hpp"
 #include "sets/norm_ball.hpp"
@@ -41,8 +43,6 @@
 #include "sets/simplex.hpp"
 #if 0
 #include "functions/log_fn.hpp"
-#include "functions/log_sum_exp_fn.hpp"
-#include "sets/log_sum_exp_cone.hpp"
 
 // TODO - need slacks for these
 #include "cone_program.hpp"

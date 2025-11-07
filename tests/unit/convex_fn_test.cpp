@@ -441,7 +441,6 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
   }
 }
 
-#if 0
 TEST_CASE("Test log sum exp", "[convex_fn]") {
   SECTION("Test log sum exp") {
     using Space = Matrixd<1, 4>;
@@ -464,7 +463,9 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     STATIC_REQUIRE(ConvexFnLike<decltype(lse_concave.negate())>);
 
     constexpr auto hypo_f = lse_concave.hypograph();
+    // log(4 * exp(2)) = 1.57ish
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<4>{}, 2.0)));
+    // log(4 * exp(-2)) = 0.6ish
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<4>{}, -2.0)));
   }
 }
-#endif
