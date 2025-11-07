@@ -415,6 +415,32 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
   }
 }
 
+TEST_CASE("Test exp fn", "[convex_fn]") {
+  SECTION("Test exp fn") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto exp_fn = ExpFn<Space>();
+    STATIC_REQUIRE(ConvexFnLike<decltype(exp_fn)>);
+    STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}).value() == 1.0);
+
+    constexpr auto epi_f = exp_fn.epigraph();
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{0.0}, 1.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{1.0}, 3.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{1.0}, 1.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{0.0}, -1.0)));
+
+    constexpr auto exp_concave = exp_fn.negate();
+    STATIC_REQUIRE(exp_concave(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(exp_concave(Vectord<1>{0.0}).value() == -1.0);
+
+    constexpr auto hypo_f = exp_concave.hypograph();
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<1>{0.0}, 1.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{0.0}, -1.0)));
+  }
+}
+
 #if 0
 TEST_CASE("Test log sum exp", "[convex_fn]") {
   SECTION("Test log sum exp") {
@@ -439,31 +465,6 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
 
     constexpr auto hypo_f = lse_concave.hypograph();
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<4>{}, -2.0)));
-  }
-}
-
-TEST_CASE("Test exp fn", "[convex_fn]") {
-  SECTION("Test exp fn") {
-    using Space = Matrixd<1, 1>;
-    constexpr auto exp_fn = ExpFn<Space>();
-    STATIC_REQUIRE(ConvexFnLike<decltype(exp_fn)>);
-    STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}).has_value());
-    STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}).value() == 1.0);
-
-    constexpr auto epi_f = exp_fn.epigraph();
-    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
-    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{0.0}, 1.0)));
-    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{1.0}, 3.0)));
-    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{1.0}, 1.0)));
-    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{0.0}, -1.0)));
-
-    constexpr auto exp_concave = exp_fn.negate();
-    STATIC_REQUIRE(exp_concave(Vectord<1>{0.0}).has_value());
-    STATIC_REQUIRE(exp_concave(Vectord<1>{0.0}).value() == -1.0);
-
-    constexpr auto hypo_f = exp_concave.hypograph();
-    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
-    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<1>{0.0}, 1.0)));
   }
 }
 #endif

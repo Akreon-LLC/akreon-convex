@@ -16,6 +16,7 @@
 #include "convex_ops.hpp"
 #include "dual_cone_view.hpp"
 #include "functions/affine_fn.hpp"
+#include "functions/exp_fn.hpp"
 #include "functions/geo_mean_fn.hpp"
 #include "functions/indicator_fn.hpp"
 #include "functions/log_det_fn.hpp"
@@ -24,6 +25,7 @@
 #include "functions/quad_over_linear_fn.hpp"
 #include "sets/affine_subspace.hpp"
 #include "sets/ellipsoid.hpp"
+#include "sets/exp_cone.hpp"
 #include "sets/halfspace.hpp"
 #include "sets/hyperplane.hpp"
 #include "sets/lmi.hpp"
@@ -38,10 +40,8 @@
 #include "sets/rsoc.hpp"
 #include "sets/simplex.hpp"
 #if 0
-#include "functions/exp_fn.hpp"
 #include "functions/log_fn.hpp"
 #include "functions/log_sum_exp_fn.hpp"
-#include "sets/exp_cone.hpp"
 #include "sets/log_sum_exp_cone.hpp"
 
 // TODO - need slacks for these

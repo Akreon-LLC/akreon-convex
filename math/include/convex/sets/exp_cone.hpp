@@ -16,6 +16,23 @@
 
 namespace convex {
 
+/**
+ * @brief default coord map for exp cone
+ *
+ * coords: (x, z)
+ *
+ * [ I 0 ] [ x; z ]
+ * [ 0 1 ]
+ */
+template <linalg::SquareMatrixLike CoordMat>
+constexpr auto default_exp_cone_map(const linalg::mat_type_t<CoordMat>& t) {
+  using T = linalg::mat_type_t<CoordMat>;
+  static constexpr size_t N = linalg::mat_rows_v<CoordMat>;
+  auto I = linalg::make_identity<T, N>();
+  I[N - 1][N - 1] = t;
+  return affine::AffineMap<CoordMat>(I, linalg::Vector<T, N>{});
+}
+
 /// @brief Exp Functor
 template <linalg::RnSpace Domain>
   requires(linalg::space_dim_v<Domain> ==
@@ -42,14 +59,7 @@ struct Exp {
 /**
  * @brief exponential cone
  *
- * Standard Form
- * { (x, y, z) | y e^{x/y} <= z, y > 0 } \cup { (x, 0, z) | x <= 0, z >= 0 }
- *
- * Epigraph
- * { (x, y, z) | y e^{x/y} <= z, y > 0, z >= 0 }
- *
- * Hypograph with implicit slack on z
- * { (x, y, z) | y e^{x/y} <= -z, y > 0, z <= 0 }
+ * C = { (x, y, z) | y e^{x/y} <= z, y > 0 } \cup { (x, 0, z) | x <= 0, z >= 0 }
  */
 template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
@@ -59,6 +69,7 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, ExpCone<Space, Tag>>;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -67,6 +78,20 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
 
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
+
+  /**
+   * @brief CTOR for exp cone
+   */
+  constexpr explicit ExpCone()
+      : ConvexBase(default_exp_cone_map<CoordMat>(T(1))) {}
+
+  /**
+   * @brief CTOR for exp cone
+   *
+   * @param affine map input
+   */
+  constexpr explicit ExpCone(const affine::AffineMap<CoordMat>& map_in)
+      : ConvexBase(map_in) {}
 
   /**
    * @brief exp cone \subset R^2
@@ -88,25 +113,18 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    */
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
                                const T& /*tol*/) const {
-    const auto x = std::get<0>(x_in);
-    const auto t = std::get<1>(x_in);
+    const auto x_proj = this->project(x_in);
+    const auto x = std::get<0>(x_proj);
+    const auto s = std::get<1>(x_proj);
     T y(1);
-    if constexpr (Tag == ViewTag::EpigraphCone) {
-      if (t < T(0)) return false;
-    } else if constexpr (Tag == ViewTag::HypographCone) {
-      if (t > T(0)) return false;
-    } else {
-      if (x(1) <= T(0)) {
-        if (x(0) <= T(0) && t >= T(0))
-          return true;
-        else
-          return false;
-      }
+    if constexpr (N == 2) {
+      if (x(1) <= T(0)) return false;
       y = x(1);
     }
+
     const auto res = Exp<Space>()(x(0), y);
     if (!res.has_value()) return false;
-    return res.value() <= t;
+    return res.value() <= s;
   }
 
   /**
@@ -140,9 +158,9 @@ class ExpCone : public ConvexSet<Space, ExpCone<Space, Tag>> {
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(ExpCone<Space, ViewTag::LiftedCone>());
+      return ConeView(ExpCone<Space, ViewTag::LiftedCone>(this->coord_map));
     else
-      return ConeView(ExpCone<Space, Tag>());
+      return ConeView(ExpCone<Space, Tag>(this->coord_map));
   }
 };
 
