@@ -243,7 +243,6 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
   }
 }
 
-#if 0
 TEST_CASE("Polyhedron", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(
@@ -277,10 +276,12 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(cone.contains(std::tuple(Vectord<3>{1.0, 0.0, 0.0}, 1.0)));
     STATIC_REQUIRE(cone.is_proper() == ConeCheck::Unknown);
 
-    constexpr auto I_map = make_map_id<Matrixd<3, 3>>();
+    // TODO - revist
+#if 0
     constexpr auto slack =
-        cone.compute_slack(I_map, std::tuple(Vectord<3>{}, 0.0));
+        cone.compute_slack(std::tuple(Vectord<3>{}, 0.0));
     STATIC_REQUIRE(cone.contains(slack));
+#endif
   }
 
   SECTION("Test Open Polyhedron", "[A x < b]") {
@@ -348,6 +349,7 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
   }
 }
 
+#if 0
 TEST_CASE("Test Simplex", "[convex_sets]") {
   SECTION("Quick test to check convex sets types") {
     STATIC_REQUIRE(ConvexSetLike<Simplex<Matrix<double, 1, 3>>>);

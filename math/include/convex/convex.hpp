@@ -19,6 +19,7 @@
 #include "sets/ellipsoid.hpp"
 #include "sets/halfspace.hpp"
 #include "sets/hyperplane.hpp"
+#include "sets/polyhedron.hpp"
 #if 0
 #include "cone_program.hpp"
 #include "convex_program.hpp"
@@ -40,7 +41,6 @@
 #include "sets/nonneg_orthant.hpp"
 #include "sets/norm_ball.hpp"
 #include "sets/norm_cone.hpp"
-#include "sets/polyhedron.hpp"
 #include "sets/power_cone.hpp"
 #include "sets/psd_cone.hpp"
 #include "sets/rsoc.hpp"

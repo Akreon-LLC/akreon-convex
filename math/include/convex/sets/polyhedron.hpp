@@ -100,16 +100,7 @@ class Polyhedron
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
-    // (0) check if x is in the halfspaces defined by A x <= b
-    for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<Space, Type>(A(i), b(i)).contains(x, tol)) return false;
-
-    // (1) check if x is in the affine set defined by C x = d
-    for (size_t i = 0; i < RowsC; ++i)
-      if (RowsC > 0 && !Hyperplane<Space>(C(i), d(i)).contains(x, tol))
-        return false;
-
-    return true;
+    return contains_impl(std::tuple(x, T(1)), tol);
   }
 
   /**
@@ -123,20 +114,18 @@ class Polyhedron
    * @return T/F
    */
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
-                               const T& tol) const {
-    const auto x = std::get<0>(x_in);
-    const auto t = std::get<1>(x_in);
-    if (t < T(0)) return false;
+                               const T& /*tol*/) const {
+    // (0) check if x is in the halfspace defined by A x - b t <= 0
+    for (size_t i = 0; i < RowsA; ++i) {
+      const auto cone = Halfspace<Space, Type>(A(i), b(i)).cone_view();
+      if (!cone.contains(x_in)) return false;
+    }
 
-    // (0) check if x is in the halfspaces defined by A x <= b
-    for (size_t i = 0; i < RowsA; ++i)
-      if (!Halfspace<Space, Type>(A(i), t * b(i)).contains(x, tol))
-        return false;
-
-    // (1) check if x is in the affine set defined by C x = d
-    for (size_t i = 0; i < RowsC; ++i)
-      if (RowsC > 0 && !Hyperplane<Space>(C(i), t * d(i)).contains(x, tol))
-        return false;
+    // (1) check if x is in the affine set defined by C x = d t
+    for (size_t i = 0; i < RowsC; ++i) {
+      const auto cone = Hyperplane<Space>(C(i), d(i)).cone_view();
+      if (RowsC > 0 && !cone.contains(x_in)) return false;
+    }
 
     return true;
   }
