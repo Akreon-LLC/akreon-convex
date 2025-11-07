@@ -17,6 +17,33 @@
 #include "convex_set.hpp"
 
 namespace convex {
+
+/**
+ * @brief default coordinate map for rotated soc
+ *
+ * C = { (x, y, z) \in R^{N-1} x R_++ x R | ||x||_2^2 <= y z }
+ *
+ * apply non-linear y z mul later, null out y in x projection
+ * [ I 0 ] [ x; z ]
+ * [ 0 0 ]
+ * [ 0 1 ]
+ *
+ * rsoc coord map: (x, y z)
+ *
+ * @return affine map -> rsoc coords
+ */
+template <linalg::SquareMatrixLike CoordMat>
+constexpr auto default_rsoc_map(const linalg::mat_type_t<CoordMat>& t) {
+  using T = linalg::mat_type_t<CoordMat>;
+  static constexpr size_t N = linalg::mat_rows_v<CoordMat>;
+
+  CoordMat U;
+  const auto I = linalg::make_identity<T, N - 2>();
+  U = linalg::set_block<0, N - 2, 0, N - 2>(U, I);
+  U[N - 1][N - 1] = t;
+  return affine::AffineMap<CoordMat>(U, linalg::Vector<T, N>{});
+}
+
 /**
  * @brief Rotated second order cone
  *
@@ -32,6 +59,7 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
  public:
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Space, RotatedSOC<Space, Type, Tag>>;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -40,6 +68,20 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
 
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
+
+  /**
+   * @brief CTOR for rsoc
+   */
+  constexpr explicit RotatedSOC()
+      : ConvexBase(default_rsoc_map<CoordMat>(T(1))) {}
+
+  /**
+   * @brief CTOR for rsoc
+   *
+   * @param affine map input
+   */
+  constexpr explicit RotatedSOC(const affine::AffineMap<CoordMat>& map_in)
+      : ConvexBase(map_in) {}
 
   /**
    * @brief contains to see if x is in rotated soc
@@ -56,42 +98,34 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    * @brief contains to see if x is in rotated soc
    *
    * Standard cone
-   * C = { (x, y, z) \in R^n x R_++ x R_+ | ||x||_2^2 <= y z }
+   * C = { (x, y, z) \in R^n x R_++ x R | ||x||_2^2 <= y z }
    *
-   * Epigraph cone
-   * C = { (x, y, z = t) \in R^n x R_++ x R | ||x||_2^2 <= y z }
-   *
-   * Hypograph cone
-   * C = { (x, y, z = -t) \in R^n x R_++ x R | ||x||_2^2 <= y z }
-   *
-   * @param x \in R^{n-2}, y \in R_++, z \in (R_+ or R)
+   * @param x \in R^{n-2}, y \in R_++
    *
    * @return T/F
    */
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in, T tol) const {
-    const auto x_tmp = std::get<0>(x_in);
-    T y = x_tmp(N - 1);
+    const auto y = std::get<0>(x_in)(N - 1);
     if (y <= T(0)) return false;
-    T z = std::get<1>(x_in);
-    if constexpr (Tag == ViewTag::LiftedCone || Tag == ViewTag::ConvexSet) {
-      if (z < T(0)) return false;
-    } else if constexpr (Tag == ViewTag::HypographCone) {
-      if (z > T(0)) return false;
-    }
 
-    const auto x = std::get<0>(linalg::splice<N - 1>(x_tmp));
+    const auto x_proj = this->project(x_in);
+    const auto x = std::get<0>(x_proj);
+
+    // (dakre) apply non-linear mul here
+    const auto s = y * std::get<1>(x_proj);
+
     const auto norm_x = linalg::L2<decltype(x)>()(x);
-    const bool zeros = linalg::all_zero(x) && z == T(0);
-
-    y = y == T(0) ? tol : y;
+    const auto zeros = linalg::all_zero(x) && s == T(0);
 
     switch (Type) {
       case NormConeType::L2OC:
-        return norm_x * norm_x < y * z;
+        return norm_x * norm_x < s;
       case NormConeType::L2CC:
       default:
-        return zeros || norm_x * norm_x <= y * z + tol;
+        return zeros || norm_x * norm_x <= s + tol;
     }
+
+    return false;
   }
 
   /**
@@ -125,9 +159,10 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    */
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(RotatedSOC<Space, Type, ViewTag::LiftedCone>());
+      return ConeView(
+          RotatedSOC<Space, Type, ViewTag::LiftedCone>(this->coord_map));
     else
-      return ConeView(RotatedSOC<Space, Type, Tag>());
+      return ConeView(RotatedSOC<Space, Type, Tag>(this->coord_map));
   }
 };
 

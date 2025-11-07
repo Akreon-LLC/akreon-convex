@@ -36,6 +36,7 @@ class QuadOverLinearFn
                          ConcaveFn<Domain, QuadOverLinearFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
+  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -85,7 +86,8 @@ class QuadOverLinearFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return RotatedSOC<Domain, NormConeType::L2CC, ViewTag::HypographCone>()
+    return RotatedSOC<Domain, NormConeType::L2CC, ViewTag::LiftedCone>(
+               default_rsoc_map<CoordMat>(T(-1)))
         .cone_view();
   }
 

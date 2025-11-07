@@ -843,7 +843,6 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
   }
 }
 
-#if 0
 TEST_CASE("Test Rotated SOC", "[convex_sets]") {
   SECTION("Quick RSOC check") {
     STATIC_REQUIRE(
@@ -891,6 +890,7 @@ TEST_CASE("Test Rotated SOC", "[convex_sets]") {
   }
 }
 
+#if 0
 TEST_CASE("Test Exp Cone", "[convex_sets]") {
   SECTION("Quick exp cone") {
     STATIC_REQUIRE(ConvexSetLike<ExpCone<Matrixd<1, 2>, ViewTag::ConvexSet>>);

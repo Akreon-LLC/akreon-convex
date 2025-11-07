@@ -320,7 +320,6 @@ TEST_CASE("Test indicator fn") {
   }
 }
 
-#if 0
 TEST_CASE("Test quad over linear", "[convex_fn]") {
   SECTION("Test quad/linear") {
     using Space = Matrixd<1, 4>;
@@ -349,6 +348,7 @@ TEST_CASE("Test quad over linear", "[convex_fn]") {
   }
 }
 
+#if 0
 TEST_CASE("Test log sum exp", "[convex_fn]") {
   SECTION("Test log sum exp") {
     using Space = Matrixd<1, 4>;

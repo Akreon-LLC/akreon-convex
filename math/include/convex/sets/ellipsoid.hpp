@@ -26,10 +26,9 @@ namespace convex {
  *
  * @return affine map -> halfspace coords
  */
-template <linalg::SquareMatrixLike CoordMat>
-constexpr auto default_ellipsoid_map(
-    const linalg::Vector<linalg::mat_type_t<CoordMat>,
-                         linalg::mat_rows_v<CoordMat> - 1>& c) {
+template <linalg::SquareMatrixLike CoordMat, linalg::VectorLike Vec>
+  requires(linalg::mat_rows_v<CoordMat> == linalg::vec_size_v<Vec> + 1)
+constexpr auto default_ellipsoid_map(const Vec& c) {
   using T = linalg::mat_type_t<CoordMat>;
   static constexpr size_t N = linalg::mat_rows_v<CoordMat>;
 
