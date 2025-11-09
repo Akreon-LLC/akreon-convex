@@ -469,3 +469,29 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<4>{}, -2.0)));
   }
 }
+
+TEST_CASE("Test log function", "[convex_fn]") {
+  SECTION("Test log fn") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto log_fn = LogFn<Space>();
+    STATIC_REQUIRE(ConcaveFnLike<decltype(log_fn)>);
+    STATIC_REQUIRE(!log_fn(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(log_fn(Vectord<1>{1.0}).value() == 0.0);
+
+    constexpr auto hypo_f = log_fn.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{1.0}, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<1>{0.0}, 1.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<1>{1.2}, 1.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{1.2}, -1.0)));
+
+    constexpr auto log_convex = log_fn.negate();
+    STATIC_REQUIRE(!log_convex(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(log_convex(Vectord<1>{1.0}).value() == 0.0);
+
+    constexpr auto epi_f = log_convex.epigraph();
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{1.0}, 0.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{0.0}, 1.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{1.2}, 1.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{-3.0}, 1.0)));
+  }
+}

@@ -20,6 +20,7 @@
 #include "functions/geo_mean_fn.hpp"
 #include "functions/indicator_fn.hpp"
 #include "functions/log_det_fn.hpp"
+#include "functions/log_fn.hpp"
 #include "functions/log_sum_exp_fn.hpp"
 #include "functions/max_fn.hpp"
 #include "functions/norm_fn.hpp"
@@ -42,8 +43,6 @@
 #include "sets/rsoc.hpp"
 #include "sets/simplex.hpp"
 #if 0
-#include "functions/log_fn.hpp"
-
 // TODO - need slacks for these
 #include "cone_program.hpp"
 #include "convex_program.hpp"
