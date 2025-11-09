@@ -105,7 +105,7 @@ class NormFn
    * if concave tag -> convex
    * else convex tag -> concave
    *
-   * return negated f
+   * @return negated f
    */
   constexpr auto negate_impl() const {
     if constexpr (Tag == FnTag::Concave)

@@ -53,7 +53,7 @@ template <linalg::RnSpace Space, NormConeType Type,
           ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           linalg::space_dim_v<Space> > 1 &&
+           linalg::space_dim_v<Space> >= 1 &&
            (Type == NormConeType::L2OC || Type == NormConeType::L2CC))
 class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
  public:
@@ -104,9 +104,13 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const std::tuple<Point, T>& x_in, T tol) const {
-    const auto y = std::get<0>(x_in)(N - 1);
-    if (y <= T(0)) return false;
+  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
+                               const T& tol) const {
+    T y(1);
+    if constexpr (N > 1) {
+      y = std::get<0>(x_in)(N - 1);
+      if (y <= T(0)) return false;
+    }
 
     const auto x_proj = this->project(x_in);
     const auto x = std::get<0>(x_proj);

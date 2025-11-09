@@ -495,3 +495,30 @@ TEST_CASE("Test log function", "[convex_fn]") {
     STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{-3.0}, 1.0)));
   }
 }
+
+TEST_CASE("Test square function", "[convex_fn]") {
+  SECTION("Test square function") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto square_fn = SquareFn<Space>();
+    STATIC_REQUIRE(ConvexFnLike<decltype(square_fn)>);
+    STATIC_REQUIRE(square_fn(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(square_fn(Vectord<1>{0.0}).value() == 0.0);
+    STATIC_REQUIRE(square_fn(Vectord<1>{2.0}).has_value());
+    STATIC_REQUIRE(square_fn(Vectord<1>{2.0}).value() == 4.0);
+
+    constexpr auto epi_f = square_fn.epigraph();
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{1.0}, 1.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{2.0}, 1.0)));
+
+    constexpr auto square_concave = square_fn.negate();
+    STATIC_REQUIRE(square_concave(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(square_concave(Vectord<1>{0.0}).value() == 0.0);
+    STATIC_REQUIRE(square_concave(Vectord<1>{1.0}).has_value());
+    STATIC_REQUIRE(square_concave(Vectord<1>{1.0}).value() == -1.0);
+
+    constexpr auto hypo_f = square_concave.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{1.0}, -1.0)));
+  }
+}

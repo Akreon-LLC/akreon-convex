@@ -72,6 +72,11 @@ template <linalg::RnSpace Domain, FnTag Tag>
   requires(linalg::space_dim_v<Domain> == 1)
 class LogFn;
 
+/// @brief forward declaration - log fn
+template <linalg::RnSpace Domain, FnTag Tag>
+  requires(linalg::space_dim_v<Domain> == 1)
+class SquareFn;
+
 /// @brief fn traits
 template <class Fn>
 struct convex_fn_traits : std::false_type {};
@@ -134,6 +139,12 @@ struct convex_fn_traits<ExpFn<Space, FnTag::Convex>> : std::true_type {
 /// @brief derived fn type traits - log fn
 template <linalg::RnSpace Space>
 struct convex_fn_traits<LogFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
+/// @brief derived fn type traits - square fn
+template <linalg::RnSpace Space>
+struct convex_fn_traits<SquareFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 
