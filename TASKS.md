@@ -65,7 +65,7 @@ TODO to scope:
 - [x] log sum exp func
 - [x] log det func
 - [x] geometric mean func
-- [] atomic funcs (exp, log, abs, square, sum_squares, inv)
+- [x] atomic funcs (exp, log, abs, square, inv)
 - [x] epigraph
 - [x] hypograph
 - [x] convex fn -> concave fn (negation) + RT

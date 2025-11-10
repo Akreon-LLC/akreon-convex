@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include <optional>
@@ -49,6 +48,21 @@ constexpr T constexpr_abs(const T& x) {
 }
 
 /**
+ * @brief power of a scalar
+ *
+ * @param x \in R
+ * @param power \in N
+ *
+ * @return pow
+ */
+template <RealLike T>
+constexpr T constexpr_pow(const T& x, const size_t& power) {
+  T res(x);
+  for (size_t i = 1; i < power; ++i) res *= x;
+  return res;
+}
+
+/**
  * @brief perform square root of input variable x via root finding
  *
  * f(g) = g^2 - x \to df/dg = 2 g
@@ -60,8 +74,7 @@ constexpr T constexpr_abs(const T& x) {
  *
  * @return sqrt(x)
  */
-template <FieldLike T>
-  requires(!is_complex_v<T>)
+template <RealLike T>
 constexpr T constexpr_sqrt(const T& x, T g = 1e-10, T tol = 1e-10) {
   if (x == T(0)) return T(1e-30);
   // (dakre) TODO refactor to optional or something this is a global for

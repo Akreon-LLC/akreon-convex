@@ -64,7 +64,10 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    */
   constexpr explicit PowerCone()
       : ConvexBase(default_pow_cone_map<CoordMat>(T(1))) {
-    for (size_t i = 0; i < N; ++i) roots[i] = N;
+    for (size_t i = 0; i < N; ++i) {
+      power[i] = 1;
+      root[i] = N;
+    }
   }
 
   /**
@@ -72,7 +75,10 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    */
   constexpr explicit PowerCone(const affine::AffineMap<CoordMat>& map_in)
       : ConvexBase(map_in) {
-    for (size_t i = 0; i < N; ++i) roots[i] = N;
+    for (size_t i = 0; i < N; ++i) {
+      power[i] = 1;
+      root[i] = N;
+    }
   }
 
   /**
@@ -80,8 +86,11 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    *
    * @param roots \in N
    */
-  constexpr explicit PowerCone(const linalg::Vector<size_t, N>& roots_in)
-      : ConvexBase(default_pow_cone_map<CoordMat>(T(1))), roots(roots_in) {}
+  constexpr explicit PowerCone(const linalg::Vector<size_t, N>& power_in,
+                               const linalg::Vector<size_t, N>& root_in)
+      : ConvexBase(default_pow_cone_map<CoordMat>(T(1))),
+        power(power_in),
+        root(root_in) {}
 
   /**
    * @brief power cone (roots provided)
@@ -90,8 +99,9 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    * @param roots \in N
    */
   constexpr explicit PowerCone(const affine::AffineMap<CoordMat>& map_in,
-                               const linalg::Vector<size_t, N>& roots_in)
-      : ConvexBase(map_in), roots(roots_in) {}
+                               const linalg::Vector<size_t, N>& power_in,
+                               const linalg::Vector<size_t, N>& root_in)
+      : ConvexBase(map_in), power(power_in), root(root_in) {}
 
   /**
    * @brief power cone contains \subset R^n_+ x R
@@ -108,7 +118,7 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    * @brief power cone contains \subset R^n_+ x R
    *
    * Power Cone
-   * { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= t }
+   * { (x, t) \in R^n_+ x R | \prod_i^n x_i^{power / root} >= t }
    *
    * @param (x, t) \in R^n_+ x R
    *
@@ -121,8 +131,10 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
     const auto s = std::get<1>(x_proj);
 
     T prod(1);
-    for (size_t i = 0; i < N; ++i)
-      prod *= linalg::constexpr_nrt<T>(x(i), roots(i));
+    for (size_t i = 0; i < N; ++i) {
+      const auto r = linalg::constexpr_nrt<T>(x(i), root(i));
+      prod *= linalg::constexpr_pow(r, power(i));
+    }
 
     return prod >= s;
   }
@@ -136,19 +148,24 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
    */
   constexpr bool is_well_formed_impl(T tol = 1e-8) const {
     T sum(0);
-    std::for_each(roots.begin(), roots.end(),
-                  [&](const auto& root) { sum += T(1) / T(root); });
+    for (size_t i = 0; i < N; ++i) sum += T(power(i)) / T(root(i));
     return linalg::constexpr_abs(sum - T(1)) < tol;
   }
 
   /**
    * @brief is equal impl
+   *
+   * @param other class
+   *
+   * @return T/F
    */
   constexpr bool is_equal_impl(const ConvexBase& other) const {
     if (other.coord_map != this->coord_map) return false;
 
-    for (size_t i = 0; i < N; ++i)
-      if (other.self().roots(i) != roots(i)) return false;
+    for (size_t i = 0; i < N; ++i) {
+      if (other.self().root(i) != root(i)) return false;
+      if (other.self().power(i) != power(i)) return false;
+    }
     return true;
   }
 
@@ -170,14 +187,17 @@ class PowerCone : public ConvexSet<Space, PowerCone<Space, Tag>> {
   constexpr auto cone_view_impl() const {
     if constexpr (Tag == ViewTag::ConvexSet)
       return ConeView(
-          PowerCone<Space, ViewTag::LiftedCone>(this->coord_map, roots));
+          PowerCone<Space, ViewTag::LiftedCone>(this->coord_map, power, root));
     else
-      return ConeView(PowerCone<Space, Tag>(this->coord_map, roots));
+      return ConeView(PowerCone<Space, Tag>(this->coord_map, power, root));
   }
 
  private:
   /** @brief member vars */
-  linalg::Vector<size_t, N> roots;  //< alphas encoded as roots
+  linalg::Vector<size_t, N>
+      power;  //< partial encoding of alpha \in Q (i.e., power/root)
+  linalg::Vector<size_t, N>
+      root;  //< other encoding of alpha \in Q (i.e., power/roow)
 };
 
 }  // namespace convex

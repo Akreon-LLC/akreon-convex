@@ -931,8 +931,9 @@ TEST_CASE("Test power cone", "[convex_sets]") {
 
   SECTION("Test power cone") {
     using Space = Matrixd<1, 3>;
+    constexpr Vector<size_t, 3> power{1UL, 1UL, 1UL};
     constexpr Vector<size_t, 3> roots{3UL, 3UL, 3UL};
-    constexpr auto power_cone = PowerCone<Space>(roots);
+    constexpr auto power_cone = PowerCone<Space>(power, roots);
     STATIC_REQUIRE(power_cone.is_well_formed());
     STATIC_REQUIRE(power_cone.contains(std::tuple(Vectord<3>{}, 0.0)));
     STATIC_REQUIRE(
