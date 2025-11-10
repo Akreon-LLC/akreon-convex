@@ -522,3 +522,32 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{1.0}, -1.0)));
   }
 }
+
+TEST_CASE("Test abs function", "[convex_fn]") {
+  SECTION("Test abs function") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto abs_fn = AbsFn<Space>();
+    STATIC_REQUIRE(ConvexFnLike<decltype(abs_fn)>);
+    STATIC_REQUIRE(abs_fn(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(abs_fn(Vectord<1>{0.0}).value() == 0.0);
+    STATIC_REQUIRE(abs_fn(Vectord<1>{-2.0}).has_value());
+    STATIC_REQUIRE(abs_fn(Vectord<1>{-2.0}).value() == 2.0);
+
+    constexpr auto epi_f = abs_fn.epigraph();
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{-1.0}, 1.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{-1.0}, 0.0)));
+
+    constexpr auto abs_concave = abs_fn.negate();
+    STATIC_REQUIRE(abs_concave(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(abs_concave(Vectord<1>{0.0}).value() == 0.0);
+    STATIC_REQUIRE(abs_concave(Vectord<1>{-2.0}).has_value());
+    STATIC_REQUIRE(abs_concave(Vectord<1>{-2.0}).value() == -2.0);
+
+    constexpr auto hypo_f = abs_concave.hypograph();
+    // ||x||_1 <= -t
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<1>{1.0}, 1.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{1.0}, -1.0)));
+  }
+}
