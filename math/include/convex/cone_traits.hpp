@@ -82,13 +82,9 @@ enum struct ConeCheck { False = 0, True, Unknown };
 template <typename Cone>
 concept ConeViewLike = requires(
     const Cone& cone,
-    const std::tuple<cone_view_point_t<Cone>, cone_view_type_t<Cone>>& x,
-    const affine::AffineMap<linalg::Matrix<
-        cone_view_type_t<Cone>, cone_view_dim_v<Cone>, cone_view_dim_v<Cone>>>&
-        map) {
+    const std::tuple<cone_view_point_t<Cone>, cone_view_type_t<Cone>>& x) {
   { cone.is_proper() } -> std::convertible_to<ConeCheck>;
   { cone.contains(x) } -> std::convertible_to<bool>;
-  { cone.compute_slack(map, x) } -> std::convertible_to<decltype(x)>;
   { cone.dual_view() };
 };
 

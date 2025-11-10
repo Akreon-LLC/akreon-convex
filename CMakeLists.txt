@@ -83,10 +83,10 @@ if(BUILD_TESTING)
   target_link_libraries(convex_fn_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(convex_fn_test PRIVATE ../math/include)
 
-  #add_executable(convex_program_test tests/unit/convex_program_test.cpp)
-  #add_test(NAME convex_program_test COMMAND convex_program_test)
-  #target_link_libraries(convex_program_test PRIVATE Catch2::Catch2WithMain)
-  #target_include_directories(convex_program_test PRIVATE ../math/include)
+  add_executable(convex_program_test tests/unit/convex_program_test.cpp)
+  add_test(NAME convex_program_test COMMAND convex_program_test)
+  target_link_libraries(convex_program_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(convex_program_test PRIVATE ../math/include)
 
   # Functional Tests
   add_executable(linalg_fuzz_test tests/functional/linalg_fuzz_test.cpp)

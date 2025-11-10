@@ -62,20 +62,6 @@ struct ConeView : ConeViewBase<ConeView<Cone>> {
   }
 
   /**
-   * @brief get slack - projected point x onto cone coordinates
-   *
-   * F z + b = s, s \in K, z = [ x ; t ]
-   *
-   * @param point (x, t) \in R^n x R
-   *
-   * @return s \in R
-   */
-  constexpr auto get_slack(const std::tuple<Point, T>& /*x*/) const {
-    // TODO - re-implement
-    return false;
-  }
-
-  /**
    * @brief get dual view of cone
    *
    * @return dual cone view

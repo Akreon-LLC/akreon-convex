@@ -12,8 +12,10 @@
 
 #pragma once
 
+#include "cone_program.hpp"
 #include "cone_view.hpp"
 #include "convex_ops.hpp"
+#include "convex_program.hpp"
 #include "dual_cone_view.hpp"
 #include "functions/abs_fn.hpp"
 #include "functions/affine_fn.hpp"
@@ -45,8 +47,3 @@
 #include "sets/psd_cone.hpp"
 #include "sets/rsoc.hpp"
 #include "sets/simplex.hpp"
-#if 0
-// TODO - need slacks for these
-#include "cone_program.hpp"
-#include "convex_program.hpp"
-#endif
