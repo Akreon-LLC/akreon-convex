@@ -12,8 +12,6 @@
 
 #pragma once
 
-#include <iostream>
-
 #include "convex_set.hpp"
 
 namespace convex {
@@ -23,9 +21,8 @@ namespace convex {
  *
  * C = { (x, y, z) \in R^{N-1} x R_++ x R | ||x||_2^2 <= y z }
  *
- * apply non-linear y z mul later, null out y in x projection
+ * apply non-linear y z mul later
  * [ I 0 ] [ x; z ]
- * [ 0 0 ]
  * [ 0 1 ]
  *
  * rsoc coord map: (x, y z)
@@ -36,10 +33,7 @@ template <linalg::SquareMatrixLike CoordMat>
 constexpr auto default_rsoc_map(const linalg::mat_type_t<CoordMat>& t) {
   using T = linalg::mat_type_t<CoordMat>;
   static constexpr size_t N = linalg::mat_rows_v<CoordMat>;
-
-  CoordMat U;
-  const auto I = linalg::make_identity<T, N - 2>();
-  U = linalg::set_block<0, N - 2, 0, N - 2>(U, I);
+  auto U = linalg::make_identity<T, N>();
   U[N - 1][N - 1] = t;
   return affine::AffineMap<CoordMat>(U, linalg::Vector<T, N>{});
 }
@@ -53,7 +47,7 @@ template <linalg::RnSpace Space, NormConeType Type,
           ViewTag Tag = ViewTag::ConvexSet>
   requires(linalg::space_dim_v<Space> ==
                linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           linalg::space_dim_v<Space> >= 1 &&
+           linalg::space_dim_v<Space> > 1 &&
            (Type == NormConeType::L2OC || Type == NormConeType::L2CC))
 class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
  public:
@@ -106,17 +100,17 @@ class RotatedSOC : public ConvexSet<Space, RotatedSOC<Space, Type, Tag>> {
    */
   constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
                                const T& tol) const {
-    T y(1);
-    if constexpr (N > 1) {
-      y = std::get<0>(x_in)(N - 1);
-      if (y <= T(0)) return false;
-    }
-
     const auto x_proj = this->project(x_in);
-    const auto x = std::get<0>(x_proj);
+    const auto x_tmp = std::get<0>(x_proj);
+    const auto z = std::get<1>(x_proj);
+
+    const auto x = std::get<0>(linalg::splice<N - 1>(x_tmp));
+
+    const auto y = x_tmp(N - 1);
+    if (y <= T(0)) return false;
 
     // (dakre) apply non-linear mul here
-    const auto s = y * std::get<1>(x_proj);
+    const auto s = y * z;
 
     const auto norm_x = linalg::L2<decltype(x)>()(x);
     const auto zeros = linalg::all_zero(x) && s == T(0);

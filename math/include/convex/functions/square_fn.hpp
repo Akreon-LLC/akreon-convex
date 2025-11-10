@@ -21,19 +21,25 @@ namespace convex {
  *
  * coords (x, t)
  *
- * [ 1 0 ] (x, t) -> (x, t)
- * [ 0 1 ]
+ * [ 1 0 0] [x1; x2; t] + [0; 1; 0] -> (x, y=1, t)
+ * [ 0 0 0]
+ * [ 0 0 1]
  *
  * @return affine map -> rsoc coords
  */
 template <linalg::SquareMatrixLike CoordMat>
+  requires(linalg::mat_rows_v<CoordMat> == 3)
 constexpr auto square_to_rsoc_map(const linalg::mat_type_t<CoordMat>& t) {
   using T = linalg::mat_type_t<CoordMat>;
   static constexpr size_t N = linalg::mat_rows_v<CoordMat>;
+  CoordMat U;
+  U[0][0] = T(1);
+  U[2][2] = t;
 
-  auto I = linalg::make_identity<T, N>();
-  I[N - 1][N - 1] = t;
-  return affine::AffineMap<CoordMat>(I, linalg::Vector<T, N>{});
+  linalg::Vector<T, N> b;
+  b[1] = T(1);
+
+  return affine::AffineMap<CoordMat>(U, b);
 }
 
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
@@ -50,9 +56,11 @@ class SquareFn
                          ConcaveFn<Domain, SquareFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
-  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
+
+  /// @brief alias extended coord mat
+  using CoordMatExt = linalg::Matrix<T, N + 2, N + 2>;
 
   /**
    * @brief eval impl
@@ -78,8 +86,9 @@ class SquareFn
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    return RotatedSOC<Domain, NormConeType::L2CC, ViewTag::LiftedCone>(
-        square_to_rsoc_map<CoordMat>(T(1)));
+    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
+    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::LiftedCone>(
+        square_to_rsoc_map<CoordMatExt>(T(1)));
   }
 
   /**
@@ -93,8 +102,9 @@ class SquareFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return RotatedSOC<Domain, NormConeType::L2CC, ViewTag::LiftedCone>(
-        square_to_rsoc_map<CoordMat>(T(-1)));
+    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
+    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::LiftedCone>(
+        square_to_rsoc_map<CoordMatExt>(T(-1)));
   }
 
   /**

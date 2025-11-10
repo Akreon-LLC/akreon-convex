@@ -20,6 +20,8 @@ namespace convex {
  * @brief default coord map for power cone
  *
  * coords: (x, t)
+ *
+ * @return affine map
  */
 template <linalg::SquareMatrixLike CoordMat>
 constexpr auto default_pow_cone_map(const linalg::mat_type_t<CoordMat>& t) {

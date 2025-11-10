@@ -507,9 +507,9 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(square_fn(Vectord<1>{2.0}).value() == 4.0);
 
     constexpr auto epi_f = square_fn.epigraph();
-    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
-    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<1>{1.0}, 1.0)));
-    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<1>{2.0}, 1.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{0.0, 0.0}, 0.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{1.0, 0.0}, 1.0)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<2>{2.0, 10.0}, 1.0)));
 
     constexpr auto square_concave = square_fn.negate();
     STATIC_REQUIRE(square_concave(Vectord<1>{0.0}).has_value());
@@ -518,8 +518,8 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(square_concave(Vectord<1>{1.0}).value() == -1.0);
 
     constexpr auto hypo_f = square_concave.hypograph();
-    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
-    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{1.0}, -1.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{0.0, 0.0}, 0.0)));
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{1.0, 0.0}, -1.0)));
   }
 }
 
@@ -549,5 +549,36 @@ TEST_CASE("Test abs function", "[convex_fn]") {
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{0.0}, 0.0)));
     STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<1>{1.0}, 1.0)));
     STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<1>{1.0}, -1.0)));
+  }
+}
+
+TEST_CASE("Test inv pos function", "[convex_fn]") {
+  SECTION("Test inv pos fn") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto inv_pos_fn = InvPosFn<Space>();
+    STATIC_REQUIRE(ConvexFnLike<decltype(inv_pos_fn)>);
+    STATIC_REQUIRE(!inv_pos_fn(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(!inv_pos_fn(Vectord<1>{-1.0}).has_value());
+    STATIC_REQUIRE(inv_pos_fn(Vectord<1>{1.0}).has_value());
+    STATIC_REQUIRE(inv_pos_fn(Vectord<1>{1.0}).value() == 1.0);
+    STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}).has_value());
+    STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}).value() == 0.5);
+
+    constexpr auto epi_f = inv_pos_fn.epigraph();
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{0.0, 1.0}, 1.0)));
+    STATIC_REQUIRE(epi_f.contains(std::tuple(Vectord<2>{10.0, 2.0}, 0.5)));
+    STATIC_REQUIRE(!epi_f.contains(std::tuple(Vectord<2>{10.0, -2.0}, 0.5)));
+
+    constexpr auto inv_pos_concave = inv_pos_fn.negate();
+    STATIC_REQUIRE(!inv_pos_concave(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(!inv_pos_concave(Vectord<1>{-1.0}).has_value());
+    STATIC_REQUIRE(inv_pos_concave(Vectord<1>{1.0}).has_value());
+    STATIC_REQUIRE(inv_pos_concave(Vectord<1>{1.0}).value() == -1.0);
+    STATIC_REQUIRE(inv_pos_concave(Vectord<1>{2.0}).has_value());
+    STATIC_REQUIRE(inv_pos_concave(Vectord<1>{2.0}).value() == -0.5);
+
+    constexpr auto hypo_f = inv_pos_concave.hypograph();
+    STATIC_REQUIRE(hypo_f.contains(std::tuple(Vectord<2>{0.0, 1.0}, -1.0)));
+    STATIC_REQUIRE(!hypo_f.contains(std::tuple(Vectord<2>{0.0, 1.0}, 1.0)));
   }
 }
