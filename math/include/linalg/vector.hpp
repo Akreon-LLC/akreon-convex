@@ -10,11 +10,11 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include <assert.h>
 
+#include <array>
 #include <ranges>
 #include <span>
 

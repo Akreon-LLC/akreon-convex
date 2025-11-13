@@ -10,8 +10,9 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
+
+#include <cstddef>
 
 namespace linalg {
 
