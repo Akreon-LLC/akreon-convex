@@ -59,14 +59,15 @@ class ConvexProgram {
    *
    * @return T/F
    */
-  constexpr bool solve() const {
+  constexpr auto solve() const {
     const auto cones = transform_constraints_to_cones();
     auto make_cone_prog = [](const auto&... args) {
       return ConeProgram<Domain, decltype(args)...>(
           std::forward<decltype(args)>(args)...);
     };
     const auto cone_prog = std::apply(make_cone_prog, cones);
-    return cone_prog.soft_check() ? cone_prog.solve() : false;
+    return cone_prog.soft_check() ? cone_prog.solve()
+                                  : linalg::SolverResult::INFEASIBLE;
   }
 
  private:

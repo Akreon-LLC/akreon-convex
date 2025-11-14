@@ -34,4 +34,14 @@ struct SolverTraits<double> {
   static constexpr float tol = 1e-10;
 };
 
+enum struct SolverResult {
+  OPTIMAL = 0,
+  INFEASIBLE,
+  UNBOUNDED,
+  INFEASIBLE_OR_UNBOUNDED,
+  OPTIMAL_INACCURATE,
+  INFEASIBLE_INACCURATE,
+  UNBOUNDED_INACCURATE
+};
+
 }  // namespace linalg

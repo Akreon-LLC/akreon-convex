@@ -89,9 +89,9 @@ class ConeProgram {
   /**
    * @brief solve
    *
-   * @return T/F
+   * @return SolverResult enum
    */
-  constexpr bool solve() const { return true; }
+  constexpr auto solve() const { return linalg::SolverResult::OPTIMAL; }
 
  private:
   /** @brief member vars for cone program */

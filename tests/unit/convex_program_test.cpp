@@ -46,12 +46,12 @@ TEST_CASE("Test Simple Convex Program") {
     constexpr auto qol = QuadOverLinearFn<Space>();
     constexpr ConvexProgram<Space, decltype(norm), decltype(qol)> prog(norm,
                                                                        qol);
-    STATIC_REQUIRE(prog.solve());
+    STATIC_REQUIRE(prog.solve() == SolverResult::OPTIMAL);
     constexpr auto affine_sub = AffineSubspace<Space, Matrixd<4, 4>>(
         make_identity<double, 4>(), Vectord<4>{});
     constexpr ConvexProgram<Space, decltype(norm), decltype(qol),
                             decltype(affine_sub)>
         prog2(norm, qol, affine_sub);
-    STATIC_REQUIRE(prog2.solve());
+    STATIC_REQUIRE(prog2.solve() == SolverResult::OPTIMAL);
   }
 }
