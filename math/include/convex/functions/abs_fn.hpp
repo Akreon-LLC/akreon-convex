@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "convex/sets/norm_cone.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {
@@ -34,7 +33,6 @@ class AbsFn : public std::conditional_t<Tag == FnTag::Convex,
                                         ConcaveFn<Domain, AbsFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
-  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -52,35 +50,48 @@ class AbsFn : public std::conditional_t<Tag == FnTag::Convex,
       return T(-1) * linalg::constexpr_abs(x(0));
   }
 
+#if 0
   /**
    * @brief epigraph impl
    *
-   * C = { (x, t) | |x| <= t }
-   * K_exp = { (x, t) | |x| <= t }
+   * K_epi = { (x, t) | |x| <= t }
+   *
+   * cone(K_epi) = { (x, t, lam) | |x / lam| lam <= t , lam >= 0} \equiv K_epi
+   *
+   * (i) created lifted u 
+   * let u = |x|, s.t. (x, u) in L1 cone
+   * let s = t - u, s >= 0
+   *
+   * (ii) apply affine map -> cone coords
+   * [0 -1 1 0] [x; u; t; lam] -> (s, lam)
+   * [0  0 0 1]
    *
    * @return norm cone
    */
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    return NormCone<Domain, NormConeType::L1CC, ViewTag::LiftedCone>()
-        .cone_view();
+    return NormCone<Domain, NormConeType::L1CC, ViewTag::Cone>().cone_view();
   }
 
   /**
    * @brief hypograph impl
    *
    * C = { (x, t) | |x| <= -t }
+   * cone(K_hyp) = { (x, t, lam) | |x / lam| lam <= -t, lam >= 0}
+   *
+   * s = -t - |x|
    *
    * @return norm cone
    */
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return NormCone<Domain, NormConeType::L1CC, ViewTag::LiftedCone>(
+    return NormCone<Domain, NormConeType::L1CC, ViewTag::Cone>(
                default_cone_map<CoordMat>(linalg::Vectord<N>{}, T(-1)))
         .cone_view();
   }
+#endif
 
   /**
    * @brief negate impl

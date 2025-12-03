@@ -52,7 +52,6 @@ class LogFn : public std::conditional_t<Tag == FnTag::Concave,
                                         ConvexFn<Domain, LogFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
-  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -68,6 +67,7 @@ class LogFn : public std::conditional_t<Tag == FnTag::Concave,
     return linalg::constexpr_ln(x(0));
   }
 
+#if 0
   /**
    * @brief hypograph impl
    *
@@ -81,7 +81,7 @@ class LogFn : public std::conditional_t<Tag == FnTag::Concave,
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return ExpCone<Domain, ViewTag::LiftedCone>(log_to_exp_map<CoordMat>(T(1)))
+    return ExpCone<Domain, ViewTag::Cone>(log_to_exp_map<CoordMat>(T(1)))
         .cone_view();
   }
 
@@ -99,9 +99,10 @@ class LogFn : public std::conditional_t<Tag == FnTag::Concave,
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    return ExpCone<Domain, ViewTag::LiftedCone>(log_to_exp_map<CoordMat>(T(-1)))
+    return ExpCone<Domain, ViewTag::Cone>(log_to_exp_map<CoordMat>(T(-1)))
         .cone_view();
   }
+#endif
 
   /**
    * @brief negate impl

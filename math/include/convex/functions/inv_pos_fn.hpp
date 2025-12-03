@@ -62,9 +62,6 @@ class InvPosFn
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
-  /// @brief alias extended coord mat
-  using CoordMatExt = linalg::Matrix<T, N + 2, N + 2>;
-
   /**
    * @brief eval impl
    *
@@ -81,6 +78,7 @@ class InvPosFn
     }
   }
 
+#if 0
   /**
    * @brief epigraph impl
    *
@@ -93,7 +91,7 @@ class InvPosFn
     requires(Tag == FnTag::Convex)
   {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::LiftedCone>(
+    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::Cone>(
         inv_pos_to_rsoc<CoordMatExt>(T(1)));
   }
 
@@ -110,9 +108,10 @@ class InvPosFn
     requires(Tag == FnTag::Concave)
   {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::LiftedCone>(
+    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::Cone>(
         inv_pos_to_rsoc<CoordMatExt>(T(-1)));
   }
+#endif
 
   /**
    * @brief negate impl

@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "convex/cone_view.hpp"
 #include "convex/convex_fn_traits.hpp"
 
 namespace convex {
@@ -21,7 +20,7 @@ namespace convex {
  *
  * Similar space constraints on R^n with convex set domain
  */
-template <ConvexSetLike Domain, typename Derived>
+template <linalg::RnSpace Domain, typename Derived>
 class ConvexFn {
  public:
   /// @brief alias to extract type traits from Domain convex set
@@ -32,9 +31,6 @@ class ConvexFn {
   /// @brief helper to get dimension size of space & size of point
   static constexpr size_t Dim = set_dim_v<Domain>;
   static constexpr size_t N = linalg::vec_size_v<Point>;
-
-  /// @brief coord map mat type to lifted hypograph
-  using CoordMat = linalg::Matrix<T, N + 1, N + 1>;
 
   /**
    * @brief operator overload for evaluation fn

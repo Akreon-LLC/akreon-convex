@@ -21,7 +21,7 @@ namespace convex {
  *
  * A(x) = x_1 A_1 + ... _ x_n A_n <= B
  *
- * A, B \in S^n_+
+ * A, B \in S^n
  *
  * Solution set of LMI is convex:
  *
@@ -31,13 +31,13 @@ namespace convex {
  * Transformed to pre-image of PsdCone
  * F(x) = F_0 + \sum_i F(x) >= 0... F_0 = B, F_i = -A_i
  */
-template <linalg::RnSpace Space, LMIType Type, ViewTag Tag = ViewTag::ConvexSet>
+template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
+class LMI : public ConvexSet<Space, LMI<Space>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, LMI<Space, Type, Tag>>;
+  using ConvexBase = ConvexSet<Space, LMI<Space>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -88,31 +88,11 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& tol) const {
-    return contains_impl(std::tuple(x, T(1)), tol);
-  }
-
-  /**
-   * @brief contains function to see if x is in the LMI defined as
-   *
-   * { (x, t) \in R^n x R_++ | A(x) <= B t }
-   *
-   * LMI
-   * (i)  PSD: 0 <= t * B - A(x)
-   * (ii) PD: 0 < t * B - A(x)
-   *
-   * @param x matrix with N vectors
-   *
-   * @return T/F
-   */
-  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
-                               const T& /*tol*/) const {
-    const auto x = std::get<0>(x_in);
-    const auto t = std::get<1>(x_in);
-    auto res = t * B;
+  constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
+    auto res = B;
     for (size_t i = 0; i < N; ++i) res = res - (x(i) * A(i));
     linalg::SymmetricMatrix S(res);
-    return check_definiteness(S);
+    return S.is_psd();
   }
 
   /**
@@ -155,40 +135,6 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
   }
 
   /**
-   * @brief cone view impl
-   *
-   * @return cone
-   */
-  constexpr auto cone_view_impl() const {
-    if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(LMI<Space, Type, ViewTag::LiftedCone>(A, B));
-    else
-      return ConeView(LMI<Space, Type, Tag>(A, B));
-  }
-
-  /**
-   * @brief helper function to check definiteness of matrix
-   *
-   * @param symmetric matrix S
-   *
-   * @return T/F
-   */
-  constexpr bool check_definiteness(
-      const linalg::SymmetricMatrix<Mat>& S) const {
-    switch (S.type) {
-      case linalg::SymmetricMatrixType::PSD: {
-        if (Type == LMIType::NonStrict) return true;
-        break;
-      }
-      case linalg::SymmetricMatrixType::PD:
-        return true;
-      default:
-        break;
-    }
-    return false;
-  }
-
-  /**
    * @brief helper to get As
    *
    * @return vector of matrices
@@ -201,6 +147,44 @@ class LMI : public ConvexSet<Space, LMI<Space, Type, Tag>> {
    * @return B
    */
   constexpr auto get_B() const { return B; }
+
+  /**
+   * @brief canonicalize impl
+   *
+   * Apply P^{-1}(C) -> K and map K to cone block
+   *
+   * C = { X in S^n_+ | A(x) <= B }
+   * K = { (X, t) | A(x) <= B t }... linear operator-> { (x, t) | B t - sum(x_i
+   * A_i) >= 0, t >= 0 }
+   *
+   * a_i = svec(A_i) in R^k A_i in S^n where k = n(n+1)/2
+   * b = svec(B) ...
+   *
+   * B t - sum(x_i A_i) >= 0 ... psd cone
+   * t >= 0... nonneg orthant cone
+   *
+   * [ -a_i ... -a_n b ] [ x; t ] -> (u, t)
+   * [ 0    ...    0 1 ]
+   *
+   * smat(u) >= 0, t>= 0
+   */
+  constexpr auto canonicalize() const {
+    static constexpr size_t K = N * (N + 1) / 2;
+    linalg::Matrix<T, K + 1, N + 1> F;
+    for (size_t i = 0; i < N; ++i) {
+      linalg::SymmetricMatrix S(A(i));
+      for (size_t j = 0; j < K; ++j) F[j][i] = T(-1) * S.svec(j);
+    }
+    linalg::SymmetricMatrix S(B);
+    F = linalg::set_block<0, K, N, N + 1>(F, linalg::as_col_vector(S.svec));
+    F[K][N] = T(1);
+    linalg::Vector<T, K + 1> g;
+    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    const auto psd_cone =
+        conic::PositiveSemidefiniteCone<linalg::Matrix<T, K, N + 1>>();
+    const auto rplus = conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
+    return std::tuple(conic::ConeBlock(map, psd_cone, rplus));
+  }
 
  private:
   /** @brief member vars for LMI */

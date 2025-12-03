@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #include <algorithm>
 #include <iostream>
 #include <random>
@@ -19,7 +18,7 @@
 
 #define TRIALS 10000
 
-#define N_ROWS 4
+#define N_ROWS 8
 
 using namespace linalg;
 

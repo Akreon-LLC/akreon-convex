@@ -24,16 +24,15 @@ namespace convex {
  */
 template <linalg::RnSpace Space, HalfspaceType Type, linalg::MatrixLike MatA,
           linalg::MatrixLike MatC = linalg::Matrix<linalg::mat_type_t<Space>, 0,
-                                                   linalg::space_dim_v<Space>>,
-          ViewTag Tag = ViewTag::ConvexSet>
+                                                   linalg::space_dim_v<Space>>>
   requires(!linalg::is_complex_v<linalg::mat_type_t<Space>> &&
            !linalg::is_complex_v<linalg::mat_type_t<MatA>> &&
            !linalg::is_complex_v<linalg::mat_type_t<MatC>>)
 class Polyhedron
-    : public ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC, Tag>> {
+    : public ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC, Tag>>;
+  using ConvexBase = ConvexSet<Space, Polyhedron<Space, Type, MatA, MatC>>;
   using ConvexBase::Dim;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
@@ -100,31 +99,16 @@ class Polyhedron
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
-    return contains_impl(std::tuple(x, T(1)), tol);
-  }
-
-  /**
-   * @brief check if candidate vector is in the set
-   *
-   * C = { (x, t) \in R^n x R_++ | A x <= b t, C x = d t }
-   *
-   * @param (x, t) \in R^n x R
-   * @param scalar tolerance
-   *
-   * @return T/F
-   */
-  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
-                               const T& /*tol*/) const {
     // (0) check if x is in the halfspace defined by A x - b t <= 0
     for (size_t i = 0; i < RowsA; ++i) {
-      const auto cone = Halfspace<Space, Type>(A(i), b(i)).cone_view();
-      if (!cone.contains(x_in)) return false;
+      const auto cone = Halfspace<Space, Type>(A(i), b(i));
+      if (!cone.contains(x, tol)) return false;
     }
 
     // (1) check if x is in the affine set defined by C x = d t
     for (size_t i = 0; i < RowsC; ++i) {
-      const auto cone = Hyperplane<Space>(C(i), d(i)).cone_view();
-      if (RowsC > 0 && !cone.contains(x_in)) return false;
+      const auto cone = Hyperplane<Space>(C(i), d(i));
+      if (RowsC > 0 && !cone.contains(x, tol)) return false;
     }
 
     return true;
@@ -158,8 +142,8 @@ class Polyhedron
     const auto C_new = C * U_inv;
     const auto d_new = d + C_new * trans;
 
-    return Polyhedron<Space, Type, decltype(A), decltype(C), Tag>(A_new, b_new,
-                                                                  C_new, d_new);
+    return Polyhedron<Space, Type, decltype(A), decltype(C)>(A_new, b_new,
+                                                             C_new, d_new);
   }
 
   /**
@@ -172,22 +156,6 @@ class Polyhedron
   constexpr bool is_equal_impl(const ConvexBase& other) const {
     return other.self().A == A && other.self().b == b && other.self().C == C &&
            other.self().d == d;
-  }
-
-  /**
-   * @brief inverse perspective func from convex set to cone
-   *
-   * @param t cone slice
-   *
-   * @return cone
-   */
-  constexpr auto cone_view_impl() const {
-    if constexpr (Tag == ViewTag::ConvexSet)
-      return ConeView(Polyhedron<Space, Type, decltype(A), decltype(C),
-                                 ViewTag::LiftedCone>(A, b, C, d));
-    else
-      return ConeView(
-          Polyhedron<Space, Type, decltype(A), decltype(C), Tag>(A, b, C, d));
   }
 
   /**
@@ -204,7 +172,69 @@ class Polyhedron
    */
   constexpr auto get_C() const { return C; }
 
+  /**
+   * @brief canonicalize impl
+   *
+   * Apply P^{-1}(C) -> K and map K to cone block
+   *
+   * C = { x | A x <= b, Cx = d }
+   * K = { (x, t) | A x <= b t, Cx = d t, t >= 0 }
+   *
+   * let z = C x - d t = 0... z in zoc
+   * let w = A x - b t <= 0... w in rneg
+   * t in rplus
+   *
+   * [ A -b ] [ x; t ] <= 0
+   * [ 0  1 ]
+   *
+   * [ C -d ] [ x; t ] = 0
+   * [ 0  1 ]
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    std::tuple<> empty;
+    return std::tuple_cat(canonicalize_halfspaces<0>(empty),
+                          canonicalize_hyperplanes<0>(empty));
+  }
+
  private:
+  /**
+   * @brief canonicalize halfspace
+   *
+   * @param tuple of halfspaces
+   *
+   * @return halfspaces
+   */
+  template <size_t i>
+  constexpr auto canonicalize_halfspaces(auto halfspaces) const {
+    if constexpr (i >= RowsA)
+      return halfspaces;
+    else {
+      const auto cone = Halfspace<Space, Type>(A(i), b(i));
+      const auto half_tuple = std::tuple_cat(halfspaces, cone.canonicalize());
+      return canonicalize_halfspaces<i + 1>(half_tuple);
+    }
+  }
+
+  /**
+   * @brief canonicalize hyperplane
+   *
+   * @param tuple of hyperplane
+   *
+   * @return hyperplanes
+   */
+  template <size_t i>
+  constexpr auto canonicalize_hyperplanes(auto hyperplanes) const {
+    if constexpr (i >= RowsC)
+      return hyperplanes;
+    else {
+      const auto cone = Hyperplane<Space>(C(i), d(i));
+      const auto hyper_tuple = std::tuple_cat(hyperplanes, cone.canonicalize());
+      return canonicalize_hyperplanes<i + 1>(hyper_tuple);
+    }
+  }
+
   /** @brief member variables in the polyhedron */
   MatA A;  //< set of finite number of halfspaces
   linalg::Vector<T, RowsA>

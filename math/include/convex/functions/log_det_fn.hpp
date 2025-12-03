@@ -13,10 +13,32 @@
 #pragma once
 
 #include "concave_fn.hpp"
-#include "convex/sets/log_det_cone.hpp"
 #include "linalg/symmetric_matrix.hpp"
 
 namespace convex {
+
+/// @brief Log Det Functor
+template <linalg::RnSpace Domain>
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
+struct LogDet {
+  using T = linalg::space_type_t<Domain>;
+  using Point = linalg::space_point_t<Domain>;
+
+  /**
+   * @brief compute the log det of a symmetric matrix
+   *
+   * @param X \in S^n_++
+   *
+   * @return optional scalar \in R
+   */
+  constexpr std::optional<T> operator()(const Point& X) const {
+    linalg::SymmetricMatrix S(X);
+    if (S.type != linalg::SymmetricMatrixType::PD) return std::nullopt;
+    if (!S.det.has_value()) return std::nullopt;
+    if (!linalg::is_real(S.det.value())) return std::nullopt;
+    return linalg::constexpr_ln(S.det.value().real());
+  }
+};
 
 /**
  * @brief log determinant is concave on dom f = S^n_++
@@ -45,7 +67,6 @@ class LogDetFn
                          ConvexFn<Domain, LogDetFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
-  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -70,6 +91,7 @@ class LogDetFn
       return res.value();
   }
 
+#if 0
   /**
    * @brief hypograph impl
    *
@@ -83,7 +105,7 @@ class LogDetFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return LogDetCone<Domain, ViewTag::LiftedCone>().cone_view();
+    return LogDetCone<Domain, ViewTag::Cone>().cone_view();
   }
 
   /**
@@ -96,10 +118,11 @@ class LogDetFn
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    return LogDetCone<Domain, ViewTag::LiftedCone>(
+    return LogDetCone<Domain, ViewTag::Cone>(
                default_log_det_map<CoordMat>(T(-1)))
         .cone_view();
   }
+#endif
 
   /**
    * @brief negate impl

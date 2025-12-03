@@ -10,11 +10,10 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
-#include "linalg/matrix_inverse.hpp"
 #include "affine_set.hpp"
+#include "linalg/matrix_inverse.hpp"
 
 namespace affine {
 
@@ -110,6 +109,7 @@ class AffineMap {
    * @return new affine map object that is the inverse of the forward mapping
    */
   constexpr auto inverse() const {
+    static_assert(M >= N, "short-fat TBD");
     const auto U_inv = linalg::inverse(U);
     return AffineMap(U_inv, T(-1) * U_inv * c);
   }

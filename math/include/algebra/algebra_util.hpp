@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include <array>
 #include <optional>
 
 #include "algebra_traits.hpp"
@@ -20,6 +21,22 @@
 #define MAX_STEP_EVAL 256
 
 namespace linalg {
+
+/**
+ * @brief array to tuple
+ *
+ * @param array types
+ *
+ * @return tuple
+ */
+template <typename T, size_t N>
+constexpr auto array_to_tuple(const std::array<T, N>& x) {
+  auto to_tuple = [&]<size_t... Is>(const auto& arr,
+                                    std::index_sequence<Is...>) {
+    return std::make_tuple(arr[Is]...);
+  };
+  return to_tuple(x, std::make_index_sequence<N>{});
+}
 
 /**
  * @brief Checks if the complex variable is imaginary to a tolerance

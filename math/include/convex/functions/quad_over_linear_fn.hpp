@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "convex/sets/rsoc.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {
@@ -36,7 +35,6 @@ class QuadOverLinearFn
                          ConcaveFn<Domain, QuadOverLinearFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
-  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -57,6 +55,7 @@ class QuadOverLinearFn
       return T(-1) * linalg::dot(x, x) / y;
   }
 
+#if 0
   /**
    * @brief epigraph impl
    *
@@ -86,10 +85,11 @@ class QuadOverLinearFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return RotatedSOC<Domain, NormConeType::L2CC, ViewTag::LiftedCone>(
+    return RotatedSOC<Domain, NormConeType::L2CC, ViewTag::Cone>(
                default_rsoc_map<CoordMat>(T(-1)))
         .cone_view();
   }
+#endif
 
   /**
    * @brief negate impl

@@ -23,13 +23,13 @@ namespace convex {
  *
  * Useful in probabilities
  */
-template <linalg::RnSpace Space, ViewTag Tag = ViewTag::ConvexSet>
+template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
+class Simplex : public ConvexSet<Space, Simplex<Space>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Simplex<Space, Tag>>;
+  using ConvexBase = ConvexSet<Space, Simplex<Space>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -48,30 +48,13 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
    * @return T/F
    */
   constexpr bool contains_impl(const Point& x, const T& tol) const {
-    return contains_impl(std::tuple(x, T(1)), tol);
-  }
-
-  /**
-   * @brief contains function to see if x is in the simplex
-   *
-   * C' = { (x, t) \in R^n x R_++ | 1^T x == t }
-   *
-   * @param (x, t) \in R^n x R_++
-   * @param tolerance (scalar)
-   *
-   * @return T/F
-   */
-  constexpr bool contains_impl(const std::tuple<Point, T>& x_in,
-                               const T& tol) const {
     // (dakre) projected map would just be id
-    const auto x = std::get<0>(x_in);
-    const auto t = std::get<1>(x_in);
     T sum(0);
     for (size_t i = 0; i < N; ++i) {
       if (x(i) < T(0)) return false;
       sum += x(i);
     }
-    return linalg::constexpr_abs(sum - t) <= tol;
+    return linalg::constexpr_abs(sum - 1) <= tol;
   }
 
   /**
@@ -123,7 +106,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
     const auto C = one_T_U_inv;
     const auto d = T(1) + (one_T_U_inv * t)(0);
 
-    return Polyhedron<Space, HalfspaceType::CLH, decltype(A), decltype(C), Tag>(
+    return Polyhedron<Space, HalfspaceType::CLH, decltype(A), decltype(C)>(
         A, b, C, d);
   }
 
@@ -139,16 +122,31 @@ class Simplex : public ConvexSet<Space, Simplex<Space, Tag>> {
   }
 
   /**
-   * @brief inverse perspective func from convex set to cone
+   * @brief canonicalize impl
    *
-   * @return cone
+   * Apply P^{-1}(C) -> K
+   * C = { x | x_i >= 0 \forall i, sum(x_i) <= 1 }
+   * K = { (x,t) | x_i >= 0 \forall i, 1^T x <= t, t >= 0 }
+   *
+   * 0 <= x... nonneg cone
+   * 0 <= t - 1^T x... nonneg cone
+   * 0 <= t... nonneg cone
+   *
+   * [ I    0 ] [ x; t ]
+   * [ -1^T 1 ]
+   * [ 0    1 ]
    */
-  constexpr auto cone_view_impl() const {
-    if constexpr (Tag == ViewTag::ConvexSet) {
-      return ConeView(Simplex<Space, ViewTag::LiftedCone>());
-    } else {
-      return ConeView(Simplex<Space, Tag>());
-    }
+  constexpr auto canonicalize_impl() const {
+    linalg::Matrix<T, N + 2, N + 1> F;
+    for (size_t i = 0; i < N; ++i) F[i][i] = T(1);
+    for (size_t i = 0; i < N; ++i) F[N][i] = T(-1);
+    F[N][N] = T(1);
+    F[N + 1][N] = T(1);
+    linalg::Vector<T, N + 2> g;
+    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    const auto rplus1 = conic::NonnegOrthantCone<linalg::Matrix<T, N, N + 1>>();
+    const auto rplus2 = conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
+    return std::tuple(conic::ConeBlock(map, rplus1, rplus2, rplus2));
   }
 };
 

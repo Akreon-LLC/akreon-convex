@@ -12,14 +12,13 @@
 
 #pragma once
 
-#include "convex/cone_view.hpp"
 #include "convex/convex_fn_traits.hpp"
 
 namespace convex {
 /**
  * @brief base concave fn CRTP
  */
-template <ConvexSetLike Domain, typename Derived>
+template <linalg::RnSpace Domain, typename Derived>
 class ConcaveFn {
  public:
   /// @brief alias to extract type traits from domain convex set
@@ -30,9 +29,6 @@ class ConcaveFn {
   /// @brief helper to get dimension of space & size of point
   static constexpr size_t Dim = set_dim_v<Domain>;
   static constexpr size_t N = linalg::vec_size_v<Point>;
-
-  /// @brief coord map mat type to lifted hypograph
-  using CoordMat = linalg::Matrix<T, N + 1, N + 1>;
 
   /**
    * @brief operator overload for evaluation fn

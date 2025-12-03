@@ -59,9 +59,6 @@ class SquareFn
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
-  /// @brief alias extended coord mat
-  using CoordMatExt = linalg::Matrix<T, N + 2, N + 2>;
-
   /**
    * @brief eval impl
    *
@@ -76,6 +73,7 @@ class SquareFn
       return T(-1) * x(0) * x(0);
   }
 
+#if 0
   /**
    * @brief epigraph impl
    *
@@ -87,7 +85,7 @@ class SquareFn
     requires(Tag == FnTag::Convex)
   {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::LiftedCone>(
+    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::Cone>(
         square_to_rsoc_map<CoordMatExt>(T(1)));
   }
 
@@ -103,9 +101,10 @@ class SquareFn
     requires(Tag == FnTag::Concave)
   {
     using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::LiftedCone>(
+    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::Cone>(
         square_to_rsoc_map<CoordMatExt>(T(-1)));
   }
+#endif
 
   /**
    * @brief negate impl

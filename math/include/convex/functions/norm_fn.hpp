@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "convex/sets/norm_cone.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {
@@ -34,7 +33,6 @@ class NormFn
                          ConcaveFn<Domain, NormFn<Domain, Norm, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
-  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -52,6 +50,7 @@ class NormFn
       return T(-1) * Norm()(x);
   }
 
+#if 0
   /**
    * @brief epigraph impl
    *
@@ -86,18 +85,19 @@ class NormFn
   {
     const linalg::Vector<T, N> c;
     if constexpr (std::same_as<Norm, linalg::L2<Point>>)
-      return NormCone<Domain, NormConeType::L2CC, ViewTag::LiftedCone>(
+      return NormCone<Domain, NormConeType::L2CC, ViewTag::Cone>(
                  default_cone_map<CoordMat>(c, T(-1)))
           .cone_view();
     else if constexpr (std::same_as<Norm, linalg::L1<Point>>)
-      return NormCone<Domain, NormConeType::L1CC, ViewTag::LiftedCone>(
+      return NormCone<Domain, NormConeType::L1CC, ViewTag::Cone>(
                  default_cone_map<CoordMat>(c, T(-1)))
           .cone_view();
     else
-      return NormCone<Domain, NormConeType::LinfCC, ViewTag::LiftedCone>(
+      return NormCone<Domain, NormConeType::LinfCC, ViewTag::Cone>(
                  default_cone_map<CoordMat>(c, T(-1)))
           .cone_view();
   }
+#endif
 
   /**
    * @brief negate impl

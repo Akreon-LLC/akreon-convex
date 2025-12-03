@@ -14,7 +14,6 @@
 
 #include "convex_set.hpp"
 #include "ellipsoid.hpp"
-#include "norm_cone.hpp"
 
 namespace convex {
 
@@ -25,15 +24,13 @@ namespace convex {
  * { x | norm(x - c) <= r }... closed norm (L2, L1, Linf) ball that lies within
  * radius { x | norm(x - c) < r}... open "" ball that ""
  */
-template <linalg::RnSpace Space, NormBallType Type,
-          ViewTag Tag = ViewTag::ConvexSet>
+template <linalg::RnSpace Space, NormBallType Type>
   requires(linalg::space_dim_v<Space> ==
-               linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           Tag == ViewTag::ConvexSet)
-class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
+           linalg::vec_size_v<linalg::space_point_t<Space>>)
+class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
  public:
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, NormBall<Space, Type, Tag>>;
+  using ConvexBase = ConvexSet<Space, NormBall<Space, Type>>;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -207,10 +204,10 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
       using NewSpace = linalg::Matrix<T, 1, 2 * N>;
       if constexpr (Type == NormBallType::L1OB)
         return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
-                          linalg::Matrix<T, 0, 2 * N>, Tag>(A, b);
+                          linalg::Matrix<T, 0, 2 * N>>(A, b);
       else
         return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
-                          linalg::Matrix<T, 0, 2 * N>, Tag>(A, b);
+                          linalg::Matrix<T, 0, 2 * N>>(A, b);
     }
     /* Linf case
      *
@@ -253,39 +250,108 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type, Tag>> {
       using NewSpace = linalg::Matrix<T, 1, N>;
       if constexpr (Type == NormBallType::LinfOB)
         return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
-                          linalg::Matrix<T, 0, N>, Tag>(A, b);
+                          linalg::Matrix<T, 0, N>>(A, b);
       else
         return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
-                          linalg::Matrix<T, 0, N>, Tag>(A, b);
+                          linalg::Matrix<T, 0, N>>(A, b);
     }
   }
 
   /**
-   * @brief inverse perspective func from convex set to cone
+   * @brief canonicalize impl
    *
-   * @param t cone slice
+   * Apply P^{-1}(C) -> K and map K to cone block
    *
-   * @return cone
+   * C = { x | ||x - c|| <= r }
+   *
+   * let y = x - c
+   *
+   * L2
+   * K = { (y, t) | ||y|| <= r t, t >= 0 }
+   * [ I 0 ] [ x; t ] + [ -c; 0 ] -> (y, rt)
+   * [ 0 r ]
+   * ||y||_2 <= r t... scaled second order cone
+   *
+   * Linf
+   * -r <= y_i <= r \forall i
+   * -r - y_i <= 0 to 0 <= y_i + r nonneg orthant cone
+   * 0 <= r - y_i... nonneg orthant cone
+   *
+   * [ I  0 ] [ x; t ] + [ -c; c; 0 ]
+   * [ -I 0 ]
+   * [ 0  r ]
+   *
+   * L1
+   * let u_i >= |y_i|... intoduce first convex constraint
+   * sum(u_i) <= r t... second convex constraint (simplex)
+   * u_i >= 0... third convex constraint
+   * t >= 0... fourth convex constraint
+   *
+   * -u_i <= y_i <= u_i
+   * -u_i - y_i <= 0 to 0 <= y_i + u_i nonneg orthant cone
+   * 0 <= u_i - y_i... nonneg orthant cone
+   * 1^T u - r <= 0 to 0 <= r - 1^T u... nonneg orthant cone
+   * u_i >= 0... nonneg orthant cone
+   * t >= 0... nonneg orthant cone
+   *
+   * [ I  I    0 ] [ x; u; t ] + [ -c; c; 0; 0; 0]
+   * [ -I I    0 ]
+   * [ 0  -1^T r ]
+   * [ 0  I    0 ]
+   * [ 0  0    1 ]
    */
-  constexpr auto cone_view_impl() const {
-    if constexpr (Type == NormBallType::L2OB)
-      return ConeView(
-          NormCone<Space, NormConeType::L2OC, ViewTag::LiftedCone>(c, r));
-    else if constexpr (Type == NormBallType::L2CB)
-      return ConeView(
-          NormCone<Space, NormConeType::L2CC, ViewTag::LiftedCone>(c, r));
-    else if constexpr (Type == NormBallType::L1OB)
-      return ConeView(
-          NormCone<Space, NormConeType::L1OC, ViewTag::LiftedCone>(c, r));
-    else if constexpr (Type == NormBallType::L1CB)
-      return ConeView(
-          NormCone<Space, NormConeType::L1CC, ViewTag::LiftedCone>(c, r));
-    else if constexpr (Type == NormBallType::LinfOB)
-      return ConeView(
-          NormCone<Space, NormConeType::LinfOC, ViewTag::LiftedCone>(c, r));
-    else
-      return ConeView(
-          NormCone<Space, NormConeType::LinfCC, ViewTag::LiftedCone>(c, r));
+  constexpr auto canonicalize_impl() const {
+    static_assert(Type != NormBallType::L2CB || Type != NormBallType::L1CB ||
+                      Type != NormBallType::LinfCB,
+                  "cannot canonicalize an open set -> non-proper cone");
+
+    const auto I = linalg::make_identity<T, N>();
+    if constexpr (Type == NormBallType::L2CB) {
+      linalg::Matrix<T, N + 1, N + 1> F;
+      F = linalg::set_block<0, N, 0, N>(F, I);
+      F[N][N] = r;
+      linalg::Vector<T, N + 1> g;
+      for (size_t i = 0; i < N; ++i) g[i] = T(-1) * c(i);
+      const auto map = affine::AffineMap<decltype(F)>(F, g);
+      const auto soc = conic::SecondOrderCone<linalg::Matrix<T, N, N + 1>>();
+      const auto rplus =
+          conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
+      return std::tuple(conic::ConeBlock(map, soc, rplus));
+    } else if constexpr (Type == NormBallType::LinfCB) {
+      linalg::Matrix<T, 2 * N + 1, N + 1> F;
+      F = linalg::set_block<0, N, 0, N>(F, I);
+      F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * I);
+      F[2 * N][N] = r;
+      linalg::Vector<T, 2 * N + 1> g;
+      for (size_t i = 0; i < N; ++i) g[i] = T(-1) * c(i);
+      for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g[i] = c(j);
+      const auto map = affine::AffineMap<decltype(F)>(F, g);
+      const auto rplus1 =
+          conic::NonnegOrthantCone<linalg::Matrix<T, N, N + 1>>();
+      const auto rplus2 =
+          conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
+      return std::tuple(conic::ConeBlock(map, rplus1, rplus1, rplus2));
+    } else {
+      linalg::Matrix<T, 3 * N + 2, 2 * N + 1> F;
+      F = linalg::set_block<0, N, 0, N>(F, I);
+      F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * I);
+      F = linalg::set_block<0, N, N, 2 * N>(F, I);
+      F = linalg::set_block<N, 2 * N, N, 2 * N>(F, I);
+      for (size_t i = 0; i < N; ++i) F[2 * N][N + i] = T(-1);
+      F = linalg::set_block<2 * N + 1, 3 * N + 1, N, 2 * N>(F, I);
+      F[2 * N][2 * N] = r;
+      F[3 * N + 1][2 * N] = T(1);
+      linalg::Vector<T, 3 * N + 2> g;
+      for (size_t i = 0; i < N; ++i) g[i] = T(-1) * c(i);
+      for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g[i] = c(j);
+      const auto map = affine::AffineMap<decltype(F)>(F, g);
+      const auto rplus1 =
+          conic::NonnegOrthantCone<linalg::Matrix<T, N, 2 * N + 1>>();
+      const auto rplus2 =
+          conic::NonnegOrthantCone<linalg::Matrix<T, 1, 2 * N + 1>>();
+      return std::tuple(
+          conic::ConeBlock(map, rplus1, rplus1, rplus2, rplus1, rplus2));
+    }
   }
 
  private:

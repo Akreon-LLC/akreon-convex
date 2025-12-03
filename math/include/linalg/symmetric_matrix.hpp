@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "linear_algebra.hpp"
@@ -26,6 +25,30 @@ namespace linalg {
 /// NSD = Negative Semidefinite
 /// ND = Negative Definite
 enum struct SymmetricMatrixType { INV = 0, IND, PSD, PD, NSD, ND };
+
+template <size_t N, VectorLike Vec>
+  requires(vec_size_v<Vec> == N * (N + 1) / 2)
+constexpr auto make_smat(const Vec& svec) {
+  using T = linalg::vec_type_t<Vec>;
+  linalg::Matrix<T, N, N> S;
+  for (size_t i = 0; i < N; ++i) {
+    for (size_t j = 0; j <= i; ++j) {
+      const auto idx = i * (i + 1) / 2 + j;
+      S[i][j] = svec(idx);
+    }
+  }
+  const auto S_T = linalg::transpose(S);
+  linalg::Matrix<T, N, N> res;
+  for (size_t i = 0; i < N; ++i) {
+    for (size_t j = 0; j < N; ++j) {
+      if (i >= j)
+        res[i][j] = S(i)(j);
+      else
+        res[i][j] = S_T(i)(j);
+    }
+  }
+  return res;
+}
 
 /**
  * @brief SymmetricMatrix definition
@@ -68,8 +91,9 @@ struct SymmetricMatrix {
 
     type = SymmetricMatrixType::IND;
 
-    for (size_t i = 0; i < N; ++i)
-      for (size_t j = i; j < N; ++j) data[index(i, j)] = A(i)(j);
+    // (dakre) store lower triangle
+    for (size_t i = 0, k = 0; i < N; ++i)
+      for (size_t j = 0; j <= i; ++j, ++k) svec[k] = A(j)(i);
 
     // (2) Next calculate the eigenvalues of the matrix and check signs of the
     // eigenvalues by running count
@@ -105,10 +129,10 @@ struct SymmetricMatrix {
    * @param size_t i = row index
    * @param size_t j = col index
    *
-   * @return data element
+   * @return svec element
    */
   constexpr auto operator()(size_t i, size_t j) const {
-    return data(index(i, j));
+    return svec(index(i, j));
   }
 
   /**
@@ -121,9 +145,8 @@ struct SymmetricMatrix {
    */
   constexpr size_t index(size_t i, size_t j) const {
     assert(j < N && i < N);
-    if (j < i) std::swap(i, j);
-    const size_t idx = (j * (j + 1)) / 2 + i;
-    return idx;
+    if (i >= j) return i * (i + 1) / 2 + j;
+    return j * (j + 1) / 2 + i;
   }
 
   /**
@@ -146,8 +169,8 @@ struct SymmetricMatrix {
 
   /** @brief member variables */
   SymmetricMatrixType type;  //< SymmetricMatrixType value
-  Vector<T, DIM>
-      data;  //< Data stored from input square matrix as flattened n-dim vector
+  Vector<T, DIM> svec;  //< Data stored from input square matrix as flattened
+                        // n(n+1)/2 dim vector
   std::optional<ComplexT> det;  //< result of determinant
 };
 

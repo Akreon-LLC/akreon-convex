@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "convex/sets/norm_cone.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {
@@ -53,6 +52,7 @@ class MaxFn : public std::conditional_t<Tag == FnTag::Convex,
       return T(-1) * mx;
   }
 
+#if 0
   /**
    * @brief epigraph impl
    *
@@ -78,10 +78,11 @@ class MaxFn : public std::conditional_t<Tag == FnTag::Convex,
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return NormCone<Domain, NormConeType::LinfCC, ViewTag::LiftedCone>(
+    return NormCone<Domain, NormConeType::LinfCC, ViewTag::Cone>(
                linalg::Vector<T, N>{}, T(-1))
         .cone_view();
   }
+#endif
 
   /**
    * @brief negate impl

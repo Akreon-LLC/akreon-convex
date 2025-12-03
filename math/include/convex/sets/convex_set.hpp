@@ -16,7 +16,7 @@
 
 #include "affine/affine_map.hpp"
 #include "algebra/algebra_util.hpp"
-#include "convex/cone_view.hpp"
+#include "convex/cone_traits.hpp"
 #include "convex/convex_set_traits.hpp"
 #include "linalg/symmetric_matrix.hpp"
 
@@ -25,10 +25,7 @@ namespace convex {
 /**
  * @brief Base convex set class CRTP
  *
- *
- * IMPORTANT following Boyd's restriction to R^n space, perhaps
- * adapter or something to encode complex into reals for convex could be in
- * scope later on
+ * Restricting domain to R^n for the time being
  *
  * Templated by a vector space and derived class
  */
@@ -47,27 +44,6 @@ class ConvexSet {
   /// @brief helper to get n elements in point
   static constexpr size_t N = linalg::vec_size_v<Point>;
 
-  /// @brief alias for view tag
-  static constexpr ViewTag Tag = set_view_tag_v<Derived>;
-
-  /// @brief alias for coord map mat type
-  using CoordMat = linalg::Matrix<T, N + 1, N + 1>;
-
-  /**
-   * @brief CTOR for convex set
-   *
-   * @param affine map to cone coordinates
-   */
-  constexpr explicit ConvexSet() : coord_map(affine::make_map_id<CoordMat>()) {}
-
-  /**
-   * @brief CTOR for convex set
-   *
-   * @param affine map to cone coordinates
-   */
-  constexpr explicit ConvexSet(const affine::AffineMap<CoordMat>& map_in)
-      : coord_map(map_in) {}
-
   /**
    * @brief is_well_formed
    *
@@ -85,26 +61,7 @@ class ConvexSet {
    *
    * @return T/F
    */
-  constexpr bool contains(const Point& x, T tol = 1e-8) const
-    requires(Tag == ViewTag::ConvexSet)
-  {
-    return self().contains_impl(x, tol);
-  }
-
-  /**
-   * @brief contains to check if the point lies in the convex cone
-   *
-   * When lifted to convex cone the pair (x,t) is checked to see if its
-   * contained within the set
-   *
-   * @param (point, t) (n-dim vector) x R
-   * @param optional tolerance
-   *
-   * @return T/F
-   */
-  constexpr bool contains(const std::tuple<Point, T>& x, T tol = 1e-8) const
-    requires(Tag != ViewTag::ConvexSet)
-  {
+  constexpr bool contains(const Point& x, T tol = 1e-8) const {
     return self().contains_impl(x, tol);
   }
 
@@ -119,64 +76,8 @@ class ConvexSet {
    * @return transformed set
    */
   template <linalg::MatrixLike Mat>
-    requires(Tag == ViewTag::ConvexSet)
   constexpr auto transform(const affine::AffineMap<Mat>& map) const {
     return self().transform_impl(map);
-  }
-
-  /**
-   * @brief get cone view (apply inverse perspective func to convex set)
-   *
-   * P^{-1}(C) -> K where P^{-1} : R^m -> R^{m + 1}
-   *
-   * @return cone view
-   */
-  constexpr auto cone_view() const { return self().cone_view_impl(); }
-
-  /**
-   * @brief project (x,t) onto cone coordinates
-   *
-   * @param x_in (x,t) \in R^n x R to cone coords via coord map
-   *
-   * @return projected point
-   */
-  constexpr auto project(const std::tuple<Point, T>& x_in) const {
-    if constexpr (std::same_as<Point, linalg::Vector<T, N>>) {
-      auto x = std::get<0>(x_in);
-      const auto t = std::get<1>(x_in);
-
-      linalg::Vector<T, N + 1> x_cat;
-      for (size_t i = 0; i < N; ++i) x_cat[i] = x(i);
-      x_cat[N] = t;
-
-      const auto x_proj = coord_map(x_cat);
-
-      x = std::get<0>(linalg::splice<N>(x_proj));
-      const auto s = x_proj(N);
-
-      return std::tuple(x, s);
-    } else {
-      const auto U = coord_map.linear_part();
-      const auto t = std::get<1>(x_in);
-      return std::tuple(std::get<0>(x_in), t * U(N)(N));
-
-      // TODO - get similarity transform working
-#if 0
-      auto x = std::get<0>(x_in);
-      const auto t = std::get<1>(x_in);
-
-      CoordMat A;
-      A = linalg::set_block<0, N, 0, N>(A, x);
-      A[N][N] = t;
-
-      // (dakre) perhaps enforce congruence map for faster execution
-      const auto UTAU = linalg::inverse(U) * (A * U);
-      const auto x_prime = linalg::get_block<0, N, 0, N>(UTAU);
-      const auto s = UTAU(N)(N);
-
-      return std::tuple(x_prime, s);
-#endif
-    }
   }
 
   /**
@@ -202,6 +103,15 @@ class ConvexSet {
   }
 
   /**
+   * @brief canonicalize
+   *
+   * P^{-1}(C) -> K 
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize() const { return self().canonicalize_impl(); }
+
+  /**
    * @brief self function which returns a const ref to the derived object
    *
    * @return const reference to the derived object
@@ -209,9 +119,6 @@ class ConvexSet {
   constexpr const Derived& self() const {
     return static_cast<const Derived&>(*this);
   }
-
-  /** @brief member vars */
-  affine::AffineMap<CoordMat> coord_map;  //< map (x, t) \in R^n x R -> cone
 };
 
 }  // namespace convex

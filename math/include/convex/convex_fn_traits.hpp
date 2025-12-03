@@ -20,11 +20,11 @@ namespace convex {
 enum struct FnTag { Convex = 0, Concave };
 
 /// @brief forward declaration - convex fn
-template <ConvexSetLike Set, typename Derived>
+template <linalg::RnSpace Set, typename Derived>
 class ConvexFn;
 
 /// @brief forward declaration - concave fn
-template <ConvexSetLike Set, typename Derived>
+template <linalg::RnSpace, typename Derived>
 class ConcaveFn;
 
 /// @brief forward declaration - affine fn
@@ -32,7 +32,7 @@ template <linalg::RnSpace Space, FnTag Tag>
 class AffineFn;
 
 /// @brief forward declaration - indicator fn
-template <ConvexSetLike Space>
+template <linalg::RnSpace Space>
 class IndicatorFn;
 
 /// @brief forward declaration - max fn
@@ -98,7 +98,7 @@ struct convex_fn_traits<AffineFn<Space, FnTag::Convex>> : std::true_type {
 };
 
 /// @brief derived fn type traits - indicator fn
-template <ConvexSetLike Space>
+template <linalg::RnSpace Space>
 struct convex_fn_traits<IndicatorFn<Space>> : std::true_type {
   using Domain = Space;
 };

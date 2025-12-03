@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "convex/sets/exp_cone.hpp"
 #include "convex_fn.hpp"
 
 namespace convex {
@@ -33,7 +32,6 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
                                         ConcaveFn<Domain, ExpFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
-  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -51,6 +49,7 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
       return T(-1) * linalg::constexpr_exp(x(0));
   }
 
+#if 0
   /**
    * @brief epigraph impl
    *
@@ -63,7 +62,7 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    return ExpCone<Domain, ViewTag::LiftedCone>().cone_view();
+    return ExpCone<Domain, ViewTag::Cone>().cone_view();
   }
 
   /**
@@ -78,10 +77,10 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return ExpCone<Domain, ViewTag::LiftedCone>(
-               default_exp_cone_map<CoordMat>(T(-1)))
+    return ExpCone<Domain, ViewTag::Cone>(default_exp_cone_map<CoordMat>(T(-1)))
         .cone_view();
   }
+#endif
 
   /**
    * @brief negate impl

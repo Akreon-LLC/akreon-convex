@@ -13,7 +13,6 @@
 #pragma once
 
 #include "concave_fn.hpp"
-#include "convex/sets/power_cone.hpp"
 
 namespace convex {
 
@@ -34,7 +33,6 @@ class GeoMeanFn
                          ConvexFn<Domain, GeoMeanFn<Domain, Tag>>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
-  using typename ConvexBase::CoordMat;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
@@ -57,6 +55,7 @@ class GeoMeanFn
       return linalg::constexpr_nrt<T>(prod, N);
   }
 
+#if 0
   /**
    * @brief hypograph impl
    *
@@ -71,7 +70,7 @@ class GeoMeanFn
   constexpr auto hypograph_impl() const
     requires(Tag == FnTag::Concave)
   {
-    return PowerCone<Domain, ViewTag::LiftedCone>().cone_view();
+    return PowerCone<Domain, ViewTag::Cone>().cone_view();
   }
 
   /**
@@ -84,10 +83,11 @@ class GeoMeanFn
   constexpr auto epigraph_impl() const
     requires(Tag == FnTag::Convex)
   {
-    return PowerCone<Domain, ViewTag::LiftedCone>(
+    return PowerCone<Domain, ViewTag::Cone>(
                default_pow_cone_map<CoordMat>(T(-1)))
         .cone_view();
   }
+#endif
 
   /**
    * @brief negate impl

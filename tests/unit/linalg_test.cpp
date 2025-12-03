@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
@@ -373,6 +372,9 @@ TEST_CASE("Matrix types", "[matrix_types]") {
     STATIC_REQUIRE(A_smat(1, 0) == 1.0);
     STATIC_REQUIRE(A_smat(1, 1) == 2.0);
 
+    constexpr auto A2 = linalg::make_smat<2>(A_smat.svec);
+    STATIC_REQUIRE(linalg::all_equal(A, A2));
+
     constexpr auto B =
         Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
     constexpr auto B_smat = SymmetricMatrix(B);
@@ -394,6 +396,9 @@ TEST_CASE("Matrix types", "[matrix_types]") {
     STATIC_REQUIRE(I_smat(2, 0) == 0.0);
     STATIC_REQUIRE(I_smat(2, 0) == 0.0);
     STATIC_REQUIRE(I_smat(2, 2) == 1.0);
+
+    constexpr auto I2 = linalg::make_smat<3>(I_smat.svec);
+    STATIC_REQUIRE(linalg::all_equal(I, I2));
 
     constexpr Matrix<double, 2, 2> C{Vectord<2>{1.0, 1.0},
                                      Vectord<2>{1.0, 1.0}};
