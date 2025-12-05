@@ -17,9 +17,9 @@
 namespace convex {
 
 /**
- * @brief log function
+ * @brief inv pos function
  *
- * f(x) = log(x), x \in R_++
+ * f(x) = 1/x, x in R_++
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
   requires(linalg::space_dim_v<Domain> == 1)
@@ -63,13 +63,39 @@ class InvPosFn : public ConvexFn<Domain, InvPosFn<Domain, Tag>> {
   /**
    * @brief canonicalize_impl
    *
-   * abs(x) -> epi or hypo -> homogenized cone
+   * (1) f(x) = 1/x
+   * K = { (x, t) | 1/x <= t, x in R_++ implies t >= 0 }
+   * K_rsoc = { (u, v, w) | ||u||_2^2 <= 2 v w, v > 0, w >= 0 }
+   *
+   * let u = sqrt(2), v = x, w = t
+   * [ 0 0 ] [ x; t ] + [ sqrt(2); 0; 0] -> (sqrt(2), x, t)
+   * [ 1 0 ]
+   * [ 0 1 ]
+   *
+   * (2) f(x) = -1/x
+   * K = { (x, t) | 1/x <= -t, x in R_++ t in R_- }
+   *
+   * let u = sqrt(2), v = x, w = -t
+   * [ 0  0 ] [ x; t ] + [ sqrt(2); 0; 0 ]
+   * [ 1  0 ]
+   * [ 0 -1 ]
    *
    * @return cone block
    */
   constexpr auto canonicalize_impl() const {
+    linalg::Matrix<T, 3, 2> F;
+    linalg::Vector<T, 3> g;
+    g[0] = linalg::constexpr_sqrt(T(2));
     if constexpr (Tag == FnTag::Convex) {
+      F[1][0] = T(1);
+      F[2][1] = T(1);
+    } else {
+      F[1][0] = T(1);
+      F[2][1] = T(-1);
     }
+    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    const auto rsoc = conic::RotatedSecondOrderCone<decltype(F)>();
+    return std::tuple(conic::ConeBlock(map, rsoc));
   }
 };
 

@@ -90,6 +90,10 @@ struct ExpCone;
 template <linalg::MatrixLike Mat>
 struct PowerCone;
 
+/// @brief forward decl for rsoc
+template <linalg::MatrixLike Mat>
+struct RotatedSecondOrderCone;
+
 /// @brief cone traits
 template <typename Cone>
 struct cone_traits;
@@ -152,6 +156,17 @@ struct cone_traits<ExpCone<Mat>> {
 /// @brief cone traits derived for power cone
 template <linalg::MatrixLike Mat>
 struct cone_traits<PowerCone<Mat>> {
+  using T = linalg::mat_type_t<Mat>;
+  static constexpr size_t M = linalg::mat_rows_v<Mat>;
+  static constexpr size_t N = linalg::mat_cols_v<Mat>;
+  using Domain = linalg::Vector<T, N>;
+  using Bias = linalg::Vector<T, M>;
+  using LinearMap = Mat;
+};
+
+/// @brief cone traits derived for rsoc
+template <linalg::MatrixLike Mat>
+struct cone_traits<RotatedSecondOrderCone<Mat>> {
   using T = linalg::mat_type_t<Mat>;
   static constexpr size_t M = linalg::mat_rows_v<Mat>;
   static constexpr size_t N = linalg::mat_cols_v<Mat>;

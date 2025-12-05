@@ -49,11 +49,6 @@ class QuadOverLinearFn;
 template <linalg::RnSpace Domain, FnTag Tag>
 class LogSumExpFn;
 
-/// @brief forward declaration - log det fn
-template <linalg::RnSpace Domain, FnTag Tag>
-  requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
-class LogDetFn;
-
 /// @brief forward declaration - geo mean fn
 template <linalg::RnSpace Domain, FnTag Tag>
 class GeoMeanFn;
@@ -121,12 +116,6 @@ struct convex_fn_traits<QuadOverLinearFn<Space, FnTag::Convex>>
 /// @brief derived fn type traits - log sum exp
 template <linalg::RnSpace Space>
 struct convex_fn_traits<LogSumExpFn<Space, FnTag::Convex>> : std::true_type {
-  using Domain = Space;
-};
-
-/// @brief derived fn type traits - log det fn
-template <linalg::RnSpace Space>
-struct convex_fn_traits<LogDetFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 

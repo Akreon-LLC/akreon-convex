@@ -13,8 +13,32 @@
 #pragma once
 
 #include "convex/cone_traits.hpp"
+#include "linalg/symmetric_matrix.hpp"
 
 namespace conic {
+
+/// @brief Log Det Functor
+template <linalg::RnSpace Domain>
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
+struct LogDet {
+  using T = linalg::space_type_t<Domain>;
+  using Point = linalg::space_point_t<Domain>;
+
+  /**
+   * @brief compute the log det of a symmetric matrix
+   *
+   * @param X \in S^n_++
+   *
+   * @return optional scalar \in R
+   */
+  constexpr std::optional<T> operator()(const Point& X) const {
+    linalg::SymmetricMatrix S(X);
+    if (S.type != linalg::SymmetricMatrixType::PD) return std::nullopt;
+    if (!S.det.has_value()) return std::nullopt;
+    if (!linalg::is_real(S.det.value())) return std::nullopt;
+    return linalg::constexpr_ln(S.det.value().real());
+  }
+};
 
 /// @brief cone base class
 template <linalg::MatrixLike Mat>

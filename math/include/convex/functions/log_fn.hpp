@@ -15,25 +15,6 @@
 #include "convex_fn.hpp"
 
 namespace convex {
-/**
- * @brief default coord map for exp cone
- *
- * coords: (x, t)
- *
- * [ 0 0 1 ] [ x 1 t] \to (t 1 x)
- * [ 0 1 0 ]
- * [ 1 0 0 ]
- */
-template <linalg::SquareMatrixLike CoordMat>
-  requires(linalg::mat_rows_v<CoordMat> == 2)
-constexpr auto log_to_exp_map(const linalg::mat_type_t<CoordMat>& t) {
-  using T = linalg::mat_type_t<CoordMat>;
-  static constexpr size_t N = linalg::mat_rows_v<CoordMat>;
-  linalg::Matrix<T, N, N> U;
-  U[0][1] = T(1);
-  U[1][0] = t;
-  return affine::AffineMap<decltype(U)>(U, linalg::Vector<T, N>{});
-}
 
 /**
  * @brief log function
@@ -78,13 +59,39 @@ class LogFn : public ConvexFn<Domain, LogFn<Domain, Tag>> {
   /**
    * @brief canonicalize_impl
    *
-   * abs(x) -> epi or hypo -> homogenized cone
+   * (1) f(x) = log(x), x in R_++
+   * K = { (x,t) | log(x) >= t, x in R_++ } -> { (x, t) | x >= exp(t) }
+   * K_exp = { (u,v,w) | v exp(u/v) <= w, v > 0 }
+   *
+   * let u = t, v = 1, w = x
+   * [ 0 1 ] [ x; t ] + [ 0; 1; 0 ] -> (t, 1, x)
+   * [ 0 0 ]
+   * [ 1 0 ]
+   *
+   * (2) f(x) = -log(x), x in R_++
+   * K = { (x,t) | -log(x) <= t } -> { (x,t) | log(x) >= -t }
+   * -> { (x,t) | x >= exp(-t) }
+   *
+   * let u = -t, v = 1, w = x
+   * [ 0 -1 ] [ x; t ] + [ 0; 1; 0 ] -> (-t, 1, x)
+   * [ 0  0 ]
+   * [ 1  0 ]
    *
    * @return cone block
    */
   constexpr auto canonicalize_impl() const {
-    if constexpr (Tag == FnTag::Convex) {
+    linalg::Matrix<T, 3, 2> F;
+    linalg::Vector<T, 3> g;
+    F[2][0] = T(1);
+    g[1] = T(1);
+    if constexpr (Tag == FnTag::Concave) {
+      F[0][1] = T(1);
+    } else {
+      F[0][1] = T(-1);
     }
+    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    const auto exp_cone = conic::ExpCone<decltype(F)>();
+    return std::tuple(conic::ConeBlock(map, exp_cone));
   }
 };
 

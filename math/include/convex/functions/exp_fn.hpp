@@ -61,39 +61,37 @@ class ExpFn : public ConvexFn<Domain, ExpFn<Domain, Tag>> {
    * @brief canonicalize_impl
    *
    * (1) f(x) = exp(x)
-   * K_exp = { (x,t) | exp(x) <= t }
-   * cone(K_exp) = { (x,t,lam) | lam exp(x/lam) <= t, lam > 0 } \cap { (x,t,lam)
-   * | lam = 0, x <= 0, t >= 0 }... closed & proper
+   * K = { (x,t) | exp(x) <= t }
+   * K_exp = { (u,v,w) | v exp(u/v) <= w, v > 0 }
    *
-   * let (x,t,lam) in cone(K_exp)... convex constraint
+   * let u = x, v = 1, w = t
    *
-   * I [ x; t; lam ]
+   * [ 1 0 ] [ x; t ] + [ 0; 1; 0 ] -> (x, 1, t)
+   * [ 0 0 ]
+   * [ 0 1 ]
    *
    * (2) f(x) = -exp(x)
    * K_exp = { (x, t) | -exp(x) >= t }... { (x, t) | exp(x) <= -t, t <= 0 }
    *
-   * [ 1  0 ] [ x; t ] + [ 0; 1; 0 ] -> [x; 1; -t]
+   * [ 1  0 ] [ x; t ] + [ 0; 1; 0 ] -> (x, 1, -t)
    * [ 0  0 ]
    * [ 0 -1 ]
    *
    * @return cone block
    */
   constexpr auto canonicalize_impl() const {
+    linalg::Matrix<T, 3, 2> F;
+    F[0][0] = T(1);
     linalg::Vector<T, 3> g;
+    g[1] = T(1);
     if constexpr (Tag == FnTag::Convex) {
-      using Mat = linalg::Matrix<T, 3, 3>;
-      const auto map = affine::AffineMap<Mat>(linalg::make_identity<T, 3>(), g);
-      const auto exp_cone = conic::ExpCone<Mat>();
-      return std::tuple(conic::ConeBlock(map, exp_cone));
+      F[2][1] = T(1);
     } else {
-      linalg::Matrix<T, 3, 2> F;
-      F[0][0] = T(1);
       F[2][1] = T(-1);
-      g[1] = T(1);
-      const auto map = affine::AffineMap<decltype(F)>(F, g);
-      const auto exp_cone = conic::ExpCone<decltype(F)>();
-      return std::tuple(conic::ConeBlock(map, exp_cone));
     }
+    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    const auto exp_cone = conic::ExpCone<decltype(F)>();
+    return std::tuple(conic::ConeBlock(map, exp_cone));
   }
 };
 
