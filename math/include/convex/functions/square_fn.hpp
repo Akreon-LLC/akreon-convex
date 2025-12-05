@@ -16,44 +16,12 @@
 
 namespace convex {
 
-/**
- * @brief default coordinate map for rsoc
- *
- * coords (x, t)
- *
- * [ 1 0 0] [x1; x2; t] + [0; 1; 0] -> (x, y=1, t)
- * [ 0 0 0]
- * [ 0 0 1]
- *
- * @return affine map -> rsoc coords
- */
-template <linalg::SquareMatrixLike CoordMat>
-  requires(linalg::mat_rows_v<CoordMat> == 3)
-constexpr auto square_to_rsoc_map(const linalg::mat_type_t<CoordMat>& t) {
-  using T = linalg::mat_type_t<CoordMat>;
-  static constexpr size_t N = linalg::mat_rows_v<CoordMat>;
-  CoordMat U;
-  U[0][0] = T(1);
-  U[2][2] = t;
-
-  linalg::Vector<T, N> b;
-  b[1] = T(1);
-
-  return affine::AffineMap<CoordMat>(U, b);
-}
-
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
   requires(linalg::space_dim_v<Domain> == 1)
-class SquareFn
-    : public std::conditional_t<Tag == FnTag::Convex,
-                                ConvexFn<Domain, SquareFn<Domain, Tag>>,
-                                ConcaveFn<Domain, SquareFn<Domain, Tag>>> {
+class SquareFn : public ConvexFn<Domain, SquareFn<Domain, Tag>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase =
-      std::conditional_t<Tag == FnTag::Convex,
-                         ConvexFn<Domain, SquareFn<Domain, Tag>>,
-                         ConcaveFn<Domain, SquareFn<Domain, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, SquareFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -73,39 +41,6 @@ class SquareFn
       return T(-1) * x(0) * x(0);
   }
 
-#if 0
-  /**
-   * @brief epigraph impl
-   *
-   * C = { (x, t) | x * x <= t }
-   *
-   * @return cone
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::Cone>(
-        square_to_rsoc_map<CoordMatExt>(T(1)));
-  }
-
-  /**
-   * @brief hypograph impl
-   *
-   * C = { (x, t) | -(x * x) >= t } \equiv
-   * C = { (x, t) | x * x <= -t }
-   *
-   * @return cone
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    using LiftedSpace = linalg::Matrix<T, 1, N + 1>;
-    return RotatedSOC<LiftedSpace, NormConeType::L2CC, ViewTag::Cone>(
-        square_to_rsoc_map<CoordMatExt>(T(-1)));
-  }
-#endif
-
   /**
    * @brief negate impl
    *
@@ -116,6 +51,18 @@ class SquareFn
       return SquareFn<Domain, FnTag::Convex>();
     else
       return SquareFn<Domain, FnTag::Concave>();
+  }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * abs(x) -> epi or hypo -> homogenized cone
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    if constexpr (Tag == FnTag::Convex) {
+    }
   }
 };
 

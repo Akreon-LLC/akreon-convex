@@ -82,6 +82,14 @@ struct SecondOrderCone;
 template <linalg::MatrixLike Mat>
 struct PositiveSemidefiniteCone;
 
+/// @brief forward decl for exp
+template <linalg::MatrixLike Mat>
+struct ExpCone;
+
+/// @brief forward decl for power
+template <linalg::MatrixLike Mat>
+struct PowerCone;
+
 /// @brief cone traits
 template <typename Cone>
 struct cone_traits;
@@ -122,6 +130,28 @@ struct cone_traits<SecondOrderCone<Mat>> {
 /// @brief cone traits derived for psd
 template <linalg::MatrixLike Mat>
 struct cone_traits<PositiveSemidefiniteCone<Mat>> {
+  using T = linalg::mat_type_t<Mat>;
+  static constexpr size_t M = linalg::mat_rows_v<Mat>;
+  static constexpr size_t N = linalg::mat_cols_v<Mat>;
+  using Domain = linalg::Vector<T, N>;
+  using Bias = linalg::Vector<T, M>;
+  using LinearMap = Mat;
+};
+
+/// @brief cone traits derived for exp
+template <linalg::MatrixLike Mat>
+struct cone_traits<ExpCone<Mat>> {
+  using T = linalg::mat_type_t<Mat>;
+  static constexpr size_t M = linalg::mat_rows_v<Mat>;
+  static constexpr size_t N = linalg::mat_cols_v<Mat>;
+  using Domain = linalg::Vector<T, N>;
+  using Bias = linalg::Vector<T, M>;
+  using LinearMap = Mat;
+};
+
+/// @brief cone traits derived for power cone
+template <linalg::MatrixLike Mat>
+struct cone_traits<PowerCone<Mat>> {
   using T = linalg::mat_type_t<Mat>;
   static constexpr size_t M = linalg::mat_rows_v<Mat>;
   static constexpr size_t N = linalg::mat_cols_v<Mat>;

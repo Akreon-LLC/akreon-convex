@@ -22,14 +22,10 @@ namespace convex {
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
   requires(linalg::space_dim_v<Domain> == 1)
-class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
-                                        ConvexFn<Domain, ExpFn<Domain, Tag>>,
-                                        ConcaveFn<Domain, ExpFn<Domain, Tag>>> {
+class ExpFn : public ConvexFn<Domain, ExpFn<Domain, Tag>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = std::conditional_t<Tag == FnTag::Convex,
-                                        ConvexFn<Domain, ExpFn<Domain, Tag>>,
-                                        ConcaveFn<Domain, ExpFn<Domain, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, ExpFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -49,39 +45,6 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
       return T(-1) * linalg::constexpr_exp(x(0));
   }
 
-#if 0
-  /**
-   * @brief epigraph impl
-   *
-   * C = { (x, t) | exp(x) <= t }, expressed as exp cone
-   * K_exp = { (x, t) | e^{x} <= t }
-   * exp coords (x, 1, z=t)
-   *
-   * @return exp cone
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    return ExpCone<Domain, ViewTag::Cone>().cone_view();
-  }
-
-  /**
-   * @brief hypograph impl
-   *
-   * C = { (x, t) | -exp(x) >= t }, to exp cone
-   * K_exp = { (x, -t) | e^{x} <= -t }
-   * exp coords (x, 1, z=-t)
-   *
-   * @return hypo cone
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    return ExpCone<Domain, ViewTag::Cone>(default_exp_cone_map<CoordMat>(T(-1)))
-        .cone_view();
-  }
-#endif
-
   /**
    * @brief negate impl
    *
@@ -93,5 +56,45 @@ class ExpFn : public std::conditional_t<Tag == FnTag::Convex,
     else
       return ExpFn<Domain, FnTag::Concave>();
   }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * (1) f(x) = exp(x)
+   * K_exp = { (x,t) | exp(x) <= t }
+   * cone(K_exp) = { (x,t,lam) | lam exp(x/lam) <= t, lam > 0 } \cap { (x,t,lam)
+   * | lam = 0, x <= 0, t >= 0 }... closed & proper
+   *
+   * let (x,t,lam) in cone(K_exp)... convex constraint
+   *
+   * I [ x; t; lam ]
+   *
+   * (2) f(x) = -exp(x)
+   * K_exp = { (x, t) | -exp(x) >= t }... { (x, t) | exp(x) <= -t, t <= 0 }
+   *
+   * [ 1  0 ] [ x; t ] + [ 0; 1; 0 ] -> [x; 1; -t]
+   * [ 0  0 ]
+   * [ 0 -1 ]
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    linalg::Vector<T, 3> g;
+    if constexpr (Tag == FnTag::Convex) {
+      using Mat = linalg::Matrix<T, 3, 3>;
+      const auto map = affine::AffineMap<Mat>(linalg::make_identity<T, 3>(), g);
+      const auto exp_cone = conic::ExpCone<Mat>();
+      return std::tuple(conic::ConeBlock(map, exp_cone));
+    } else {
+      linalg::Matrix<T, 3, 2> F;
+      F[0][0] = T(1);
+      F[2][1] = T(-1);
+      g[1] = T(1);
+      const auto map = affine::AffineMap<decltype(F)>(F, g);
+      const auto exp_cone = conic::ExpCone<decltype(F)>();
+      return std::tuple(conic::ConeBlock(map, exp_cone));
+    }
+  }
 };
+
 }  // namespace convex

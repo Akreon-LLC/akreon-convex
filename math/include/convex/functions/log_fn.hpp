@@ -42,14 +42,10 @@ constexpr auto log_to_exp_map(const linalg::mat_type_t<CoordMat>& t) {
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Concave>
   requires(linalg::space_dim_v<Domain> == 1)
-class LogFn : public std::conditional_t<Tag == FnTag::Concave,
-                                        ConcaveFn<Domain, LogFn<Domain>>,
-                                        ConvexFn<Domain, LogFn<Domain, Tag>>> {
+class LogFn : public ConvexFn<Domain, LogFn<Domain, Tag>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = std::conditional_t<Tag == FnTag::Concave,
-                                        ConcaveFn<Domain, LogFn<Domain, Tag>>,
-                                        ConvexFn<Domain, LogFn<Domain, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, LogFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -67,43 +63,6 @@ class LogFn : public std::conditional_t<Tag == FnTag::Concave,
     return linalg::constexpr_ln(x(0));
   }
 
-#if 0
-  /**
-   * @brief hypograph impl
-   *
-   * C = { (x, t) | log(x) >= t } \equiv
-   * C = { (x, t) | x >= e^t}
-   *
-   * exp cone coords (t, 1, x)
-   *
-   * @return cone
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    return ExpCone<Domain, ViewTag::Cone>(log_to_exp_map<CoordMat>(T(1)))
-        .cone_view();
-  }
-
-  /**
-   * @brief epigraph impl
-   *
-   * C = { (x, t) | -log(x) <= t } \equiv
-   * C = { (x, t) | 1/x <= e^t } \equiv
-   * C = { (x, t) | e^{-1} <= x }
-   *
-   * exp cone coords (-t, 1, x)
-   *
-   * @return cone
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    return ExpCone<Domain, ViewTag::Cone>(log_to_exp_map<CoordMat>(T(-1)))
-        .cone_view();
-  }
-#endif
-
   /**
    * @brief negate impl
    *
@@ -115,5 +74,18 @@ class LogFn : public std::conditional_t<Tag == FnTag::Concave,
     else
       return LogFn<Domain, FnTag::Convex>();
   }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * abs(x) -> epi or hypo -> homogenized cone
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    if constexpr (Tag == FnTag::Convex) {
+    }
+  }
 };
+
 }  // namespace convex

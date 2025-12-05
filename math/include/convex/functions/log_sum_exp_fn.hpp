@@ -22,16 +22,10 @@ namespace convex {
  * lse(x) = log(\sum_i^n(e^{x_i})) which is a smooth mapping from R^n to R
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-class LogSumExpFn
-    : public std::conditional_t<Tag == FnTag::Convex,
-                                ConvexFn<Domain, LogSumExpFn<Domain, Tag>>,
-                                ConcaveFn<Domain, LogSumExpFn<Domain, Tag>>> {
+class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain, Tag>> {
  public:
   /// @brief bring into scope the convex fn alias / helpers
-  using ConvexBase =
-      std::conditional_t<Tag == FnTag::Convex,
-                         ConvexFn<Domain, LogSumExpFn<Domain, Tag>>,
-                         ConcaveFn<Domain, LogSumExpFn<Domain, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, LogSumExpFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -61,53 +55,6 @@ class LogSumExpFn
     }
   }
 
-#if 0
-  /**
-   * @brief epigraph impl
-   *
-   * F(x) = log(\sum_i^n exp(x_i))
-   * graph(F(x)) = { (x, log(\sum_i^n exp(x_i)) | x \in dom f }
-   * epi(F(x)) = { (x, t) | log(\sum_i^n exp(x_i)) <= t, x \in dom f } \equiv
-   * { (x, t) | \sum_i^n exp(x_i) <= exp(t), x \in dom f } \equiv
-   * { (x, t) | \sum_i^n exp(x_i - t) <= 1, x \in dom f}
-   *
-   * Exp cone form : { (x, y, z) | y e^{x/y} <= z, y > 0 } \cup { (x, 0, z) | x
-   * <= 0, z >= 0 }
-   *
-   * So we have { (x_i - t, 1, s_i) | e^{x_i - t} <= s_i, \sum_i s_i <= 1 }
-   *
-   * @return epigraph
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    return LogSumExpCone<Domain, ViewTag::Cone>().cone_view();
-  }
-
-  /**
-   * @brief hypograph impl
-   *
-   * F(x) = -log(\sum_i^n exp(x_i))
-   * graph(F(x)) = { (x, log(\sum_i^n exp(x_i))) | x \in dom f }
-   * hypo(F(x)) = { (x, t) | -log(\sum_i^n exp(x_i)) >= t } \equiv
-   * { (x, t) | log(\sum_i^n exp(x_i)) <= -t } \equiv
-   * { (x, t) | \sum_i^n exp(x_i) <= exp(-t) } \equiv
-   * { (x, t) | \sum_i^n exp(x_i + t) <= 1 }
-   *
-   * C = { (x_i + t, 1, s_i) | e^{x_i + 1} <= s_i, \sum_i s_i <= 1 }
-   *
-   * @return hypograph
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    return LogSumExpCone<Domain, ViewTag::Cone>(
-               default_lsec_map<CoordMat>(
-                   linalg::vec_traits<Point>().fill(T(1))))
-        .cone_view();
-  }
-#endif
-
   /**
    * @brief negate func
    *
@@ -118,6 +65,18 @@ class LogSumExpFn
       return LogSumExpFn<Domain, FnTag::Concave>();
     else
       return LogSumExpFn<Domain, FnTag::Convex>();
+  }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * abs(x) -> epi or hypo -> homogenized cone
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    if constexpr (Tag == FnTag::Convex) {
+    }
   }
 };
 

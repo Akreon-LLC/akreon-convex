@@ -24,15 +24,10 @@ namespace convex {
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
   requires(linalg::space_dim_v<Domain> >= 2)
 class QuadOverLinearFn
-    : public std::conditional_t<
-          Tag == FnTag::Convex, ConvexFn<Domain, QuadOverLinearFn<Domain, Tag>>,
-          ConcaveFn<Domain, QuadOverLinearFn<Domain, Tag>>> {
+    : public ConvexFn<Domain, QuadOverLinearFn<Domain, Tag>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase =
-      std::conditional_t<Tag == FnTag::Convex,
-                         ConvexFn<Domain, QuadOverLinearFn<Domain, Tag>>,
-                         ConcaveFn<Domain, QuadOverLinearFn<Domain, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, QuadOverLinearFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -55,42 +50,6 @@ class QuadOverLinearFn
       return T(-1) * linalg::dot(x, x) / y;
   }
 
-#if 0
-  /**
-   * @brief epigraph impl
-   *
-   * F(x) = ||x||_2^2 / y
-   * graph(F(x)) = { (x, y, ||x||_2^2 / y) | x \in R^n, y \in R_++, t \in R_+ }
-   * epi(F(x)) = { (x, y, t) | ||x||_2^2 / y, (x, y) \in dom f, t >= 0 }...
-   * ||x||_2^2 <= t y
-   *
-   * rotated SOC = { (x, y, z) | ||x||_2^2 <= y z, y >= 0, z >= 0 }
-   * epi(F(x)) as RSOC = { (x, y, z) | ||x||_2^2 <= y t, y > 0 }
-   *
-   * @return L1 cone
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    return RotatedSOC<Domain, NormConeType::L2CC>().cone_view();
-  }
-
-  /**
-   * @brief hypograph impl
-   *
-   * C = { (x, y, z) | ||x||_2^2 <= -y t, y > 0 }
-   *
-   * @return cone
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    return RotatedSOC<Domain, NormConeType::L2CC, ViewTag::Cone>(
-               default_rsoc_map<CoordMat>(T(-1)))
-        .cone_view();
-  }
-#endif
-
   /**
    * @brief negate impl
    *
@@ -102,5 +61,18 @@ class QuadOverLinearFn
     else
       return QuadOverLinearFn<Domain, FnTag::Concave>();
   }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * abs(x) -> epi or hypo -> homogenized cone
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    if constexpr (Tag == FnTag::Convex) {
+    }
+  }
 };
+
 }  // namespace convex

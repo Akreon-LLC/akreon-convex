@@ -21,14 +21,10 @@ namespace convex {
  * F(x) = max { x_1, x_2, ... x_n }, x \in R^n
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-class MaxFn : public std::conditional_t<Tag == FnTag::Convex,
-                                        ConvexFn<Domain, MaxFn<Domain, Tag>>,
-                                        ConcaveFn<Domain, MaxFn<Domain, Tag>>> {
+class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = std::conditional_t<Tag == FnTag::Convex,
-                                        ConvexFn<Domain, MaxFn<Domain, Tag>>,
-                                        ConcaveFn<Domain, MaxFn<Domain, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, MaxFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -52,38 +48,6 @@ class MaxFn : public std::conditional_t<Tag == FnTag::Convex,
       return T(-1) * mx;
   }
 
-#if 0
-  /**
-   * @brief epigraph impl
-   *
-   * F(x) = max { x_1, x_2, ... x_n }, x \in R^n
-   * graph(F(x)) = { (x, max(x)) | x \in dom f }
-   * epi(F(x)) = { (x, t) | max(x) <= t }
-   *
-   * @return Linf cone
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    return NormCone<Domain, NormConeType::LinfCC>().cone_view();
-  }
-
-  /**
-   * @brief hypograph impl
-   *
-   * C = { (x, t) | max(x) <= -t }
-   *
-   * @return C
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    return NormCone<Domain, NormConeType::LinfCC, ViewTag::Cone>(
-               linalg::Vector<T, N>{}, T(-1))
-        .cone_view();
-  }
-#endif
-
   /**
    * @brief negate impl
    *
@@ -97,6 +61,18 @@ class MaxFn : public std::conditional_t<Tag == FnTag::Convex,
       return MaxFn<Domain, FnTag::Convex>();
     else
       return MaxFn<Domain, FnTag::Concave>();
+  }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * abs(x) -> epi or hypo -> homogenized cone
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    if constexpr (Tag == FnTag::Convex) {
+    }
   }
 };
 

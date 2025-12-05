@@ -23,10 +23,6 @@ enum struct FnTag { Convex = 0, Concave };
 template <linalg::RnSpace Set, typename Derived>
 class ConvexFn;
 
-/// @brief forward declaration - concave fn
-template <linalg::RnSpace, typename Derived>
-class ConcaveFn;
-
 /// @brief forward declaration - affine fn
 template <linalg::RnSpace Space, FnTag Tag>
 class AffineFn;

@@ -23,14 +23,10 @@ namespace convex {
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
   requires(linalg::space_dim_v<Domain> == 1)
-class AbsFn : public std::conditional_t<Tag == FnTag::Convex,
-                                        ConvexFn<Domain, AbsFn<Domain, Tag>>,
-                                        ConcaveFn<Domain, AbsFn<Domain, Tag>>> {
+class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Tag>> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = std::conditional_t<Tag == FnTag::Convex,
-                                        ConvexFn<Domain, AbsFn<Domain, Tag>>,
-                                        ConcaveFn<Domain, AbsFn<Domain, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, AbsFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -50,49 +46,6 @@ class AbsFn : public std::conditional_t<Tag == FnTag::Convex,
       return T(-1) * linalg::constexpr_abs(x(0));
   }
 
-#if 0
-  /**
-   * @brief epigraph impl
-   *
-   * K_epi = { (x, t) | |x| <= t }
-   *
-   * cone(K_epi) = { (x, t, lam) | |x / lam| lam <= t , lam >= 0} \equiv K_epi
-   *
-   * (i) created lifted u 
-   * let u = |x|, s.t. (x, u) in L1 cone
-   * let s = t - u, s >= 0
-   *
-   * (ii) apply affine map -> cone coords
-   * [0 -1 1 0] [x; u; t; lam] -> (s, lam)
-   * [0  0 0 1]
-   *
-   * @return norm cone
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    return NormCone<Domain, NormConeType::L1CC, ViewTag::Cone>().cone_view();
-  }
-
-  /**
-   * @brief hypograph impl
-   *
-   * C = { (x, t) | |x| <= -t }
-   * cone(K_hyp) = { (x, t, lam) | |x / lam| lam <= -t, lam >= 0}
-   *
-   * s = -t - |x|
-   *
-   * @return norm cone
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    return NormCone<Domain, NormConeType::L1CC, ViewTag::Cone>(
-               default_cone_map<CoordMat>(linalg::Vectord<N>{}, T(-1)))
-        .cone_view();
-  }
-#endif
-
   /**
    * @brief negate impl
    *
@@ -104,6 +57,75 @@ class AbsFn : public std::conditional_t<Tag == FnTag::Convex,
     } else {
       return AbsFn<Domain, FnTag::Concave>();
     }
+  }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * (1) abs(x) -> epi -> cones
+   * f(x) = |x|
+   * K_epi = { (x,t) | |x| <= t }
+   *
+   * let u >= |x|... first convex constraint
+   * 0 <= t - u... second convex constraint
+   * u >= 0... third convex constraint
+   * t >= 0... fourth convex constraint
+   *
+   * -u <= x <= u
+   * 0 <= u + x... nonneg orthant cone
+   * 0 <= u - x... nonneg orthant cone
+   * 0 <= t - u... nonneg orthant cone
+   * u >= 0... nonneg orthant cone
+   * t >= 0... nonneg orthant cone
+   *
+   * [  1  1 0 ] [ x; u; t ]
+   * [ -1  1 0 ]
+   * [  0 -1 1 ]
+   * [  0  1 0 ]
+   * [  0  0 1 ]
+   *
+   * (2) -abs(x) -> hypo -> cones
+   * f(x) = - |x|
+   * K_hypo = { (x,t) | -|x| >= t, t <= 0}
+   *
+   * let u >= |x|... first convex constraint
+   * let t <= -u... second convex constraint
+   * u >= 0... third convex constraint
+   * t <= 0... fourth convex constraint
+   *
+   * 0 <= u + x... nonneg orthant cone
+   * 0 <= u - x... nonneg orthant cone
+   * 0 <= -u - t... nonneg orthant cone
+   * u >= 0... nonneg orthant cone
+   * -t >= 0... nonneg orthant cone
+   *
+   * [  1  1  0 ] [ x; u; t ]
+   * [ -1  1  0 ]
+   * [  0 -1 -1 ]
+   * [  0  1  0 ]
+   * [  0  0 -1 ]
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    linalg::Matrix<T, 5, 3> F;
+    linalg::Vector<T, 5> g;
+    if constexpr (Tag == FnTag::Convex) {
+      F[0][0] = T(1), F[0][1] = T(1);
+      F[1][0] = T(-1), F[1][1] = T(1);
+      F[2][1] = T(-1), F[2][2] = T(1);
+      F[3][1] = T(1);
+      F[4][2] = T(1);
+    } else {
+      F[0][0] = T(1), F[0][1] = T(1);
+      F[1][0] = T(-1), F[1][1] = T(1);
+      F[2][1] = T(-1), F[2][2] = T(-1);
+      F[3][1] = T(1);
+      F[4][2] = T(-1);
+    }
+    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    const auto rplus = conic::NonnegOrthantCone<linalg::Matrix<T, 1, 3>>();
+    return std::tuple(conic::ConeBlock(map, rplus, rplus, rplus, rplus, rplus));
   }
 };
 

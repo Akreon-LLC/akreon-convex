@@ -21,16 +21,10 @@ namespace convex {
 template <linalg::RnSpace Domain, linalg::NormLike Norm,
           FnTag Tag = FnTag::Convex>
   requires(linalg::space_dim_v<Domain> == linalg::norm_size_v<Norm>)
-class NormFn
-    : public std::conditional_t<Tag == FnTag::Convex,
-                                ConvexFn<Domain, NormFn<Domain, Norm, Tag>>,
-                                ConcaveFn<Domain, NormFn<Domain, Norm, Tag>>> {
+class NormFn : public ConvexFn<Domain, NormFn<Domain, Norm, Tag>> {
  public:
   /// @brief bring into scope the convex fn alias / helpers
-  using ConvexBase =
-      std::conditional_t<Tag == FnTag::Convex,
-                         ConvexFn<Domain, NormFn<Domain, Norm, Tag>>,
-                         ConcaveFn<Domain, NormFn<Domain, Norm, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, NormFn<Domain, Norm, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -50,55 +44,6 @@ class NormFn
       return T(-1) * Norm()(x);
   }
 
-#if 0
-  /**
-   * @brief epigraph impl
-   *
-   * F(x) = ||x||
-   * graph(F(x)) = { (x, ||x||) | x \in dom f }
-   * epi(F(x)) = epi(||x||) = { (x, t) | ||x|| <= t, x \in dom f, t >= 0 }
-   * \equiv norm cone
-   *
-   * @return epigraph = norm cone
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    if constexpr (std::same_as<Norm, linalg::L2<Point>>)
-      return NormCone<Domain, NormConeType::L2CC>().cone_view();
-    else if constexpr (std::same_as<Norm, linalg::L1<Point>>)
-      return NormCone<Domain, NormConeType::L1CC>().cone_view();
-    else
-      return NormCone<Domain, NormConeType::LinfCC>().cone_view();
-  }
-
-  /**
-   * @brief hypograph impl (for negated form)
-   *
-   * C = { (x, t) | -||x|| >= t }
-   * C = { (x, z=-t) | ||x|| <= z }
-   *
-   * @return hypograph
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    const linalg::Vector<T, N> c;
-    if constexpr (std::same_as<Norm, linalg::L2<Point>>)
-      return NormCone<Domain, NormConeType::L2CC, ViewTag::Cone>(
-                 default_cone_map<CoordMat>(c, T(-1)))
-          .cone_view();
-    else if constexpr (std::same_as<Norm, linalg::L1<Point>>)
-      return NormCone<Domain, NormConeType::L1CC, ViewTag::Cone>(
-                 default_cone_map<CoordMat>(c, T(-1)))
-          .cone_view();
-    else
-      return NormCone<Domain, NormConeType::LinfCC, ViewTag::Cone>(
-                 default_cone_map<CoordMat>(c, T(-1)))
-          .cone_view();
-  }
-#endif
-
   /**
    * @brief negate impl
    *
@@ -113,5 +58,18 @@ class NormFn
     else
       return NormFn<Domain, Norm, FnTag::Concave>();
   }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * abs(x) -> epi or hypo -> homogenized cone
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    if constexpr (Tag == FnTag::Convex) {
+    }
+  }
 };
+
 }  // namespace convex

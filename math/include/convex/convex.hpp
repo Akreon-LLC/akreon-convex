@@ -12,13 +12,13 @@
 
 #pragma once
 
-#include "cone_traits.hpp"
+#include "cones/exp_cone.hpp"
 #include "cones/nonneg_orthant_cone.hpp"
+#include "cones/power_cone.hpp"
 #include "cones/psd_cone.hpp"
 #include "cones/second_order_cone.hpp"
 #include "cones/zero_order_cone.hpp"
 #include "functions/abs_fn.hpp"
-#include "functions/affine_fn.hpp"
 #include "functions/exp_fn.hpp"
 #include "functions/geo_mean_fn.hpp"
 #include "functions/inv_pos_fn.hpp"

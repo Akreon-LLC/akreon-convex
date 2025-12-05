@@ -57,24 +57,20 @@ class ConvexFn {
   }
 
   /**
-   * @brief epigraph of f
-   *
-   * Region above the graph of f defined by t
-   *
-   * f : R^n -> R
-   * graph(f) = { (x, f(x)) | x \in dom f } \in R^n
-   * epi(F) = { (x, t) | x \in dom f, f(x) <= t } \in R^{n+1}
-   *
-   * @return epigraph of func
-   */
-  constexpr auto epigraph() const { return self().epigraph_impl(); }
-
-  /**
    * @brief negate f -> concave function or id
    *
    * @return negated convex fn
    */
   constexpr auto negate() const { return self().negate_impl(); }
+
+  /**
+   * @brief canonicalize
+   *
+   * f(x) -> epi / hypo -> homogenized cone
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize() const { return self().canonicalize_impl(); }
 
   /**
    * @brief self

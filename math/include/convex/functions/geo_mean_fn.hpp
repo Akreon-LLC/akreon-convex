@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "concave_fn.hpp"
+#include "convex_fn.hpp"
 
 namespace convex {
 
@@ -21,16 +21,10 @@ namespace convex {
  * R^n_++
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Concave>
-class GeoMeanFn
-    : public std::conditional_t<Tag == FnTag::Concave,
-                                ConcaveFn<Domain, GeoMeanFn<Domain, Tag>>,
-                                ConvexFn<Domain, GeoMeanFn<Domain, Tag>>> {
+class GeoMeanFn : public ConvexFn<Domain, GeoMeanFn<Domain, Tag>> {
  public:
   /// @brief bring into scope the concave fn alias / helpers
-  using ConvexBase =
-      std::conditional_t<Tag == FnTag::Concave,
-                         ConcaveFn<Domain, GeoMeanFn<Domain, Tag>>,
-                         ConvexFn<Domain, GeoMeanFn<Domain, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, GeoMeanFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -55,40 +49,6 @@ class GeoMeanFn
       return linalg::constexpr_nrt<T>(prod, N);
   }
 
-#if 0
-  /**
-   * @brief hypograph impl
-   *
-   * F(x) = (\prod_i^n x_i)^{1/n}
-   * graph(F(x)) = { (x, \prod_i^n x_i)^{1/n} | x \in dom f}
-   * hypo(F(x)) = { (x, t) | (\prod_i^n x_i)^{1/n} >= t, x \in dom f }
-   * \equiv = { (x, t) \in R^n_+ x R | \prod_i^n x_i^{1/n} >= t } which is the
-   * power cone
-   *
-   * @return hypograph
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    return PowerCone<Domain, ViewTag::Cone>().cone_view();
-  }
-
-  /**
-   * @brief epigraph impl
-   *
-   * C = { (x, t) | -\prod_i^n x_i^{1/n} >= t }
-   *
-   * @return epigraph
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    return PowerCone<Domain, ViewTag::Cone>(
-               default_pow_cone_map<CoordMat>(T(-1)))
-        .cone_view();
-  }
-#endif
-
   /**
    * @brief negate impl
    *
@@ -99,6 +59,35 @@ class GeoMeanFn
       return GeoMeanFn<Domain, FnTag::Concave>();
     else
       return GeoMeanFn<Domain, FnTag::Convex>();
+  }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * (1) f(x) = prod_i^n(x_i)^{1/n}
+   * K_geo = { (x, t) | prod_i^n(x_i)^{1/n} >= t }... x in R_+
+   * power cone = { (x,t) \in R_+ x R | prod(x_i)^alpha_i >= |t|, sum(a_i) = 1,
+   * a_i >= 0 }
+   *
+   * I [ x; t ]
+   *
+   * (2) f(x) = -prod_i^n(x_i)^{1/n}
+   * K_geo = { (x, t) | prod_i^n(x_i)^{1/n} >= -t }... x in R_+
+   *
+   * [ 1  0 ] [ x; t ]
+   * [ 0 -1 ]
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    auto F = linalg::make_identity<T, 2>();
+    linalg::Vector<T, 2> g;
+    if constexpr (Tag == FnTag::Convex) {
+      F[1][1] = T(-1);
+    }
+    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    const auto power_cone = conic::PowerCone<decltype(F)>();
+    return std::tuple(conic::ConeBlock(map, power_cone));
   }
 };
 

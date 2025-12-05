@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "concave_fn.hpp"
+#include "convex_fn.hpp"
 #include "linalg/symmetric_matrix.hpp"
 
 namespace convex {
@@ -55,16 +55,10 @@ struct LogDet {
  */
 template <linalg::RnSpace Domain, FnTag Tag = FnTag::Concave>
   requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
-class LogDetFn
-    : public std::conditional_t<Tag == FnTag::Concave,
-                                ConcaveFn<Domain, LogDetFn<Domain, Tag>>,
-                                ConvexFn<Domain, LogDetFn<Domain, Tag>>> {
+class LogDetFn : public ConvexFn<Domain, LogDetFn<Domain, Tag>> {
  public:
   /// @brief bring into scope the concave fn alias / helpers
-  using ConvexBase =
-      std::conditional_t<Tag == FnTag::Concave,
-                         ConcaveFn<Domain, LogDetFn<Domain, Tag>>,
-                         ConvexFn<Domain, LogDetFn<Domain, Tag>>>;
+  using ConvexBase = ConvexFn<Domain, LogDetFn<Domain, Tag>>;
   using ConvexBase::Dim;
   using ConvexBase::N;
   using typename ConvexBase::Point;
@@ -91,39 +85,6 @@ class LogDetFn
       return res.value();
   }
 
-#if 0
-  /**
-   * @brief hypograph impl
-   *
-   * F(X) = log det X
-   * graph(F(X)) = { (x, log(det(X))) | x \in dom f }
-   * hypo(F(X)) = { (x, t) | log(det(X)) >= t, x \in dom f }
-   * \equiv { (x, t) | \prod_i^n \lambda_i >= exp(t) }
-   *
-   * @return hypograph
-   */
-  constexpr auto hypograph_impl() const
-    requires(Tag == FnTag::Concave)
-  {
-    return LogDetCone<Domain, ViewTag::Cone>().cone_view();
-  }
-
-  /**
-   * @brief epigraph impl
-   *
-   * C = { (x, t) | \prod_i^n \lambda_i >= -exp(t) }
-   *
-   * @return epigraph
-   */
-  constexpr auto epigraph_impl() const
-    requires(Tag == FnTag::Convex)
-  {
-    return LogDetCone<Domain, ViewTag::Cone>(
-               default_log_det_map<CoordMat>(T(-1)))
-        .cone_view();
-  }
-#endif
-
   /**
    * @brief negate impl
    *
@@ -134,6 +95,18 @@ class LogDetFn
       return LogDetFn<Domain, FnTag::Convex>();
     else
       return LogDetFn<Domain, FnTag::Concave>();
+  }
+
+  /**
+   * @brief canonicalize_impl
+   *
+   * abs(x) -> epi or hypo -> homogenized cone
+   *
+   * @return cone block
+   */
+  constexpr auto canonicalize_impl() const {
+    if constexpr (Tag == FnTag::Convex) {
+    }
   }
 };
 
