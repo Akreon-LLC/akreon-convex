@@ -221,10 +221,19 @@ struct ConeBlock {
    * @brief CTOR for cone block
    *
    * @param affine map (takes convex object -> cone coordinates (homogenized)
-   * @param tag for is primal vs. dual
+   * @param param pack of cones
    */
   constexpr explicit ConeBlock(const Map& map_in, Cs... cs)
       : map(map_in), cones(std::forward<Cs>(cs)...) {}
+
+  /**
+   * @brief CTOR for cone block
+   *
+   * @param affine map
+   * @param tuple of cones
+   */
+  constexpr explicit ConeBlock(const Map& map_in, std::tuple<Cs...> cs)
+      : map(map_in), cones(std::move(cs)) {}
 
   /**
    * @brief validate cone block

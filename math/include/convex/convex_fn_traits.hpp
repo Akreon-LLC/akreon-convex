@@ -40,15 +40,6 @@ template <linalg::RnSpace Space, linalg::NormLike Norm, FnTag Tag>
   requires(linalg::space_dim_v<Space> == linalg::norm_size_v<Norm>)
 class NormFn;
 
-/// @brief forward declaration - quad over linear fn
-template <linalg::RnSpace Space, FnTag Tag>
-  requires(linalg::space_dim_v<Space> >= 2)
-class QuadOverLinearFn;
-
-/// @brief forward declaration - log sum exp fn
-template <linalg::RnSpace Domain, FnTag Tag>
-class LogSumExpFn;
-
 /// @brief forward declaration - geo mean fn
 template <linalg::RnSpace Domain, FnTag Tag>
 class GeoMeanFn;
@@ -103,19 +94,6 @@ struct convex_fn_traits<MaxFn<Space, FnTag::Convex>> : std::true_type {
 /// @brief derived fn type traits - norm fn
 template <linalg::RnSpace Space, linalg::NormLike Norm>
 struct convex_fn_traits<NormFn<Space, Norm, FnTag::Convex>> : std::true_type {
-  using Domain = Space;
-};
-
-/// @brief derived fn type traits - quad/linear fn
-template <linalg::RnSpace Space>
-struct convex_fn_traits<QuadOverLinearFn<Space, FnTag::Convex>>
-    : std::true_type {
-  using Domain = Space;
-};
-
-/// @brief derived fn type traits - log sum exp
-template <linalg::RnSpace Space>
-struct convex_fn_traits<LogSumExpFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 

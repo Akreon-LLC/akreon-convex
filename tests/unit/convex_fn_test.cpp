@@ -223,25 +223,6 @@ TEST_CASE("Test log function", "[convex_fn]") {
   }
 }
 
-TEST_CASE("Test log sum exp", "[convex_fn]") {
-  SECTION("Test log sum exp") {
-    using Space = Matrixd<1, 4>;
-    constexpr auto lse = LogSumExpFn<Space>();
-    STATIC_REQUIRE(lse(Vectord<4>{}).has_value());
-    STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{}).value() - 1.38629436112) <
-                   eps);
-    STATIC_REQUIRE(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).has_value());
-    STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).value() -
-                                 1.21428330036) < eps);
-
-    constexpr auto lse_concave = lse.negate();
-    STATIC_REQUIRE(lse_concave(Vectord<4>{}).has_value());
-    STATIC_REQUIRE(
-        constexpr_abs(lse_concave(Vectord<4>{}).value() + 1.38629436112) < eps);
-    STATIC_REQUIRE(ConvexFnLike<decltype(lse_concave.negate())>);
-  }
-}
-
 TEST_CASE("Test max fn") {
   SECTION("Test max fn (trivial)") {
     using Space = Matrixd<1, 2>;
@@ -258,9 +239,36 @@ TEST_CASE("Test max fn") {
     STATIC_REQUIRE(max_fn.eval(x).has_value());
     STATIC_REQUIRE(max_fn.eval(x).value() == 5.0);
 
+    constexpr mat_traits<Matrix<double, 5, 6>> F_mat;
+    constexpr auto F =
+        F_mat(-1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 0.0, -1.0, 1.0);
+
+    constexpr auto cone_block = std::get<0>(max_fn.canonicalize());
+    STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, Vectord<5>{}));
+
+    constexpr auto cones = cone_block.cones;
+    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+    STATIC_REQUIRE(sz == 5);
+    STATIC_REQUIRE(cone_block.validate());
+
     constexpr auto max_concave = max_fn.negate();
     STATIC_REQUIRE(max_concave(x).value() == -5.0);
     STATIC_REQUIRE(ConvexFnLike<decltype(max_concave.negate())>);
+
+    constexpr auto F1 =
+        F_mat(-1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0,
+              0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0, -1.0,
+              0.0, 0.0, 0.0, 0.0, -1.0, -1.0);
+
+    constexpr auto cone_block1 = std::get<0>(max_concave.canonicalize());
+    STATIC_REQUIRE(cone_block1.map == affine::AffineMap(F1, Vectord<5>{}));
+
+    constexpr auto cones1 = cone_block1.cones;
+    constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
+    STATIC_REQUIRE(sz1 == 5);
+    STATIC_REQUIRE(cone_block1.validate());
   }
 }
 
@@ -301,23 +309,6 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
   }
 }
 
-TEST_CASE("Test quad over linear", "[convex_fn]") {
-  SECTION("Test quad/linear") {
-    using Space = Matrixd<1, 4>;
-    constexpr auto qol = QuadOverLinearFn<Space>();
-    STATIC_REQUIRE(!qol.eval(Vectord<4>{}).has_value());
-    STATIC_REQUIRE(qol.eval(Vectord<4>{1.0, 2.0, 3.0, 2.0}).has_value());
-    STATIC_REQUIRE(qol.eval(Vectord<4>{1.0, 2.0, 3.0, 2.0}).value() == 7.0);
-    STATIC_REQUIRE(!qol.eval(Vectord<4>{1.0, 2.0, 0.0, 0.0}).has_value());
-
-    constexpr auto qol_concave = qol.negate();
-    STATIC_REQUIRE(!qol_concave(Vectord<4>{}).has_value());
-    STATIC_REQUIRE(qol_concave(Vectord<4>{1.0, 2.0, 3.0, 2.0}).has_value());
-    STATIC_REQUIRE(qol_concave(Vectord<4>{1.0, 2.0, 3.0, 2.0}).value() == -7.0);
-    STATIC_REQUIRE(ConvexFnLike<decltype(qol_concave.negate())>);
-  }
-}
-
 TEST_CASE("Test square function", "[convex_fn]") {
   SECTION("Test square function") {
     using Space = Matrixd<1, 1>;
@@ -328,10 +319,32 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(square_fn(Vectord<1>{2.0}).has_value());
     STATIC_REQUIRE(square_fn(Vectord<1>{2.0}).value() == 4.0);
 
+    constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
+    constexpr auto F = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+    constexpr auto cone_block = std::get<0>(square_fn.canonicalize());
+    STATIC_REQUIRE(cone_block.map ==
+                   affine::AffineMap(F, Vectord<3>{0.0, 0.5, 0.0}));
+
+    constexpr auto cones = cone_block.cones;
+    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+    STATIC_REQUIRE(sz == 1);
+    STATIC_REQUIRE(cone_block.validate());
+
     constexpr auto square_concave = square_fn.negate();
     STATIC_REQUIRE(square_concave(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(square_concave(Vectord<1>{0.0}).value() == 0.0);
     STATIC_REQUIRE(square_concave(Vectord<1>{1.0}).has_value());
     STATIC_REQUIRE(square_concave(Vectord<1>{1.0}).value() == -1.0);
+
+    constexpr auto F1 = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, -1.0);
+    constexpr auto cone_block1 = std::get<0>(square_concave.canonicalize());
+    STATIC_REQUIRE(cone_block1.map ==
+                   affine::AffineMap(F1, Vectord<3>{0.0, 0.5, 0.0}));
+
+    constexpr auto cones1 = cone_block1.cones;
+    constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
+    STATIC_REQUIRE(sz1 == 1);
+    STATIC_REQUIRE(cone_block1.validate());
   }
 }

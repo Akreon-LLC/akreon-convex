@@ -66,13 +66,37 @@ class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
   /**
    * @brief canonicalize_impl
    *
-   * abs(x) -> epi or hypo -> homogenized cone
+   * (1) f(x) = max{x_1, ... x_n}
+   * K = { (x,t) | max(x) <= t }
    *
+   * x_i <= t forall i convex constraints
+   * 0 <= t - x_i... in nonneg orthant cone
+   *
+   * [ -I 1 ] [ x ; t ] -> (-x, t)
+   *
+   * (2) f(x) = -max{x_1, ..., x_n}
+   * K = { (x,t) | -max(x) >= t }
+   *
+   * -x_i >= t for all i convex constraints
+   *  0 <= -t - x_i... in nonneg orthant cone
+   *
+   * [ -I  -1 ] [ x; t ] -> (-x, -t)
    * @return cone block
    */
   constexpr auto canonicalize_impl() const {
+    linalg::Matrix<T, N, N + 1> F;
+    linalg::Vector<T, N> g;
+    const auto I_minus = T(-1) * linalg::make_identity<T, N>();
+    F = linalg::set_block<0, N, 0, N>(F, I_minus);
     if constexpr (Tag == FnTag::Convex) {
+      for (size_t i = 0; i < N; ++i) F[i][N] = T(1);
+    } else {
+      for (size_t i = 0; i < N; ++i) F[i][N] = T(-1);
     }
+    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    std::array<conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>, N> arr;
+    const auto rpluses = linalg::array_to_tuple(arr);
+    return std::tuple(conic::ConeBlock(map, rpluses));
   }
 };
 
