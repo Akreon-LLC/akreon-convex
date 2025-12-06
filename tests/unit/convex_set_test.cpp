@@ -188,16 +188,6 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid_90 ==
                    Ellipsoid<Matrix<double, 1, 2>, EllipsoidType::OE>(
                        R * c, transpose(inverse(R)) * inverse(R)));
-
-#if 0
-    constexpr auto cone = ellipsoid.cone_view();
-    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{}, 0.0)));
-    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{c(0), c(1)}, 1.0)));
-    STATIC_REQUIRE(
-        cone.contains(std::tuple(Vectord<2>{c(0) + 0.1, c(1) - 0.5}, 1.0)));
-    STATIC_REQUIRE(!cone.contains(std::tuple(Vectord<2>{1.5, 1.0}, 1.0)));
-    STATIC_REQUIRE(cone.is_proper() == ConeCheck::False);
-#endif
   }
 
   SECTION("Test closed ellipsoid set") {
@@ -210,15 +200,6 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid.contains(c));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
-
-#if 0
-    constexpr auto cone = ellipsoid.cone_view();
-    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{c(0), c(1)}, 1.0)));
-    STATIC_REQUIRE(
-        cone.contains(std::tuple(Vectord<2>{c(0) + 0.1, c(1) - 0.5}, 1.0)));
-    STATIC_REQUIRE(cone.contains(std::tuple(Vectord<2>{1.5, 1.0}, 1.0)));
-    STATIC_REQUIRE(cone.is_proper() == ConeCheck::True);
-#endif
   }
 }
 
@@ -440,26 +421,22 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(res.contains(Vectord<8>{c(0) + 0.3, c(1) - 0.2, c(2) + 0.1,
                                            c(3) - 0.1, 0.3, 0.2, 0.1, 0.1}));
 
-    constexpr mat_traits<Matrix<double, 14, 9>> F_mat;
-    constexpr auto F =
-        F_mat(1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0.,
-              0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0.,
-              0., 0., 1., 0., -1., 0., 0., 0., 1., 0., 0., 0., 0., 0., -1., 0.,
-              0., 0., 1., 0., 0., 0., 0., 0., -1., 0., 0., 0., 1., 0., 0., 0.,
-              0., 0., -1., 0., 0., 0., 1., 0., 0., 0., 0., 0., -1., -1., -1.,
-              -1., r, 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
-              1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.,
-              0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 1.);
+    constexpr mat_traits<Matrix<double, 9, 9>> F_mat;
+    constexpr auto F = F_mat(
+        1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0.,
+        0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0.,
+        -1., 0., 0., 0., 1., 0., 0., 0., 0., 0., -1., 0., 0., 0., 1., 0., 0.,
+        0., 0., 0., -1., 0., 0., 0., 1., 0., 0., 0., 0., 0., -1., 0., 0., 0.,
+        1., 0., 0., 0., 0., 0., -1., -1., -1., -1., r);
 
-    constexpr linalg::Vector<double, 14> g{
-        -1 * c(0), -1 * c(1), -1 * c(2), -1 * c(3), c(0), c(1), c(2),
-        c(3),      0.,        0.,        0.,        0.,   0.,   0.};
+    constexpr linalg::Vector<double, 9> g{
+        -1 * c(0), -1 * c(1), -1 * c(2), -1 * c(3), c(0), c(1), c(2), c(3), 0.};
 
     constexpr auto cone_block = std::get<0>(ball.canonicalize());
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 5);
+    STATIC_REQUIRE(sz == 3);
     STATIC_REQUIRE(cone_block.validate());
   }
 
@@ -504,17 +481,17 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!res.contains(Vectorf<3>{}));
     STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
 
-    constexpr mat_traits<Matrix<float, 7, 4>> F_mat;
-    constexpr auto F = F_mat(1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f,
-                             1.f, 0.f, -1.f, 0.f, 0.f, 0.f, 0.f, -1.f, 0.f, 0.f,
-                             0.f, 0.f, -1.f, 0.f, 0.f, 0.f, 0.f, r);
-    constexpr linalg::Vector<float, 7> g{-1 * c(0), -1 * c(1), -1 * c(2), c(0),
-                                         c(1),      c(2),      0.f};
+    constexpr mat_traits<Matrix<float, 6, 4>> F_mat;
+    constexpr auto F =
+        F_mat(1.f, 0.f, 0.f, r, 0.f, 1.f, 0.f, r, 0.f, 0.f, 1.f, r, -1.f, 0.f,
+              0.f, r, 0.f, -1.f, 0.f, r, 0.f, 0.f, -1.f, r);
+    constexpr linalg::Vector<float, 6> g{-1 * c(0), -1 * c(1), -1 * c(2),
+                                         c(0),      c(1),      c(2)};
     constexpr auto cone_block = std::get<0>(ball.canonicalize());
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 3);
+    STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
   }
 }
