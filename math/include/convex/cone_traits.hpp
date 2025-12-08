@@ -41,6 +41,15 @@ struct Cone {
   }
 
   /**
+   * @brief compute barrier for dual
+   *
+   * @return dual barrier
+   */
+  constexpr auto dual_barrier(const Mat& F, const Bias& g) const {
+    return self().dual_barrier_impl(F, g);
+  }
+
+  /**
    * @brief compute gradient
    *
    * @return gradient for cone
@@ -198,6 +207,7 @@ template <class Cone>
 concept ConeLike = requires(const Cone& cone, const cone_mat_t<Cone>& F,
                             const cone_bias_t<Cone>& g) {
   { cone.barrier(F, g) };
+  { cone.dual_barrier(F, g) };
   { cone.gradient(F, g) };
   { cone.hessian(F, g) };
 };

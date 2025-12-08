@@ -28,7 +28,16 @@ struct NonnegOrthantCone : public Cone<Mat, NonnegOrthantCone<Mat>> {
    *
    * @return barrier for cone
    */
-  constexpr auto barrier(const Mat& /*F*/, const Bias& /*g*/) const {
+  constexpr auto barrier_impl(const Mat& /*F*/, const Bias& /*g*/) const {
+    return false;
+  }
+
+  /**
+   * @brief compute dual barrier
+   *
+   * @return dual barrier for cone
+   */
+  constexpr auto dual_barrier_impl(const Mat& /*F*/, const Bias& /*g*/) const {
     return false;
   }
 
