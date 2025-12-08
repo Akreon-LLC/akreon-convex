@@ -28,6 +28,8 @@ struct Cone {
   /**
    * @brief compute barrier
    *
+   * @param slack vector (primal space)
+   *
    * @return barrier for cone
    */
   constexpr auto barrier(const Vec& s) const { return self().barrier_impl(s); }
@@ -35,14 +37,18 @@ struct Cone {
   /**
    * @brief compute barrier for dual
    *
+   * @param dual vector (dual space)
+   *
    * @return dual barrier
    */
-  constexpr auto dual_barrier(const Vec& s) const {
-    return self().dual_barrier_impl(s);
+  constexpr auto dual_barrier(const Vec& y) const {
+    return self().dual_barrier_impl(y);
   }
 
   /**
    * @brief compute gradient
+   *
+   * @param slack vector (primal space)
    *
    * @return gradient for cone
    */
@@ -53,14 +59,18 @@ struct Cone {
   /**
    * @brief compute gradient for dual
    *
+   * @param dual vector (dual space)
+   *
    * @return dual gradient
    */
-  constexpr auto dual_gradient(const Vec& s) const {
-    return self().dual_gradient_impl(s);
+  constexpr auto dual_gradient(const Vec& y) const {
+    return self().dual_gradient_impl(y);
   }
 
   /**
    * @brief compute hessian
+   *
+   * @param slack vector (primal space)
    *
    * @return hessian for cone
    */
@@ -69,10 +79,12 @@ struct Cone {
   /**
    * @brief compute dual hessian
    *
+   * @param dual vector (dual space)
+   *
    * @return hessian for dual cone
    */
-  constexpr auto dual_hessian(const Vec& s) const {
-    return self().hessian_impl(s);
+  constexpr auto dual_hessian(const Vec& y) const {
+    return self().hessian_impl(y);
   }
 
   /**

@@ -50,6 +50,8 @@ struct PositiveSemidefiniteCone
   /**
    * @brief compute barrier
    *
+   * @param slack vector (primal space)
+   *
    * @return barrier for cone
    */
   constexpr auto barrier_impl(const Vec& /*s*/) const { return false; }
@@ -57,12 +59,16 @@ struct PositiveSemidefiniteCone
   /**
    * @brief compute dual barrier
    *
+   * @param dual vector (dual space)
+   *
    * @return dual barrier for cone
    */
-  constexpr auto dual_barrier_impl(const Vec& /*s*/) const { return false; }
+  constexpr auto dual_barrier_impl(const Vec& /*y*/) const { return false; }
 
   /**
    * @brief compute gradient
+   *
+   * @param slack vector (primal space)
    *
    * @return gradient for cone
    */
@@ -71,12 +77,16 @@ struct PositiveSemidefiniteCone
   /**
    * @brief compute gradient
    *
+   * @param dual vector (dual space)
+   *
    * @return gradient for dual cone
    */
-  constexpr auto dual_gradient_impl(const Vec& /*s*/) const { return false; }
+  constexpr auto dual_gradient_impl(const Vec& /*y*/) const { return false; }
 
   /**
    * @brief compute hessian
+   *
+   * @param slack vector (primal space)
    *
    * @return hessian for cone
    */
@@ -85,9 +95,11 @@ struct PositiveSemidefiniteCone
   /**
    * @brief compute hessian
    *
+   * @param dual vector (dual space)
+   *
    * @return hessian for dual cone
    */
-  constexpr auto dual_hessian_impl(const Vec& /*s*/) const { return false; }
+  constexpr auto dual_hessian_impl(const Vec& /*y*/) const { return false; }
 };
 
 }  // namespace conic
