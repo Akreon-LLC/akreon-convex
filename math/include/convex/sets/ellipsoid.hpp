@@ -127,31 +127,46 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
    *
    * E = { x | (x - c)^T P (x - c) <= 1, P \in S^n_+ }
    *
-   * Factor P = L L^T
-   * let y = L^{-1}(x - c) in dom of RSOC
-   * let x = Ly + c in orig coords
+   * Eigen decomposition: P = V D V^T
+   * (x - c)^T V D V^T (x - c) <= 1
+   * let u = V^T (x - c), u^T = (x-c)^T V
    *
-   * SOC
-   * K = { (y, t) | ||y||_2^2 <= t }
+   * P^{-1}(E) = { (x, t) | (x - c)^T V D V^T (x - c) <= t^2 }
+   * { (x, u, t) | u^T(x) D u(x) <= t^2 }
    *
-   * [ L^{-1} 0 ] [ x; t] + [ -L^{-1} c ; 0 ] -> (L^{-1} (x - c), t)
-   * [ 0      1 ]
+   * Transform to SOC cone
+   * let w = D^{1/2} u, D^{1/2} = diag(sqrt(lam_1), ... sqrt(lam_n))
+   * u^T D u = (D^{1/2} u)^T (D^{1/2} u) = ||w||_2^2
+   * K_soc = { (x,t) | ||D^{1/2} V^T (x - c)||_2 <= t }
+   *
+   * [ D^{1/2} V^T 0 ] [ x; t ] + [ -D^{1/2} V^T c ; 0 ]
+   * [ 0           1 ]
    *
    * @return cone block
    */
-#if 0
   constexpr auto canonicalize_impl() const {
-    linalg::Matrix<T, M + 1, N + 1> F;
-    F = linalg::set_block<0, M, 0, N>(F, A);
-    F = linalg::set_block<0, M, N, N + 1>(F, linalg::as_col_vector(T(-1) * b));
-    F[M][N] = T(1);
-    linalg::Vector<T, M + 1> g;
+    linalg::Matrix<T, N + 1, N + 1> F;
+    linalg::Vector<T, N + 1> g;
+    const auto eig_decomp = linalg::EigenDecomposition(P);
+    const auto D = eig_decomp.get_eigenvalues();
+    linalg::Matrix<T, N, N> D_sqrt;
+    for (size_t i = 0; i < N; ++i)
+      D_sqrt[i][i] = linalg::constexpr_sqrt(D(i).real());
+
+    linalg::Matrix<T, N, N> VT;
+    const auto V = eig_decomp.get_eigenvectors();
+    for (size_t i = 0; i < N; ++i)
+      for (size_t j = 0; j < N; ++j) VT[j][i] = V(i)(j).real();
+
+    const auto w = D_sqrt * VT;
+    F = linalg::set_block<0, N, 0, N>(F, w);
+    F[N][N] = T(1);
+    const auto wc = T(-1) * w * c;
+    for (size_t i = 0; i < N; ++i) g[i] = wc(i);
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto zoc = conic::ZeroOrderCone<linalg::Matrix<T, M, N + 1>>();
-    const auto rplus = conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
-    return conic::ConeBlock(map, zoc, rplus);
+    const auto soc = conic::SecondOrderCone<decltype(F)>();
+    return std::tuple(conic::ConeBlock(map, soc));
   }
-#endif
 
  private:
   /** @brief member variables in the ellipsoid */

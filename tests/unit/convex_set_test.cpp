@@ -200,6 +200,17 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid.contains(c));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
+
+    constexpr auto cone_block = std::get<0>(ellipsoid.canonicalize());
+    constexpr auto F = make_identity<double, 3>();
+    STATIC_REQUIRE(
+        cone_block.map ==
+        affine::AffineMap(F, Vectord<3>{-1.0 * c(0), -1.0 * c(1), 0.0}));
+
+    constexpr auto cones = cone_block.cones;
+    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+    STATIC_REQUIRE(sz == 1);
+    STATIC_REQUIRE(cone_block.validate());
   }
 }
 
