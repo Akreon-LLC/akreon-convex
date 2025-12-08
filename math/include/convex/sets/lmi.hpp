@@ -181,8 +181,8 @@ class LMI : public ConvexSet<Space, LMI<Space>> {
     linalg::Vector<T, K + 1> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto psd_cone =
-        conic::PositiveSemidefiniteCone<linalg::Matrix<T, K, N + 1>>();
-    const auto rplus = conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
+        conic::PositiveSemidefiniteCone<linalg::Vector<T, K>>();
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     return std::tuple(conic::ConeBlock(map, psd_cone, rplus));
   }
 

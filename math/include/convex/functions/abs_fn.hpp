@@ -124,7 +124,7 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Tag>> {
       F[4][2] = T(-1);
     }
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto rplus = conic::NonnegOrthantCone<linalg::Matrix<T, 1, 3>>();
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     return std::tuple(conic::ConeBlock(map, rplus, rplus, rplus, rplus, rplus));
   }
 };

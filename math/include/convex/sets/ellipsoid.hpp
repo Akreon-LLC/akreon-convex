@@ -164,7 +164,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
     const auto wc = T(-1) * w * c;
     for (size_t i = 0; i < N; ++i) g[i] = wc(i);
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto soc = conic::SecondOrderCone<decltype(F)>();
+    const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
     return std::tuple(conic::ConeBlock(map, soc));
   }
 

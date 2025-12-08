@@ -310,9 +310,8 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
       linalg::Vector<T, N + 1> g;
       for (size_t i = 0; i < N; ++i) g[i] = T(-1) * c(i);
       const auto map = affine::AffineMap<decltype(F)>(F, g);
-      const auto soc = conic::SecondOrderCone<linalg::Matrix<T, N, N + 1>>();
-      const auto rplus =
-          conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
+      const auto soc = conic::SecondOrderCone<linalg::Vector<T, N>>();
+      const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
       return std::tuple(conic::ConeBlock(map, soc, rplus));
     } else if constexpr (Type == NormBallType::LinfCB) {
       linalg::Matrix<T, 2 * N, N + 1> F;
@@ -324,8 +323,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
       for (size_t i = 0; i < N; ++i) g[i] = T(-1) * c(i);
       for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g[i] = c(j);
       const auto map = affine::AffineMap<decltype(F)>(F, g);
-      const auto rplus =
-          conic::NonnegOrthantCone<linalg::Matrix<T, N, N + 1>>();
+      const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       return std::tuple(conic::ConeBlock(map, rplus, rplus));
     } else {
       linalg::Matrix<T, 2 * N + 1, 2 * N + 1> F;
@@ -339,10 +337,8 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
       for (size_t i = 0; i < N; ++i) g[i] = T(-1) * c(i);
       for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g[i] = c(j);
       const auto map = affine::AffineMap<decltype(F)>(F, g);
-      const auto rplus1 =
-          conic::NonnegOrthantCone<linalg::Matrix<T, N, 2 * N + 1>>();
-      const auto rplus2 =
-          conic::NonnegOrthantCone<linalg::Matrix<T, 1, 2 * N + 1>>();
+      const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
+      const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
       return std::tuple(conic::ConeBlock(map, rplus1, rplus1, rplus2));
     }
   }

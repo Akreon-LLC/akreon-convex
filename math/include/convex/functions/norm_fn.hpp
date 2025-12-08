@@ -128,7 +128,7 @@ class NormFn : public ConvexFn<Domain, NormFn<Domain, Norm, Tag>> {
         F[N][N] = T(-1);
       }
       const auto map = affine::AffineMap<decltype(F)>(F, g);
-      const auto soc = conic::SecondOrderCone<decltype(F)>();
+      const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
       return std::tuple(conic::ConeBlock(map, soc));
     } else if constexpr (std::same_as<Norm, linalg::Linf<Vec>>) {
       linalg::Matrix<T, 2 * N, N + 1> F;
@@ -144,8 +144,7 @@ class NormFn : public ConvexFn<Domain, NormFn<Domain, Norm, Tag>> {
       }
 
       const auto map = affine::AffineMap<decltype(F)>(F, g);
-      const auto rplus =
-          conic::NonnegOrthantCone<linalg::Matrix<T, N, N + 1>>();
+      const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       return std::tuple(conic::ConeBlock(map, rplus, rplus));
     } else {
       linalg::Matrix<T, 2 * N + 1, 2 * N + 1> F;
@@ -164,10 +163,8 @@ class NormFn : public ConvexFn<Domain, NormFn<Domain, Norm, Tag>> {
       linalg::Vector<T, 2 * N + 1> g;
 
       const auto map = affine::AffineMap<decltype(F)>(F, g);
-      const auto rplus1 =
-          conic::NonnegOrthantCone<linalg::Matrix<T, N, 2 * N + 1>>();
-      const auto rplus2 =
-          conic::NonnegOrthantCone<linalg::Matrix<T, 1, 2 * N + 1>>();
+      const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
+      const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
       return std::tuple(conic::ConeBlock(map, rplus1, rplus1, rplus2));
     }
   }

@@ -12,52 +12,57 @@
 
 #pragma once
 
-#include "convex/cone_traits.hpp"
+#include "cone.hpp"
 
 namespace conic {
 
-/// @brief cone base class
-template <linalg::MatrixLike Mat>
-struct ZeroOrderCone : public Cone<Mat, ZeroOrderCone<Mat>> {
+/// @brief soc cone class
+template <linalg::VectorLike Vec>
+struct ZeroOrderCone : public Cone<Vec, ZeroOrderCone<Vec>> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Mat, ZeroOrderCone<Mat>>;
-  using typename ConeBase::Bias;
+  using ConeBase = Cone<Vec, ZeroOrderCone<Vec>>;
 
   /**
    * @brief compute barrier
    *
    * @return barrier for cone
    */
-  constexpr auto barrier_impl(const Mat& /*F*/, const Bias& /*g*/) const {
-    return false;
-  }
+  constexpr auto barrier_impl(const Vec& /*s*/) const { return false; }
 
   /**
    * @brief compute dual barrier
    *
    * @return dual barrier for cone
    */
-  constexpr auto dual_barrier_impl(const Mat& /*F*/, const Bias& /*g*/) const {
-    return false;
-  }
+  constexpr auto dual_barrier_impl(const Vec& /*s*/) const { return false; }
 
   /**
    * @brief compute gradient
    *
    * @return gradient for cone
    */
-  constexpr auto gradient_impl(const Mat& /*F*/, const Bias& /*g*/) const {
-    return false;
-  }
+  constexpr auto gradient_impl(const Vec& /*s*/) const { return false; }
+
+  /**
+   * @brief compute gradient
+   *
+   * @return gradient for dual cone
+   */
+  constexpr auto dual_gradient_impl(const Vec& /*s*/) const { return false; }
 
   /**
    * @brief compute hessian
    *
    * @return hessian for cone
    */
-  constexpr auto hessian_impl(const Mat& /*F*/, const Bias& /*g*/) const {
-    return false;
-  }
+  constexpr auto hessian_impl(const Vec& /*s*/) const { return false; }
+
+  /**
+   * @brief compute hessian
+   *
+   * @return hessian for dual cone
+   */
+  constexpr auto dual_hessian_impl(const Vec& /*s*/) const { return false; }
 };
 
 }  // namespace conic

@@ -86,7 +86,7 @@ class SquareFn : public ConvexFn<Domain, SquareFn<Domain, Tag>> {
       F[2][1] = T(-1);
     }
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto rsoc = conic::RotatedSecondOrderCone<decltype(F)>();
+    const auto rsoc = conic::RotatedSecondOrderCone<linalg::Vector<T, 3>>();
     return std::tuple(conic::ConeBlock(map, rsoc));
   }
 };

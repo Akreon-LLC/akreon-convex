@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "convex/cone_traits.hpp"
+#include "cone.hpp"
 #include "linalg/symmetric_matrix.hpp"
 
 namespace conic {
@@ -40,49 +40,54 @@ struct LogDet {
   }
 };
 
-/// @brief cone base class
-template <linalg::MatrixLike Mat>
+/// @brief psd cone class
+template <linalg::VectorLike Vec>
 struct PositiveSemidefiniteCone
-    : public Cone<Mat, PositiveSemidefiniteCone<Mat>> {
+    : public Cone<Vec, PositiveSemidefiniteCone<Vec>> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Mat, PositiveSemidefiniteCone<Mat>>;
-  using typename ConeBase::Bias;
+  using ConeBase = Cone<Vec, PositiveSemidefiniteCone<Vec>>;
 
   /**
    * @brief compute barrier
    *
    * @return barrier for cone
    */
-  constexpr auto barrier_impl(const Mat& /*F*/, const Bias& /*g*/) const {
-    return false;
-  }
+  constexpr auto barrier_impl(const Vec& /*s*/) const { return false; }
 
   /**
    * @brief compute dual barrier
    *
    * @return dual barrier for cone
    */
-  constexpr auto dual_barrier_impl(const Mat& /*F*/, const Bias& /*g*/) const {
-    return false;
-  }
+  constexpr auto dual_barrier_impl(const Vec& /*s*/) const { return false; }
 
   /**
    * @brief compute gradient
    *
    * @return gradient for cone
    */
-  constexpr auto gradient_impl(const Mat& /*F*/, const Bias& /*g*/) const {
-    return false;
-  }
+  constexpr auto gradient_impl(const Vec& /*s*/) const { return false; }
+
+  /**
+   * @brief compute gradient
+   *
+   * @return gradient for dual cone
+   */
+  constexpr auto dual_gradient_impl(const Vec& /*s*/) const { return false; }
 
   /**
    * @brief compute hessian
    *
    * @return hessian for cone
    */
-  constexpr auto hessian_impl(const Mat& /*F*/, const Bias& /*g*/) const {
-    return false;
-  }
+  constexpr auto hessian_impl(const Vec& /*s*/) const { return false; }
+
+  /**
+   * @brief compute hessian
+   *
+   * @return hessian for dual cone
+   */
+  constexpr auto dual_hessian_impl(const Vec& /*s*/) const { return false; }
 };
 
 }  // namespace conic

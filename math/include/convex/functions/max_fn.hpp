@@ -94,7 +94,7 @@ class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(-1);
     }
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    std::array<conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>, N> arr;
+    std::array<conic::NonnegOrthantCone<linalg::Vector<T, 1>>, N> arr;
     const auto rpluses = linalg::array_to_tuple(arr);
     return std::tuple(conic::ConeBlock(map, rpluses));
   }

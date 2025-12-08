@@ -86,7 +86,7 @@ class GeoMeanFn : public ConvexFn<Domain, GeoMeanFn<Domain, Tag>> {
       F[1][1] = T(-1);
     }
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto power_cone = conic::PowerCone<decltype(F)>();
+    const auto power_cone = conic::PowerCone<linalg::Vector<T, 2>>();
     return std::tuple(conic::ConeBlock(map, power_cone));
   }
 };

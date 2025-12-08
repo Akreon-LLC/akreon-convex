@@ -90,7 +90,7 @@ class LogFn : public ConvexFn<Domain, LogFn<Domain, Tag>> {
       F[0][1] = T(-1);
     }
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto exp_cone = conic::ExpCone<decltype(F)>();
+    const auto exp_cone = conic::ExpCone<linalg::Vector<T, 3>>();
     return std::tuple(conic::ConeBlock(map, exp_cone));
   }
 };

@@ -19,88 +19,35 @@
 namespace conic {
 
 /// @brief cone base class
-template <linalg::MatrixLike Mat, typename Derived>
-struct Cone {
-  /// @brief alias for mat type
-  using T = linalg::mat_type_t<Mat>;
-
-  /// @brief helpers to get M and N sizes
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
-
-  /// @brief alias for bias vector
-  using Bias = linalg::Vector<T, M>;
-
-  /**
-   * @brief compute barrier
-   *
-   * @return barrier for cone
-   */
-  constexpr auto barrier(const Mat& F, const Bias& g) const {
-    return self().barrier_impl(F, g);
-  }
-
-  /**
-   * @brief compute barrier for dual
-   *
-   * @return dual barrier
-   */
-  constexpr auto dual_barrier(const Mat& F, const Bias& g) const {
-    return self().dual_barrier_impl(F, g);
-  }
-
-  /**
-   * @brief compute gradient
-   *
-   * @return gradient for cone
-   */
-  constexpr auto gradient(const Mat& F, const Bias& g) const {
-    return self().gradient_impl(F, g);
-  }
-
-  /**
-   * @brief compute hessian
-   *
-   * @return hessian for cone
-   */
-  constexpr auto hessian(const Mat& F, const Bias& g) const {
-    return self().hessian_impl(F, g);
-  }
-
-  /**
-   * @brief self function which returns a const ref to the derived object
-   *
-   * @return const reference to the derived object
-   */
-  constexpr auto self() const { return static_cast<const Derived&>(*this); }
-};
+template <linalg::VectorLike Vec, typename Derived>
+struct Cone;
 
 /// @brief forward decl for zero order cone
-template <linalg::MatrixLike Mat>
+template <linalg::VectorLike Vec>
 struct ZeroOrderCone;
 
 /// @brief forward decl for nonneg orthant cone
-template <linalg::MatrixLike Mat>
+template <linalg::VectorLike Vec>
 struct NonnegOrthantCone;
 
 /// @brief forward decl for soc
-template <linalg::MatrixLike Mat>
+template <linalg::VectorLike Vec>
 struct SecondOrderCone;
 
 /// @brief forward decl for psd
-template <linalg::MatrixLike Mat>
+template <linalg::VectorLike Vec>
 struct PositiveSemidefiniteCone;
 
 /// @brief forward decl for exp
-template <linalg::MatrixLike Mat>
+template <linalg::VectorLike Vec>
 struct ExpCone;
 
 /// @brief forward decl for power
-template <linalg::MatrixLike Mat>
+template <linalg::VectorLike Vec>
 struct PowerCone;
 
 /// @brief forward decl for rsoc
-template <linalg::MatrixLike Mat>
+template <linalg::VectorLike Vec>
 struct RotatedSecondOrderCone;
 
 /// @brief cone traits
@@ -108,108 +55,81 @@ template <typename Cone>
 struct cone_traits;
 
 /// @brief cone traits derived for zoc
-template <linalg::MatrixLike Mat>
-struct cone_traits<ZeroOrderCone<Mat>> {
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
-  using Domain = linalg::Vector<T, N>;
-  using Bias = linalg::Vector<T, M>;
-  using LinearMap = Mat;
+template <linalg::VectorLike Vec>
+struct cone_traits<ZeroOrderCone<Vec>> {
+  using SlackT = Vec;
+  using T = linalg::vec_type_t<Vec>;
+  static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
 /// @brief cone traits derived for rplus
-template <linalg::MatrixLike Mat>
-struct cone_traits<NonnegOrthantCone<Mat>> {
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
-  using Domain = linalg::Vector<T, N>;
-  using Bias = linalg::Vector<T, M>;
-  using LinearMap = Mat;
+template <linalg::VectorLike Vec>
+struct cone_traits<NonnegOrthantCone<Vec>> {
+  using SlackT = Vec;
+  using T = linalg::vec_type_t<Vec>;
+  static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
 /// @brief cone traits derived for soc
-template <linalg::MatrixLike Mat>
-struct cone_traits<SecondOrderCone<Mat>> {
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
-  using Domain = linalg::Vector<T, N>;
-  using Bias = linalg::Vector<T, M>;
-  using LinearMap = Mat;
+template <linalg::VectorLike Vec>
+struct cone_traits<SecondOrderCone<Vec>> {
+  using SlackT = Vec;
+  using T = linalg::vec_type_t<Vec>;
+  static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
 /// @brief cone traits derived for psd
-template <linalg::MatrixLike Mat>
-struct cone_traits<PositiveSemidefiniteCone<Mat>> {
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
-  using Domain = linalg::Vector<T, N>;
-  using Bias = linalg::Vector<T, M>;
-  using LinearMap = Mat;
+template <linalg::VectorLike Vec>
+struct cone_traits<PositiveSemidefiniteCone<Vec>> {
+  using SlackT = Vec;
+  using T = linalg::vec_type_t<Vec>;
+  static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
 /// @brief cone traits derived for exp
-template <linalg::MatrixLike Mat>
-struct cone_traits<ExpCone<Mat>> {
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
-  using Domain = linalg::Vector<T, N>;
-  using Bias = linalg::Vector<T, M>;
-  using LinearMap = Mat;
+template <linalg::VectorLike Vec>
+struct cone_traits<ExpCone<Vec>> {
+  using SlackT = Vec;
+  using T = linalg::vec_type_t<Vec>;
+  static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
 /// @brief cone traits derived for power cone
-template <linalg::MatrixLike Mat>
-struct cone_traits<PowerCone<Mat>> {
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
-  using Domain = linalg::Vector<T, N>;
-  using Bias = linalg::Vector<T, M>;
-  using LinearMap = Mat;
+template <linalg::VectorLike Vec>
+struct cone_traits<PowerCone<Vec>> {
+  using SlackT = Vec;
+  using T = linalg::vec_type_t<Vec>;
+  static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
 /// @brief cone traits derived for rsoc
-template <linalg::MatrixLike Mat>
-struct cone_traits<RotatedSecondOrderCone<Mat>> {
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
-  using Domain = linalg::Vector<T, N>;
-  using Bias = linalg::Vector<T, M>;
-  using LinearMap = Mat;
+template <linalg::VectorLike Vec>
+struct cone_traits<RotatedSecondOrderCone<Vec>> {
+  using SlackT = Vec;
+  using T = linalg::vec_type_t<Vec>;
+  static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
 /// @brief alias for scalar type in cone
 template <class Cone>
-using cone_type_t = typename cone_traits<linalg::remove_cvref_t<Cone>>::T;
+using cone_scalar_t = typename cone_traits<linalg::remove_cvref_t<Cone>>::T;
 
-/// @brief alias for domain in cone
+/// @brief alias for slack type in cone
 template <class Cone>
-using cone_domain_t =
-    typename cone_traits<linalg::remove_cvref_t<Cone>>::Domain;
+using cone_slack_t = typename cone_traits<linalg::remove_cvref_t<Cone>>::SlackT;
 
-/// @brief alias for bias in cone
+/// @brief helper to get N from cone
 template <class Cone>
-using cone_bias_t = typename cone_traits<linalg::remove_cvref_t<Cone>>::Bias;
-
-/// @brief alias for linear mat in cone
-template <class Cone>
-using cone_mat_t =
-    typename cone_traits<linalg::remove_cvref_t<Cone>>::LinearMap;
+inline constexpr size_t cone_dim_t =
+    cone_traits<linalg::remove_cvref_t<Cone>>::N;
 
 /// @brief concept for convex object like
 template <class Cone>
-concept ConeLike = requires(const Cone& cone, const cone_mat_t<Cone>& F,
-                            const cone_bias_t<Cone>& g) {
-  { cone.barrier(F, g) };
-  { cone.dual_barrier(F, g) };
-  { cone.gradient(F, g) };
-  { cone.hessian(F, g) };
+concept ConeLike = requires(const Cone& cone, const cone_slack_t<Cone>& s) {
+  { cone.barrier(s) };
+  { cone.dual_barrier(s) };
+  { cone.gradient(s) };
+  { cone.hessian(s) };
 };
 
 /**
@@ -252,20 +172,17 @@ struct ConeBlock {
    */
   constexpr bool validate() const {
     // (dakre) lambda functor to perform the soft check
-    size_t n_rows = 0;
+    size_t n_dims = 0;
     auto perform_check = [&](const auto& arg) {
-      using ArgT = cone_type_t<decltype(arg)>;
-      using ArgMat = cone_mat_t<decltype(arg)>;
-      static_assert(std::same_as<ArgT, T>,
-                    "Cone type is mismatched with cone block scalar type");
+      using ArgT = cone_scalar_t<decltype(arg)>;
       static_assert(
-          N == linalg::mat_cols_v<ArgMat>,
-          "Cone domain dim is mismatched with domain vector in cone block");
-      n_rows += linalg::mat_rows_v<ArgMat>;
+          std::same_as<ArgT, T>,
+          "Cone scalar type is mismatched with cone block scalar type");
+      n_dims += cone_dim_t<decltype(arg)>;
     };
     // (dakre) apply fold expression over comma operator on stored cones
     std::apply([&](const auto&... args) { (perform_check(args), ...); }, cones);
-    return n_rows == M;
+    return n_dims == M;
   }
 
   /** @brief member vars for cone block */
@@ -315,4 +232,5 @@ struct CanonicalForm {
                                // t is the last lift var
   std::tuple<Cblks...> cone_blocks;  //< K = k_0 x k_1 x ... k_{m} cones
 };
+
 }  // namespace conic

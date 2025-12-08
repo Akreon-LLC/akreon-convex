@@ -322,16 +322,15 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(!poly.contains(Vectord<3>{0.8, 0.1, 0.0}));
 
     constexpr auto cone_block = std::get<0>(simplex.canonicalize());
-    constexpr mat_traits<Matrix<double, 5, 4>> A_mat;
-    constexpr auto A =
-        A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0,
-              -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    constexpr mat_traits<Matrix<double, 4, 4>> A_mat;
+    constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                             1.0, 0.0, -1.0, -1.0, -1.0, 1.0);
 
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<5>{}));
+    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<4>{}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 3);
+    STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
   }
 }

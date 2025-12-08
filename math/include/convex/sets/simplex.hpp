@@ -130,23 +130,20 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    *
    * 0 <= x... nonneg cone
    * 0 <= t - 1^T x... nonneg cone
-   * 0 <= t... nonneg cone
    *
    * [ I    0 ] [ x; t ]
    * [ -1^T 1 ]
-   * [ 0    1 ]
    */
   constexpr auto canonicalize_impl() const {
-    linalg::Matrix<T, N + 2, N + 1> F;
+    linalg::Matrix<T, N + 1, N + 1> F;
     for (size_t i = 0; i < N; ++i) F[i][i] = T(1);
     for (size_t i = 0; i < N; ++i) F[N][i] = T(-1);
     F[N][N] = T(1);
-    F[N + 1][N] = T(1);
-    linalg::Vector<T, N + 2> g;
+    linalg::Vector<T, N + 1> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto rplus1 = conic::NonnegOrthantCone<linalg::Matrix<T, N, N + 1>>();
-    const auto rplus2 = conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
-    return std::tuple(conic::ConeBlock(map, rplus1, rplus2, rplus2));
+    const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
+    const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    return std::tuple(conic::ConeBlock(map, rplus1, rplus2));
   }
 };
 

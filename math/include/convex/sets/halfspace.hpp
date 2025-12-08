@@ -149,9 +149,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
     F[1][N] = T(1);
     linalg::Vector<T, 2> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto rplus1 = conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
-    const auto rplus2 = conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
-    return std::tuple(conic::ConeBlock(map, rplus1, rplus2));
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    return std::tuple(conic::ConeBlock(map, rplus, rplus));
   }
 
  private:

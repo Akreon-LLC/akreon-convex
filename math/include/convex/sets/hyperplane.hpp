@@ -122,8 +122,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
     F[1][N] = T(1);
     linalg::Vector<T, 2> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto zoc = conic::ZeroOrderCone<linalg::Matrix<T, 1, N + 1>>();
-    const auto rplus = conic::NonnegOrthantCone<linalg::Matrix<T, 1, N + 1>>();
+    const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, 1>>();
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     return std::tuple(conic::ConeBlock(map, zoc, rplus));
   }
 
