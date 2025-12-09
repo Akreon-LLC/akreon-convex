@@ -413,3 +413,42 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(cone_block1.validate());
   }
 }
+
+TEST_CASE("Test log det fn", "[concave_fn]") {
+  SECTION("Test log det fn") {
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto log_det = LogDetFn<linalg::SymmetricMatrix<decltype(I)>>();
+    STATIC_REQUIRE(ConcaveFnLike<decltype(log_det)>);
+    STATIC_REQUIRE(log_det(I).has_value());
+    STATIC_REQUIRE(log_det(I).value() == 0.0);
+    STATIC_REQUIRE(!log_det(-1.0 * I).has_value());
+
+    constexpr mat_traits<Matrix<double, 4, 4>> F_mat;
+    constexpr auto F = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                             1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+    constexpr auto cone_block = std::get<0>(log_det.canonicalize());
+    STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, Vectord<4>{}));
+
+    constexpr auto cones = cone_block.cones;
+    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+    STATIC_REQUIRE(sz == 1);
+    STATIC_REQUIRE(cone_block.validate());
+
+    constexpr auto log_det_convex = log_det.negate();
+    STATIC_REQUIRE(log_det_convex(I).has_value());
+    STATIC_REQUIRE(log_det_convex(I).value() == 0.0);
+    STATIC_REQUIRE(ConvexFnLike<decltype(log_det_convex)>);
+
+    constexpr auto F1 = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                              1.0, 0.0, 0.0, 0.0, 0.0, -1.0);
+
+    constexpr auto cone_block1 = std::get<0>(log_det_convex.canonicalize());
+    STATIC_REQUIRE(cone_block1.map == affine::AffineMap(F1, Vectord<4>{}));
+
+    constexpr auto cones1 = cone_block1.cones;
+    constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
+    STATIC_REQUIRE(sz1 == 1);
+    STATIC_REQUIRE(cone_block1.validate());
+  }
+}

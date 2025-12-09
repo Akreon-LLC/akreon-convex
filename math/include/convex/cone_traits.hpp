@@ -50,6 +50,10 @@ struct PowerCone;
 template <linalg::VectorLike Vec>
 struct RotatedSecondOrderCone;
 
+/// @brief forward decl for log det cone
+template <linalg::VectorLike Vec>
+struct LogDetCone;
+
 /// @brief cone traits
 template <typename Cone>
 struct cone_traits;
@@ -110,6 +114,14 @@ struct cone_traits<RotatedSecondOrderCone<Vec>> {
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
+/// @brief cone traits derived for log det cone
+template <linalg::VectorLike Vec>
+struct cone_traits<LogDetCone<Vec>> {
+  using SlackT = Vec;
+  using T = linalg::vec_type_t<Vec>;
+  static constexpr size_t N = linalg::vec_size_v<Vec>;
+};
+
 /// @brief alias for scalar type in cone
 template <class Cone>
 using cone_scalar_t = typename cone_traits<linalg::remove_cvref_t<Cone>>::T;
@@ -129,7 +141,9 @@ concept ConeLike = requires(const Cone& cone, const cone_slack_t<Cone>& s) {
   { cone.barrier(s) };
   { cone.dual_barrier(s) };
   { cone.gradient(s) };
+  { cone.dual_gradient(s) };
   { cone.hessian(s) };
+  { cone.dual_hessian(s) };
 };
 
 /**
