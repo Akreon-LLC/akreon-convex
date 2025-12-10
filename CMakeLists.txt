@@ -19,9 +19,9 @@ option(BUILD_TESTING "Enable building test code" ON)
 include(FetchContent)
 
 include_directories(
-  math/include
-  physics/include
-  controls/include
+  core/math/include
+  core/physics/include
+  core/controls/include
 )
 
 if(BUILD_TESTING)
