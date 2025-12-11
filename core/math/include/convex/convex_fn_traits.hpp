@@ -74,6 +74,10 @@ template <linalg::RnSpace Domain, FnTag Tag>
   requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
 class LogDetFn;
 
+/// @brief forward declaration - log sum exp fn
+template <linalg::RnSpace Domain, FnTag Tag>
+class LogSumExpFn;
+
 /// @brief fn traits
 template <class Fn>
 struct convex_fn_traits : std::false_type {};
@@ -141,6 +145,12 @@ struct convex_fn_traits<InvPosFn<Space, FnTag::Convex>> : std::true_type {
 /// @brief derived fn type traits - log det fn
 template <linalg::RnSpace Space>
 struct convex_fn_traits<LogDetFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
+/// @brief derived fn type traits - log sum exp
+template <linalg::RnSpace Space>
+struct convex_fn_traits<LogSumExpFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 

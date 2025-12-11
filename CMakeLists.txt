@@ -10,7 +10,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Werror)
 endif()
 
-option(BUILD_TESTING "Enable building test code" ON)
+option(BUILD_TESTING "Build testing code" ON)
 option(BUILD_CORE "Build core library" ON)
 option(BUILD_UI "Build ui app" ON)
 

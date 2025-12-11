@@ -452,3 +452,59 @@ TEST_CASE("Test log det fn", "[concave_fn]") {
     STATIC_REQUIRE(cone_block1.validate());
   }
 }
+
+TEST_CASE("Test log sum exp", "[convex_fn]") {
+  SECTION("Test log sum exp") {
+    using Space = Matrixd<1, 4>;
+    constexpr auto lse = LogSumExpFn<Space>();
+    STATIC_REQUIRE(lse(Vectord<4>{}).has_value());
+    STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{}).value() - 1.38629436112) <
+                   eps);
+    STATIC_REQUIRE(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).has_value());
+    STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).value() -
+                                 1.21428330036) < eps);
+
+    constexpr mat_traits<Matrix<double, 10, 9>> F_mat;
+    constexpr auto F =
+        F_mat(1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+              -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, -1.0);
+    constexpr auto g = linalg::Vector<double, 10>{0.0, 0.0, 0.0, 0.0, 1.0,
+                                                  0.0, 0.0, 0.0, 0.0, 1.0};
+
+    constexpr auto cone_block = std::get<0>(lse.canonicalize());
+    STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
+
+    constexpr auto cones = cone_block.cones;
+    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+    STATIC_REQUIRE(sz == 2);
+    STATIC_REQUIRE(cone_block.validate());
+
+    constexpr auto lse_concave = lse.negate();
+    STATIC_REQUIRE(lse_concave(Vectord<4>{}).has_value());
+    STATIC_REQUIRE(
+        constexpr_abs(lse_concave(Vectord<4>{}).value() + 1.38629436112) < eps);
+    STATIC_REQUIRE(ConvexFnLike<decltype(lse_concave.negate())>);
+
+    constexpr auto F1 =
+        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+              1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, -1.0);
+
+    constexpr auto cone_block1 = std::get<0>(lse_concave.canonicalize());
+    STATIC_REQUIRE(cone_block1.map == affine::AffineMap(F1, g));
+
+    constexpr auto cones1 = cone_block1.cones;
+    constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
+    STATIC_REQUIRE(sz1 == 2);
+    STATIC_REQUIRE(cone_block1.validate());
+  }
+}
