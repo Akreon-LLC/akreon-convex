@@ -18,6 +18,12 @@
 
 namespace conic {
 
+/// @brief concept for encapsulating some convex atom
+template <class Atom>
+concept ConvexAtomLike =
+    convex::ConvexFnLike<Atom> || convex::ConcaveFnLike<Atom> ||
+    convex::ConvexSetLike<Atom>;
+
 /// @brief cone base class
 template <linalg::VectorLike Vec, typename Derived>
 struct Cone;
