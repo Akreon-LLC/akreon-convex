@@ -16,13 +16,15 @@
 #include "convex_fn_traits.hpp"
 #include "convex_set_traits.hpp"
 
-namespace conic {
-
+namespace convex {
 /// @brief concept for encapsulating some convex atom
 template <class Atom>
 concept ConvexAtomLike =
     convex::ConvexFnLike<Atom> || convex::ConcaveFnLike<Atom> ||
     convex::ConvexSetLike<Atom>;
+}  // namespace convex
+
+namespace conic {
 
 /// @brief cone base class
 template <linalg::VectorLike Vec, typename Derived>

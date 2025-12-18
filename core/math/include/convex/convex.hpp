@@ -19,6 +19,7 @@
 #include "cones/rsoc.hpp"
 #include "cones/soc.hpp"
 #include "cones/zoc.hpp"
+#include "convex_dag.hpp"
 #include "functions/abs_fn.hpp"
 #include "functions/exp_fn.hpp"
 #include "functions/geo_mean_fn.hpp"
