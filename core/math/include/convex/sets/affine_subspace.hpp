@@ -128,7 +128,7 @@ class AffineSubspace : public ConvexSet<Space, AffineSubspace<Space, Mat>> {
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, M>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    return std::tuple(conic::ConeBlock(map, zoc, rplus));
+    return conic::ConeBlock(map, zoc, rplus);
   }
 
  private:

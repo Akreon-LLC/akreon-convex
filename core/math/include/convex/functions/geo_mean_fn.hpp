@@ -30,9 +30,6 @@ class GeoMeanFn : public ConvexFn<Domain, GeoMeanFn<Domain, Tag>> {
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
 
-  /// @brief alias for affine map (codomain 1-dim)
-  using Mat = linalg::Matrix<T, 1, N>;
-
   /**
    * @brief evaluation impl
    *
@@ -69,25 +66,53 @@ class GeoMeanFn : public ConvexFn<Domain, GeoMeanFn<Domain, Tag>> {
    * power cone = { (x,t) \in R_+ x R | prod(x_i)^alpha_i >= |t|, sum(a_i) = 1,
    * a_i >= 0 }
    *
-   * I [ x; t ]
+   * [ A 0 ] [ x; t ] + [ b; 0 ] -> [ A x + b; t ]
+   * [ 0 1 ]
    *
    * (2) f(x) = -prod_i^n(x_i)^{1/n}
    * K_geo = { (x, t) | prod_i^n(x_i)^{1/n} >= -t }... x in R_+
    *
-   * [ 1  0 ] [ x; t ]
+   * [ A  0 ] [ x; t ] + [ b; 0 ] -> [ A x + b; -t ]
    * [ 0 -1 ]
+   *
+   * @param cone map builder
+   * @param coord_map
+   * @param cone_block
    *
    * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
-    auto F = linalg::make_identity<T, 2>();
-    linalg::Vector<T, 2> g;
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+            affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
+  constexpr auto canonicalize_impl(
+      const ConeMapBuilder<DecVarDom>& cmap_builder, const CoordMap& coord_map,
+      const conic::ConeBlock<ConeMap, Cs...>& cone_block) const {
+    using AffineMatT = affine::affine_mat_t<CoordMap>;
+    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static_assert(Codom == N,
+                  "input affine map from cone block has invalid dom which is a "
+                  "mismatch between domain in the convex function");
+    linalg::Matrix<T, N + 1, Dom + 1> F;
+    F = linalg::set_block<0, N, 0, Dom>(F, coord_map.linear_part());
+    linalg::Vector<T, N + 1> g;
+    for (size_t i = 0; i < N; ++i) g[i] = coord_map.translation()(i);
+
     if constexpr (Tag == FnTag::Convex) {
-      F[1][1] = T(-1);
+      F[N][N] = T(-1);
+    } else {
+      F[N][N] = T(1);
     }
-    const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto power_cone = conic::PowerCone<linalg::Vector<T, 2>>();
-    return std::tuple(conic::ConeBlock(map, power_cone));
+
+    const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+    const auto map_res = cmap_builder(coord_map_up, cone_block.map, -1);
+    const auto emitted_map = std::get<0>(map_res);
+    const auto map = std::get<1>(map_res);
+
+    const auto power_cone = conic::PowerCone<linalg::Vector<T, N + 1>>();
+    return std::tuple(
+        emitted_map,
+        conic::ConeBlock(map, std::tuple_cat(cone_block.cones,
+                                             std::make_tuple(power_cone))));
   }
 };
 

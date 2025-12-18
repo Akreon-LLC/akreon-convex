@@ -66,32 +66,53 @@ class ExpFn : public ConvexFn<Domain, ExpFn<Domain, Tag>> {
    *
    * let u = x, v = 1, w = t
    *
-   * [ 1 0 ] [ x; t ] + [ 0; 1; 0 ] -> (x, 1, t)
-   * [ 0 0 ]
-   * [ 0 1 ]
+   * [ a^T 0 ] [ x; t ] + [ b; 1; 0 ] -> (a^T x + b, 1, t)
+   * [ 0   0 ]
+   * [ 0   1 ]
    *
    * (2) f(x) = -exp(x)
    * K_exp = { (x, t) | -exp(x) >= t }... { (x, t) | exp(x) <= -t, t <= 0 }
    *
-   * [ 1  0 ] [ x; t ] + [ 0; 1; 0 ] -> (x, 1, -t)
-   * [ 0  0 ]
-   * [ 0 -1 ]
+   * [ a^T  0 ] [ x; t ] + [ b; 1; 0 ] -> (a^T x + b, 1, -t)
+   * [ 0    0 ]
+   * [ 0   -1 ]
+   *
+   * @param cone block
    *
    * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
-    linalg::Matrix<T, 3, 2> F;
-    F[0][0] = T(1);
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+            affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
+  constexpr auto canonicalize_impl(
+      const ConeMapBuilder<DecVarDom>& cmap_builder, const CoordMap& coord_map,
+      const conic::ConeBlock<ConeMap, Cs...>& cone_block) const {
+    using AffineMatT = affine::affine_mat_t<CoordMap>;
+    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static_assert(Codom == 1,
+                  "input affine map from cone block has invalid codom dim for "
+                  "scalar fn domain (i.e., != 1");
+    linalg::Matrix<T, 3, Dom + 1> F;
+    F = linalg::set_block<0, 1, 0, Dom>(F, coord_map.linear_part());
     linalg::Vector<T, 3> g;
+    g[0] = coord_map.translation()(0);
     g[1] = T(1);
     if constexpr (Tag == FnTag::Convex) {
       F[2][1] = T(1);
     } else {
       F[2][1] = T(-1);
     }
-    const auto map = affine::AffineMap<decltype(F)>(F, g);
+
+    const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+    const auto map_res = cmap_builder(coord_map_up, cone_block.map, -1);
+    const auto emitted_map = std::get<0>(map_res);
+    const auto map = std::get<1>(map_res);
+
     const auto exp_cone = conic::ExpCone<linalg::Vector<T, 3>>();
-    return std::tuple(conic::ConeBlock(map, exp_cone));
+    return std::tuple(
+        emitted_map,
+        conic::ConeBlock(
+            map, std::tuple_cat(cone_block.cones, std::make_tuple(exp_cone))));
   }
 };
 

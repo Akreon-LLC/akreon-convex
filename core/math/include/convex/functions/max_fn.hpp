@@ -72,7 +72,7 @@ class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
    * x_i <= t forall i convex constraints
    * 0 <= t - x_i... in nonneg orthant cone
    *
-   * [ -I 1 ] [ x ; t ] -> (-x, t)
+   * [ -A 1 ] [ x ; t ] + [ -b ; 0 ] -> (-(A x + b), t)
    *
    * (2) f(x) = -max{x_1, ..., x_n}
    * K = { (x,t) | -max(x) >= t }
@@ -80,23 +80,42 @@ class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
    * -x_i >= t for all i convex constraints
    *  0 <= -t - x_i... in nonneg orthant cone
    *
-   * [ -I  -1 ] [ x; t ] -> (-x, -t)
+   * [ -A -1 ] [ x; t ] + [ -b ; 0 ] -> (-(A x + b), -t)
    * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
-    linalg::Matrix<T, N, N + 1> F;
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+            affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
+  constexpr auto canonicalize_impl(
+      const ConeMapBuilder<DecVarDom>& cmap_builder, const CoordMap& coord_map,
+      const conic::ConeBlock<ConeMap, Cs...>& cone_block) const {
+    using AffineMatT = affine::affine_mat_t<CoordMap>;
+    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static_assert(Codom == N,
+                  "input affine map from cone block has invalid dom which is a "
+                  "mismatch between domain in the convex function");
+    linalg::Matrix<T, N, Dom + 1> F;
+    F = linalg::set_block<0, N, 0, Dom>(F, T(-1) * coord_map.linear_part());
+
     linalg::Vector<T, N> g;
-    const auto I_minus = T(-1) * linalg::make_identity<T, N>();
-    F = linalg::set_block<0, N, 0, N>(F, I_minus);
+    for (size_t i = 0; i < N; ++i) g[i] = T(-1) * coord_map.translation()(i);
+
     if constexpr (Tag == FnTag::Convex) {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(1);
     } else {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(-1);
     }
-    const auto map = affine::AffineMap<decltype(F)>(F, g);
+
+    const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+    const auto map_res = cmap_builder(coord_map_up, cone_block.map, -1);
+    const auto emitted_map = std::get<0>(map_res);
+    const auto map = std::get<1>(map_res);
+
     std::array<conic::NonnegOrthantCone<linalg::Vector<T, 1>>, N> arr;
     const auto rpluses = linalg::array_to_tuple(arr);
-    return std::tuple(conic::ConeBlock(map, rpluses));
+    return std::tuple(
+        emitted_map,
+        conic::ConeBlock(map, std::tuple_cat(cone_block.cones, rpluses)));
   }
 };
 

@@ -83,9 +83,10 @@ class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain, Tag>> {
    * let u = x_i - t, v = 1, w = s_i... n exp cones
    * 0 <= 1 - 1^T s ... 1 nonneg orthant cone
    *
-   * [ I -1    0 ] [ x; t; s ] + [ 0; 1; 0; 1 ] -> (x_i - t, 1, s_i)
+   * [ A -1    0 ] [ x; t; s ] + [ b; 1; 0 | 1 ] -> (x_i - t, 1, s_i) + rplus
    * [ 0  0    0 ]
    * [ 0  0    I ]
+   * -------------
    * [ 0  0 -1^T ]
    *
    * (2) -f(x) = -log(sum_i(exp(x_i)))
@@ -95,16 +96,33 @@ class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain, Tag>> {
    * let u = x_i + t, v = 1, w = s_i... n exp cones
    * 0 <= 1 - 1^T s ... 1 nonneg orthant cone
    *
-   * [ I  1    0 ] [ x; t; s ] + [ 0; 1; 0; 1 ] -> (x_i + t, 1, s_i)
+   * [ A  1    0 ] [ x; t; s ] + [ b; 1; 0 | 1 ] -> (x_i + t, 1, s_i) + rplus
    * [ 0  0    0 ]
    * [ 0  0    I ]
+   * -------------
    * [ 0  0 -1^T ]
+   *
+   * @param cone map builder
+   * @param coord map
+   * @param cone block
+   *
+   * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
-    linalg::Matrix<T, 2 * N + 2, 2 * N + 1> F;
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+            affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
+  constexpr auto canonicalize_impl(
+      const ConeMapBuilder<DecVarDom>& cmap_builder, const CoordMap& coord_map,
+      const conic::ConeBlock<ConeMap, Cs...>& cone_block) const {
+    using AffineMatT = affine::affine_mat_t<CoordMap>;
+    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static_assert(Codom == N,
+                  "input affine map from cone block has invalid dom which is a "
+                  "mismatch between domain in the convex function");
+    linalg::Matrix<T, 2 * N + 2, 2 * Dom + 1> F;
     linalg::Vector<T, 2 * N + 2> g;
-    const auto I = linalg::make_identity<T, N>();
-    F = linalg::set_block<0, N, 0, N>(F, I);
+    F = linalg::set_block<0, N, 0, Dom>(F, coord_map.linear_part());
+    const auto I = linalg::make_identity<T, Dom>();
 
     if constexpr (Tag == FnTag::Convex) {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(-1);
@@ -113,12 +131,22 @@ class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain, Tag>> {
     }
     F = linalg::set_block<N + 1, 2 * N + 1, N + 1, 2 * N + 1>(F, I);
     for (size_t i = 0; i < N; ++i) F[2 * N + 1][N + 1 + i] = T(-1);
+    for (size_t i = 0; i < N; ++i) g[i] = coord_map.translation()(i);
     g[N] = T(1);
     g[2 * N + 1] = T(1);
-    const auto map = affine::AffineMap<decltype(F)>(F, g);
+
+    const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+    const auto map_res = cmap_builder(coord_map_up, cone_block.map, -2);
+    const auto emitted_map = std::get<0>(map_res);
+    const auto map = std::get<1>(map_res);
+
     const auto exp_cone = conic::ExpCone<linalg::Vector<T, 2 * N + 1>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    return std::tuple(conic::ConeBlock(map, exp_cone, rplus));
+    return std::tuple(
+        emitted_map,
+        conic::ConeBlock(map,
+                         std::tuple_cat(cone_block.cones,
+                                        std::make_tuple(exp_cone, rplus))));
   }
 };
 

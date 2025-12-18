@@ -49,6 +49,8 @@ class Polyhedron
   static constexpr size_t RowsC = linalg::mat_rows_v<MatC>;
   static constexpr size_t ColsC = linalg::mat_cols_v<MatC>;
 
+  static_assert(ColsA == ColsC, "domain mismatch between cols dim of A and C");
+
   /// @brief bring into scope type traits from MatC
   using MatC_T = linalg::mat_type_t<MatC>;
 
@@ -194,44 +196,63 @@ class Polyhedron
    */
   constexpr auto canonicalize_impl() const {
     std::tuple<> empty;
-    return std::tuple_cat(canonicalize_halfspaces<0>(empty),
-                          canonicalize_hyperplanes<0>(empty));
+    static constexpr size_t Codom = 2 * (RowsA + RowsC);
+    static constexpr size_t Dom = ColsA + 1;
+    linalg::Matrix<T, Codom, Dom> F;
+    linalg::Vector<T, Codom> g;
+    conic::ConeBlock cb(affine::AffineMap(F, g), empty);
+    const auto cb_half = canonicalize_halfspaces<0>(cb);
+    return canonicalize_hyperplanes<0>(cb_half);
   }
 
  private:
   /**
    * @brief canonicalize halfspace
    *
-   * @param tuple of halfspaces
+   * @param cone_block
    *
    * @return halfspaces
    */
-  template <size_t i>
-  constexpr auto canonicalize_halfspaces(auto halfspaces) const {
+  template <size_t i, affine::AffineMapLike Map, conic::ConeLike... Cs>
+  constexpr auto canonicalize_halfspaces(
+      const conic::ConeBlock<Map, Cs...>& cone_block) const {
     if constexpr (i >= RowsA)
-      return halfspaces;
+      return cone_block;
     else {
-      const auto cone = Halfspace<Space, Type>(A(i), b(i));
-      const auto half_tuple = std::tuple_cat(halfspaces, cone.canonicalize());
-      return canonicalize_halfspaces<i + 1>(half_tuple);
+      const auto halfspace = Halfspace<Space, Type>(A(i), b(i));
+      const auto cb = halfspace.canonicalize();
+      auto F = cone_block.map.linear_part();
+      const auto g = cone_block.map.translation();
+      static constexpr size_t j = 2 * i;
+      F = linalg::set_block<j, j + 2, 0, ColsA + 1>(F, cb.map.linear_part());
+      const auto map = affine::AffineMap<decltype(F)>(F, g);
+      const auto cones = std::tuple_cat(cone_block.cones, cb.cones);
+      return canonicalize_halfspaces<i + 1>(conic::ConeBlock(map, cones));
     }
   }
 
   /**
    * @brief canonicalize hyperplane
    *
-   * @param tuple of hyperplane
+   * @param cone_block
    *
    * @return hyperplanes
    */
-  template <size_t i>
-  constexpr auto canonicalize_hyperplanes(auto hyperplanes) const {
+  template <size_t i, affine::AffineMapLike Map, conic::ConeLike... Cs>
+  constexpr auto canonicalize_hyperplanes(
+      const conic::ConeBlock<Map, Cs...>& cone_block) const {
     if constexpr (i >= RowsC)
-      return hyperplanes;
+      return cone_block;
     else {
-      const auto cone = Hyperplane<Space>(C(i), d(i));
-      const auto hyper_tuple = std::tuple_cat(hyperplanes, cone.canonicalize());
-      return canonicalize_hyperplanes<i + 1>(hyper_tuple);
+      const auto hyperplane = Hyperplane<Space>(C(i), d(i));
+      const auto cb = hyperplane.canonicalize();
+      auto F = cone_block.map.linear_part();
+      const auto g = cone_block.map.translation();
+      static constexpr size_t j = 2 * i + 2 * RowsA;
+      F = linalg::set_block<j, j + 2, 0, ColsA + 1>(F, cb.map.linear_part());
+      const auto map = affine::AffineMap<decltype(F)>(F, g);
+      const auto cones = std::tuple_cat(cone_block.cones, cb.cones);
+      return canonicalize_hyperplanes<i + 1>(conic::ConeBlock(map, cones));
     }
   }
 

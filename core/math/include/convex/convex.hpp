@@ -13,7 +13,6 @@
 #pragma once
 
 #include "cones/exp_cone.hpp"
-#include "cones/log_det_cone.hpp"
 #include "cones/power_cone.hpp"
 #include "cones/psd_cone.hpp"
 #include "cones/rplus.hpp"
@@ -24,7 +23,6 @@
 #include "functions/exp_fn.hpp"
 #include "functions/geo_mean_fn.hpp"
 #include "functions/inv_pos_fn.hpp"
-#include "functions/log_det_fn.hpp"
 #include "functions/log_fn.hpp"
 #include "functions/log_sum_exp_fn.hpp"
 #include "functions/max_fn.hpp"

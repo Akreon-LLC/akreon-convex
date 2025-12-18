@@ -37,9 +37,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
 
   /// @brief bring into scope the const data members
   using ConvexBase::Dim;
-
-  /// @brief helper to get n elements in point
-  static constexpr size_t N = linalg::vec_size_v<Point>;
+  using ConvexBase::N;
 
   /**
    * @brief CTOR for halfspace set
@@ -150,7 +148,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
     linalg::Vector<T, 2> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    return std::tuple(conic::ConeBlock(map, rplus, rplus));
+    return conic::ConeBlock(map, rplus, rplus);
   }
 
  private:

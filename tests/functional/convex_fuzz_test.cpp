@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #include <algorithm>
 #include <iostream>
 #include <random>
@@ -23,8 +22,11 @@ using namespace linalg;
 using namespace convex;
 
 int main() {
-  using Space = Matrixd<1, 2>;
-  constexpr auto norm = NormFn<Space, L1<Vectord<2>>>();
-  constexpr auto norm_eval = norm.eval(Vectord<2>{});
-  return norm_eval.value();
+  static constexpr size_t N = 100;
+  using Space = Matrixd<1, N>;
+  constexpr auto l1 = NormFn<Space, L1<Vectord<N>>>();
+  constexpr auto l1_eval = l1.eval(Vectord<N>{});
+  constexpr auto l2 = NormFn<Space, L2<Vectord<N>>>();
+  constexpr auto l2_eval = l2.eval(Vectord<N>{});
+  return l1_eval.value() + l2_eval.value();
 }

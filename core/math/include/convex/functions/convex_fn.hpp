@@ -13,6 +13,7 @@
 #pragma once
 
 #include "convex/convex_fn_traits.hpp"
+#include "convex/convex_util.hpp"
 
 namespace convex {
 /**
@@ -68,9 +69,19 @@ class ConvexFn {
    *
    * f(x) -> epi / hypo -> homogenized cone
    *
-   * @return cone block
+   * @param cone map builder
+   * @param coord map
+   * @param cone block
+   *
+   * @return updated cone block
    */
-  constexpr auto canonicalize() const { return self().canonicalize_impl(); }
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+            affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
+  constexpr auto canonicalize(
+      const ConeMapBuilder<DecVarDom>& cmap_builder, const CoordMap& coord_map,
+      const conic::ConeBlock<ConeMap, Cs...>& cone_block) const {
+    return self().canonicalize_impl(cmap_builder, coord_map, cone_block);
+  }
 
   /**
    * @brief self

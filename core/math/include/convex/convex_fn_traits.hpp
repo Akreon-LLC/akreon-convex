@@ -69,14 +69,32 @@ template <linalg::RnSpace Domain, FnTag Tag>
   requires(linalg::space_dim_v<Domain> == 1)
 class InvPosFn;
 
+/// @brief forward declaration - log sum exp fn
+template <linalg::RnSpace Domain, FnTag Tag>
+class LogSumExpFn;
+
+// (dakre) TODO currently unimplemented but forward dec stub here
+
 /// @brief forward declaration - log det fn
 template <linalg::RnSpace Domain, FnTag Tag>
   requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
 class LogDetFn;
 
-/// @brief forward declaration - log sum exp fn
+/// @brief forward declaration - harmonic mean fn
 template <linalg::RnSpace Domain, FnTag Tag>
-class LogSumExpFn;
+class HarmonicMeanFn;
+
+/// @brief forward declaration - sigmoid fn
+template <linalg::RnSpace Domain, FnTag Tag>
+class SigmoidFn;
+
+/// @brief forward declaration - huber fn
+template <linalg::RnSpace Domain, FnTag Tag>
+class HuberFn;
+
+/// @brief forward declaration - kl divergence
+template <linalg::RnSpace Domain, FnTag Tag>
+class KLDivergenceFn;
 
 /// @brief fn traits
 template <class Fn>
@@ -142,15 +160,39 @@ struct convex_fn_traits<InvPosFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 
+/// @brief derived fn type traits - log sum exp
+template <linalg::RnSpace Space>
+struct convex_fn_traits<LogSumExpFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
 /// @brief derived fn type traits - log det fn
 template <linalg::RnSpace Space>
 struct convex_fn_traits<LogDetFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 
-/// @brief derived fn type traits - log sum exp
+/// @brief derived fn type traits - harmonic mean fn
 template <linalg::RnSpace Space>
-struct convex_fn_traits<LogSumExpFn<Space, FnTag::Convex>> : std::true_type {
+struct convex_fn_traits<HarmonicMeanFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
+/// @brief derived fn type traits - sigmoid mean fn
+template <linalg::RnSpace Space>
+struct convex_fn_traits<SigmoidFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
+/// @brief derived fn type traits - huber fn
+template <linalg::RnSpace Space>
+struct convex_fn_traits<HuberFn<Space, FnTag::Convex>> : std::true_type {
+  using Domain = Space;
+};
+
+/// @brief derived fn type traits - kl divergence fn
+template <linalg::RnSpace Space>
+struct convex_fn_traits<KLDivergenceFn<Space, FnTag::Convex>> : std::true_type {
   using Domain = Space;
 };
 

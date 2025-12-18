@@ -32,7 +32,7 @@ TEST_CASE("Test affine subspace", "[convex_sets]") {
     STATIC_REQUIRE(affine_set.contains(Vectord<3>{}));
     STATIC_REQUIRE(!affine_set.contains(Vectord<3>{1.0, 1.0, 1.0}));
 
-    constexpr auto cone_block = std::get<0>(affine_set.canonicalize());
+    constexpr auto cone_block = affine_set.canonicalize();
     constexpr auto A = make_identity<double, 4>();
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<4>{}));
     constexpr auto cones = cone_block.cones;
@@ -59,7 +59,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
         hyperplane.transform(AffineMap<Matrix<double, 3, 3>>(I, Vectord<3>{}));
     STATIC_REQUIRE(hyperplane_id == hyperplane);
 
-    constexpr auto cone_block = std::get<0>(hyperplane.canonicalize());
+    constexpr auto cone_block = hyperplane.canonicalize();
     constexpr mat_traits<Matrix<double, 2, 4>> A_mat;
     constexpr auto A =
         A_mat(point(0), point(1), point(2), -1 * b, 0.0, 0.0, 0.0, 1.0);
@@ -85,7 +85,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace.contains(Vectord<2>{1.0, 2.0}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<2>{-1.0, 5.0}));
 
-    constexpr auto cone_block = std::get<0>(halfspace.canonicalize());
+    constexpr auto cone_block = halfspace.canonicalize();
     constexpr mat_traits<Matrix<double, 2, 3>> A_mat;
     constexpr auto A = A_mat(-1 * point(0), -1 * point(1), b, 0.0, 0.0, 1.0);
 
@@ -132,7 +132,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
         AffineMap<Matrix<double, 3, 3>>(make_identity<double, 3>(), t));
     STATIC_REQUIRE(halfspace_trans != halfspace_id);
 
-    constexpr auto cone_block = std::get<0>(halfspace.canonicalize());
+    constexpr auto cone_block = halfspace.canonicalize();
     constexpr mat_traits<Matrix<double, 2, 4>> A_mat;
     constexpr auto A = A_mat(-1 * point(0), -1 * point(1), -1 * point(2), b,
                              0.0, 0.0, 0.0, 1.0);
@@ -201,7 +201,7 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
 
-    constexpr auto cone_block = std::get<0>(ellipsoid.canonicalize());
+    constexpr auto cone_block = ellipsoid.canonicalize();
     constexpr auto F = make_identity<double, 3>();
     STATIC_REQUIRE(
         cone_block.map ==
@@ -232,19 +232,18 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
 
-    constexpr auto blocks = poly.canonicalize();
-    constexpr auto n_blocks = std::tuple_size<decltype(blocks)>::value;
-    STATIC_REQUIRE(n_blocks == 7);
+    constexpr auto cone_block = poly.canonicalize();
 
-    constexpr auto cone_block = std::get<0>(blocks);
     constexpr mat_traits<Matrix<double, 2, 4>> P_mat;
     constexpr auto P = P_mat(-1.0, 0.0, 0.0, b(0), 0.0, 0.0, 0.0, 1.0);
 
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(P, Vectord<2>{}));
+    constexpr auto F_slice =
+        linalg::get_block<0, 2, 0, 4>(cone_block.map.linear_part());
+    STATIC_REQUIRE(linalg::all_equal(F_slice, P));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 2);
+    STATIC_REQUIRE(sz == 14);
     STATIC_REQUIRE(cone_block.validate());
   }
 
@@ -275,19 +274,18 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(poly.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{})) ==
                    poly);
 
-    constexpr auto blocks = poly.canonicalize();
-    constexpr auto n_blocks = std::tuple_size<decltype(blocks)>::value;
-    STATIC_REQUIRE(n_blocks == 9);
+    constexpr auto cone_block = poly.canonicalize();
 
-    constexpr auto cone_block = std::get<8>(blocks);
     constexpr mat_traits<Matrix<double, 2, 4>> P_mat;
     constexpr auto P = P_mat(2.0, 2.0, 2.0, -1 * d(1), 0.0, 0.0, 0.0, 1.0);
 
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(P, Vectord<2>{}));
+    constexpr auto F_slice =
+        linalg::get_block<16, 18, 0, 4>(cone_block.map.linear_part());
+    STATIC_REQUIRE(linalg::all_equal(F_slice, P));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 2);
+    STATIC_REQUIRE(sz == 18);
     STATIC_REQUIRE(cone_block.validate());
   }
 
@@ -321,7 +319,7 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(!poly.contains(Vectord<3>{-0.8, 0.1, 0.1}));
     STATIC_REQUIRE(!poly.contains(Vectord<3>{0.8, 0.1, 0.0}));
 
-    constexpr auto cone_block = std::get<0>(simplex.canonicalize());
+    constexpr auto cone_block = simplex.canonicalize();
     constexpr mat_traits<Matrix<double, 4, 4>> A_mat;
     constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                              1.0, 0.0, -1.0, -1.0, -1.0, 1.0);
@@ -345,7 +343,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));
     STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
 
-    constexpr auto cone_block = std::get<0>(set.canonicalize());
+    constexpr auto cone_block = set.canonicalize();
     constexpr mat_traits<Matrix<double, 7, 4>> F_mat;
     constexpr auto F = F_mat(-1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0,
                              -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -400,7 +398,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr mat_traits<Matrix<float, 3, 3>> F_mat;
     constexpr auto F = F_mat(1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, r);
     constexpr linalg::Vector<float, 3> g{-1 * c(0), -1 * c(1), 0.f};
-    constexpr auto cone_block = std::get<0>(ball.canonicalize());
+    constexpr auto cone_block = ball.canonicalize();
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -442,7 +440,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr linalg::Vector<double, 9> g{
         -1 * c(0), -1 * c(1), -1 * c(2), -1 * c(3), c(0), c(1), c(2), c(3), 0.};
 
-    constexpr auto cone_block = std::get<0>(ball.canonicalize());
+    constexpr auto cone_block = ball.canonicalize();
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -497,7 +495,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
               0.f, r, 0.f, -1.f, 0.f, r, 0.f, 0.f, -1.f, r);
     constexpr linalg::Vector<float, 6> g{-1 * c(0), -1 * c(1), -1 * c(2),
                                          c(0),      c(1),      c(2)};
-    constexpr auto cone_block = std::get<0>(ball.canonicalize());
+    constexpr auto cone_block = ball.canonicalize();
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;

@@ -10,12 +10,20 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Werror)
 endif()
 
+add_compile_options(-ffunction-sections -fdata-sections -fvisibility=hidden -fno-rtti -flto -Oz)
+# add -fno-exceptions to lib TU
+
 option(BUILD_TESTING "Build testing code" ON)
 option(BUILD_CORE "Build core library" ON)
 option(BUILD_UI "Build ui app" ON)
 
+if (BUILD_CORE)
+# Embedded code optimizations
+add_compile_options(-ffunction-sections -fdata-sections -fvisibility=hidden -fno-rtti -flto -Oz)
+# add -fno-exceptions to lib TU
+endif()
+
 include(FetchContent)
 
-add_subdirectory(core)
 add_subdirectory(ui)
 add_subdirectory(tests)

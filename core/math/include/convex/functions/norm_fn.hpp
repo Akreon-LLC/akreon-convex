@@ -68,13 +68,13 @@ class NormFn : public ConvexFn<Domain, NormFn<Domain, Norm, Tag>> {
    * K_soc = { (u, v) | ||u||_2 <= v, v >= 0 }
    *
    * let u = x, v = t
-   * [ I 0 ] [ x; t ] -> (x, t)
+   * [ A 0 ] [ x; t ] + [ b; 0 ] -> (A x + b, t)
    * [ 0 1 ]
    *
    * (2) -f(x) = -||x||_2
    * K = { (x, t) | -||x||_2 >= t }... { (x, t) | ||x||_2 <= -t }
    *
-   * [ I  0 ] [ x; t ] -> (x, -t)
+   * [ A  0 ] [ x; t ] + [ b; 0 ] -> (A x + b, -t)
    * [ 0 -1 ]
    *
    * Linf Norm Function
@@ -85,14 +85,14 @@ class NormFn : public ConvexFn<Domain, NormFn<Domain, Norm, Tag>> {
    * 0 <= x_i + t... nonneg orthant cone(s)
    * 0 <= t - x_i... nonneg orthant cone(s)
    *
-   * [ I  1 ] [ x; t ]
-   * [ -I 1 ]
+   * [  A  1 ] [ x; t ] + [ b; -b ]
+   * [ -A  1 ]
    *
    * (2) -f(x) = -||x||_inf
    * K = { (x, t) | -||x||_inf >= t }... { (x, t) | ||x||_inf <= -t }
    *
-   * [ I  -1 ] [ x; t ]
-   * [ -I -1 ]
+   * [  A  -1 ] [ x; t ] + [ b; -b ]
+   * [ -A  -1 ]
    *
    * L1 Norm Function
    * (1) f(x) = ||x||_1
@@ -106,36 +106,69 @@ class NormFn : public ConvexFn<Domain, NormFn<Domain, Norm, Tag>> {
    * 0 <= u_i - y_i... nonneg orthant cone
    * 0 <= t - 1^T u... nonneg orthant cone
    *
-   * [ I  I   0 ] [ x; u; t ]
-   * [ -I I   0 ]
+   * [ A  I   0 ] [ x; u; t ] + [ b; -b; 0 ]
+   * [ -A I   0 ]
    * [ 0 -1^T 1 ]
    *
    * (2) -f(x) = -||x||_1
    * K = { (x, t) | -||x||_1 >= t }... { (x, t) | ||x||_1 <= -t }
    *
-   * [ I  I    0 ] [ x; u; t ]
-   * [ -I I    0 ]
+   * [ A  I    0 ] [ x; u; t ] + [ b; -b; 0 ]
+   * [ -A I    0 ]
    * [ 0 -1^T -1 ]
+   *
+   * @param cone map builder
+   * @param coord map
+   * @param cone block
    *
    * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+            affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
+  constexpr auto canonicalize_impl(
+      const ConeMapBuilder<DecVarDom>& cmap_builder, const CoordMap& coord_map,
+      const conic::ConeBlock<ConeMap, Cs...>& cone_block) const {
     using Vec = linalg::Vector<T, N>;
+
+    using AffineMatT = affine::affine_mat_t<CoordMap>;
+    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static_assert(Codom == N,
+                  "input affine map from cone block has invalid dom which is a "
+                  "mismatch between domain in the convex function");
+
     if constexpr (std::same_as<Norm, linalg::L2<Vec>>) {
-      auto F = linalg::make_identity<T, N + 1>();
+      linalg::Matrix<T, N + 1, Dom + 1> F;
+      F = linalg::set_block<0, N, 0, Dom>(F, coord_map.linear_part());
+
       linalg::Vector<T, N + 1> g;
+      for (size_t i = 0; i < N; ++i) g[i] = coord_map.translation()(i);
+
       if constexpr (Tag == FnTag::Concave) {
         F[N][N] = T(-1);
+      } else {
+        F[N][N] = T(1);
       }
-      const auto map = affine::AffineMap<decltype(F)>(F, g);
+
+      const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+      const auto map_res = cmap_builder(coord_map_up, cone_block.map, -1);
+      const auto emitted_map = std::get<0>(map_res);
+      const auto map = std::get<1>(map_res);
+
       const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
-      return std::tuple(conic::ConeBlock(map, soc));
+      return std::tuple(
+          emitted_map,
+          conic::ConeBlock(
+              map, std::tuple_cat(cone_block.cones, std::make_tuple(soc))));
     } else if constexpr (std::same_as<Norm, linalg::Linf<Vec>>) {
-      linalg::Matrix<T, 2 * N, N + 1> F;
+      linalg::Matrix<T, 2 * N, Dom + 1> F;
+      F = linalg::set_block<0, N, 0, N>(F, coord_map.linear_part());
+      F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * coord_map.linear_part());
+
       linalg::Vector<T, 2 * N> g;
-      const auto I = linalg::make_identity<T, N>();
-      F = linalg::set_block<0, N, 0, N>(F, I);
-      F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * I);
+      for (size_t i = 0; i < N; ++i) g[i] = coord_map.translation()(i);
+      for (size_t i = 0; i < N; ++i)
+        g[i + N] = T(-1) * coord_map.translation()(i);
 
       if constexpr (Tag == FnTag::Convex) {
         for (size_t i = 0; i < 2 * N; ++i) F[i][N] = T(1);
@@ -143,29 +176,48 @@ class NormFn : public ConvexFn<Domain, NormFn<Domain, Norm, Tag>> {
         for (size_t i = 0; i < 2 * N; ++i) F[i][N] = T(-1);
       }
 
-      const auto map = affine::AffineMap<decltype(F)>(F, g);
+      const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+      const auto map_res = cmap_builder(coord_map_up, cone_block.map, -1);
+      const auto emitted_map = std::get<0>(map_res);
+      const auto map = std::get<1>(map_res);
+
       const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
-      return std::tuple(conic::ConeBlock(map, rplus, rplus));
+      return std::tuple(
+          emitted_map,
+          conic::ConeBlock(map, std::tuple_cat(cone_block.cones,
+                                               std::make_tuple(rplus, rplus))));
     } else {
-      linalg::Matrix<T, 2 * N + 1, 2 * N + 1> F;
+      linalg::Matrix<T, 2 * N + 1, 2 * Dom + 1> F;
       const auto I = linalg::make_identity<T, N>();
-      F = linalg::set_block<0, N, 0, N>(F, I);
-      F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * I);
+      F = linalg::set_block<0, N, 0, N>(F, coord_map.linear_part());
+      F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * coord_map.linear_part());
       F = linalg::set_block<0, N, N, 2 * N>(F, I);
       F = linalg::set_block<N, 2 * N, N, 2 * N>(F, I);
       for (size_t i = 0; i < N; ++i) F[2 * N][N + i] = T(-1);
+
+      linalg::Vector<T, 2 * N + 1> g;
+      for (size_t i = 0; i < N; ++i) g[i] = coord_map.translation()(i);
+      for (size_t i = 0; i < N; ++i)
+        g[i + N] = T(-1) * coord_map.translation()(i);
 
       if constexpr (Tag == FnTag::Convex) {
         F[2 * N][2 * N] = T(1);
       } else {
         F[2 * N][2 * N] = T(-1);
       }
-      linalg::Vector<T, 2 * N + 1> g;
 
-      const auto map = affine::AffineMap<decltype(F)>(F, g);
+      const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+      const auto map_res = cmap_builder(coord_map_up, cone_block.map, -1);
+      const auto emitted_map = std::get<0>(map_res);
+      const auto map = std::get<1>(map_res);
+
       const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-      return std::tuple(conic::ConeBlock(map, rplus1, rplus1, rplus2));
+      return std::tuple(
+          emitted_map,
+          conic::ConeBlock(
+              map, std::tuple_cat(cone_block.cones,
+                                  std::make_tuple(rplus1, rplus1, rplus2))));
     }
   }
 };

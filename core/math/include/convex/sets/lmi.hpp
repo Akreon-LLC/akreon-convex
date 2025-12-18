@@ -183,7 +183,7 @@ class LMI : public ConvexSet<Space, LMI<Space>> {
     const auto psd_cone =
         conic::PositiveSemidefiniteCone<linalg::Vector<T, K>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    return std::tuple(conic::ConeBlock(map, psd_cone, rplus));
+    return conic::ConeBlock(map, psd_cone, rplus);
   }
 
  private:

@@ -25,8 +25,7 @@ using AffineMap2d = AffineMap<linalg::Matrix<T, 2, 2>>;
 template <linalg::FieldLike T>
 using AffineMap3d = AffineMap<linalg::Matrix<T, 3, 3>>;
 
-template <linalg::MatrixLike Mat>
-  requires(linalg::SquareMatrixLike<Mat>)
+template <linalg::SquareMatrixLike Mat>
 constexpr AffineMap<Mat> make_map_id() {
   using T = linalg::mat_type_t<Mat>;
   static constexpr size_t N = linalg::mat_rows_v<Mat>;

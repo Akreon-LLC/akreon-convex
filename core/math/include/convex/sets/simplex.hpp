@@ -143,7 +143,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
     const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    return std::tuple(conic::ConeBlock(map, rplus1, rplus2));
+    return conic::ConeBlock(map, rplus1, rplus2);
   }
 };
 
