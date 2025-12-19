@@ -36,25 +36,23 @@ struct DAG {
 template <ConvexAtomLike... Cs>
 constexpr bool has_cycle(const DAG<Cs...>& dag) {
   static constexpr size_t N = sizeof...(Cs);
-  auto dfs = [](this auto&& self, const auto& adj, auto& vis,
-                  size_t idx) -> bool {
-    if (vis(idx)) return true;
+  // (dakre) unvisited = 0, visiting = 1, visited = 2
+  std::array<uint8_t, N> state{};
+  const auto& adj = dag.adj;
 
-    vis[idx] = true;
-
+  auto dfs = [&](this auto&& self, size_t idx) -> bool {
+    state[idx] = 1;
     for (size_t i = 0; i < N; ++i) {
-      if (adj(idx)(i)) {
-        if (!vis(i)) return self(adj, vis, i);
-      }
+      if (!adj(idx)(i)) continue;
+      if (state[i] == 1) return true;  // (dakre) back edge detected
+      if (state[i] == 0 && self(i)) return true;
     }
-
+    state[idx] = 2;
     return false;
   };
 
-  for (size_t i = 0; i < N; ++i) {
-    linalg::Vector<bool, N> vis;
-    if (dfs(dag.adj, vis, i)) return true;
-  }
+  for (size_t i = 0; i < N; ++i)
+    if (state[i] == 0 && dfs(i)) return true;
   return false;
 }
 
