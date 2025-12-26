@@ -16,6 +16,30 @@
 
 namespace conic {
 
+/// @brief cone id to n rows
+template <ConeLike Cone, linalg::VectorLike Vec>
+struct ConeToRows {
+  constexpr std::optional<size_t> operator()() const {
+    if constexpr (std::same_as<ZeroOrderCone<Vec>, Cone>) {
+      return 1;
+    } else if constexpr (std::same_as<NonnegOrthantCone<Vec>, Cone>) {
+      return 1;
+    } else if constexpr (std::same_as<SecondOrderCone<Vec>, Cone>) {
+      return 2;
+    } else if constexpr (std::same_as<PositiveSemidefiniteCone<Vec>, Cone>) {
+      return 2;
+    } else if constexpr (std::same_as<ExpCone<Vec>, Cone>) {
+      return 3;
+    } else if constexpr (std::same_as<PowerCone<Vec>, Cone>) {
+      return 2;
+    } else if constexpr (std::same_as<RotatedSecondOrderCone<Vec>, Cone>) {
+      return 3;
+    } else {
+      return std::nullopt;
+    }
+  }
+};
+
 /**
  * @brief Cone block
  *

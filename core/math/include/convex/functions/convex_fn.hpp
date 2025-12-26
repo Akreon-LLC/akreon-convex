@@ -16,22 +16,50 @@
 #include "convex/convex_util.hpp"
 
 namespace convex {
+
 /**
  * @brief base convex function CRTP
  *
  * Similar space constraints on R^n with convex set domain
  */
-template <linalg::RnSpace Domain, typename Derived>
-class ConvexFn {
- public:
+template <ConvexDomainLike Domain, typename Derived, ConvexAtomLike Child>
+struct ConvexFn : public Atom<Domain, ConvexFn<Domain, Derived, Child>, Child> {
   /// @brief alias to extract type traits from Domain convex set
-  using Space = set_space_t<Domain>;
-  using T = set_type_t<Domain>;
-  using Point = set_point_t<Domain>;
+  using BaseT = Atom<Domain, ConvexFn<Domain, Derived, Child>, Child>;
+  using typename BaseT::LinearMatT;
+  using typename BaseT::Point;
+  using typename BaseT::T;
+  using typename BaseT::TransT;
 
-  /// @brief helper to get dimension size of space & size of point
-  static constexpr size_t Dim = set_dim_v<Domain>;
-  static constexpr size_t N = linalg::vec_size_v<Point>;
+  /**
+   * @brief CTOR
+   *
+   * @param domain
+   * @param curvature
+   * @param range
+   * @param children
+   */
+  constexpr explicit ConvexFn(const Domain& dom_in, const Curvature& curv_in,
+                              const RangeInfo& range_in, const Child& child_in,
+                              const Monotonicity& mono_in)
+      : BaseT(dom_in, curv_in, range_in, std::make_tuple(child_in)),
+        mono(mono_in) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param domain
+   * @param curvature
+   * @param range
+   * @param children
+   * @param affine map
+   */
+  constexpr explicit ConvexFn(const Domain& dom_in, const Curvature& curv_in,
+                              const RangeInfo& range_in, const Child& child_in,
+                              const affine::AffineMap<LinearMatT>& map_in,
+                              const Monotonicity& mono_in)
+      : BaseT(dom_in, curv_in, range_in, std::make_tuple(child_in), map_in),
+        mono(mono_in) {}
 
   /**
    * @brief operator overload for evaluation fn
@@ -76,10 +104,10 @@ class ConvexFn {
    * @return updated cone block
    */
   template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
-            affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
+            affine::AffineMapLike ConeMap, conic::ConeLike... Cones>
   constexpr auto canonicalize(
       const ConeMapBuilder<DecVarDom>& cmap_builder, const CoordMap& coord_map,
-      const conic::ConeBlock<ConeMap, Cs...>& cone_block) const {
+      const conic::ConeBlock<ConeMap, Cones...>& cone_block) const {
     return self().canonicalize_impl(cmap_builder, coord_map, cone_block);
   }
 
@@ -89,5 +117,9 @@ class ConvexFn {
    * @return derived class instance
    */
   constexpr auto self() const { return static_cast<const Derived&>(*this); }
+
+  /** @brief member vars */
+  Monotonicity mono;  ///< mono tag for convex function
 };
+
 }  // namespace convex

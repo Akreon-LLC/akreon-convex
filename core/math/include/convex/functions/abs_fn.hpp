@@ -21,16 +21,73 @@ namespace convex {
  *
  * f(x) = |x|, x \in R
  */
-template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-  requires(linalg::space_dim_v<Domain> == 1)
-class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Tag>> {
+template <ConvexDomainLike Domain, ConvexAtomLike Child,
+          FnTag Tag = FnTag::Convex>
+  requires(dom_size_v<Domain> == 1)
+class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, AbsFn<Domain, Tag>>;
-  using ConvexBase::Dim;
+  using ConvexBase = ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child>;
   using ConvexBase::N;
+  using typename ConvexBase::LinearMatT;
   using typename ConvexBase::Point;
   using typename ConvexBase::T;
+
+  /**
+   * @brief CTOR
+   *
+   * @param dom
+   * @param curv
+   * @param range
+   * @param children
+   */
+  constexpr explicit AbsFn(const Domain& dom_in, const Child& child_in)
+      : ConvexBase(dom_in, get_curvature(), RangeInfo::NONNEG, child_in,
+                   get_mono(child_in)) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param dom
+   * @param curv
+   * @param range
+   * @param children
+   */
+  constexpr explicit AbsFn(const Domain& dom_in, const Child& child_in,
+                           const affine::AffineMap<LinearMatT>& map_in)
+      : ConvexBase(dom_in, get_curvature(), RangeInfo::NONNEG, child_in, map_in,
+                   get_mono(child_in)) {}
+
+  /**
+   * @brief get curvature
+   *
+   * @return curvature
+   */
+  constexpr Curvature get_curvature() const {
+    if constexpr (Tag == FnTag::Convex) {
+      return Curvature::CONVEX;
+    } else {
+      return Curvature::CONCAVE;
+    }
+  }
+
+  /**
+   * @brief get mono
+   *
+   * @param child
+   *
+   * @return monotonicity
+   */
+  constexpr Monotonicity get_mono(const Child& child) const {
+    switch (child.range) {
+      case RangeInfo::NONNEG:
+        return Monotonicity::NONDEC;
+      case RangeInfo::NONPOS:
+        return Monotonicity::NONINC;
+      default:
+        return Monotonicity::UNKNOWN;
+    }
+  }
 
   /**
    * @brief eval impl
@@ -53,9 +110,11 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Tag>> {
    */
   constexpr auto negate_impl() const {
     if constexpr (Tag == FnTag::Concave) {
-      return AbsFn<Domain, FnTag::Convex>();
+      return AbsFn<Domain, Child, FnTag::Convex>(
+          this->domain, std::get<0>(this->children), this->map);
     } else {
-      return AbsFn<Domain, FnTag::Concave>();
+      return AbsFn<Domain, Child, FnTag::Concave>(
+          this->domain, std::get<0>(this->children), this->map);
     }
   }
 

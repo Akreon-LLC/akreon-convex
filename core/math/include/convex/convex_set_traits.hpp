@@ -14,6 +14,7 @@
 
 #include "affine/affine_traits.hpp"
 #include "algebra/algebra_traits.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
 

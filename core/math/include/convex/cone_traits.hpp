@@ -16,14 +16,6 @@
 #include "convex_fn_traits.hpp"
 #include "convex_set_traits.hpp"
 
-namespace convex {
-/// @brief concept for encapsulating some convex atom
-template <class Atom>
-concept ConvexAtomLike =
-    convex::ConvexFnLike<Atom> || convex::ConcaveFnLike<Atom> ||
-    convex::ConvexSetLike<Atom>;
-}  // namespace convex
-
 namespace conic {
 
 /// @brief cone base class
@@ -153,6 +145,10 @@ concept ConeLike = requires(const Cone& cone, const cone_slack_t<Cone>& s) {
   { cone.hessian(s) };
   { cone.dual_hessian(s) };
 };
+
+/// @brief cone to rows
+template <ConeLike Cone, linalg::VectorLike Vec>
+struct ConeToRows;
 
 /// @brief cone block forward decl
 template <affine::AffineMapLike Map, ConeLike... Cs>

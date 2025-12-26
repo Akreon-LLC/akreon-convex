@@ -22,84 +22,35 @@ using namespace affine;
 using namespace conic;
 using namespace unit_test;
 
-template <size_t N>
-constexpr bool adj_mat_equal(const linalg::Matrix<bool, N, N>& adj_one,
-                             const linalg::Matrix<bool, N, N>& adj_two) {
-  for (size_t i = 0; i < N; ++i)
-    for (size_t j = 0; j < N; ++j)
-      if (adj_one(i)(j) != adj_two(i)(j)) return false;
-  return true;
-}
+TEST_CASE("Test var setup (simple)", "[convex]") {
+  SECTION("Free var") {
+    using MatT = Matrixd<1, 1>;
+    constexpr auto dom = ConvexDomain<MatT>(DomInfo::FREE);
+    STATIC_REQUIRE(dom.info == DomInfo::FREE);
 
-TEST_CASE("Test dag setup (simple)", "[convex_dag]") {
-  using Space = Matrixd<1, 1>;
-  constexpr auto abs_fn = AbsFn<Space>();
+    constexpr auto x = Variable(dom);
+    STATIC_REQUIRE(x.range == RangeInfo::UNKNOWN);
+    STATIC_REQUIRE(x.curvature == Curvature::AFFINE);
+    STATIC_REQUIRE(x.domain.info == dom.info);
 
-  SECTION("Test dag one atom") {
-    using BoolMatT = Matrix<bool, 1, 1>;
-    constexpr BoolMatT adj{};
-    constexpr auto dag = DAG<decltype(abs_fn)>(adj, abs_fn);
-    STATIC_REQUIRE(std::tuple_size<decltype(dag.atoms)>::value == 1);
-    STATIC_REQUIRE(adj(0)(0) == dag.adj(0)(0));
-    STATIC_REQUIRE(!has_cycle(dag));
-  }
+    constexpr auto mat = mat_traits<MatT>();
+    constexpr auto four_x = x.matmul(mat(4.0));
+    STATIC_REQUIRE(four_x.map.linear_part() == mat(4.0));
+    constexpr auto four_x_plus_two = x.translate(Vectord<1>{2.0});
+    STATIC_REQUIRE(four_x_plus_two.map.translation() == Vectord<1>{2.0});
 
-  SECTION("Test dag two atoms (unlinked)") {
-    using BoolMatT = Matrix<bool, 2, 2>;
-    constexpr BoolMatT adj{};
-    constexpr auto dag = DAG(adj, abs_fn, abs_fn);
-    STATIC_REQUIRE(std::tuple_size<decltype(dag.atoms)>::value == 2);
-    STATIC_REQUIRE(adj_mat_equal(adj, dag.adj));
-    STATIC_REQUIRE(!has_cycle(dag));
-  }
+    constexpr auto x0 = x(0).value();
+    STATIC_REQUIRE(x0.range == x.range);
+    STATIC_REQUIRE(x0.curvature == x.curvature);
+    STATIC_REQUIRE(x0.domain.info == x.domain.info);
+    STATIC_REQUIRE(std::tuple_size<decltype(x0.children)>::value == 1);
+    STATIC_REQUIRE(!x(1).has_value());
 
-  SECTION("Test dag two atoms (linked)") {
-    using BoolMatT = Matrix<bool, 2, 2>;
-    constexpr auto mat = mat_traits<BoolMatT>();
-    constexpr auto adj = mat(0, 1, 0, 0);
-    constexpr auto dag = DAG(adj, abs_fn, abs_fn);
-    STATIC_REQUIRE(std::tuple_size<decltype(dag.atoms)>::value == 2);
-    STATIC_REQUIRE(adj_mat_equal(adj, dag.adj));
-    STATIC_REQUIRE(!has_cycle(dag));
-  }
+    constexpr auto two_x0 = x0.mul(2.0);
+    STATIC_REQUIRE(two_x0.map.linear_part() == mat(2.0));
 
-  SECTION("Test dag two atoms (linked w/ cycle)") {
-    using BoolMatT = Matrix<bool, 2, 2>;
-    constexpr auto mat = mat_traits<BoolMatT>();
-    constexpr auto adj = mat(0, 1, 1, 0);
-    constexpr auto dag = DAG(adj, abs_fn, abs_fn);
-    STATIC_REQUIRE(std::tuple_size<decltype(dag.atoms)>::value == 2);
-    STATIC_REQUIRE(adj_mat_equal(adj, dag.adj));
-    STATIC_REQUIRE(has_cycle(dag));
-  }
-
-  SECTION("Test dag three atoms (linked and simple)") {
-    using BoolMatT = Matrix<bool, 3, 3>;
-    constexpr auto mat = mat_traits<BoolMatT>();
-    constexpr auto adj = mat(0, 1, 1, 0, 0, 0, 0, 0, 0);
-    constexpr auto dag = DAG(adj, abs_fn, abs_fn, abs_fn);
-    STATIC_REQUIRE(std::tuple_size<decltype(dag.atoms)>::value == 3);
-    STATIC_REQUIRE(adj_mat_equal(adj, dag.adj));
-    STATIC_REQUIRE(!has_cycle(dag));
-  }
-
-  SECTION("Test dag three atoms (linked w/ cycle)") {
-    using BoolMatT = Matrix<bool, 3, 3>;
-    constexpr auto mat = mat_traits<BoolMatT>();
-    constexpr auto adj = mat(0, 1, 1, 0, 0, 0, 1, 0, 0);
-    constexpr auto dag = DAG(adj, abs_fn, abs_fn, abs_fn);
-    STATIC_REQUIRE(std::tuple_size<decltype(dag.atoms)>::value == 3);
-    STATIC_REQUIRE(adj_mat_equal(adj, dag.adj));
-    STATIC_REQUIRE(has_cycle(dag));
-  }
-
-  SECTION("Test dag three atoms (linked no cycle)") {
-    using BoolMatT = Matrix<bool, 3, 3>;
-    constexpr auto mat = mat_traits<BoolMatT>();
-    constexpr auto adj = mat(0, 1, 1, 0, 0, 0, 0, 1, 0);
-    constexpr auto dag = DAG(adj, abs_fn, abs_fn, abs_fn);
-    STATIC_REQUIRE(std::tuple_size<decltype(dag.atoms)>::value == 3);
-    STATIC_REQUIRE(adj_mat_equal(adj, dag.adj));
-    STATIC_REQUIRE(!has_cycle(dag));
+    constexpr auto two_x0_plus_one = two_x0.add(1.0);
+    STATIC_REQUIRE(two_x0_plus_one.map.linear_part() == mat(2.0));
+    STATIC_REQUIRE(two_x0_plus_one.map.translation() == Vectord<1>{1.0});
   }
 }

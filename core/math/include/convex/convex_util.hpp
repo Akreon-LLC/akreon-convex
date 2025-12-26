@@ -13,8 +13,52 @@
 #pragma once
 
 #include "affine/affine_map.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
+
+/**
+ * @brief get domain
+ *
+ * @param parent domain
+ * @param child domain
+ *
+ * @return domain
+ */
+template <ConvexDomainLike Domain>
+constexpr Domain get_domain(const Domain& parent_dom, const Domain& child_dom) {
+  if (parent_dom == child_dom) return parent_dom;
+
+  if (DomInfo::FREE == parent_dom.info || DomInfo::FREE == child_dom.info)
+    return DomInfo::FREE;
+
+  if (DomInfo::NONNEG == parent_dom.info && DomInfo::PSD == child_dom.info)
+    return DomInfo::PSD;
+  if (DomInfo::PSD == parent_dom.info && DomInfo::NONNEG == child_dom.info)
+    return DomInfo::PSD;
+
+  if (DomInfo::POS == parent_dom.info && DomInfo::PD == child_dom.info)
+    return DomInfo::PD;
+  if (DomInfo::PD == parent_dom.info && DomInfo::POS == child_dom.info)
+    return DomInfo::PD;
+
+  if (DomInfo::NONPOS == parent_dom.info && DomInfo::NSD == child_dom.info)
+    return DomInfo::NSD;
+  if (DomInfo::NSD == parent_dom.info && DomInfo::NONPOS == child_dom.info)
+    return DomInfo::NSD;
+
+  if (DomInfo::NEG == parent_dom.info && DomInfo::ND == child_dom.info)
+    return DomInfo::ND;
+  if (DomInfo::ND == parent_dom.info && DomInfo::NEG == child_dom.info)
+    return DomInfo::ND;
+
+  if (DomInfo::PSD == parent_dom.info && DomInfo::NSD == child_dom.info)
+    return DomInfo::FREE;
+  if (DomInfo::NSD == parent_dom.info && DomInfo::PSD == child_dom.info)
+    return DomInfo::FREE;
+
+  throw std::domain_error("Invalid domain between child & parent");
+}
 
 /// @brief cone map builder functor
 template <linalg::RnSpace DecVarDom>
