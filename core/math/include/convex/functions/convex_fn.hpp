@@ -22,12 +22,12 @@ namespace convex {
  *
  * Similar space constraints on R^n with convex set domain
  */
-template <ConvexDomainLike Domain, typename Derived, ConvexAtomLike Child>
-struct ConvexFn : public Atom<Domain, ConvexFn<Domain, Derived, Child>, Child> {
+template <typename Meta, typename Derived, typename Child>
+struct ConvexFn : public Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
   /// @brief alias to extract type traits from Domain convex set
-  using BaseT = Atom<Domain, ConvexFn<Domain, Derived, Child>, Child>;
+  using BaseT = Atom<Meta, ConvexFn<Meta, Derived, Child>, Child>;
   using typename BaseT::LinearMatT;
-  using typename BaseT::Point;
+  using typename BaseT::PointT;
   using typename BaseT::T;
   using typename BaseT::TransT;
 
@@ -39,11 +39,9 @@ struct ConvexFn : public Atom<Domain, ConvexFn<Domain, Derived, Child>, Child> {
    * @param range
    * @param children
    */
-  constexpr explicit ConvexFn(const Domain& dom_in, const Curvature& curv_in,
-                              const RangeInfo& range_in, const Child& child_in,
-                              const Monotonicity& mono_in)
-      : BaseT(dom_in, curv_in, range_in, std::make_tuple(child_in)),
-        mono(mono_in) {}
+  constexpr explicit ConvexFn(const Child& child_in,
+                              const MonotonicityType& mono_in)
+      : BaseT(std::make_tuple(child_in)), mono(mono_in) {}
 
   /**
    * @brief CTOR
@@ -54,12 +52,10 @@ struct ConvexFn : public Atom<Domain, ConvexFn<Domain, Derived, Child>, Child> {
    * @param children
    * @param affine map
    */
-  constexpr explicit ConvexFn(const Domain& dom_in, const Curvature& curv_in,
-                              const RangeInfo& range_in, const Child& child_in,
+  constexpr explicit ConvexFn(const Child& child_in,
                               const affine::AffineMap<LinearMatT>& map_in,
-                              const Monotonicity& mono_in)
-      : BaseT(dom_in, curv_in, range_in, std::make_tuple(child_in), map_in),
-        mono(mono_in) {}
+                              const MonotonicityType& mono_in)
+      : BaseT(std::make_tuple(child_in), map_in), mono(mono_in) {}
 
   /**
    * @brief operator overload for evaluation fn
@@ -68,7 +64,7 @@ struct ConvexFn : public Atom<Domain, ConvexFn<Domain, Derived, Child>, Child> {
    *
    * @return y \in R
    */
-  constexpr std::optional<T> operator()(const Point& x) const {
+  constexpr std::optional<T> operator()(const PointT& x) const {
     return self().eval_impl(x);
   }
 
@@ -81,7 +77,7 @@ struct ConvexFn : public Atom<Domain, ConvexFn<Domain, Derived, Child>, Child> {
    *
    * @return y (scalar in R)
    */
-  constexpr std::optional<T> eval(const Point& x) const {
+  constexpr std::optional<T> eval(const PointT& x) const {
     return self().eval_impl(x);
   }
 
@@ -119,7 +115,7 @@ struct ConvexFn : public Atom<Domain, ConvexFn<Domain, Derived, Child>, Child> {
   constexpr auto self() const { return static_cast<const Derived&>(*this); }
 
   /** @brief member vars */
-  Monotonicity mono;  ///< mono tag for convex function
+  MonotonicityType mono;  ///< mono tag for convex function
 };
 
 }  // namespace convex

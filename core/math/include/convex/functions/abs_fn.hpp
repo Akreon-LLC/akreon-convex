@@ -16,21 +16,24 @@
 
 namespace convex {
 
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using AbsCodom = ConvexDomain<Space, SignType::NONNEG>;
+
 /**
  * @brief abs function
  *
  * f(x) = |x|, x \in R
  */
-template <ConvexDomainLike Domain, ConvexAtomLike Child,
-          Curvature Tag = Curvature::CONVEX>
-  requires(dom_size_v<Domain> == 1)
-class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+class AbsFn : public ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child>;
+  using ConvexBase = ConvexFn<Meta, AbsFn<Meta, Child>, Child>;
   using ConvexBase::N;
   using typename ConvexBase::LinearMatT;
-  using typename ConvexBase::Point;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
   /**
@@ -41,9 +44,8 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
    * @param range
    * @param children
    */
-  constexpr explicit AbsFn(const Domain& dom_in, const Child& child_in)
-      : ConvexBase(dom_in, get_curvature(), RangeInfo::NONNEG, child_in,
-                   get_mono(child_in)) {}
+  constexpr explicit AbsFn(const Child& child_in)
+      : ConvexBase(child_in, get_mono()) {}
 
   /**
    * @brief CTOR
@@ -53,39 +55,24 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
    * @param range
    * @param children
    */
-  constexpr explicit AbsFn(const Domain& dom_in, const Child& child_in,
+  constexpr explicit AbsFn(const Child& child_in,
                            const affine::AffineMap<LinearMatT>& map_in)
-      : ConvexBase(dom_in, get_curvature(), RangeInfo::NONNEG, child_in, map_in,
-                   get_mono(child_in)) {}
-
-  /**
-   * @brief get curvature
-   *
-   * @return curvature
-   */
-  constexpr Curvature get_curvature() const {
-    if constexpr (Tag == Curvature::CONVEX) {
-      return Curvature::CONVEX;
-    } else {
-      return Curvature::CONCAVE;
-    }
-  }
+      : ConvexBase(child_in, map_in, get_mono()) {}
 
   /**
    * @brief get mono
    *
-   * @param child
-   *
    * @return monotonicity
    */
-  constexpr Monotonicity get_mono(const Child& child) const {
-    switch (child.range) {
-      case RangeInfo::NONNEG:
-        return Monotonicity::NONDEC;
-      case RangeInfo::NONPOS:
-        return Monotonicity::NONINC;
-      default:
-        return Monotonicity::UNKNOWN;
+  constexpr MonotonicityType get_mono() const {
+    static constexpr SignType sign =
+        dom_sign_v<meta_codom_t<atom_meta_t<Child>>>;
+    if constexpr (sign == SignType::NONNEG) {
+      return MonotonicityType::NONDEC;
+    } else if constexpr (sign == SignType::NONPOS) {
+      return MonotonicityType::NONINC;
+    } else {
+      return MonotonicityType::UNKNOWN;
     }
   }
 
@@ -96,8 +83,9 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
    *
    * @return abs(x) \in R
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const {
-    if constexpr (Tag == Curvature::CONVEX)
+  constexpr std::optional<T> eval_impl(const PointT& x) const {
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX)
       return linalg::constexpr_abs(x(0));
     else
       return T(-1) * linalg::constexpr_abs(x(0));
@@ -109,12 +97,15 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
    * @return negated f
    */
   constexpr auto negate_impl() const {
-    if constexpr (Tag == Curvature::CONCAVE) {
-      return AbsFn<Domain, Child, Curvature::CONVEX>(
-          this->domain, std::get<0>(this->children), this->map);
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    using Dom = meta_dom_t<Meta>;
+    using Codom = meta_codom_t<Meta>;
+    if constexpr (Tag == CurvatureType::CONCAVE) {
+      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONVEX>;
+      return AbsFn<NewMeta, Child>(std::get<0>(this->children), this->map);
     } else {
-      return AbsFn<Domain, Child, Curvature::CONCAVE>(
-          this->domain, std::get<0>(this->children), this->map);
+      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONCAVE>;
+      return AbsFn<NewMeta, Child>(std::get<0>(this->children), this->map);
     }
   }
 
@@ -189,7 +180,8 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
     g[0] = coord_map.translation()(0);
     g[1] = T(-1) * coord_map.translation()(0);
 
-    if constexpr (Tag == Curvature::CONVEX) {
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX) {
       F[2][2] = T(1);
       F[4][2] = T(1);
     } else {

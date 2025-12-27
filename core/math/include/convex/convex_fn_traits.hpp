@@ -50,7 +50,7 @@ class SquareFn;
 
 /// @brief forward declaration - abs fn
 template <typename Meta, typename Child>
-  requires(dom_size_v<dom_type_t<Meta>> == 1)
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
 class AbsFn;
 
 /// @brief forward declaration - inv pos fn

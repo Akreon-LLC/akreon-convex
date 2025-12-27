@@ -61,18 +61,18 @@ template <typename Dom>
 inline constexpr SignType dom_sign_v =
     dom_traits<linalg::remove_cvref_t<Dom>>::sign;
 
-template <typename Dom, typename Codom, CurvatureType Curvature>
+template <typename Dom, typename Codom, CurvatureType Curv>
   requires(std::same_as<dom_type_t<Dom>, dom_type_t<Codom>>)
 struct ConvexAtomMeta {};
 
 template <typename Meta>
 struct meta_traits {};
 
-template <typename Dom, typename Codom, CurvatureType Curvature>
-struct meta_traits<ConvexAtomMeta<Dom, Codom, Curvature>> {
+template <typename Dom, typename Codom, CurvatureType Curv>
+struct meta_traits<ConvexAtomMeta<Dom, Codom, Curv>> {
   using Domain = Dom;
   using Codomain = Codom;
-  static constexpr CurvatureType curvature = Curvature;
+  static constexpr CurvatureType curvature = Curv;
 };
 
 template <typename Meta>

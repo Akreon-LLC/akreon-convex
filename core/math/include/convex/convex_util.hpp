@@ -25,37 +25,52 @@ namespace convex {
  *
  * @return domain
  */
-template <ConvexDomainLike Domain>
-constexpr Domain get_domain(const Domain& parent_dom, const Domain& child_dom) {
-  if (parent_dom == child_dom) return parent_dom;
+template <typename ParentDom, typename ChildCodom>
+constexpr auto get_domain() {
+  if constexpr (dom_size_v<ParentDom> != dom_size_v<ChildCodom>)
+    throw std::domain_error(
+        "Mismatch in size between parent domain and child codomain");
 
-  if (DomInfo::FREE == parent_dom.info || DomInfo::FREE == child_dom.info)
-    return DomInfo::FREE;
+  if constexpr (std::same_as<ParentDom, ChildCodom>) return ParentDom{};
 
-  if (DomInfo::NONNEG == parent_dom.info && DomInfo::PSD == child_dom.info)
-    return DomInfo::PSD;
-  if (DomInfo::PSD == parent_dom.info && DomInfo::NONNEG == child_dom.info)
-    return DomInfo::PSD;
+  if constexpr (SignType::FREE == dom_sign_v<ParentDom> ||
+                SignType::FREE == dom_sign_v<ChildCodom>)
+    return SignType::FREE;
 
-  if (DomInfo::POS == parent_dom.info && DomInfo::PD == child_dom.info)
-    return DomInfo::PD;
-  if (DomInfo::PD == parent_dom.info && DomInfo::POS == child_dom.info)
-    return DomInfo::PD;
+  if (SignType::NONNEG == dom_sign_v<ParentDom> &&
+      SignType::PSD == dom_sign_v<ChildCodom>)
+    return SignType::PSD;
+  if (SignType::PSD == dom_sign_v<ParentDom> &&
+      SignType::NONNEG == dom_sign_v<ChildCodom>)
+    return SignType::PSD;
 
-  if (DomInfo::NONPOS == parent_dom.info && DomInfo::NSD == child_dom.info)
-    return DomInfo::NSD;
-  if (DomInfo::NSD == parent_dom.info && DomInfo::NONPOS == child_dom.info)
-    return DomInfo::NSD;
+  if (SignType::POS == dom_sign_v<ParentDom> &&
+      SignType::PD == dom_sign_v<ChildCodom>)
+    return SignType::PD;
+  if (SignType::PD == dom_sign_v<ParentDom> &&
+      SignType::POS == dom_sign_v<ChildCodom>)
+    return SignType::PD;
 
-  if (DomInfo::NEG == parent_dom.info && DomInfo::ND == child_dom.info)
-    return DomInfo::ND;
-  if (DomInfo::ND == parent_dom.info && DomInfo::NEG == child_dom.info)
-    return DomInfo::ND;
+  if (SignType::NONPOS == dom_sign_v<ParentDom> &&
+      SignType::NSD == dom_sign_v<ChildCodom>)
+    return SignType::NSD;
+  if (SignType::NSD == dom_sign_v<ParentDom> &&
+      SignType::NONPOS == dom_sign_v<ChildCodom>)
+    return SignType::NSD;
 
-  if (DomInfo::PSD == parent_dom.info && DomInfo::NSD == child_dom.info)
-    return DomInfo::FREE;
-  if (DomInfo::NSD == parent_dom.info && DomInfo::PSD == child_dom.info)
-    return DomInfo::FREE;
+  if (SignType::NEG == dom_sign_v<ParentDom> &&
+      SignType::ND == dom_sign_v<ChildCodom>)
+    return SignType::ND;
+  if (SignType::ND == dom_sign_v<ParentDom> &&
+      SignType::NEG == dom_sign_v<ChildCodom>)
+    return SignType::ND;
+
+  if (SignType::PSD == dom_sign_v<ParentDom> &&
+      SignType::NSD == dom_sign_v<ChildCodom>)
+    return SignType::FREE;
+  if (SignType::NSD == dom_sign_v<ParentDom> &&
+      SignType::PSD == dom_sign_v<ChildCodom>)
+    return SignType::FREE;
 
   throw std::domain_error("Invalid domain between child & parent");
 }
