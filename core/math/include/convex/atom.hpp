@@ -31,17 +31,23 @@ struct Atom {
   using LinearMatT = linalg::Matrix<T, N, N>;
   using TransT = linalg::Vector<T, N>;
 
-  constexpr explicit Atom() {}
+  constexpr explicit Atom() { validate_domain(); }
 
   constexpr explicit Atom(const std::tuple<Cs...> child_in)
-      : children(std::move(child_in)) {}
+      : children(std::move(child_in)) {
+    validate_domain();
+  }
 
   constexpr explicit Atom(const affine::AffineMap<LinearMatT>& map_in)
-      : map(map_in) {}
+      : map(map_in) {
+    validate_domain();
+  }
 
   constexpr explicit Atom(const std::tuple<Cs...> child_in,
                           const affine::AffineMap<LinearMatT>& map_in)
-      : children(std::move(child_in)), map(map_in) {}
+      : children(std::move(child_in)), map(map_in) {
+    validate_domain();
+  }
 
   constexpr void validate_domain() const {
     auto validate_child = [&](const auto& child) {
@@ -49,7 +55,7 @@ struct Atom {
       if constexpr (dom_size_v<Domain> != dom_size_v<ChildCodom>)
         throw std::domain_error(
             "Mismatch in size between parent domain and child codomain");
-      self().template validate_domain_impl<Domain, ChildCodom>();
+      //self().template validate_domain_impl<Domain, ChildCodom>();
     };
     std::apply([&](const auto&... child) { (validate_child(child), ...); },
                children);

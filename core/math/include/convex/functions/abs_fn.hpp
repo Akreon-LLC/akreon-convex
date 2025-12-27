@@ -60,6 +60,16 @@ class AbsFn : public ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
       : ConvexBase(child_in, map_in, get_mono()) {}
 
   /**
+   * @brief validate domain
+   *
+   * @return void
+   */
+  template <typename Dom, typename ChildCodom>
+  constexpr void validate_domain_impl() const {
+    // no-op
+  }
+
+  /**
    * @brief get mono
    *
    * @return monotonicity
