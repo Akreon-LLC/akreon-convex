@@ -35,6 +35,13 @@ struct ScalarView : public Atom<Meta, ScalarView<Meta, Child>, Child> {
                                 const affine::AffineMap<LinearMatT>& map_in)
       : BaseT(std::make_tuple(child_in), map_in), idx(idx_in) {}
 
+  template <typename Dom, typename ChildCodom>
+  constexpr void validate_domain_impl() const {
+    if constexpr (!std::same_as<dom_type_t<Dom>, dom_type_t<ChildCodom>>)
+      throw std::domain_error(
+          "Domain type mismatch between variable and scalar view");
+  }
+
   constexpr auto mul_impl(const T& alpha) const {
     const auto mat = linalg::mat_traits<LinearMatT>();
     affine::AffineMap<LinearMatT> new_map(mat(alpha), this->map.translation());

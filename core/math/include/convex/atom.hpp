@@ -43,6 +43,18 @@ struct Atom {
                           const affine::AffineMap<LinearMatT>& map_in)
       : children(std::move(child_in)), map(map_in) {}
 
+  constexpr void validate_domain() const {
+    auto validate_child = [&](const auto& child) {
+      using ChildCodom = meta_codom_t<atom_meta_t<decltype(child)>>;
+      if constexpr (dom_size_v<Domain> != dom_size_v<ChildCodom>)
+        throw std::domain_error(
+            "Mismatch in size between parent domain and child codomain");
+      self().template validate_domain_impl<Domain, ChildCodom>();
+    };
+    std::apply([&](const auto&... child) { (validate_child(child), ...); },
+               children);
+  }
+
   constexpr auto mul(const LinearMatT& alpha) const {
     return self().mul_impl(alpha);
   }

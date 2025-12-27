@@ -27,10 +27,6 @@ namespace convex {
  */
 template <typename ParentDom, typename ChildCodom>
 constexpr auto get_domain() {
-  if constexpr (dom_size_v<ParentDom> != dom_size_v<ChildCodom>)
-    throw std::domain_error(
-        "Mismatch in size between parent domain and child codomain");
-
   if constexpr (std::same_as<ParentDom, ChildCodom>) return ParentDom{};
 
   if constexpr (SignType::FREE == dom_sign_v<ParentDom> ||
