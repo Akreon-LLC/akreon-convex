@@ -44,8 +44,7 @@ class AbsFn : public ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
    * @param range
    * @param children
    */
-  constexpr explicit AbsFn(const Child& child_in)
-      : ConvexBase(child_in, get_mono()) {}
+  constexpr explicit AbsFn(const Child& child_in) : ConvexBase(child_in) {}
 
   /**
    * @brief CTOR
@@ -57,24 +56,27 @@ class AbsFn : public ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
    */
   constexpr explicit AbsFn(const Child& child_in,
                            const affine::AffineMap<LinearMatT>& map_in)
-      : ConvexBase(child_in, map_in, get_mono()) {}
+      : ConvexBase(child_in, map_in) {}
 
   /**
    * @brief validate domain
    *
+   * @param dom
+   * @param codom
+   *
    * @return void
    */
-  template <typename Dom, typename ChildCodom>
-  constexpr void validate_domain_impl() const {
+  constexpr void validate_domain_impl(const auto& /*dom*/,
+                                      const auto& /*child_codom*/) const {
     // no-op
   }
 
   /**
-   * @brief get mono
+   * @brief mono
    *
    * @return monotonicity
    */
-  constexpr MonotonicityType get_mono() const {
+  constexpr MonotonicityType monotonicity_impl() const {
     static constexpr SignType sign =
         dom_sign_v<meta_codom_t<atom_meta_t<Child>>>;
     if constexpr (sign == SignType::NONNEG) {

@@ -55,7 +55,7 @@ struct Atom {
       if constexpr (dom_size_v<Domain> != dom_size_v<ChildCodom>)
         throw std::domain_error(
             "Mismatch in size between parent domain and child codomain");
-      //self().template validate_domain_impl<Domain, ChildCodom>();
+      self().validate_domain_impl(Domain{}, ChildCodom{});
     };
     std::apply([&](const auto&... child) { (validate_child(child), ...); },
                children);

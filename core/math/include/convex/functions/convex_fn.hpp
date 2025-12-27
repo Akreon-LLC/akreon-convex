@@ -39,9 +39,8 @@ struct ConvexFn : public Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
    * @param range
    * @param children
    */
-  constexpr explicit ConvexFn(const Child& child_in,
-                              const MonotonicityType& mono_in)
-      : BaseT(std::make_tuple(child_in)), mono(mono_in) {}
+  constexpr explicit ConvexFn(const Child& child_in)
+      : BaseT(std::make_tuple(child_in)) {}
 
   /**
    * @brief CTOR
@@ -53,9 +52,30 @@ struct ConvexFn : public Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
    * @param affine map
    */
   constexpr explicit ConvexFn(const Child& child_in,
-                              const affine::AffineMap<LinearMatT>& map_in,
-                              const MonotonicityType& mono_in)
-      : BaseT(std::make_tuple(child_in), map_in), mono(mono_in) {}
+                              const affine::AffineMap<LinearMatT>& map_in)
+      : BaseT(std::make_tuple(child_in), map_in) {}
+
+  /**
+   * @brief validate domain
+   *
+   * @param dom
+   * @param codom
+   *
+   * @return void
+   */
+  constexpr void validate_domain_impl(const auto& dom,
+                                      const auto& child_codom) const {
+    self().validate_domain_impl(dom, child_codom);
+  }
+
+  /**
+   * @brief monotonicity
+   *
+   * @return monotonicity type
+   */
+  constexpr MonotonicityType monotonicity() const {
+    return self().monotonicity_impl();
+  }
 
   /**
    * @brief operator overload for evaluation fn
@@ -113,9 +133,6 @@ struct ConvexFn : public Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
    * @return derived class instance
    */
   constexpr auto self() const { return static_cast<const Derived&>(*this); }
-
-  /** @brief member vars */
-  MonotonicityType mono;  ///< mono tag for convex function
 };
 
 }  // namespace convex
