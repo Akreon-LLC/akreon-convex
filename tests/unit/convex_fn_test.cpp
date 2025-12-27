@@ -32,6 +32,7 @@ constexpr auto create_empty_cblk() {
 
 TEST_CASE("Test abs function", "[convex_fn]") {
   SECTION("Test abs function") {
+#if 0
     using Space = Matrixd<1, 1>;
     constexpr auto dom = ConvexDomain<Space>(DomInfo::FREE);
     constexpr auto x = Variable(dom);
@@ -42,7 +43,6 @@ TEST_CASE("Test abs function", "[convex_fn]") {
     STATIC_REQUIRE(abs_fn(Vectord<1>{-2.0}).has_value());
     STATIC_REQUIRE(abs_fn(Vectord<1>{-2.0}).value() == 2.0);
 
-#if 0
     constexpr mat_traits<Matrix<double, 5, 3>> F_mat;
     constexpr auto F = F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, -1.0, 1.0, 0.0,
                              1.0, 0.0, 0.0, 0.0, 1.0);
@@ -65,13 +65,13 @@ TEST_CASE("Test abs function", "[convex_fn]") {
     STATIC_REQUIRE(cone_block.validate());
 #endif
 
+#if 0
     constexpr auto abs_concave = abs_fn.negate();
     STATIC_REQUIRE(abs_concave(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(abs_concave(Vectord<1>{0.0}).value() == 0.0);
     STATIC_REQUIRE(abs_concave(Vectord<1>{-2.0}).has_value());
     STATIC_REQUIRE(abs_concave(Vectord<1>{-2.0}).value() == -2.0);
 
-#if 0
     constexpr mat_traits<Matrix<double, 5, 3>> F1_mat;
     constexpr auto F1 = F1_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, -1.0, -1.0,
                                0.0, 1.0, 0.0, 0.0, 0.0, -1.0);

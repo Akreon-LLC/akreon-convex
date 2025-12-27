@@ -25,24 +25,32 @@ using namespace unit_test;
 TEST_CASE("Test var setup (simple)", "[convex]") {
   SECTION("Free var") {
     using MatT = Matrixd<1, 1>;
-    constexpr auto dom = ConvexDomain<MatT>(DomInfo::FREE);
-    STATIC_REQUIRE(dom.info == DomInfo::FREE);
+    using ConvexDom = ConvexDomain<MatT, SignType::FREE>;
+    using ConvexMeta =
+        ConvexAtomMeta<ConvexDom, ConvexDom, CurvatureType::AFFINE>;
 
-    constexpr auto x = Variable(dom);
-    STATIC_REQUIRE(x.range == RangeInfo::UNKNOWN);
-    STATIC_REQUIRE(x.curvature == Curvature::AFFINE);
-    STATIC_REQUIRE(x.domain.info == dom.info);
+    constexpr auto x = Variable<ConvexMeta>();
+    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x)>>> ==
+                   SignType::FREE);
+    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x)>>> ==
+                   SignType::FREE);
+    STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(x)>> ==
+                   CurvatureType::AFFINE);
 
     constexpr auto mat = mat_traits<MatT>();
-    constexpr auto four_x = x.matmul(mat(4.0));
+    constexpr auto four_x = x.mul(mat(4.0));
     STATIC_REQUIRE(four_x.map.linear_part() == mat(4.0));
-    constexpr auto four_x_plus_two = x.translate(Vectord<1>{2.0});
+    constexpr auto four_x_plus_two = x.add(Vectord<1>{2.0});
     STATIC_REQUIRE(four_x_plus_two.map.translation() == Vectord<1>{2.0});
 
     constexpr auto x0 = x(0).value();
-    STATIC_REQUIRE(x0.range == x.range);
-    STATIC_REQUIRE(x0.curvature == x.curvature);
-    STATIC_REQUIRE(x0.domain.info == x.domain.info);
+    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x0)>>> ==
+                   SignType::FREE);
+    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x0)>>> ==
+                   SignType::FREE);
+    STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(x0)>> ==
+                   CurvatureType::AFFINE);
+
     STATIC_REQUIRE(std::tuple_size<decltype(x0.children)>::value == 1);
     STATIC_REQUIRE(!x(1).has_value());
 

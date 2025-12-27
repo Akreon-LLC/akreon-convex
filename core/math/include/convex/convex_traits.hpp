@@ -16,7 +16,7 @@
 
 namespace convex {
 
-enum struct DomInfo : uint8_t {
+enum struct SignType : uint8_t {
   FREE = 0,
   NONNEG,
   NONPOS,
@@ -28,64 +28,89 @@ enum struct DomInfo : uint8_t {
   ND
 };
 
-enum struct Curvature : uint8_t { AFFINE = 0, CONVEX, CONCAVE };
+enum struct CurvatureType : uint8_t { AFFINE = 0, CONVEX, CONCAVE };
 
-enum struct RangeInfo : uint8_t { UNKNOWN = 0, NONNEG, NONPOS, POS, NEG };
-
-enum struct Monotonicity : uint8_t { UNKNOWN = 0, NONDEC, NONINC };
+enum struct MonotonicityType : uint8_t { UNKNOWN = 0, NONDEC, NONINC };
 
 enum struct ConstraintType : uint8_t { EQ = 0, LEQ, GEQ, IN_SET };
 
-template <linalg::RnSpace Space>
-struct ConvexDomain {
-  constexpr explicit ConvexDomain(const DomInfo& info_in) : info(info_in) {}
-  DomInfo info;
+template <linalg::RnSpace Space, SignType Sign>
+struct ConvexDomain {};
 
-  constexpr bool operator==(const ConvexDomain<Space>& other) const {
-    return info == other.info;
-  }
-};
-
-template <class Dom>
+template <typename Dom>
 struct dom_traits {};
 
-template <linalg::RnSpace Space>
-struct dom_traits<ConvexDomain<Space>> {
+template <linalg::RnSpace Space, SignType Sign>
+struct dom_traits<ConvexDomain<Space, Sign>> {
   using T = linalg::space_type_t<Space>;
   using Point = linalg::space_point_t<Space>;
   static constexpr size_t N = linalg::space_dim_v<Space>;
+  static constexpr SignType sign = Sign;
 };
 
-template <class Dom>
+template <typename Dom>
 using dom_type_t = typename dom_traits<linalg::remove_cvref_t<Dom>>::T;
 
-template <class Dom>
+template <typename Dom>
 using dom_point_t = typename dom_traits<linalg::remove_cvref_t<Dom>>::Point;
 
-template <class Dom>
+template <typename Dom>
 inline constexpr size_t dom_size_v = dom_traits<linalg::remove_cvref_t<Dom>>::N;
 
-template <class Dom>
-concept ConvexDomainLike = requires(const Dom& dom) {
-  { dom.info };
+template <typename Dom>
+inline constexpr SignType dom_sign_v =
+    dom_traits<linalg::remove_cvref_t<Dom>>::sign;
+
+template <typename Dom, typename Codom, CurvatureType Curvature>
+  requires(std::same_as<dom_type_t<Dom>, dom_type_t<Codom>>)
+struct ConvexAtomMeta {};
+
+template <typename Meta>
+struct meta_traits {};
+
+template <typename Dom, typename Codom, CurvatureType Curvature>
+struct meta_traits<ConvexAtomMeta<Dom, Codom, Curvature>> {
+  using Domain = Dom;
+  using Codomain = Codom;
+  static constexpr CurvatureType curvature = Curvature;
 };
 
-template <class Atom>
-concept ConvexAtomLike = requires(const Atom& atom) {
-  { atom.domain };
-  { atom.curvature };
-  { atom.range };
-  { atom.map };
-};
+template <typename Meta>
+using meta_dom_t = typename meta_traits<linalg::remove_cvref_t<Meta>>::Domain;
 
-template <ConvexDomainLike Domain, typename Derived, ConvexAtomLike... Cs>
+template <typename Meta>
+using meta_codom_t =
+    typename meta_traits<linalg::remove_cvref_t<Meta>>::Codomain;
+
+template <typename Meta>
+inline constexpr CurvatureType meta_curv_v =
+    meta_traits<linalg::remove_cvref_t<Meta>>::curvature;
+
+template <typename Meta, typename Derived, typename... Cs>
 struct Atom;
 
-template <ConvexDomainLike Domain>
+template <typename Meta>
 struct Variable;
 
-template <ConvexDomainLike Domain>
-  requires(dom_size_v<Domain> == 1)
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct ScalarView;
+
+template <typename Atom>
+struct atom_traits {};
+
+template <typename Meta>
+struct atom_traits<Variable<Meta>> {
+  using ConvexMeta = Meta;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<ScalarView<Meta, Child>> {
+  using ConvexMeta = Meta;
+};
+
+template <typename Atom>
+using atom_meta_t =
+    typename atom_traits<linalg::remove_cvref_t<Atom>>::ConvexMeta;
 
 }  // namespace convex

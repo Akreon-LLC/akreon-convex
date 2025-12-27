@@ -16,40 +16,32 @@
 
 namespace convex {
 
-template <ConvexDomainLike Domain, typename Derived, ConvexAtomLike... Cs>
+template <typename Meta, typename Derived, typename... Cs>
 struct Atom {
+  using Domain = meta_dom_t<Meta>;
+  using Codomain = meta_codom_t<Meta>;
   using T = dom_type_t<Domain>;
-  using Point = dom_point_t<Domain>;
+  using PointT = dom_point_t<Domain>;
+
   static constexpr size_t N = dom_size_v<Domain>;
+  static constexpr CurvatureType Curvature = meta_curv_v<Meta>;
+  static constexpr SignType DomSign = dom_sign_v<Domain>;
+  static constexpr SignType CodomSign = dom_sign_v<Codomain>;
+
   using LinearMatT = linalg::Matrix<T, N, N>;
   using TransT = linalg::Vector<T, N>;
 
-  constexpr explicit Atom(const Domain& dom_in, const Curvature& curv_in,
-                          const RangeInfo& range_in)
-      : domain(dom_in), curvature(curv_in), range(range_in) {}
+  constexpr explicit Atom() {}
 
-  constexpr explicit Atom(const Domain& dom_in, const Curvature& curv_in,
-                          const RangeInfo& range_in,
-                          const std::tuple<Cs...> child_in)
-      : domain(dom_in),
-        curvature(curv_in),
-        range(range_in),
-        children(std::move(child_in)) {}
+  constexpr explicit Atom(const std::tuple<Cs...> child_in)
+      : children(std::move(child_in)) {}
 
-  constexpr explicit Atom(const Domain& dom_in, const Curvature& curv_in,
-                          const RangeInfo& range_in,
+  constexpr explicit Atom(const affine::AffineMap<LinearMatT>& map_in)
+      : map(map_in) {}
+
+  constexpr explicit Atom(const std::tuple<Cs...> child_in,
                           const affine::AffineMap<LinearMatT>& map_in)
-      : domain(dom_in), curvature(curv_in), range(range_in), map(map_in) {}
-
-  constexpr explicit Atom(const Domain& dom_in, const Curvature& curv_in,
-                          const RangeInfo& range_in,
-                          const std::tuple<Cs...> child_in,
-                          const affine::AffineMap<LinearMatT>& map_in)
-      : domain(dom_in),
-        curvature(curv_in),
-        range(range_in),
-        children(std::move(child_in)),
-        map(map_in) {}
+      : children(std::move(child_in)), map(map_in) {}
 
   constexpr auto mul(const LinearMatT& alpha) const {
     return self().mul_impl(alpha);
@@ -67,9 +59,6 @@ struct Atom {
     return static_cast<const Derived&>(*this);
   }
 
-  Domain domain;
-  Curvature curvature;
-  RangeInfo range;
   std::tuple<Cs...> children;
   affine::AffineMap<LinearMatT> map;
 };

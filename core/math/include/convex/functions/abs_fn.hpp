@@ -22,7 +22,7 @@ namespace convex {
  * f(x) = |x|, x \in R
  */
 template <ConvexDomainLike Domain, ConvexAtomLike Child,
-          FnTag Tag = FnTag::Convex>
+          Curvature Tag = Curvature::CONVEX>
   requires(dom_size_v<Domain> == 1)
 class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
  public:
@@ -64,7 +64,7 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
    * @return curvature
    */
   constexpr Curvature get_curvature() const {
-    if constexpr (Tag == FnTag::Convex) {
+    if constexpr (Tag == Curvature::CONVEX) {
       return Curvature::CONVEX;
     } else {
       return Curvature::CONCAVE;
@@ -97,7 +97,7 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
    * @return abs(x) \in R
    */
   constexpr std::optional<T> eval_impl(const Point& x) const {
-    if constexpr (Tag == FnTag::Convex)
+    if constexpr (Tag == Curvature::CONVEX)
       return linalg::constexpr_abs(x(0));
     else
       return T(-1) * linalg::constexpr_abs(x(0));
@@ -109,11 +109,11 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
    * @return negated f
    */
   constexpr auto negate_impl() const {
-    if constexpr (Tag == FnTag::Concave) {
-      return AbsFn<Domain, Child, FnTag::Convex>(
+    if constexpr (Tag == Curvature::CONCAVE) {
+      return AbsFn<Domain, Child, Curvature::CONVEX>(
           this->domain, std::get<0>(this->children), this->map);
     } else {
-      return AbsFn<Domain, Child, FnTag::Concave>(
+      return AbsFn<Domain, Child, Curvature::CONCAVE>(
           this->domain, std::get<0>(this->children), this->map);
     }
   }
@@ -189,7 +189,7 @@ class AbsFn : public ConvexFn<Domain, AbsFn<Domain, Child, Tag>, Child> {
     g[0] = coord_map.translation()(0);
     g[1] = T(-1) * coord_map.translation()(0);
 
-    if constexpr (Tag == FnTag::Convex) {
+    if constexpr (Tag == Curvature::CONVEX) {
       F[2][2] = T(1);
       F[4][2] = T(1);
     } else {
