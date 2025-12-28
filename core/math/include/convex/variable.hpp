@@ -35,14 +35,6 @@ struct ScalarView : public Atom<Meta, ScalarView<Meta, Child>, Child> {
                                 const affine::AffineMap<LinearMatT>& map_in)
       : BaseT(std::make_tuple(child_in), map_in), idx(idx_in) {}
 
-  constexpr void validate_domain_impl(const auto& dom,
-                                      const auto& child_codom) const {
-    if constexpr (!std::same_as<dom_type_t<decltype(dom)>,
-                                dom_type_t<decltype(child_codom)>>)
-      throw std::domain_error(
-          "Domain type mismatch between variable and scalar view");
-  }
-
   constexpr auto mul_impl(const T& alpha) const {
     const auto mat = linalg::mat_traits<LinearMatT>();
     affine::AffineMap<LinearMatT> new_map(mat(alpha), this->map.translation());
@@ -73,11 +65,6 @@ struct Variable : public Atom<Meta, Variable<Meta>> {
 
   constexpr explicit Variable(const affine::AffineMap<LinearMatT>& map_in)
       : BaseT(map_in) {}
-
-  constexpr void validate_domain_impl(const auto& /*dom*/,
-                                      const auto& /*child_codom*/) const {
-    // no-op
-  }
 
   using ScalarDom = ConvexDomain<linalg::Matrix<T, 1, 1>, DomSign>;
   using ScalarMeta =

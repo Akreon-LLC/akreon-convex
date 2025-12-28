@@ -27,7 +27,7 @@ using AbsCodom = ConvexDomain<Space, SignType::NONNEG>;
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
-class AbsFn : public ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
+struct AbsFn : public ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
  public:
   /// @brief bring into scope convex fn alias / helpers
   using ConvexBase = ConvexFn<Meta, AbsFn<Meta, Child>, Child>;
@@ -57,19 +57,6 @@ class AbsFn : public ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
   constexpr explicit AbsFn(const Child& child_in,
                            const affine::AffineMap<LinearMatT>& map_in)
       : ConvexBase(child_in, map_in) {}
-
-  /**
-   * @brief validate domain
-   *
-   * @param dom
-   * @param codom
-   *
-   * @return void
-   */
-  constexpr void validate_domain_impl(const auto& /*dom*/,
-                                      const auto& /*child_codom*/) const {
-    // no-op
-  }
 
   /**
    * @brief mono

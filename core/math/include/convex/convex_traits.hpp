@@ -96,6 +96,75 @@ template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct ScalarView;
 
+/// @brief forward declaration - convex fn
+template <typename Meta, typename Derived, typename Child>
+struct ConvexFn;
+
+/// @brief forward declaration - max fn
+template <typename Meta>
+struct MaxFn;
+
+/// @brief forward declaration - norm fn
+template <typename Meta, linalg::NormLike Norm>
+  requires(dom_size_v<dom_type_t<Meta>> == linalg::norm_size_v<Norm>)
+struct NormFn;
+
+/// @brief forward declaration - geo mean fn
+template <typename Meta>
+struct GeoMeanFn;
+
+/// @brief forward declaration - exp fn
+template <typename Meta>
+  requires(dom_size_v<dom_type_t<Meta>> == 1)
+struct ExpFn;
+
+/// @brief forward declaration - log fn
+template <typename Meta>
+  requires(dom_size_v<dom_type_t<Meta>> == 1)
+struct LogFn;
+
+/// @brief forward declaration - square fn
+template <typename Meta>
+  requires(dom_size_v<dom_type_t<Meta>> == 1)
+struct SquareFn;
+
+/// @brief forward declaration - abs fn
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+struct AbsFn;
+
+/// @brief forward declaration - inv pos fn
+template <typename Meta>
+  requires(dom_size_v<dom_type_t<Meta>> == 1)
+struct InvPosFn;
+
+/// @brief forward declaration - log sum exp fn
+template <typename Meta>
+struct LogSumExpFn;
+
+// (dakre) TODO currently unimplemented but forward dec stub here
+
+/// @brief forward declaration - log det fn
+template <typename Meta>
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<dom_type_t<Meta>>>)
+struct LogDetFn;
+
+/// @brief forward declaration - harmonic mean fn
+template <typename Meta>
+struct HarmonicMeanFn;
+
+/// @brief forward declaration - sigmoid fn
+template <typename Meta>
+struct SigmoidFn;
+
+/// @brief forward declaration - huber fn
+template <typename Meta>
+struct HuberFn;
+
+/// @brief forward declaration - kl divergence
+template <typename Meta>
+struct KLDivergenceFn;
+
 template <typename Atom>
 struct atom_traits {};
 
@@ -109,11 +178,21 @@ struct atom_traits<ScalarView<Meta, Child>> : std::true_type {
   using ConvexMeta = Meta;
 };
 
+template <typename Meta, typename Derived, typename Child>
+struct atom_traits<ConvexFn<Meta, Derived, Child>> : std::false_type {
+  using ConvexMeta = Meta;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Atom<Meta, Child>> : std::false_type {
+  using ConvexMeta = Meta;
+};
+
 template <typename Atom>
 using atom_meta_t =
     typename atom_traits<linalg::remove_cvref_t<Atom>>::ConvexMeta;
 
-template <class Atom>
+template <typename Atom>
 inline constexpr bool is_var_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>{};
 

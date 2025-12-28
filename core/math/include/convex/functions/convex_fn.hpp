@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "convex/convex_fn_traits.hpp"
+#include "convex/convex_traits.hpp"
 #include "convex/convex_util.hpp"
 
 namespace convex {
@@ -58,14 +58,39 @@ struct ConvexFn : public Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
   /**
    * @brief validate domain
    *
-   * @param dom
-   * @param codom
+   * @param child curvature
    *
    * @return void
    */
-  constexpr void validate_domain_impl(const auto& dom,
-                                      const auto& child_codom) const {
-    self().validate_domain_impl(dom, child_codom);
+  constexpr void validate_domain_impl(const CurvatureType& child_curv) const {
+    const CurvatureType parent_curv = meta_curv_v<Meta>;
+    if (monotonicity() == MonotonicityType::UNKNOWN &&
+        child_curv != CurvatureType::AFFINE)
+      throw std::domain_error(
+          "Function's monotonicity is unknown and child curvature is "
+          "non-affine");
+
+    if (child_curv == CurvatureType::AFFINE ||
+        parent_curv == CurvatureType::AFFINE)
+      return;
+
+    if (parent_curv == CurvatureType::CONVEX) {
+      if ((monotonicity() == MonotonicityType::NONDEC &&
+           child_curv == CurvatureType::CONVEX) ||
+          (monotonicity() == MonotonicityType::NONINC &&
+           child_curv == CurvatureType::CONCAVE))
+        return;
+    }
+
+    if (parent_curv == CurvatureType::CONCAVE) {
+      if ((monotonicity() == MonotonicityType::NONDEC &&
+           child_curv == CurvatureType::CONCAVE) ||
+          (monotonicity() == MonotonicityType::NONINC &&
+           child_curv == CurvatureType::CONVEX))
+        return;
+    }
+
+    throw std::domain_error("Functions composition fails DCP compliance");
   }
 
   /**
