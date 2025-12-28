@@ -36,6 +36,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
                    SignType::FREE);
     STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(x)>> ==
                    CurvatureType::AFFINE);
+    STATIC_REQUIRE(is_var_type_v<decltype(x)>);
 
     constexpr auto mat = mat_traits<MatT>();
     constexpr auto four_x = x.mul(mat(4.0));
@@ -44,6 +45,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(four_x_plus_two.map.translation() == Vectord<1>{2.0});
 
     constexpr auto x0 = x(0).value();
+    STATIC_REQUIRE(is_var_type_v<decltype(x0)>);
     STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x0)>>> ==
                    SignType::FREE);
     STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x0)>>> ==

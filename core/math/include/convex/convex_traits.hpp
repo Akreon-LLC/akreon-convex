@@ -100,17 +100,21 @@ template <typename Atom>
 struct atom_traits {};
 
 template <typename Meta>
-struct atom_traits<Variable<Meta>> {
+struct atom_traits<Variable<Meta>> : std::true_type {
   using ConvexMeta = Meta;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<ScalarView<Meta, Child>> {
+struct atom_traits<ScalarView<Meta, Child>> : std::true_type {
   using ConvexMeta = Meta;
 };
 
 template <typename Atom>
 using atom_meta_t =
     typename atom_traits<linalg::remove_cvref_t<Atom>>::ConvexMeta;
+
+template <class Atom>
+inline constexpr bool is_var_type_v =
+    atom_traits<linalg::remove_cvref_t<Atom>>{};
 
 }  // namespace convex
