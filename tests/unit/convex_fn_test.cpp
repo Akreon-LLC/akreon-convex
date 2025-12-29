@@ -272,15 +272,15 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
   }
 }
 
-#if 0
 TEST_CASE("Test log function", "[convex_fn]") {
   SECTION("Test log fn") {
     using Space = Matrixd<1, 1>;
-    constexpr auto log_fn = LogFn<Space>();
-    STATIC_REQUIRE(ConcaveFnLike<decltype(log_fn)>);
+    constexpr auto x = Variable<PosVarMeta<Space>>();
+    constexpr auto log_fn = Log<LogMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(!log_fn(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(log_fn(Vectord<1>{1.0}).value() == 0.0);
 
+#if 0
     constexpr auto cmap_builder = ConeMapBuilder<Space>();
     constexpr auto map_id = affine::make_map_id<Space>();
     constexpr auto cb = create_empty_cblk<double>();
@@ -302,11 +302,13 @@ TEST_CASE("Test log function", "[convex_fn]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
+#endif
 
     constexpr auto log_convex = log_fn.negate();
     STATIC_REQUIRE(!log_convex(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(log_convex(Vectord<1>{1.0}).value() == 0.0);
 
+#if 0
     constexpr auto F1 = F_mat(0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
 
     constexpr auto canon1 = log_convex.canonicalize(cmap_builder, map_id, cb);
@@ -321,9 +323,11 @@ TEST_CASE("Test log function", "[convex_fn]") {
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
     STATIC_REQUIRE(sz1 == 1);
     STATIC_REQUIRE(cone_block1.validate());
+#endif
   }
 }
 
+#if 0
 TEST_CASE("Test max fn") {
   SECTION("Test max fn (trivial)") {
     using Space = Matrixd<1, 2>;

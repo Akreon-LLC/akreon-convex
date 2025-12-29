@@ -125,9 +125,9 @@ template <typename Meta, typename Child>
 struct Exp;
 
 /// @brief forward declaration - log fn
-template <typename Meta>
+template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
-struct LogFn;
+struct Log;
 
 /// @brief forward declaration - square fn
 template <typename Meta>
@@ -221,6 +221,12 @@ struct atom_traits<GeoMean<Meta, Child>> : std::true_type {
 
 template <typename Meta, typename Child>
 struct atom_traits<InvPos<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Log<Meta, Child>> : std::true_type {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };

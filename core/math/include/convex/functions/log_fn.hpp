@@ -16,21 +16,71 @@
 
 namespace convex {
 
+/// @brief alias for domain on log function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using LogDom = ConvexDomain<Space, SignType::POS>;
+
+/// @brief alias for codomain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using LogCodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for convex codomain on log function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using LogConvexCodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Space>
+using LogMeta =
+    ConvexAtomMeta<LogDom<Space>, LogCodom<Space>, CurvatureType::CONCAVE>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Space>
+using LogConvexMeta =
+    ConvexAtomMeta<LogDom<Space>, LogConvexCodom<Space>, CurvatureType::CONVEX>;
+
 /**
  * @brief log function
  *
  * f(x) = log(x), x \in R_++
  */
-template <linalg::RnSpace Domain, FnTag Tag = FnTag::Concave>
-  requires(linalg::space_dim_v<Domain> == 1)
-class LogFn : public ConvexFn<Domain, LogFn<Domain, Tag>> {
- public:
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+struct Log : ConvexFn<Meta, Log<Meta, Child>, Child> {
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, LogFn<Domain, Tag>>;
-  using ConvexBase::Dim;
+  using ConvexBase = ConvexFn<Meta, Log<Meta, Child>, Child>;
   using ConvexBase::N;
-  using typename ConvexBase::Point;
+  using typename ConvexBase::LinearMatT;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   */
+  constexpr explicit Log(const Child& child_in) : ConvexBase(child_in) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   * @param map
+   */
+  constexpr explicit Log(const Child& child_in,
+                         const affine::AffineMap<LinearMatT>& map_in)
+      : ConvexBase(child_in, map_in) {}
+
+  /**
+   * @brief mono
+   *
+   * @return monotonicity
+   */
+  constexpr MonotonicityType monotonicity_impl() const {
+    return MonotonicityType::NONDEC;
+  }
 
   /**
    * @brief eval impl
@@ -39,9 +89,13 @@ class LogFn : public ConvexFn<Domain, LogFn<Domain, Tag>> {
    *
    * @return log(x) \in R
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const {
+  constexpr std::optional<T> eval_impl(const PointT& x) const {
     if (x(0) <= T(0)) return std::nullopt;
-    return linalg::constexpr_ln(x(0));
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONCAVE)
+      return linalg::constexpr_ln(x(0));
+    else
+      return T(-1) * linalg::constexpr_ln(x(0)).value();
   }
 
   /**
@@ -50,10 +104,14 @@ class LogFn : public ConvexFn<Domain, LogFn<Domain, Tag>> {
    * @return negated log
    */
   constexpr auto negate_impl() const {
-    if constexpr (Tag == FnTag::Convex)
-      return LogFn<Domain, FnTag::Concave>();
-    else
-      return LogFn<Domain, FnTag::Convex>();
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    using Space = dom_space_t<meta_dom_t<Meta>>;
+    if constexpr (Tag == CurvatureType::CONCAVE) {
+      return Log<LogConvexMeta<Space>, Child>(std::get<0>(this->children),
+                                              this->map);
+    } else {
+      return Log<LogMeta<Space>, Child>(std::get<0>(this->children), this->map);
+    }
   }
 
   /**
@@ -97,7 +155,9 @@ class LogFn : public ConvexFn<Domain, LogFn<Domain, Tag>> {
     F = linalg::set_block<2, Codom + 2, 0, Dom>(F, coord_map.linear_part());
     g[1] = T(1);
     g[2] = coord_map.translation()(0);
-    if constexpr (Tag == FnTag::Concave) {
+
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONCAVE) {
       F[0][1] = T(1);
     } else {
       F[0][1] = T(-1);
