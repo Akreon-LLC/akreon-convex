@@ -15,6 +15,22 @@
 #include "convex_fn.hpp"
 
 namespace convex {
+
+/// @brief alias for domain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using ExpDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using ExpCodom = ConvexDomain<Space, SignType::NONNEG>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Space>
+using ExpMeta =
+    ConvexAtomMeta<ExpDom<Space>, ExpCodom<Space>, CurvatureType::CONVEX>;
+
 /**
  * @brief exp function
  *

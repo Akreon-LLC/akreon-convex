@@ -112,8 +112,8 @@ template <typename Meta, linalg::NormLike Norm>
 struct NormFn;
 
 /// @brief forward declaration - geo mean fn
-template <typename Meta>
-struct GeoMeanFn;
+template <typename Meta, typename Child>
+struct GeoMean;
 
 /// @brief forward declaration - exp fn
 template <typename Meta, typename Child>
@@ -204,6 +204,12 @@ struct atom_traits<Abs<Meta, Child>> : std::true_type {
 
 template <typename Meta, typename Child>
 struct atom_traits<Exp<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<GeoMean<Meta, Child>> : std::true_type {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };

@@ -55,6 +55,65 @@ struct Atom {
       if constexpr (is_fn_type_v<decltype(self())>) {
         self().validate_domain_impl(child);
       }
+
+      const SignType& dom_sign =
+          dom_sign_v<meta_dom_t<atom_meta_t<decltype(self())>>>;
+      if (dom_sign != SignType::FREE) {
+        const SignType& child_sign =
+            dom_sign_v<meta_codom_t<atom_meta_t<decltype(child)>>>;
+        switch (dom_sign) {
+          case SignType::POS: {
+            if (child_sign != SignType::POS)
+              throw std::domain_error("Parent expects positive child codomain");
+            break;
+          }
+          case SignType::NONNEG: {
+            if (child_sign != SignType::POS || child_sign != SignType::NONNEG)
+              throw std::domain_error(
+                  "Parent expects non-negative child codomain");
+            break;
+          }
+          case SignType::NEG: {
+            if (child_sign != SignType::NEG)
+              throw std::domain_error("Parent expects negative child codomain");
+            break;
+          }
+          case SignType::NONPOS: {
+            if (child_sign != SignType::NONPOS || child_sign != SignType::NEG)
+              throw std::domain_error(
+                  "Parent expects non-positive child codomain");
+            break;
+          }
+          case SignType::PD: {
+            if (child_sign != SignType::PD)
+              throw std::domain_error(
+                  "Parent expects positive definite child codomain");
+            break;
+          }
+          case SignType::PSD: {
+            if (child_sign != SignType::PSD || child_sign != SignType::PD)
+              throw std::domain_error(
+                  "Parent expects positive semi-definite child codomain");
+            break;
+          }
+          case SignType::ND: {
+            if (child_sign != SignType::ND)
+              throw std::domain_error(
+                  "Parent expects negative definite child codomain");
+            break;
+          }
+          case SignType::NSD: {
+            if (child_sign != SignType::NSD || child_sign != SignType::ND)
+              throw std::domain_error(
+                  "Parent expects negative semi-definite child codomain");
+            break;
+          }
+          case SignType::FREE:
+          default:
+            break;
+        }
+      }
+
       const CurvatureType& child_curv =
           meta_curv_v<atom_meta_t<decltype(child)>>;
       num_convex += child_curv != CurvatureType::CONCAVE;
@@ -62,6 +121,7 @@ struct Atom {
     };
     std::apply([&](const auto&... child) { (validate_child(child), ...); },
                children);
+
     if constexpr (is_op_type_v<decltype(self())>) {
       const CurvatureType& parent_curv = meta_curv_v<Meta>;
       if (parent_curv == CurvatureType::CONVEX) {

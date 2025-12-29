@@ -25,11 +25,7 @@ using namespace unit_test;
 TEST_CASE("Test var setup (simple)", "[convex]") {
   SECTION("Free var") {
     using MatT = Matrixd<1, 1>;
-    using ConvexDom = ConvexDomain<MatT, SignType::FREE>;
-    using ConvexMeta =
-        ConvexAtomMeta<ConvexDom, ConvexDom, CurvatureType::AFFINE>;
-
-    constexpr auto x = Variable<ConvexMeta>();
+    constexpr auto x = Variable<FreeVarMeta<MatT>>();
     STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x)>>> ==
                    SignType::FREE);
     STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x)>>> ==
@@ -71,21 +67,13 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
-    using ConvexDom = ConvexDomain<MatT, SignType::FREE>;
-    using ConvexMeta =
-        ConvexAtomMeta<ConvexDom, ConvexDom, CurvatureType::AFFINE>;
-
-    constexpr auto x = Variable<ConvexMeta>();
+    constexpr auto x = Variable<FreeVarMeta<MatT>>();
     constexpr auto x0 = x(0).value();
     constexpr auto x1 = x(1).value();
 
     using Space = Matrixd<1, 1>;
-    using ConvexDom2 = ConvexDomain<Space, SignType::FREE>;
-    using AbsMeta =
-        ConvexAtomMeta<ConvexDom2, AbsCodom<Space>, CurvatureType::CONVEX>;
-
-    constexpr auto abs_x0 = Abs<AbsMeta, decltype(x0)>(x0);
-    constexpr auto abs_x1 = Abs<AbsMeta, decltype(x1)>(x1);
+    constexpr auto abs_x0 = Abs<AbsMeta<Space>, decltype(x0)>(x0);
+    constexpr auto abs_x1 = Abs<AbsMeta<Space>, decltype(x1)>(x1);
     constexpr auto sum =
         Sum<SumConvexMeta<MatT, Space>, decltype(abs_x0), decltype(abs_x1)>(
             abs_x0, abs_x1);

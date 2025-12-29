@@ -19,6 +19,33 @@
 
 namespace convex {
 
+/// @brief alias for scalar var domain
+template <linalg::RnSpace Dom>
+using FreeVarDom = ConvexDomain<Dom, SignType::FREE>;
+
+/// @brief alias for scalar var meta
+template <linalg::RnSpace Dom>
+using FreeVarMeta =
+    ConvexAtomMeta<FreeVarDom<Dom>, FreeVarDom<Dom>, CurvatureType::AFFINE>;
+
+/// @brief alias for scalar var domain
+template <linalg::RnSpace Dom>
+using NonnegVarDom = ConvexDomain<Dom, SignType::NONNEG>;
+
+/// @brief alias for scalar var meta
+template <linalg::RnSpace Dom>
+using NonnegVarMeta =
+    ConvexAtomMeta<NonnegVarDom<Dom>, NonnegVarDom<Dom>, CurvatureType::AFFINE>;
+
+/// @brief alias for scalar var domain
+template <linalg::RnSpace Dom>
+using PosVarDom = ConvexDomain<Dom, SignType::POS>;
+
+/// @brief alias for scalar var meta
+template <linalg::RnSpace Dom>
+using PosVarMeta =
+    ConvexAtomMeta<PosVarDom<Dom>, PosVarDom<Dom>, CurvatureType::AFFINE>;
+
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {

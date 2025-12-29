@@ -16,10 +16,20 @@
 
 namespace convex {
 
-  /// @brief alias for codomain on abs function
+/// @brief alias for domain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using AbsDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on abs function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
 using AbsCodom = ConvexDomain<Space, SignType::NONNEG>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Space>
+using AbsMeta =
+    ConvexAtomMeta<AbsDom<Space>, AbsCodom<Space>, CurvatureType::CONVEX>;
 
 /**
  * @brief abs function
@@ -50,7 +60,7 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
    * @param map
    */
   constexpr explicit Abs(const Child& child_in,
-                           const affine::AffineMap<LinearMatT>& map_in)
+                         const affine::AffineMap<LinearMatT>& map_in)
       : ConvexBase(child_in, map_in) {}
 
   /**

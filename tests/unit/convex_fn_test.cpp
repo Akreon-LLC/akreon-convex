@@ -33,13 +33,8 @@ constexpr auto create_empty_cblk() {
 TEST_CASE("Test abs function", "[convex_fn]") {
   SECTION("Test abs function") {
     using Space = Matrixd<1, 1>;
-    using ConvexDom = ConvexDomain<Space, SignType::FREE>;
-    using ConvexMeta =
-        ConvexAtomMeta<ConvexDom, ConvexDom, CurvatureType::AFFINE>;
-    constexpr auto x = Variable<ConvexMeta>();
-    using AbsMeta =
-        ConvexAtomMeta<ConvexDom, AbsCodom<Space>, CurvatureType::CONVEX>;
-    constexpr auto abs_fn = Abs<AbsMeta, decltype(x)>(x);
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto abs_fn = Abs<AbsMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(abs_fn(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(abs_fn(Vectord<1>{0.0}).value() == 0.0);
     STATIC_REQUIRE(abs_fn(Vectord<1>{-2.0}).has_value());
@@ -97,13 +92,8 @@ TEST_CASE("Test abs function", "[convex_fn]") {
 TEST_CASE("Test exp fn", "[convex_fn]") {
   SECTION("Test exp fn") {
     using Space = Matrixd<1, 1>;
-    using ConvexDom = ConvexDomain<Space, SignType::FREE>;
-    using ConvexMeta =
-        ConvexAtomMeta<ConvexDom, ConvexDom, CurvatureType::AFFINE>;
-    constexpr auto x = Variable<ConvexMeta>();
-    using ExpMeta =
-        ConvexAtomMeta<ConvexDom, AbsCodom<Space>, CurvatureType::CONVEX>;
-    constexpr auto exp_fn = Exp<ExpMeta, decltype(x)>(x);
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto exp_fn = Exp<ExpMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}).value() == 1.0);
 
@@ -152,18 +142,19 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
   }
 }
 
-#if 0
 TEST_CASE("Test geometric mean fn", "[concave_fn]") {
   SECTION("Test geometric mean fn") {
     using Space = Matrixd<1, 4>;
-    constexpr auto geo_mean = GeoMeanFn<Space>();
-    STATIC_REQUIRE(ConcaveFnLike<decltype(geo_mean)>);
+    constexpr auto x = Variable<PosVarMeta<Space>>();
+    using Codom = Matrixd<1, 1>;
+    constexpr auto geo_mean = GeoMean<GeoMeanMeta<Space, Codom>, decltype(x)>(x);
     STATIC_REQUIRE(geo_mean(Vectord<4>{1.0, 1.0, 1.0, 1.0}).has_value());
     STATIC_REQUIRE(geo_mean(Vectord<4>{1.0, 1.0, 1.0, 1.0}).value() == 1.0);
     STATIC_REQUIRE(
         constexpr_abs(geo_mean(Vectord<4>{81.0, 1.0, 1.0, 1.0}).value() -
                       3.0) <= eps);
 
+#if 0
     constexpr auto cmap_builder = ConeMapBuilder<Space>();
     constexpr auto map_id = affine::make_map_id<linalg::Matrixd<4, 4>>();
     constexpr auto cb = create_empty_cblk<double>();
@@ -182,13 +173,14 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
+#endif
 
     constexpr auto geo_mean_convex = geo_mean.negate();
-    STATIC_REQUIRE(ConvexFnLike<decltype(geo_mean_convex)>);
     STATIC_REQUIRE(geo_mean_convex(Vectord<4>{1.0, 1.0, 1.0, 1.0}).has_value());
     STATIC_REQUIRE(geo_mean_convex(Vectord<4>{1.0, 1.0, 1.0, 1.0}).value() ==
                    -1.0);
 
+#if 0
     constexpr mat_traits<Matrix<double, 5, 5>> F_mat;
     constexpr auto F1 =
         F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
@@ -207,9 +199,11 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
     STATIC_REQUIRE(sz1 == 1);
     STATIC_REQUIRE(cone_block1.validate());
+#endif
   }
 }
 
+#if 0
 TEST_CASE("Test inv pos function", "[convex_fn]") {
   SECTION("Test inv pos fn") {
     using Space = Matrixd<1, 1>;

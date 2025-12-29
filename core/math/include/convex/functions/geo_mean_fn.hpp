@@ -16,19 +16,58 @@
 
 namespace convex {
 
+/// @brief alias for domain on geo mean function
+template <linalg::RnSpace Space>
+using GeoMeanDom = ConvexDomain<Space, SignType::POS>;
+
+/// @brief alias for codomain on geo mean function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using GeoMeanCodom = ConvexDomain<Space, SignType::POS>;
+
+/// @brief alias for meta for geo mean function
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using GeoMeanMeta = ConvexAtomMeta<GeoMeanDom<Dom>, GeoMeanCodom<Codom>,
+                                   CurvatureType::CONCAVE>;
+
 /**
  * @brief geometric mean f(x) = (\prod_{i=1}^n x_i)^{1/n} is concave on dom f =
  * R^n_++
  */
-template <linalg::RnSpace Domain, FnTag Tag = FnTag::Concave>
-class GeoMeanFn : public ConvexFn<Domain, GeoMeanFn<Domain, Tag>> {
- public:
+template <typename Meta, typename Child>
+struct GeoMean : ConvexFn<Meta, GeoMean<Meta, Child>, Child> {
   /// @brief bring into scope the concave fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, GeoMeanFn<Domain, Tag>>;
-  using ConvexBase::Dim;
+  using ConvexBase = ConvexFn<Meta, GeoMean<Meta, Child>, Child>;
   using ConvexBase::N;
-  using typename ConvexBase::Point;
+  using typename ConvexBase::LinearMatT;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   */
+  constexpr explicit GeoMean(const Child& child_in) : ConvexBase(child_in) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   * @param map
+   */
+  constexpr explicit GeoMean(const Child& child_in,
+                             const affine::AffineMap<LinearMatT>& map_in)
+      : ConvexBase(child_in, map_in) {}
+
+  /**
+   * @brief mono
+   *
+   * @return monotonicity
+   */
+  constexpr MonotonicityType monotonicity_impl() const {
+    return MonotonicityType::NONDEC;
+  }
 
   /**
    * @brief evaluation impl
@@ -37,10 +76,11 @@ class GeoMeanFn : public ConvexFn<Domain, GeoMeanFn<Domain, Tag>> {
    *
    * @return y \in R
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const {
+  constexpr std::optional<T> eval_impl(const PointT& x) const {
     T prod(1);
     std::for_each(x.begin(), x.end(), [&](const auto& pt) { prod *= pt; });
-    if constexpr (Tag == FnTag::Convex)
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX)
       return T(-1) * linalg::constexpr_nrt<T>(prod, N);
     else
       return linalg::constexpr_nrt<T>(prod, N);
@@ -52,10 +92,16 @@ class GeoMeanFn : public ConvexFn<Domain, GeoMeanFn<Domain, Tag>> {
    * @return negated f
    */
   constexpr auto negate_impl() const {
-    if constexpr (Tag == FnTag::Convex)
-      return GeoMeanFn<Domain, FnTag::Concave>();
-    else
-      return GeoMeanFn<Domain, FnTag::Convex>();
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    using Dom = meta_dom_t<Meta>;
+    using Codom = meta_codom_t<Meta>;
+    if constexpr (Tag == CurvatureType::CONCAVE) {
+      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONVEX>;
+      return GeoMean<NewMeta, Child>(std::get<0>(this->children), this->map);
+    } else {
+      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONCAVE>;
+      return GeoMean<NewMeta, Child>(std::get<0>(this->children), this->map);
+    }
   }
 
   /**
@@ -97,7 +143,8 @@ class GeoMeanFn : public ConvexFn<Domain, GeoMeanFn<Domain, Tag>> {
     linalg::Vector<T, N + 1> g;
     for (size_t i = 0; i < N; ++i) g[i] = coord_map.translation()(i);
 
-    if constexpr (Tag == FnTag::Convex) {
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX) {
       F[N][N] = T(-1);
     } else {
       F[N][N] = T(1);
