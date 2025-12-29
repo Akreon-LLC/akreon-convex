@@ -28,7 +28,7 @@
 #include "functions/log_fn.hpp"
 #include "functions/log_sum_exp_fn.hpp"
 #include "functions/max_fn.hpp"
-// #include "functions/norm_fn.hpp"
+#include "functions/norm_fn.hpp"
 #include "functions/square_fn.hpp"
 #include "convex_ops.hpp"
 #include "sets/affine_subspace.hpp"

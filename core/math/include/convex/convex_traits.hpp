@@ -111,9 +111,9 @@ template <typename Meta, typename Child>
 struct Max;
 
 /// @brief forward declaration - norm fn
-template <typename Meta, linalg::NormLike Norm>
-  requires(dom_size_v<meta_dom_t<Meta>> == linalg::norm_size_v<Norm>)
-struct NormFn;
+template <typename Meta, typename Child, linalg::NormLike NormFunc>
+  requires(dom_size_v<meta_dom_t<Meta>> == linalg::norm_size_v<NormFunc>)
+struct Norm;
 
 /// @brief forward declaration - geo mean fn
 template <typename Meta, typename Child>
@@ -245,6 +245,12 @@ struct atom_traits<Max<Meta, Child>> : std::true_type {
 
 template <typename Meta, typename Child>
 struct atom_traits<Square<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child, linalg::NormLike NormFunc>
+struct atom_traits<Norm<Meta, Child, NormFunc>> : std::true_type {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
