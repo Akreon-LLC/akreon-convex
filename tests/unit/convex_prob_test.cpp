@@ -65,7 +65,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
     using Mat2T = Matrixd<1, 2>;
     constexpr auto sum =
-        Sum<SumMeta<Mat2T, MatT>, decltype(x0), decltype(x0)>(x0, x0);
+        Sum<SumConvexMeta<Mat2T, MatT>, decltype(x0), decltype(x0)>(x0, x0);
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
   }
 
@@ -87,8 +87,8 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     constexpr auto abs_x0 = AbsFn<AbsMeta, decltype(x0)>(x0);
     constexpr auto abs_x1 = AbsFn<AbsMeta, decltype(x1)>(x1);
     constexpr auto sum =
-        Sum<SumMeta<MatT, Space>, decltype(abs_x0), decltype(abs_x1)>(abs_x0,
-                                                                      abs_x1);
+        Sum<SumConvexMeta<MatT, Space>, decltype(abs_x0), decltype(abs_x1)>(
+            abs_x0, abs_x1);
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
   }
 }

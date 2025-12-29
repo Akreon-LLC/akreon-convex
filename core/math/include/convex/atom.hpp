@@ -63,10 +63,14 @@ struct Atom {
     std::apply([&](const auto&... child) { (validate_child(child), ...); },
                children);
     if constexpr (is_op_type_v<decltype(self())>) {
-      if (num_convex != N && num_concave != N) {
-        throw std::domain_error(
-            "Number of the same function type not equal to number of children "
-            "in domain");
+      const CurvatureType& parent_curv = meta_curv_v<Meta>;
+      if (parent_curv == CurvatureType::CONVEX) {
+        if (num_convex != N)
+          throw std::domain_error("Parent domain is expecting convex children");
+      } else if (parent_curv == CurvatureType::CONCAVE) {
+        if (num_concave != N)
+          throw std::domain_error(
+              "Parent domain is expecting concave children");
       }
     }
   }
