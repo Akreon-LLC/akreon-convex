@@ -20,16 +20,41 @@ namespace convex {
  *
  * f(x) = e^x, x \in R
  */
-template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-  requires(linalg::space_dim_v<Domain> == 1)
-class ExpFn : public ConvexFn<Domain, ExpFn<Domain, Tag>> {
- public:
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+struct Exp : ConvexFn<Meta, Exp<Meta, Child>, Child> {
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, ExpFn<Domain, Tag>>;
-  using ConvexBase::Dim;
+  using ConvexBase = ConvexFn<Meta, Exp<Meta, Child>, Child>;
   using ConvexBase::N;
-  using typename ConvexBase::Point;
+  using typename ConvexBase::LinearMatT;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   */
+  constexpr explicit Exp(const Child& child_in) : ConvexBase(child_in) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   * @param map
+   */
+  constexpr explicit Exp(const Child& child_in,
+                         const affine::AffineMap<LinearMatT>& map_in)
+      : ConvexBase(child_in, map_in) {}
+
+  /**
+   * @brief mono
+   *
+   * @return monotonicity
+   */
+  constexpr MonotonicityType monotonicity_impl() const {
+    return MonotonicityType::NONDEC;
+  }
 
   /**
    * @brief eval impl
@@ -38,8 +63,9 @@ class ExpFn : public ConvexFn<Domain, ExpFn<Domain, Tag>> {
    *
    * @return exp(x) \in R
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const {
-    if constexpr (Tag == FnTag::Convex)
+  constexpr std::optional<T> eval_impl(const PointT& x) const {
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX)
       return linalg::constexpr_exp(x(0));
     else
       return T(-1) * linalg::constexpr_exp(x(0));
@@ -48,13 +74,19 @@ class ExpFn : public ConvexFn<Domain, ExpFn<Domain, Tag>> {
   /**
    * @brief negate impl
    *
-   * @return negated exp f
+   * @return negated f
    */
   constexpr auto negate_impl() const {
-    if constexpr (Tag == FnTag::Concave)
-      return ExpFn<Domain, FnTag::Convex>();
-    else
-      return ExpFn<Domain, FnTag::Concave>();
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    using Dom = meta_dom_t<Meta>;
+    using Codom = meta_codom_t<Meta>;
+    if constexpr (Tag == CurvatureType::CONCAVE) {
+      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONVEX>;
+      return Exp<NewMeta, Child>(std::get<0>(this->children), this->map);
+    } else {
+      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONCAVE>;
+      return Exp<NewMeta, Child>(std::get<0>(this->children), this->map);
+    }
   }
 
   /**
@@ -97,7 +129,9 @@ class ExpFn : public ConvexFn<Domain, ExpFn<Domain, Tag>> {
     linalg::Vector<T, 3> g;
     g[0] = coord_map.translation()(0);
     g[1] = T(1);
-    if constexpr (Tag == FnTag::Convex) {
+
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX) {
       F[2][1] = T(1);
     } else {
       F[2][1] = T(-1);

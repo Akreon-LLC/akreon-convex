@@ -39,7 +39,7 @@ TEST_CASE("Test abs function", "[convex_fn]") {
     constexpr auto x = Variable<ConvexMeta>();
     using AbsMeta =
         ConvexAtomMeta<ConvexDom, AbsCodom<Space>, CurvatureType::CONVEX>;
-    constexpr auto abs_fn = AbsFn<AbsMeta, decltype(x)>(x);
+    constexpr auto abs_fn = Abs<AbsMeta, decltype(x)>(x);
     STATIC_REQUIRE(abs_fn(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(abs_fn(Vectord<1>{0.0}).value() == 0.0);
     STATIC_REQUIRE(abs_fn(Vectord<1>{-2.0}).has_value());
@@ -94,15 +94,20 @@ TEST_CASE("Test abs function", "[convex_fn]") {
   }
 }
 
-#if 0
 TEST_CASE("Test exp fn", "[convex_fn]") {
   SECTION("Test exp fn") {
     using Space = Matrixd<1, 1>;
-    constexpr auto exp_fn = ExpFn<Space>();
-    STATIC_REQUIRE(ConvexFnLike<decltype(exp_fn)>);
+    using ConvexDom = ConvexDomain<Space, SignType::FREE>;
+    using ConvexMeta =
+        ConvexAtomMeta<ConvexDom, ConvexDom, CurvatureType::AFFINE>;
+    constexpr auto x = Variable<ConvexMeta>();
+    using ExpMeta =
+        ConvexAtomMeta<ConvexDom, AbsCodom<Space>, CurvatureType::CONVEX>;
+    constexpr auto exp_fn = Exp<ExpMeta, decltype(x)>(x);
     STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}).value() == 1.0);
 
+#if 0
     constexpr auto cmap_builder = ConeMapBuilder<Space>();
     constexpr auto cb = create_empty_cblk<double>();
     constexpr auto map_id = affine::make_map_id<Space>();
@@ -122,11 +127,13 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
+#endif
 
     constexpr auto exp_concave = exp_fn.negate();
     STATIC_REQUIRE(exp_concave(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(exp_concave(Vectord<1>{0.0}).value() == -1.0);
 
+#if 0
     constexpr auto F1 = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, -1.0);
 
     constexpr auto canon1 = exp_concave.canonicalize(cmap_builder, map_id, cb);
@@ -141,9 +148,11 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
     STATIC_REQUIRE(sz1 == 1);
     STATIC_REQUIRE(cone_block1.validate());
+#endif
   }
 }
 
+#if 0
 TEST_CASE("Test geometric mean fn", "[concave_fn]") {
   SECTION("Test geometric mean fn") {
     using Space = Matrixd<1, 4>;

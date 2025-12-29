@@ -116,9 +116,9 @@ template <typename Meta>
 struct GeoMeanFn;
 
 /// @brief forward declaration - exp fn
-template <typename Meta>
-  requires(dom_size_v<dom_type_t<Meta>> == 1)
-struct ExpFn;
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+struct Exp;
 
 /// @brief forward declaration - log fn
 template <typename Meta>
@@ -133,7 +133,7 @@ struct SquareFn;
 /// @brief forward declaration - abs fn
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
-struct AbsFn;
+struct Abs;
 
 /// @brief forward declaration - inv pos fn
 template <typename Meta>
@@ -197,7 +197,13 @@ struct atom_traits<ConvexFn<Meta, Derived, Child>> : std::true_type {
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<AbsFn<Meta, Child>> : std::true_type {
+struct atom_traits<Abs<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Exp<Meta, Child>> : std::true_type {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };

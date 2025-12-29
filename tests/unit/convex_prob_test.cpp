@@ -84,8 +84,8 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     using AbsMeta =
         ConvexAtomMeta<ConvexDom2, AbsCodom<Space>, CurvatureType::CONVEX>;
 
-    constexpr auto abs_x0 = AbsFn<AbsMeta, decltype(x0)>(x0);
-    constexpr auto abs_x1 = AbsFn<AbsMeta, decltype(x1)>(x1);
+    constexpr auto abs_x0 = Abs<AbsMeta, decltype(x0)>(x0);
+    constexpr auto abs_x1 = Abs<AbsMeta, decltype(x1)>(x1);
     constexpr auto sum =
         Sum<SumConvexMeta<MatT, Space>, decltype(abs_x0), decltype(abs_x1)>(
             abs_x0, abs_x1);

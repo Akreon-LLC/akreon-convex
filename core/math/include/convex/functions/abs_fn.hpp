@@ -28,9 +28,9 @@ using AbsCodom = ConvexDomain<Space, SignType::NONNEG>;
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
-struct AbsFn : ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
+struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Meta, AbsFn<Meta, Child>, Child>;
+  using ConvexBase = ConvexFn<Meta, Abs<Meta, Child>, Child>;
   using ConvexBase::N;
   using typename ConvexBase::LinearMatT;
   using typename ConvexBase::PointT;
@@ -39,22 +39,17 @@ struct AbsFn : ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
   /**
    * @brief CTOR
    *
-   * @param dom
-   * @param curv
-   * @param range
-   * @param children
+   * @param child
    */
-  constexpr explicit AbsFn(const Child& child_in) : ConvexBase(child_in) {}
+  constexpr explicit Abs(const Child& child_in) : ConvexBase(child_in) {}
 
   /**
    * @brief CTOR
    *
-   * @param dom
-   * @param curv
-   * @param range
-   * @param children
+   * @param child
+   * @param map
    */
-  constexpr explicit AbsFn(const Child& child_in,
+  constexpr explicit Abs(const Child& child_in,
                            const affine::AffineMap<LinearMatT>& map_in)
       : ConvexBase(child_in, map_in) {}
 
@@ -101,10 +96,10 @@ struct AbsFn : ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
     using Codom = meta_codom_t<Meta>;
     if constexpr (Tag == CurvatureType::CONCAVE) {
       using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONVEX>;
-      return AbsFn<NewMeta, Child>(std::get<0>(this->children), this->map);
+      return Abs<NewMeta, Child>(std::get<0>(this->children), this->map);
     } else {
       using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONCAVE>;
-      return AbsFn<NewMeta, Child>(std::get<0>(this->children), this->map);
+      return Abs<NewMeta, Child>(std::get<0>(this->children), this->map);
     }
   }
 
