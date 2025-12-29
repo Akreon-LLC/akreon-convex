@@ -81,7 +81,11 @@ struct InvPos : ConvexFn<Meta, InvPos<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity_impl() const {
-    return MonotonicityType::NONINC;
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX)
+      return MonotonicityType::NONINC;
+    else
+      return MonotonicityType::NONDEC;
   }
 
   /**

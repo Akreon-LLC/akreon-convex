@@ -80,7 +80,26 @@ struct Square : ConvexFn<Meta, Square<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity_impl() const {
-    return MonotonicityType::NONDEC;
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    static constexpr SignType sign =
+        dom_sign_v<meta_codom_t<atom_meta_t<Child>>>;
+    if constexpr (Tag == CurvatureType::CONVEX) {
+      if constexpr (sign == SignType::NONNEG) {
+        return MonotonicityType::NONDEC;
+      } else if constexpr (sign == SignType::NONPOS) {
+        return MonotonicityType::NONINC;
+      } else {
+        return MonotonicityType::UNKNOWN;
+      }
+    } else {
+      if constexpr (sign == SignType::NONNEG) {
+        return MonotonicityType::NONINC;
+      } else if constexpr (sign == SignType::NONPOS) {
+        return MonotonicityType::NONDEC;
+      } else {
+        return MonotonicityType::UNKNOWN;
+      }
+    }
   }
 
   /**

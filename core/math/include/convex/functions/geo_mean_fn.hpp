@@ -77,7 +77,11 @@ struct GeoMean : ConvexFn<Meta, GeoMean<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity_impl() const {
-    return MonotonicityType::NONDEC;
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONCAVE)
+      return MonotonicityType::NONDEC;
+    else
+      return MonotonicityType::NONINC;
   }
 
   /**
