@@ -16,16 +16,72 @@
 
 namespace convex {
 
-template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-  requires(linalg::space_dim_v<Domain> == 1)
-class SquareFn : public ConvexFn<Domain, SquareFn<Domain, Tag>> {
- public:
+/// @brief alias for domain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using SquareDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using SquareCodom = ConvexDomain<Space, SignType::NONNEG>;
+
+/// @brief alias for concave codomain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using SquareConcaveCodom = ConvexDomain<Space, SignType::NONPOS>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Space>
+using SquareMeta =
+    ConvexAtomMeta<SquareDom<Space>, SquareCodom<Space>, CurvatureType::CONVEX>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Space>
+using SquareConcaveMeta =
+    ConvexAtomMeta<SquareDom<Space>, SquareConcaveCodom<Space>,
+                   CurvatureType::CONCAVE>;
+
+/**
+ * @brief square function
+ *
+ * f(x) = x*x, x \in R
+ */
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+struct Square : ConvexFn<Meta, Square<Meta, Child>, Child> {
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, SquareFn<Domain, Tag>>;
-  using ConvexBase::Dim;
+  using ConvexBase = ConvexFn<Meta, Square<Meta, Child>, Child>;
   using ConvexBase::N;
-  using typename ConvexBase::Point;
+  using typename ConvexBase::LinearMatT;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   */
+  constexpr explicit Square(const Child& child_in) : ConvexBase(child_in) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   * @param map
+   */
+  constexpr explicit Square(const Child& child_in,
+                            const affine::AffineMap<LinearMatT>& map_in)
+      : ConvexBase(child_in, map_in) {}
+
+  /**
+   * @brief mono
+   *
+   * @return monotonicity
+   */
+  constexpr MonotonicityType monotonicity_impl() const {
+    return MonotonicityType::NONDEC;
+  }
 
   /**
    * @brief eval impl
@@ -34,8 +90,9 @@ class SquareFn : public ConvexFn<Domain, SquareFn<Domain, Tag>> {
    *
    * @return x^2 \in R
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const {
-    if constexpr (Tag == FnTag::Convex)
+  constexpr std::optional<T> eval_impl(const PointT& x) const {
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX)
       return x(0) * x(0);
     else
       return T(-1) * x(0) * x(0);
@@ -47,10 +104,15 @@ class SquareFn : public ConvexFn<Domain, SquareFn<Domain, Tag>> {
    * @return negated f
    */
   constexpr auto negate_impl() const {
-    if constexpr (Tag == FnTag::Concave)
-      return SquareFn<Domain, FnTag::Convex>();
-    else
-      return SquareFn<Domain, FnTag::Concave>();
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    using Space = dom_space_t<meta_dom_t<Meta>>;
+    if constexpr (Tag == CurvatureType::CONCAVE) {
+      return Square<SquareMeta<Space>, Child>(std::get<0>(this->children),
+                                              this->map);
+    } else {
+      return Square<SquareConcaveMeta<Space>, Child>(
+          std::get<0>(this->children), this->map);
+    }
   }
 
   /**
@@ -95,7 +157,9 @@ class SquareFn : public ConvexFn<Domain, SquareFn<Domain, Tag>> {
     linalg::Vector<T, 3> g;
     g[0] = coord_map.translation()(0);
     g[1] = T(0.5);
-    if constexpr (Tag == FnTag::Convex) {
+
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX) {
       F[2][1] = T(1);
     } else {
       F[2][1] = T(-1);

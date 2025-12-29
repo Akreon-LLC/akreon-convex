@@ -327,23 +327,17 @@ TEST_CASE("Test log function", "[convex_fn]") {
   }
 }
 
-#if 0
 TEST_CASE("Test max fn") {
-  SECTION("Test max fn (trivial)") {
-    using Space = Matrixd<1, 2>;
-    constexpr auto x = Vectord<2>{};
-    constexpr auto max_fn = MaxFn<Space>();
-    STATIC_REQUIRE(max_fn.eval(x).has_value());
-    STATIC_REQUIRE(max_fn.eval(x).value() == 0.0);
-  }
-
   SECTION("Test max fn") {
     using Space = Matrixd<1, 5>;
+    constexpr auto var = Variable<FreeVarMeta<Space>>();
+    using Codom = Matrixd<1, 1>;
     constexpr auto x = Vectord<5>{-1.0, 4.5, 2.0, 3.0, 5.0};
-    constexpr auto max_fn = MaxFn<Space>();
+    constexpr auto max_fn = Max<MaxMeta<Space, Codom>, decltype(var)>(var);
     STATIC_REQUIRE(max_fn.eval(x).has_value());
     STATIC_REQUIRE(max_fn.eval(x).value() == 5.0);
 
+#if 0
     constexpr mat_traits<Matrix<double, 5, 6>> F_mat;
     constexpr auto F =
         F_mat(-1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
@@ -366,11 +360,12 @@ TEST_CASE("Test max fn") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 5);
     STATIC_REQUIRE(cone_block.validate());
+#endif
 
     constexpr auto max_concave = max_fn.negate();
     STATIC_REQUIRE(max_concave(x).value() == -5.0);
-    STATIC_REQUIRE(ConvexFnLike<decltype(max_concave.negate())>);
 
+#if 0
     constexpr auto F1 =
         F_mat(-1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0,
               0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0, -1.0,
@@ -387,9 +382,11 @@ TEST_CASE("Test max fn") {
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
     STATIC_REQUIRE(sz1 == 5);
     STATIC_REQUIRE(cone_block1.validate());
+#endif
   }
 }
 
+#if 0
 TEST_CASE("Test norm fn", "[convex_fn]") {
   constexpr auto map_id = affine::make_map_id<linalg::Matrixd<2, 2>>();
   constexpr auto cb = create_empty_cblk<double>();
@@ -523,17 +520,19 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(cone_block1.validate());
   }
 }
+#endif
 
 TEST_CASE("Test square function", "[convex_fn]") {
   SECTION("Test square function") {
     using Space = Matrixd<1, 1>;
-    constexpr auto square_fn = SquareFn<Space>();
-    STATIC_REQUIRE(ConvexFnLike<decltype(square_fn)>);
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto square_fn = Square<SquareMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(square_fn(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(square_fn(Vectord<1>{0.0}).value() == 0.0);
     STATIC_REQUIRE(square_fn(Vectord<1>{2.0}).has_value());
     STATIC_REQUIRE(square_fn(Vectord<1>{2.0}).value() == 4.0);
 
+#if 0
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
     constexpr auto F = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
 
@@ -555,6 +554,7 @@ TEST_CASE("Test square function", "[convex_fn]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
+#endif
 
     constexpr auto square_concave = square_fn.negate();
     STATIC_REQUIRE(square_concave(Vectord<1>{0.0}).has_value());
@@ -562,6 +562,7 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(square_concave(Vectord<1>{1.0}).has_value());
     STATIC_REQUIRE(square_concave(Vectord<1>{1.0}).value() == -1.0);
 
+#if 0
     constexpr auto F1 = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, -1.0);
     constexpr auto canon1 =
         square_concave.canonicalize(cmap_builder, map_id, cb);
@@ -576,9 +577,9 @@ TEST_CASE("Test square function", "[convex_fn]") {
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
     STATIC_REQUIRE(sz1 == 1);
     STATIC_REQUIRE(cone_block1.validate());
+#endif
   }
 }
-#endif
 
 TEST_CASE("Test log sum exp", "[convex_fn]") {
   SECTION("Test log sum exp") {

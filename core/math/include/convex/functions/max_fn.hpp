@@ -15,20 +15,70 @@
 #include "convex_fn.hpp"
 
 namespace convex {
+
+/// @brief alias for domain on abs function
+template <linalg::RnSpace Space>
+using MaxDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using MaxCodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for concave codomain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using MaxConcaveCodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using MaxMeta =
+    ConvexAtomMeta<MaxDom<Dom>, MaxCodom<Codom>, CurvatureType::CONVEX>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using MaxConcaveMeta =
+    ConvexAtomMeta<MaxDom<Dom>, MaxConcaveCodom<Codom>, CurvatureType::CONCAVE>;
+
 /**
  * @brief max convex function CRTP
  *
  * F(x) = max { x_1, x_2, ... x_n }, x \in R^n
  */
-template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
- public:
+template <typename Meta, typename Child>
+struct Max : ConvexFn<Meta, Max<Meta, Child>, Child> {
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, MaxFn<Domain, Tag>>;
-  using ConvexBase::Dim;
+  using ConvexBase = ConvexFn<Meta, Max<Meta, Child>, Child>;
   using ConvexBase::N;
-  using typename ConvexBase::Point;
+  using typename ConvexBase::LinearMatT;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   */
+  constexpr explicit Max(const Child& child_in) : ConvexBase(child_in) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   * @param map
+   */
+  constexpr explicit Max(const Child& child_in,
+                         const affine::AffineMap<LinearMatT>& map_in)
+      : ConvexBase(child_in, map_in) {}
+
+  /**
+   * @brief mono
+   *
+   * @return monotonicity
+   */
+  constexpr MonotonicityType monotonicity_impl() const {
+    return MonotonicityType::NONDEC;
+  }
 
   /**
    * @brief eval impl
@@ -37,12 +87,14 @@ class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
    *
    * @return y \in R
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const {
+  constexpr std::optional<T> eval_impl(const PointT& x) const {
     T mx(0);
     std::for_each(x.begin(), x.end(), [&mx](const auto& pt) {
       if (mx < pt) mx = pt;
     });
-    if constexpr (Tag == FnTag::Convex)
+
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX)
       return mx;
     else
       return T(-1) * mx;
@@ -51,16 +103,19 @@ class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
   /**
    * @brief negate impl
    *
-   * if concave -> convex
-   * else convex -> concave
-   *
    * @return negated f
    */
   constexpr auto negate_impl() const {
-    if constexpr (Tag == FnTag::Concave)
-      return MaxFn<Domain, FnTag::Convex>();
-    else
-      return MaxFn<Domain, FnTag::Concave>();
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    using Dom = dom_space_t<meta_dom_t<Meta>>;
+    using Codom = dom_space_t<meta_codom_t<Meta>>;
+    if constexpr (Tag == CurvatureType::CONCAVE) {
+      return Max<MaxMeta<Dom, Codom>, Child>(std::get<0>(this->children),
+                                             this->map);
+    } else {
+      return Max<MaxConcaveMeta<Dom, Codom>, Child>(std::get<0>(this->children),
+                                                    this->map);
+    }
   }
 
   /**
@@ -100,7 +155,8 @@ class MaxFn : public ConvexFn<Domain, MaxFn<Domain, Tag>> {
     linalg::Vector<T, N> g;
     for (size_t i = 0; i < N; ++i) g[i] = T(-1) * coord_map.translation()(i);
 
-    if constexpr (Tag == FnTag::Convex) {
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX) {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(1);
     } else {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(-1);

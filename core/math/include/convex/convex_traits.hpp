@@ -107,8 +107,8 @@ template <typename Meta, typename Derived, typename Child>
 struct ConvexFn;
 
 /// @brief forward declaration - max fn
-template <typename Meta>
-struct MaxFn;
+template <typename Meta, typename Child>
+struct Max;
 
 /// @brief forward declaration - norm fn
 template <typename Meta, linalg::NormLike Norm>
@@ -130,9 +130,9 @@ template <typename Meta, typename Child>
 struct Log;
 
 /// @brief forward declaration - square fn
-template <typename Meta>
+template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
-struct SquareFn;
+struct Square;
 
 /// @brief forward declaration - abs fn
 template <typename Meta, typename Child>
@@ -233,6 +233,18 @@ struct atom_traits<Log<Meta, Child>> : std::true_type {
 
 template <typename Meta, typename Child>
 struct atom_traits<LogSumExp<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Max<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Square<Meta, Child>> : std::true_type {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
