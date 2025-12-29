@@ -21,7 +21,7 @@ namespace convex {
 
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
-struct ScalarView : public Atom<Meta, ScalarView<Meta, Child>, Child> {
+struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   using BaseT = Atom<Meta, ScalarView<Meta, Child>, Child>;
   using typename BaseT::Domain;
   using typename BaseT::LinearMatT;
@@ -52,7 +52,7 @@ struct ScalarView : public Atom<Meta, ScalarView<Meta, Child>, Child> {
 
 /// @brief variable definition
 template <typename Meta>
-struct Variable : public Atom<Meta, Variable<Meta>> {
+struct Variable : Atom<Meta, Variable<Meta>> {
   using BaseT = Atom<Meta, Variable<Meta>>;
   using BaseT::DomSign;
   using BaseT::N;

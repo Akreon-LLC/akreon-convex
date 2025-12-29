@@ -62,5 +62,33 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     constexpr auto two_x0_plus_one = two_x0.add(1.0);
     STATIC_REQUIRE(two_x0_plus_one.map.linear_part() == mat(2.0));
     STATIC_REQUIRE(two_x0_plus_one.map.translation() == Vectord<1>{1.0});
+
+    using Mat2T = Matrixd<1, 2>;
+    constexpr auto sum =
+        Sum<SumMeta<Mat2T, MatT>, decltype(x0), decltype(x0)>(x0, x0);
+    STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
+  }
+
+  SECTION("Sum of abs") {
+    using MatT = Matrixd<1, 2>;
+    using ConvexDom = ConvexDomain<MatT, SignType::FREE>;
+    using ConvexMeta =
+        ConvexAtomMeta<ConvexDom, ConvexDom, CurvatureType::AFFINE>;
+
+    constexpr auto x = Variable<ConvexMeta>();
+    constexpr auto x0 = x(0).value();
+    constexpr auto x1 = x(1).value();
+
+    using Space = Matrixd<1, 1>;
+    using ConvexDom2 = ConvexDomain<Space, SignType::FREE>;
+    using AbsMeta =
+        ConvexAtomMeta<ConvexDom2, AbsCodom<Space>, CurvatureType::CONVEX>;
+
+    constexpr auto abs_x0 = AbsFn<AbsMeta, decltype(x0)>(x0);
+    constexpr auto abs_x1 = AbsFn<AbsMeta, decltype(x1)>(x1);
+    constexpr auto sum =
+        Sum<SumMeta<MatT, Space>, decltype(abs_x0), decltype(abs_x1)>(abs_x0,
+                                                                      abs_x1);
+    STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
   }
 }

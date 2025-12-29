@@ -50,17 +50,25 @@ struct Atom {
   }
 
   constexpr void validate_domain() const {
+    size_t num_convex = 0, num_concave = 0;
     auto validate_child = [&](const auto& child) {
-      using ChildCodom = meta_codom_t<atom_meta_t<decltype(child)>>;
-      if constexpr (dom_size_v<Domain> != dom_size_v<ChildCodom>)
-        throw std::domain_error(
-            "Mismatch in size between parent domain and child codomain");
-      if constexpr (!is_var_type_v<decltype(self())>) {
-        self().validate_domain_impl(meta_curv_v<atom_meta_t<decltype(child)>>);
+      if constexpr (is_fn_type_v<decltype(self())>) {
+        self().validate_domain_impl(child);
       }
+      const CurvatureType& child_curv =
+          meta_curv_v<atom_meta_t<decltype(child)>>;
+      num_convex += child_curv != CurvatureType::CONCAVE;
+      num_concave += child_curv != CurvatureType::CONVEX;
     };
     std::apply([&](const auto&... child) { (validate_child(child), ...); },
                children);
+    if constexpr (is_op_type_v<decltype(self())>) {
+      if (num_convex != N && num_concave != N) {
+        throw std::domain_error(
+            "Number of the same function type not equal to number of children "
+            "in domain");
+      }
+    }
   }
 
   constexpr auto mul(const LinearMatT& alpha) const {

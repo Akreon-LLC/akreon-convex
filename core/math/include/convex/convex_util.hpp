@@ -17,60 +17,6 @@
 
 namespace convex {
 
-/**
- * @brief get domain
- *
- * @param parent domain
- * @param child domain
- *
- * @return domain
- */
-template <typename ParentDom, typename ChildCodom>
-constexpr auto get_domain() {
-  if constexpr (std::same_as<ParentDom, ChildCodom>) return ParentDom{};
-
-  if constexpr (SignType::FREE == dom_sign_v<ParentDom> ||
-                SignType::FREE == dom_sign_v<ChildCodom>)
-    return SignType::FREE;
-
-  if (SignType::NONNEG == dom_sign_v<ParentDom> &&
-      SignType::PSD == dom_sign_v<ChildCodom>)
-    return SignType::PSD;
-  if (SignType::PSD == dom_sign_v<ParentDom> &&
-      SignType::NONNEG == dom_sign_v<ChildCodom>)
-    return SignType::PSD;
-
-  if (SignType::POS == dom_sign_v<ParentDom> &&
-      SignType::PD == dom_sign_v<ChildCodom>)
-    return SignType::PD;
-  if (SignType::PD == dom_sign_v<ParentDom> &&
-      SignType::POS == dom_sign_v<ChildCodom>)
-    return SignType::PD;
-
-  if (SignType::NONPOS == dom_sign_v<ParentDom> &&
-      SignType::NSD == dom_sign_v<ChildCodom>)
-    return SignType::NSD;
-  if (SignType::NSD == dom_sign_v<ParentDom> &&
-      SignType::NONPOS == dom_sign_v<ChildCodom>)
-    return SignType::NSD;
-
-  if (SignType::NEG == dom_sign_v<ParentDom> &&
-      SignType::ND == dom_sign_v<ChildCodom>)
-    return SignType::ND;
-  if (SignType::ND == dom_sign_v<ParentDom> &&
-      SignType::NEG == dom_sign_v<ChildCodom>)
-    return SignType::ND;
-
-  if (SignType::PSD == dom_sign_v<ParentDom> &&
-      SignType::NSD == dom_sign_v<ChildCodom>)
-    return SignType::FREE;
-  if (SignType::NSD == dom_sign_v<ParentDom> &&
-      SignType::PSD == dom_sign_v<ChildCodom>)
-    return SignType::FREE;
-
-  throw std::domain_error("Invalid domain between child & parent");
-}
-
 /// @brief cone map builder functor
 template <linalg::RnSpace DecVarDom>
 struct ConeMapBuilder {

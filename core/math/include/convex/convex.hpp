@@ -30,6 +30,7 @@
 // #include "functions/max_fn.hpp"
 // #include "functions/norm_fn.hpp"
 // #include "functions/square_fn.hpp"
+#include "convex_ops.hpp"
 #include "sets/affine_subspace.hpp"
 #include "sets/ellipsoid.hpp"
 #include "sets/halfspace.hpp"

@@ -62,7 +62,14 @@ struct ConvexFn : public Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
    *
    * @return void
    */
-  constexpr void validate_domain_impl(const CurvatureType& child_curv) const {
+  constexpr void validate_domain_impl(const auto& child) const {
+    using ChildCodom = meta_codom_t<atom_meta_t<decltype(child)>>;
+    using ParentDom = meta_dom_t<Meta>;
+    if constexpr (dom_size_v<ParentDom> != dom_size_v<ChildCodom>) {
+      throw std::domain_error(
+          "Mismatch in size between parent domain and child codomain");
+    }
+    const CurvatureType& child_curv = meta_curv_v<atom_meta_t<decltype(child)>>;
     const CurvatureType parent_curv = meta_curv_v<Meta>;
     if (monotonicity() == MonotonicityType::UNKNOWN &&
         child_curv != CurvatureType::AFFINE)

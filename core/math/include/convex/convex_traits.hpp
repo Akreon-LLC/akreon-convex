@@ -16,6 +16,8 @@
 
 namespace convex {
 
+enum struct AtomType : uint8_t { VAR = 0, OP, FN };
+
 enum struct SignType : uint8_t {
   FREE = 0,
   NONNEG,
@@ -165,27 +167,56 @@ struct HuberFn;
 template <typename Meta>
 struct KLDivergenceFn;
 
+template <typename Meta, typename... Cs>
+struct Sum;
+
 template <typename Atom>
 struct atom_traits {};
-
-template <typename Meta>
-struct atom_traits<Variable<Meta>> : std::true_type {
-  using ConvexMeta = Meta;
-};
-
-template <typename Meta, typename Child>
-struct atom_traits<ScalarView<Meta, Child>> : std::true_type {
-  using ConvexMeta = Meta;
-};
-
-template <typename Meta, typename Derived, typename Child>
-struct atom_traits<ConvexFn<Meta, Derived, Child>> : std::false_type {
-  using ConvexMeta = Meta;
-};
 
 template <typename Meta, typename Child>
 struct atom_traits<Atom<Meta, Child>> : std::false_type {
   using ConvexMeta = Meta;
+};
+
+template <typename Meta>
+struct atom_traits<Variable<Meta>> : std::false_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::VAR;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<ScalarView<Meta, Child>> : std::false_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::VAR;
+};
+
+template <typename Meta, typename Derived, typename Child>
+struct atom_traits<ConvexFn<Meta, Derived, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<AbsFn<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <linalg::RnSpace Dom>
+using SumDom = ConvexDomain<Dom, SignType::FREE>;
+
+template <linalg::RnSpace Codom>
+  requires(linalg::space_dim_v<Codom> == 1)
+using SumCodom = ConvexDomain<Codom, SignType::FREE>;
+
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using SumMeta =
+    ConvexAtomMeta<SumDom<Dom>, SumCodom<Codom>, CurvatureType::AFFINE>;
+
+template <linalg::RnSpace Dom, linalg::RnSpace Codom, typename... Cs>
+struct atom_traits<Sum<SumMeta<Dom, Codom>, Cs...>> : std::false_type {
+  using ConvexMeta = SumMeta<Dom, Codom>;
+  static constexpr AtomType Type = AtomType::OP;
 };
 
 template <typename Atom>
@@ -193,7 +224,15 @@ using atom_meta_t =
     typename atom_traits<linalg::remove_cvref_t<Atom>>::ConvexMeta;
 
 template <typename Atom>
+inline constexpr bool is_fn_type_v =
+    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::FN;
+
+template <typename Atom>
 inline constexpr bool is_var_type_v =
-    atom_traits<linalg::remove_cvref_t<Atom>>{};
+    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::VAR;
+
+template <typename Atom>
+inline constexpr bool is_op_type_v =
+    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::OP;
 
 }  // namespace convex

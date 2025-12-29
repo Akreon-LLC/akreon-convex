@@ -16,6 +16,7 @@
 
 namespace convex {
 
+  /// @brief alias for codomain on abs function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
 using AbsCodom = ConvexDomain<Space, SignType::NONNEG>;
@@ -27,8 +28,7 @@ using AbsCodom = ConvexDomain<Space, SignType::NONNEG>;
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
-struct AbsFn : public ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
- public:
+struct AbsFn : ConvexFn<Meta, AbsFn<Meta, Child>, Child> {
   /// @brief bring into scope convex fn alias / helpers
   using ConvexBase = ConvexFn<Meta, AbsFn<Meta, Child>, Child>;
   using ConvexBase::N;
