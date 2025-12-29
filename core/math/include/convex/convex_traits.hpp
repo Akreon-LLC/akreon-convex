@@ -42,13 +42,17 @@ struct ConvexDomain {};
 template <typename Dom>
 struct dom_traits {};
 
-template <linalg::RnSpace Space, SignType Sign>
-struct dom_traits<ConvexDomain<Space, Sign>> {
+template <linalg::RnSpace SpaceIn, SignType Sign>
+struct dom_traits<ConvexDomain<SpaceIn, Sign>> {
+  using Space = SpaceIn;
   using T = linalg::space_type_t<Space>;
   using Point = linalg::space_point_t<Space>;
   static constexpr size_t N = linalg::space_dim_v<Space>;
   static constexpr SignType sign = Sign;
 };
+
+template <typename Dom>
+using dom_space_t = typename dom_traits<linalg::remove_cvref_t<Dom>>::Space;
 
 template <typename Dom>
 using dom_type_t = typename dom_traits<linalg::remove_cvref_t<Dom>>::T;
@@ -108,7 +112,7 @@ struct MaxFn;
 
 /// @brief forward declaration - norm fn
 template <typename Meta, linalg::NormLike Norm>
-  requires(dom_size_v<dom_type_t<Meta>> == linalg::norm_size_v<Norm>)
+  requires(dom_size_v<meta_dom_t<Meta>> == linalg::norm_size_v<Norm>)
 struct NormFn;
 
 /// @brief forward declaration - geo mean fn
@@ -122,12 +126,12 @@ struct Exp;
 
 /// @brief forward declaration - log fn
 template <typename Meta>
-  requires(dom_size_v<dom_type_t<Meta>> == 1)
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct LogFn;
 
 /// @brief forward declaration - square fn
 template <typename Meta>
-  requires(dom_size_v<dom_type_t<Meta>> == 1)
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct SquareFn;
 
 /// @brief forward declaration - abs fn
@@ -136,19 +140,22 @@ template <typename Meta, typename Child>
 struct Abs;
 
 /// @brief forward declaration - inv pos fn
-template <typename Meta>
-  requires(dom_size_v<dom_type_t<Meta>> == 1)
-struct InvPosFn;
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+struct InvPos;
 
 /// @brief forward declaration - log sum exp fn
 template <typename Meta>
 struct LogSumExpFn;
 
-// (dakre) TODO currently unimplemented but forward dec stub here
+template <typename Meta, typename... Cs>
+struct Sum;
 
+// (dakre) TODO currently unimplemented but forward dec stub here
+#if 0
 /// @brief forward declaration - log det fn
 template <typename Meta>
-  requires(linalg::SquareMatrixLike<linalg::space_point_t<dom_type_t<Meta>>>)
+  requires(linalg::SquareMatrixLike<linalg::space_point_t<meta_type_t<Meta>>>)
 struct LogDetFn;
 
 /// @brief forward declaration - harmonic mean fn
@@ -166,9 +173,7 @@ struct HuberFn;
 /// @brief forward declaration - kl divergence
 template <typename Meta>
 struct KLDivergenceFn;
-
-template <typename Meta, typename... Cs>
-struct Sum;
+#endif
 
 template <typename Atom>
 struct atom_traits {};
@@ -210,6 +215,12 @@ struct atom_traits<Exp<Meta, Child>> : std::true_type {
 
 template <typename Meta, typename Child>
 struct atom_traits<GeoMean<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<InvPos<Meta, Child>> : std::true_type {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };

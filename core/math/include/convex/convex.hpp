@@ -24,7 +24,7 @@
 #include "functions/abs_fn.hpp"
 #include "functions/exp_fn.hpp"
 #include "functions/geo_mean_fn.hpp"
-// #include "functions/inv_pos_fn.hpp"
+#include "functions/inv_pos_fn.hpp"
 // #include "functions/log_fn.hpp"
 // #include "functions/log_sum_exp_fn.hpp"
 // #include "functions/max_fn.hpp"

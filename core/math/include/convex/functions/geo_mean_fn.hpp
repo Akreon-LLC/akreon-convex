@@ -25,10 +25,21 @@ template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
 using GeoMeanCodom = ConvexDomain<Space, SignType::POS>;
 
+/// @brief alias for convex codomain on geo mean function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using GeoMeanConvexCodom = ConvexDomain<Space, SignType::NEG>;
+
 /// @brief alias for meta for geo mean function
 template <linalg::RnSpace Dom, linalg::RnSpace Codom>
 using GeoMeanMeta = ConvexAtomMeta<GeoMeanDom<Dom>, GeoMeanCodom<Codom>,
                                    CurvatureType::CONCAVE>;
+
+/// @brief alias for meta for geo mean function
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using GeoMeanConvexMeta =
+    ConvexAtomMeta<GeoMeanDom<Dom>, GeoMeanConvexCodom<Codom>,
+                   CurvatureType::CONVEX>;
 
 /**
  * @brief geometric mean f(x) = (\prod_{i=1}^n x_i)^{1/n} is concave on dom f =
@@ -93,14 +104,14 @@ struct GeoMean : ConvexFn<Meta, GeoMean<Meta, Child>, Child> {
    */
   constexpr auto negate_impl() const {
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
-    using Dom = meta_dom_t<Meta>;
-    using Codom = meta_codom_t<Meta>;
+    using Dom = dom_space_t<meta_dom_t<Meta>>;
+    using Codom = dom_space_t<meta_codom_t<Meta>>;
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONVEX>;
-      return GeoMean<NewMeta, Child>(std::get<0>(this->children), this->map);
+      return GeoMean<GeoMeanConvexMeta<Dom, Codom>, Child>(
+          std::get<0>(this->children), this->map);
     } else {
-      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONCAVE>;
-      return GeoMean<NewMeta, Child>(std::get<0>(this->children), this->map);
+      return GeoMean<GeoMeanMeta<Dom, Codom>, Child>(
+          std::get<0>(this->children), this->map);
     }
   }
 

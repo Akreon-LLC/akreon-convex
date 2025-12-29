@@ -16,20 +16,30 @@
 
 namespace convex {
 
-/// @brief alias for domain on abs function
+/// @brief alias for domain on exp function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
 using ExpDom = ConvexDomain<Space, SignType::FREE>;
 
-/// @brief alias for codomain on abs function
+/// @brief alias for codomain on exp function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
 using ExpCodom = ConvexDomain<Space, SignType::NONNEG>;
 
-/// @brief alias for meta for abs function
+/// @brief alias for concave codomain on exp function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using ExpConcaveCodom = ConvexDomain<Space, SignType::NONPOS>;
+
+/// @brief alias for meta for exp function
 template <linalg::RnSpace Space>
 using ExpMeta =
     ConvexAtomMeta<ExpDom<Space>, ExpCodom<Space>, CurvatureType::CONVEX>;
+
+/// @brief alias for meta for exp function
+template <linalg::RnSpace Space>
+using ExpConcaveMeta = ConvexAtomMeta<AbsDom<Space>, ExpConcaveCodom<Space>,
+                                      CurvatureType::CONCAVE>;
 
 /**
  * @brief exp function
@@ -94,14 +104,12 @@ struct Exp : ConvexFn<Meta, Exp<Meta, Child>, Child> {
    */
   constexpr auto negate_impl() const {
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
-    using Dom = meta_dom_t<Meta>;
-    using Codom = meta_codom_t<Meta>;
+    using Space = dom_space_t<meta_dom_t<Meta>>;
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONVEX>;
-      return Exp<NewMeta, Child>(std::get<0>(this->children), this->map);
+      return Exp<ExpMeta<Space>, Child>(std::get<0>(this->children), this->map);
     } else {
-      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONCAVE>;
-      return Exp<NewMeta, Child>(std::get<0>(this->children), this->map);
+      return Exp<ExpConcaveMeta<Space>, Child>(std::get<0>(this->children),
+                                               this->map);
     }
   }
 

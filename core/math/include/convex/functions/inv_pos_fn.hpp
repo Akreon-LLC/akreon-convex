@@ -16,21 +16,73 @@
 
 namespace convex {
 
+/// @brief alias for domain on inv pos function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using InvPosDom = ConvexDomain<Space, SignType::POS>;
+
+/// @brief alias for codomain on inv pos function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using InvPosCodom = ConvexDomain<Space, SignType::POS>;
+
+/// @brief alias for concave codomain on inv pos function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using InvPosConcaveCodom = ConvexDomain<Space, SignType::NEG>;
+
+/// @brief alias for meta for inv pos function
+template <linalg::RnSpace Space>
+using InvPosMeta =
+    ConvexAtomMeta<InvPosDom<Space>, InvPosCodom<Space>, CurvatureType::CONVEX>;
+
+/// @brief alias for meta for inv pos function
+template <linalg::RnSpace Space>
+using InvPosConcaveMeta =
+    ConvexAtomMeta<InvPosDom<Space>, InvPosConcaveCodom<Space>,
+                   CurvatureType::CONCAVE>;
+
 /**
  * @brief inv pos function
  *
  * f(x) = 1/x, x in R_++
  */
-template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-  requires(linalg::space_dim_v<Domain> == 1)
-class InvPosFn : public ConvexFn<Domain, InvPosFn<Domain, Tag>> {
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+struct InvPos : ConvexFn<Meta, InvPos<Meta, Child>, Child> {
  public:
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, InvPosFn<Domain, Tag>>;
-  using ConvexBase::Dim;
+  using ConvexBase = ConvexFn<Meta, InvPos<Meta, Child>, Child>;
   using ConvexBase::N;
-  using typename ConvexBase::Point;
+  using typename ConvexBase::LinearMatT;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   */
+  constexpr explicit InvPos(const Child& child_in) : ConvexBase(child_in) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   * @param map
+   */
+  constexpr explicit InvPos(const Child& child_in,
+                            const affine::AffineMap<LinearMatT>& map_in)
+      : ConvexBase(child_in, map_in) {}
+
+  /**
+   * @brief mono
+   *
+   * @return monotonicity
+   */
+  constexpr MonotonicityType monotonicity_impl() const {
+    return MonotonicityType::NONINC;
+  }
 
   /**
    * @brief eval impl
@@ -39,9 +91,10 @@ class InvPosFn : public ConvexFn<Domain, InvPosFn<Domain, Tag>> {
    *
    * @return res \in R_++ or R_-- (depending on convex or concave)
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const {
+  constexpr std::optional<T> eval_impl(const PointT& x) const {
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if (x(0) <= T(0)) return std::nullopt;
-    if constexpr (Tag == FnTag::Convex) {
+    if constexpr (Tag == CurvatureType::CONVEX) {
       return T(1) / x(0);
     } else {
       return T(-1) / x(0);
@@ -54,10 +107,15 @@ class InvPosFn : public ConvexFn<Domain, InvPosFn<Domain, Tag>> {
    * @return negated f
    */
   constexpr auto negate_impl() const {
-    if constexpr (Tag == FnTag::Convex)
-      return InvPosFn<Domain, FnTag::Concave>();
-    else
-      return InvPosFn<Domain, FnTag::Convex>();
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    using Space = dom_space_t<meta_dom_t<Meta>>;
+    if constexpr (Tag == CurvatureType::CONCAVE) {
+      return InvPos<InvPosMeta<Space>, Child>(std::get<0>(this->children),
+                                              this->map);
+    } else {
+      return InvPos<InvPosConcaveMeta<Space>, Child>(
+          std::get<0>(this->children), this->map);
+    }
   }
 
   /**
@@ -100,7 +158,9 @@ class InvPosFn : public ConvexFn<Domain, InvPosFn<Domain, Tag>> {
     linalg::Vector<T, 3> g;
     g[0] = linalg::constexpr_sqrt(T(2));
     g[1] = coord_map.translation()(0);
-    if constexpr (Tag == FnTag::Convex) {
+
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX) {
       F[2][1] = T(1);
     } else {
       F[2][1] = T(-1);

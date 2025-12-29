@@ -147,7 +147,8 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
     using Space = Matrixd<1, 4>;
     constexpr auto x = Variable<PosVarMeta<Space>>();
     using Codom = Matrixd<1, 1>;
-    constexpr auto geo_mean = GeoMean<GeoMeanMeta<Space, Codom>, decltype(x)>(x);
+    constexpr auto geo_mean =
+        GeoMean<GeoMeanMeta<Space, Codom>, decltype(x)>(x);
     STATIC_REQUIRE(geo_mean(Vectord<4>{1.0, 1.0, 1.0, 1.0}).has_value());
     STATIC_REQUIRE(geo_mean(Vectord<4>{1.0, 1.0, 1.0, 1.0}).value() == 1.0);
     STATIC_REQUIRE(
@@ -203,12 +204,11 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
   }
 }
 
-#if 0
 TEST_CASE("Test inv pos function", "[convex_fn]") {
   SECTION("Test inv pos fn") {
     using Space = Matrixd<1, 1>;
-    constexpr auto inv_pos_fn = InvPosFn<Space>();
-    STATIC_REQUIRE(ConvexFnLike<decltype(inv_pos_fn)>);
+    constexpr auto x = Variable<PosVarMeta<Space>>();
+    constexpr auto inv_pos_fn = InvPos<InvPosMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(!inv_pos_fn(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(!inv_pos_fn(Vectord<1>{-1.0}).has_value());
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{1.0}).has_value());
@@ -216,6 +216,7 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}).has_value());
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}).value() == 0.5);
 
+#if 0
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
     constexpr auto F = F_mat(0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
 
@@ -238,6 +239,7 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
+#endif
 
     constexpr auto inv_pos_concave = inv_pos_fn.negate();
     STATIC_REQUIRE(!inv_pos_concave(Vectord<1>{0.0}).has_value());
@@ -247,6 +249,7 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
     STATIC_REQUIRE(inv_pos_concave(Vectord<1>{2.0}).has_value());
     STATIC_REQUIRE(inv_pos_concave(Vectord<1>{2.0}).value() == -0.5);
 
+#if 0
     constexpr mat_traits<Matrix<double, 3, 2>> F1_mat;
     constexpr auto F1 = F1_mat(0.0, 0.0, 1.0, 0.0, 0.0, -1.0);
 
@@ -265,9 +268,11 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
     STATIC_REQUIRE(sz1 == 1);
     STATIC_REQUIRE(cone_block1.validate());
+#endif
   }
 }
 
+#if 0
 TEST_CASE("Test log function", "[convex_fn]") {
   SECTION("Test log fn") {
     using Space = Matrixd<1, 1>;

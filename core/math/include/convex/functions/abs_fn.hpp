@@ -26,10 +26,20 @@ template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
 using AbsCodom = ConvexDomain<Space, SignType::NONNEG>;
 
+/// @brief alias for concave codomain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using AbsConcaveCodom = ConvexDomain<Space, SignType::NONPOS>;
+
 /// @brief alias for meta for abs function
 template <linalg::RnSpace Space>
 using AbsMeta =
     ConvexAtomMeta<AbsDom<Space>, AbsCodom<Space>, CurvatureType::CONVEX>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Space>
+using AbsConcaveMeta = ConvexAtomMeta<AbsDom<Space>, AbsConcaveCodom<Space>,
+                                      CurvatureType::CONCAVE>;
 
 /**
  * @brief abs function
@@ -102,14 +112,12 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
    */
   constexpr auto negate_impl() const {
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
-    using Dom = meta_dom_t<Meta>;
-    using Codom = meta_codom_t<Meta>;
+    using Space = dom_space_t<meta_dom_t<Meta>>;
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONVEX>;
-      return Abs<NewMeta, Child>(std::get<0>(this->children), this->map);
+      return Abs<AbsMeta<Space>, Child>(std::get<0>(this->children), this->map);
     } else {
-      using NewMeta = ConvexAtomMeta<Dom, Codom, CurvatureType::CONCAVE>;
-      return Abs<NewMeta, Child>(std::get<0>(this->children), this->map);
+      return Abs<AbsConcaveMeta<Space>, Child>(std::get<0>(this->children),
+                                               this->map);
     }
   }
 
