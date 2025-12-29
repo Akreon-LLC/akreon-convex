@@ -578,11 +578,14 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(cone_block1.validate());
   }
 }
+#endif
 
 TEST_CASE("Test log sum exp", "[convex_fn]") {
   SECTION("Test log sum exp") {
     using Space = Matrixd<1, 4>;
-    constexpr auto lse = LogSumExpFn<Space>();
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    using Codom = Matrixd<1, 1>;
+    constexpr auto lse = LogSumExp<LogSumExpMeta<Space, Codom>, decltype(x)>(x);
     STATIC_REQUIRE(lse(Vectord<4>{}).has_value());
     STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{}).value() - 1.38629436112) <
                    eps);
@@ -590,6 +593,7 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).value() -
                                  1.21428330036) < eps);
 
+#if 0
     constexpr mat_traits<Matrix<double, 10, 9>> F_mat;
     constexpr auto F =
         F_mat(1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
@@ -619,13 +623,14 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
+#endif
 
     constexpr auto lse_concave = lse.negate();
     STATIC_REQUIRE(lse_concave(Vectord<4>{}).has_value());
     STATIC_REQUIRE(
         constexpr_abs(lse_concave(Vectord<4>{}).value() + 1.38629436112) < eps);
-    STATIC_REQUIRE(ConvexFnLike<decltype(lse_concave.negate())>);
 
+#if 0
     constexpr auto F1 =
         F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
               1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
@@ -646,6 +651,6 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
     STATIC_REQUIRE(sz1 == 2);
     STATIC_REQUIRE(cone_block1.validate());
+#endif
   }
 }
-#endif

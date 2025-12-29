@@ -16,23 +16,73 @@
 
 namespace convex {
 
+/// @brief alias for domain on abs function
+template <linalg::RnSpace Space>
+using LogSumExpDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using LogSumExpCodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for concave codomain on abs function
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using LogSumExpConcaveCodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using LogSumExpMeta = ConvexAtomMeta<LogSumExpDom<Dom>, LogSumExpCodom<Codom>,
+                                     CurvatureType::CONVEX>;
+
+/// @brief alias for meta for abs function
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using LogSumExpConcaveMeta =
+    ConvexAtomMeta<LogSumExpDom<Dom>, LogSumExpConcaveCodom<Codom>,
+                   CurvatureType::CONCAVE>;
+
 /**
  * @brief log sum exp = smooth max function
  *
  * lse(x) = log(\sum_i^n(e^{x_i})) which is a smooth mapping from R^n to R
  */
-template <linalg::RnSpace Domain, FnTag Tag = FnTag::Convex>
-class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain, Tag>> {
- public:
+template <typename Meta, typename Child>
+struct LogSumExp : ConvexFn<Meta, LogSumExp<Meta, Child>, Child> {
   /// @brief bring into scope the convex fn alias / helpers
-  using ConvexBase = ConvexFn<Domain, LogSumExpFn<Domain, Tag>>;
-  using ConvexBase::Dim;
+  using ConvexBase = ConvexFn<Meta, LogSumExp<Meta, Child>, Child>;
   using ConvexBase::N;
-  using typename ConvexBase::Point;
+  using typename ConvexBase::LinearMatT;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
   /// @brief alias for affine map (codomain 1-dim)
   using Mat = linalg::Matrix<T, 1, N>;
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   */
+  constexpr explicit LogSumExp(const Child& child_in) : ConvexBase(child_in) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   * @param map
+   */
+  constexpr explicit LogSumExp(const Child& child_in,
+                               const affine::AffineMap<LinearMatT>& map_in)
+      : ConvexBase(child_in, map_in) {}
+
+  /**
+   * @brief mono
+   *
+   * @return monotonicity
+   */
+  constexpr MonotonicityType monotonicity_impl() const {
+    return MonotonicityType::NONDEC;
+  }
 
   /**
    * @brief eval impl
@@ -41,13 +91,15 @@ class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain, Tag>> {
    *
    * @return y \in R
    */
-  constexpr std::optional<T> eval_impl(const Point& x) const {
+  constexpr std::optional<T> eval_impl(const PointT& x) const {
     T sum(0);
     std::for_each(x.begin(), x.end(),
                   [&](const auto& pt) { sum += linalg::constexpr_exp(pt); });
 
     const auto res = linalg::constexpr_ln(sum);
-    if constexpr (Tag == FnTag::Convex)
+
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX)
       return res;
     else {
       if (!res.has_value()) return std::nullopt;
@@ -56,15 +108,21 @@ class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain, Tag>> {
   }
 
   /**
-   * @brief negate func
+   * @brief negate impl
    *
-   * @return negate f
+   * @return negated f
    */
   constexpr auto negate_impl() const {
-    if constexpr (Tag == FnTag::Convex)
-      return LogSumExpFn<Domain, FnTag::Concave>();
-    else
-      return LogSumExpFn<Domain, FnTag::Convex>();
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    using Dom = dom_space_t<meta_dom_t<Meta>>;
+    using Codom = dom_space_t<meta_codom_t<Meta>>;
+    if constexpr (Tag == CurvatureType::CONCAVE) {
+      return LogSumExp<LogSumExpMeta<Dom, Codom>, Child>(
+          std::get<0>(this->children), this->map);
+    } else {
+      return LogSumExp<LogSumExpConcaveMeta<Dom, Codom>, Child>(
+          std::get<0>(this->children), this->map);
+    }
   }
 
   /**
@@ -124,7 +182,8 @@ class LogSumExpFn : public ConvexFn<Domain, LogSumExpFn<Domain, Tag>> {
     F = linalg::set_block<0, N, 0, Dom>(F, coord_map.linear_part());
     const auto I = linalg::make_identity<T, Dom>();
 
-    if constexpr (Tag == FnTag::Convex) {
+    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    if constexpr (Tag == CurvatureType::CONVEX) {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(-1);
     } else {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(1);

@@ -145,8 +145,8 @@ template <typename Meta, typename Child>
 struct InvPos;
 
 /// @brief forward declaration - log sum exp fn
-template <typename Meta>
-struct LogSumExpFn;
+template <typename Meta, typename Child>
+struct LogSumExp;
 
 template <typename Meta, typename... Cs>
 struct Sum;
@@ -227,6 +227,12 @@ struct atom_traits<InvPos<Meta, Child>> : std::true_type {
 
 template <typename Meta, typename Child>
 struct atom_traits<Log<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<LogSumExp<Meta, Child>> : std::true_type {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
