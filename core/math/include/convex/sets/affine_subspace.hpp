@@ -113,8 +113,8 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
   constexpr auto transform_impl(const affine::AffineMap<TMat>& map) const {
     const auto A_tilde = A * linalg::inverse(map.linear_part());
     const auto b_tilde = b + A_tilde * map.translation();
-    return AffineSubspace<Meta, Child>(std::get<0>(this->children), A_tilde,
-                                       b_tilde);
+    return AffineSubspace<Meta, Child>(A_tilde, b_tilde,
+                                       std::get<0>(this->children));
   }
 
   /**

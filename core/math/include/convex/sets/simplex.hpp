@@ -40,6 +40,7 @@ template <typename Meta, typename Child>
 struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Meta, Simplex<Meta, Child>, Child>;
+  using ConvexBase::M;
   using ConvexBase::N;
   using typename ConvexBase::PointT;
   using typename ConvexBase::T;
@@ -101,7 +102,6 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
    *
    * @return polyhedron
    */
-#if 0
   template <linalg::MatrixLike Mat>
     requires(std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
@@ -109,20 +109,19 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
     const auto& t = map.translation();
     const auto U_inv = linalg::inverse(U);
 
-    linalg::vec_traits<linalg::Vector<T, N>> vec;
-    const auto ones = vec.fill(T(1));
-
-    const auto one_T_U_inv = as_row_vector(ones) * U_inv;
-
     const auto A = T(-1) * U_inv;
     const auto b = T(-1) * U_inv * t;
-    const auto C = one_T_U_inv;
-    const auto d = T(1) + (one_T_U_inv * t)(0);
 
-    return Polyhedron<Space, HalfspaceType::CLH, decltype(A), decltype(C)>(
-        A, b, C, d);
+    using Dom = linalg::Matrix<T, 1, N>;
+    using Codom = linalg::Matrix<T, 1, N>;
+
+    // (dakre) TODO return intersection between poly and affine subspace
+    //     linalg::vec_traits<linalg::Vector<T, N>> vec;
+    //     const auto ones = vec.fill(T(1));
+    //     const auto one_T_U_inv = as_row_vector(ones) * U_inv;
+    return Polyhedron<PolyhedronMeta<Dom, Codom>, Child, HalfspaceType::LH>(
+        A, b, std::get<0>(this->children));
   }
-#endif
 
   /**
    * @brief equality comparison

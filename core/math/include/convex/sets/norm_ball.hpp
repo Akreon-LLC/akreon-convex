@@ -14,6 +14,7 @@
 
 #include "convex_set.hpp"
 #include "ellipsoid.hpp"
+#include "polyhedron.hpp"
 
 namespace convex {
 
@@ -106,7 +107,6 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    *
    * @return transformed ball (ellipse for L2, polyhedron for L1/Linf)
    */
-#if 0
   template <linalg::SquareMatrixLike Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
              std::same_as<T, linalg::mat_type_t<Mat>>)
@@ -121,7 +121,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
      * (i)  c' = U c + t
      * (ii) r' = ||U^{-1}|| \to r \sigma(U) OR U U^T r^2
      */
-    if constexpr (Type == NormBallType::L2OB || Type == NormBallType::L2CB) {
+    if constexpr (Type == NormBallType::L2) {
       const auto point = U * c + t;
       Mat U_T;
       if constexpr (linalg::is_complex_v<T>)
@@ -130,7 +130,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
         U_T = transpose(U);
       const auto P = (r * r) * (U * U_T);
 
-      return Ellipsoid<EllipsoidMeta<Space>, Child>(
+      return Ellipsoid<EllipsoidMeta<linalg::Matrix<T, 1, N>>, Child>(
           point, P, std::get<0>(this->children));
     }
     /* L1 case
@@ -172,8 +172,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
      * (i) ||z_i||_2 <= s_i
      * (ii) \sum_i s_i <= r
      */
-    else if constexpr (Type == NormBallType::L1OB ||
-                       Type == NormBallType::L1CB) {
+    else if constexpr (Type == NormBallType::L1) {
       linalg::Matrix<T, 3 * N + 1, 2 * N> A;
       linalg::Vector<T, 3 * N + 1> b;
       b[0] = r;
@@ -200,13 +199,10 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       // (iv) third block assignment s >= 0
       A = linalg::set_block<2 * N + 1, 3 * N + 1, N, 2 * N>(A, T(-1) * I);
 
-      using NewSpace = linalg::Matrix<T, 1, 2 * N>;
-      if constexpr (Type == NormBallType::L1OB)
-        return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
-                          linalg::Matrix<T, 0, 2 * N>>(A, b);
-      else
-        return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
-                          linalg::Matrix<T, 0, 2 * N>>(A, b);
+      using Dom = linalg::Matrix<T, 1, 2 * N>;
+      using Codom = linalg::Matrix<T, 1, 3 * N + 1>;
+      return Polyhedron<PolyhedronMeta<Dom, Codom>, Child, HalfspaceType::LH>(
+          A, b, std::get<0>(this->children));
     }
     /* Linf case
      *
@@ -246,16 +242,12 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       A = linalg::set_block<0, N, 0, N>(A, U_inv);
       A = linalg::set_block<N, 2 * N, 0, N>(A, T(-1) * U_inv);
 
-      using NewSpace = linalg::Matrix<T, 1, N>;
-      if constexpr (Type == NormBallType::LinfOB)
-        return Polyhedron<NewSpace, HalfspaceType::OLH, decltype(A),
-                          linalg::Matrix<T, 0, N>>(A, b);
-      else
-        return Polyhedron<NewSpace, HalfspaceType::CLH, decltype(A),
-                          linalg::Matrix<T, 0, N>>(A, b);
+      using Dom = linalg::Matrix<T, 1, N>;
+      using Codom = linalg::Matrix<T, 1, 2 * N>;
+      return Polyhedron<PolyhedronMeta<Dom, Codom>, Child, HalfspaceType::LH>(
+          A, b, std::get<0>(this->children));
     }
   }
-#endif
 
   /**
    * @brief canonicalize impl

@@ -109,7 +109,8 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto U_inv = linalg::inverse(map.linear_part());
     return Ellipsoid<Meta, Child>(map.linear_part() * c + map.translation(),
-                                  transpose(U_inv) * P * U_inv);
+                                  transpose(U_inv) * P * U_inv,
+                                  std::get<0>(this->children));
   }
 
   /**

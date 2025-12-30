@@ -95,7 +95,8 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
     return Hyperplane<Meta, Child>(as_vector(aT_U),
-                                   b + (aT_U * map.translation())(0));
+                                   b + (aT_U * map.translation())(0),
+                                   std::get<0>(this->children));
   }
 
   /**

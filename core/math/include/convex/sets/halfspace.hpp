@@ -116,7 +116,8 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
     return Halfspace<Meta, Child, Type>(as_vector(aT_U),
-                                        b + (aT_U * map.translation())(0));
+                                        b + (aT_U * map.translation())(0),
+                                        std::get<0>(this->children));
   }
 
   /**
