@@ -16,6 +16,20 @@
 
 namespace convex {
 
+/// @brief alias for domain on halfspace
+template <linalg::RnSpace Space>
+using HalfspaceDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on halfspace
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using HalfspaceCodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for meta on halfspace
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using HalfspaceMeta = ConvexAtomMeta<HalfspaceDom<Dom>, HalfspaceCodom<Codom>,
+                                     CurvatureType::CONVEX>;
+
 /**
  * @brief Halfspace defined on a valid vector space and one of the following
  * type traits:
@@ -25,18 +39,14 @@ namespace convex {
  * {x | a^T x >= b}... closed upper halfspace
  * {x | a^T x > b}... open upper halfspace
  */
-template <linalg::RnSpace Space, HalfspaceType Type>
-  requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
- public:
+template <typename Meta, typename Child, HalfspaceType Type>
+struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Halfspace<Space, Type>>;
-  using typename ConvexBase::Point;
+  using ConvexBase = ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child>;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
   /// @brief bring into scope the const data members
-  using ConvexBase::Dim;
   using ConvexBase::N;
 
   /**
@@ -44,9 +54,11 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    *
    * @param Point (i.e., n-dim vector of type T)
    * @param b bias scalar
+   * @param child
    */
-  constexpr explicit Halfspace(const Point& a_in, const T& b_in)
-      : a(a_in), b(b_in) {}
+  constexpr explicit Halfspace(const PointT& a_in, const T& b_in,
+                               const Child& child_in)
+      : ConvexBase(child_in), a(a_in), b(b_in) {}
 
   /**
    * @brief contains function to see if x is in the halfspace a^T x <= b
@@ -58,15 +70,11 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
     switch (Type) {
-      case HalfspaceType::OUH:
-        return linalg::dot(a, x) > b;
-      case HalfspaceType::CUH:
+      case HalfspaceType::UH:
         return linalg::dot(a, x) >= b;
-      case HalfspaceType::OLH:
-        return linalg::dot(a, x) < b;
-      case HalfspaceType::CLH:
+      case HalfspaceType::LH:
       default:
         return linalg::dot(a, x) <= b;
     }
@@ -78,9 +86,9 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const {
+  constexpr bool is_well_formed() const {
     if (linalg::all_zero(a)) {
-      if constexpr (Type == HalfspaceType::CLH || Type == HalfspaceType::OLH) {
+      if constexpr (Type == HalfspaceType::LH) {
         if (b < T(0)) return false;
       } else {
         if (b > T(0)) return false;
@@ -108,8 +116,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
-    return Halfspace<Space, Type>(as_vector(aT_U),
-                                  b + (aT_U * map.translation())(0));
+    return Halfspace<Meta, Child, Type>(as_vector(aT_U),
+                                        b + (aT_U * map.translation())(0));
   }
 
   /**
@@ -138,7 +146,7 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
    * @return cone block
    */
   constexpr auto canonicalize_impl() const {
-    static_assert(Type != HalfspaceType::OUH && Type != HalfspaceType::OLH,
+    static_assert(Type != HalfspaceType::UH && Type != HalfspaceType::LH,
                   "cannot cannonicalize an open set -> non-proper cone");
 
     linalg::Matrix<T, 2, N + 1> F;
@@ -153,8 +161,8 @@ class Halfspace : public ConvexSet<Space, Halfspace<Space, Type>> {
 
  private:
   /** @brief member variables in the halfspace */
-  Point a;  //< n-dim vector of type T
-  T b;      //< bias scalar of type T
+  PointT a;  //< n-dim vector of type T
+  T b;       //< bias scalar of type T
 };
 
 }  // namespace convex

@@ -75,17 +75,21 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
   }
 }
 
-#if 0
 TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   SECTION("Test hyperplane") {
+    using Space = Matrixd<1, 3>;
     constexpr Vector<double, 3> point{0.1, 0.2, 0.3};
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
     constexpr double b = 0.6;
-    constexpr Hyperplane<Matrix<double, 1, 3>> hyperplane(point, b);
+    constexpr Hyperplane<HyperplaneMeta<Space, linalg::Matrixd<1, 1>>,
+                         decltype(x)>
+        hyperplane(point, b, x);
     STATIC_REQUIRE(hyperplane.is_well_formed());
     STATIC_REQUIRE(!hyperplane.contains(Vectord<3>{}));
     STATIC_REQUIRE(hyperplane.contains(Vectord<3>{1.0, 1.0, 1.0}));
     STATIC_REQUIRE(!hyperplane.contains(Vectord<3>{1.0, 1.0, 2.0}));
 
+#if 0
     STATIC_REQUIRE(
         !Hyperplane<Matrix<double, 1, 1>>(Vectord<1>{}, b).is_well_formed());
     constexpr auto I = make_identity<double, 3>();
@@ -104,13 +108,17 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
+#endif
   }
 
   SECTION("Test closed lower halfspace") {
+    using Space = Matrixd<1, 2>;
     constexpr Vector<double, 2> point{1.0, 2.0};
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
     constexpr double b = 1.0;
-    constexpr Halfspace<Matrix<double, 1, 2>, HalfspaceType::CLH> halfspace(
-        point, b);
+    constexpr Halfspace<HalfspaceMeta<Space, linalg::Matrixd<1, 1>>,
+                        decltype(x), HalfspaceType::LH>
+        halfspace(point, b, x);
     STATIC_REQUIRE(halfspace.is_well_formed());
     STATIC_REQUIRE(halfspace.contains(Vectord<2>{}));
     STATIC_REQUIRE(halfspace.contains(Vectord<2>{-1.0, 0.0}));
@@ -119,6 +127,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace.contains(Vectord<2>{1.0, 2.0}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<2>{-1.0, 5.0}));
 
+#if 0
     constexpr auto cone_block = halfspace.canonicalize();
     constexpr mat_traits<Matrix<double, 2, 3>> A_mat;
     constexpr auto A = A_mat(-1 * point(0), -1 * point(1), b, 0.0, 0.0, 1.0);
@@ -129,33 +138,24 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-  }
-
-  SECTION("Test open lower halfspace") {
-    constexpr Vector<double, 4> point{2.0, 1.0, -2.0, 5.0};
-    constexpr double b = 10.0;
-    constexpr auto halfspace =
-        Halfspace<Matrix<double, 1, 4>, HalfspaceType::OLH>(point, b);
-
-    STATIC_REQUIRE(halfspace.is_well_formed());
-    STATIC_REQUIRE(halfspace.contains(Vectord<4>{}));
-    STATIC_REQUIRE(!halfspace.contains(Vectord<4>{0.0, 0.0, 0.0, 2.0}));
-    STATIC_REQUIRE(halfspace.contains(Vectord<4>{0.0, 0.0, 0.0, 1.9}));
-    STATIC_REQUIRE(halfspace.contains(Vectord<4>{0.5, 2.0, 2.0, 1.0}));
-    STATIC_REQUIRE(!halfspace.contains(Vectord<4>{1.0, 1.0, 0.0, 5.0}));
+#endif
   }
 
   SECTION("Test closed upper halfspace") {
+    using Space = Matrixd<1, 3>;
     constexpr Vector<double, 3> point{1.0, 2.0, 1.0};
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
     constexpr double b = 2.0;
-    constexpr Halfspace<Matrix<double, 1, 3>, HalfspaceType::CUH> halfspace(
-        point, b);
+    constexpr Halfspace<HalfspaceMeta<Space, linalg::Matrixd<1, 1>>,
+                        decltype(x), HalfspaceType::UH>
+        halfspace(point, b, x);
     STATIC_REQUIRE(halfspace.is_well_formed());
     STATIC_REQUIRE(!halfspace.contains(Vectord<3>{}));
     STATIC_REQUIRE(halfspace.contains(Vectord<3>{0.0, 1.0, 0.0}));
     STATIC_REQUIRE(halfspace.contains(Vectord<3>{0.1, 1.0, 2.0}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<3>{0.1, 1.0, -2.0}));
 
+#if 0
     constexpr auto halfspace_id =
         halfspace.transform(AffineMap<Matrix<double, 3, 3>>(
             make_identity<double, 3>(), Vectord<3>{}));
@@ -177,23 +177,11 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-  }
-
-  SECTION("Test open upper halfspace") {
-    constexpr Vector<double, 1> point{1.0};
-    constexpr double b = 5.0;
-    constexpr Halfspace<Matrix<double, 1, 1>, HalfspaceType::OUH> halfspace(
-        point, b);
-    STATIC_REQUIRE(halfspace.is_well_formed());
-    STATIC_REQUIRE(!halfspace.contains(Vectord<1>{}));
-    STATIC_REQUIRE(!halfspace.contains(Vectord<1>{0.1}));
-    STATIC_REQUIRE(!halfspace.contains(Vectord<1>{5.0}));
-    STATIC_REQUIRE(halfspace.contains(Vectord<1>{6.0}));
+#endif
   }
 }
 
-
-
+#if 0
 TEST_CASE("Polyhedron", "[convex_sets]") {
   using Space = Matrix<double, 1, 3>;
   mat_traits<Matrix<double, 7, 3>> A_mat;

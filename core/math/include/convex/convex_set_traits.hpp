@@ -18,41 +18,17 @@
 
 namespace convex {
 
-/// @brief simple enum to describe type of halfspace
-enum struct HalfspaceType { CLH, OLH, CUH, OUH };
-
-/// @brief simple enum to describe type of ellipsoid
-enum struct EllipsoidType { CE, OE };
-
 /// @brief simple enum to describe ball type
 enum struct NormBallType { L2OB, L2CB, L1OB, L1CB, LinfOB, LinfCB };
 
 /// @brief simple enum for cone type
 enum struct NormConeType { L2OC, L2CC, L1OC, L1CC, LinfOC, LinfCC };
 
-/// @brief forward declaration of hyperplane
-template <linalg::RnSpace Space>
-  requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Hyperplane;
-
-/// @brief forward declaration of halfspace
-template <linalg::RnSpace Space, HalfspaceType Type>
-  requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Halfspace;
-
 /// @brief forward declaration of norm ball set
 template <linalg::RnSpace Space, NormBallType Type>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class NormBall;
-
-/// @brief forward declaration of ellipsoid set
-template <linalg::RnSpace Space, EllipsoidType Type>
-  requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Ellipsoid;
 
 /// @brief forward declaration of norm cone set
 template <linalg::RnSpace Space, NormConeType Type>

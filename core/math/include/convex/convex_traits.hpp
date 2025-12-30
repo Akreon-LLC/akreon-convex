@@ -187,11 +187,22 @@ struct AffineSubspace;
 template <typename Meta, typename Child>
 struct Ellipsoid;
 
+/// @brief simple enum to describe type of halfspace
+enum struct HalfspaceType { LH, UH };
+
+/// @brief forward declaration of halfspace
+template <typename Meta, typename Child, HalfspaceType Type>
+struct Halfspace;
+
+/// @brief forward declaration of hyperplane
+template <typename Meta, typename Child>
+struct Hyperplane;
+
 template <typename Atom>
 struct atom_traits {};
 
 template <typename Meta, typename Child>
-struct atom_traits<Atom<Meta, Child>> : std::false_type {
+struct atom_traits<Atom<Meta, Child>> {
   using ConvexMeta = Meta;
 };
 
@@ -202,85 +213,97 @@ struct atom_traits<Variable<Meta>> : std::false_type {
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<ScalarView<Meta, Child>> : std::false_type {
+struct atom_traits<ScalarView<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::VAR;
 };
 
 template <typename Meta, typename Derived, typename Child>
-struct atom_traits<ConvexFn<Meta, Derived, Child>> : std::true_type {
+struct atom_traits<ConvexFn<Meta, Derived, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<Abs<Meta, Child>> : std::true_type {
+struct atom_traits<Abs<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<Exp<Meta, Child>> : std::true_type {
+struct atom_traits<Exp<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<GeoMean<Meta, Child>> : std::true_type {
+struct atom_traits<GeoMean<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<InvPos<Meta, Child>> : std::true_type {
+struct atom_traits<InvPos<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<Log<Meta, Child>> : std::true_type {
+struct atom_traits<Log<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<LogSumExp<Meta, Child>> : std::true_type {
+struct atom_traits<LogSumExp<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<Max<Meta, Child>> : std::true_type {
+struct atom_traits<Max<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<Square<Meta, Child>> : std::true_type {
+struct atom_traits<Square<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child, linalg::NormLike NormFunc>
-struct atom_traits<Norm<Meta, Child, NormFunc>> : std::true_type {
+struct atom_traits<Norm<Meta, Child, NormFunc>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Derived, typename Child>
-struct atom_traits<ConvexSet<Meta, Derived, Child>> : std::true_type {
+struct atom_traits<ConvexSet<Meta, Derived, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::SET;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<AffineSubspace<Meta, Child>> : std::true_type {
+struct atom_traits<AffineSubspace<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::SET;
 };
 
 template <typename Meta, typename Child>
-struct atom_traits<Ellipsoid<Meta, Child>> : std::true_type {
+struct atom_traits<Ellipsoid<Meta, Child>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::SET;
+};
+
+template <typename Meta, typename Child, HalfspaceType HType>
+struct atom_traits<Halfspace<Meta, Child, HType>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::SET;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Hyperplane<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::SET;
 };
@@ -305,13 +328,13 @@ using SumConcaveMeta =
     ConvexAtomMeta<SumDom<Dom>, SumCodom<Codom>, CurvatureType::CONCAVE>;
 
 template <linalg::RnSpace Dom, linalg::RnSpace Codom, typename... Cs>
-struct atom_traits<Sum<SumConvexMeta<Dom, Codom>, Cs...>> : std::false_type {
+struct atom_traits<Sum<SumConvexMeta<Dom, Codom>, Cs...>> {
   using ConvexMeta = SumConvexMeta<Dom, Codom>;
   static constexpr AtomType Type = AtomType::OP;
 };
 
 template <linalg::RnSpace Dom, linalg::RnSpace Codom, typename... Cs>
-struct atom_traits<Sum<SumConcaveMeta<Dom, Codom>, Cs...>> : std::false_type {
+struct atom_traits<Sum<SumConcaveMeta<Dom, Codom>, Cs...>> {
   using ConvexMeta = SumConcaveMeta<Dom, Codom>;
   static constexpr AtomType Type = AtomType::OP;
 };

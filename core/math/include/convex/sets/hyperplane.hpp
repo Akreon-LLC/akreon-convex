@@ -16,26 +16,33 @@
 
 namespace convex {
 
+/// @brief alias for domain on hyperplane
+template <linalg::RnSpace Space>
+using HyperplaneDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on hyperplane
+template <linalg::RnSpace Space>
+  requires(linalg::space_dim_v<Space> == 1)
+using HyperplaneCodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for meta on hyperplane
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using HyperplaneMeta =
+    ConvexAtomMeta<HyperplaneDom<Dom>, HyperplaneCodom<Codom>,
+                   CurvatureType::CONVEX>;
+
 /**
  * @brief Hyperplane defition defined on valid vector space
  *
  * H = { x | a^T x = b } \equiv { x | a^T x - b = 0 }
  */
-template <linalg::RnSpace Space>
-  requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
- public:
+template <typename Meta, typename Child>
+struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Hyperplane<Space>>;
-  using typename ConvexBase::Point;
+  using ConvexBase = ConvexSet<Meta, Hyperplane<Meta, Child>, Child>;
+  using ConvexBase::N;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
-
-  /// @brief hyperplane dimension
-  using ConvexBase::Dim;
-
-  /// @brief helper to get n elements in point
-  static constexpr size_t N = linalg::vec_size_v<Point>;
 
   /**
    * @brief CTOR for hyperplane
@@ -43,8 +50,9 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    * @param Point (i.e., n-dim vec of type T)
    * @param b bias scalar
    */
-  constexpr explicit Hyperplane(const Point& a_in, const T& b_in)
-      : a(a_in), b(b_in) {}
+  constexpr explicit Hyperplane(const PointT& a_in, const T& b_in,
+                                const Child& child_in)
+      : ConvexBase(child_in), a(a_in), b(b_in) {}
 
   /**
    * @brief contains function to see if x lies in the hyerplane defined by
@@ -55,7 +63,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& tol) const {
+  constexpr bool contains_impl(const PointT& x, const T& tol) const {
     return linalg::constexpr_abs(linalg::dot(a, x) - b) < tol;
   }
 
@@ -64,7 +72,7 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const {
+  constexpr bool is_well_formed() const {
     if (linalg::all_zero(a)) return false;
     return true;
   }
@@ -87,8 +95,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto aT_U =
         transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
-    return Hyperplane<Space>(as_vector(aT_U),
-                             b + (aT_U * map.translation())(0));
+    return Hyperplane<Meta, Child>(as_vector(aT_U),
+                                   b + (aT_U * map.translation())(0));
   }
 
   /**
@@ -129,8 +137,8 @@ class Hyperplane : public ConvexSet<Space, Hyperplane<Space>> {
 
  private:
   /** @brief member var in hyperplane */
-  Point a;  //< n-dim vec of type T
-  T b;      //< bias scalar of type T
+  PointT a;  //< n-dim vec of type T
+  T b;       //< bias scalar of type T
 };
 
 }  // namespace convex
