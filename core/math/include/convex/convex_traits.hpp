@@ -188,7 +188,7 @@ template <typename Meta, typename Child>
 struct Ellipsoid;
 
 /// @brief simple enum to describe type of halfspace
-enum struct HalfspaceType { LH, UH };
+enum struct HalfspaceType : uint8_t { LH = 0, UH };
 
 /// @brief forward declaration of halfspace
 template <typename Meta, typename Child, HalfspaceType Type>
@@ -197,6 +197,25 @@ struct Halfspace;
 /// @brief forward declaration of hyperplane
 template <typename Meta, typename Child>
 struct Hyperplane;
+
+/// @brief forward declaration of LMI type
+template <typename Meta, typename Child>
+struct LMI;
+
+/// @brief forward declaration of simplex set
+template <typename Meta, typename Child>
+struct Simplex;
+
+/// @brief simple enum to describe ball type
+enum struct NormBallType : uint8_t { L2 = 0, L1, Linf };
+
+/// @brief forward declaration of norm ball set
+template <typename Meta, typename Child, NormBallType Type>
+struct NormBall;
+
+/// @brief forward declaration of polyhedron set
+template <typename Meta, typename Child, HalfspaceType HType>
+struct Polyhedron;
 
 template <typename Atom>
 struct atom_traits {};
@@ -304,6 +323,30 @@ struct atom_traits<Halfspace<Meta, Child, HType>> {
 
 template <typename Meta, typename Child>
 struct atom_traits<Hyperplane<Meta, Child>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::SET;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<LMI<Meta, Child>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::SET;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Simplex<Meta, Child>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::SET;
+};
+
+template <typename Meta, typename Child, NormBallType BType>
+struct atom_traits<NormBall<Meta, Child, BType>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::SET;
+};
+
+template <typename Meta, typename Child, HalfspaceType HType>
+struct atom_traits<Polyhedron<Meta, Child, HType>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::SET;
 };

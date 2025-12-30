@@ -17,6 +17,19 @@
 
 namespace convex {
 
+/// @brief alias for domain on ellipsoid
+template <linalg::RnSpace Space>
+using NormBallDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for domain on ellipsoid
+template <linalg::RnSpace Space>
+using NormBallCodom = NormBallDom<Space>;
+
+/// @brief alias for meta on ellipsoid
+template <linalg::RnSpace Space>
+using NormBallMeta = ConvexAtomMeta<NormBallDom<Space>, NormBallCodom<Space>,
+                                    CurvatureType::CONVEX>;
+
 /**
  * @brief Norm ball defined on valid vector space and one of the following type
  * traits
@@ -24,29 +37,22 @@ namespace convex {
  * { x | norm(x - c) <= r }... closed norm (L2, L1, Linf) ball that lies within
  * radius { x | norm(x - c) < r}... open "" ball that ""
  */
-template <linalg::RnSpace Space, NormBallType Type>
-  requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
-class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
- public:
+template <typename Meta, typename Child, NormBallType Type>
+struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, NormBall<Space, Type>>;
-  using typename ConvexBase::Point;
+  using ConvexBase = ConvexSet<Meta, NormBall<Meta, Child, Type>, Child>;
+  using ConvexBase::N;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
-
-  /// @brief bring into scope the const data members
-  using ConvexBase::Dim;
-
-  /// @brief helper to get n elements in point
-  static constexpr size_t N = linalg::vec_size_v<Point>;
 
   /**
    * @brief CTOR for NormBall set
    *
    * @param Point (i.e., n-dim vector of type T)
    */
-  constexpr explicit NormBall(const Point& c_in, const T& r_in)
-      : c(c_in), r(r_in) {}
+  constexpr explicit NormBall(const PointT& c_in, const T& r_in,
+                              const Child& child_in)
+      : ConvexBase(child_in), c(c_in), r(r_in) {}
 
   /**
    * @brief contains function to see if x is in the norm ball (norm(x - c) <= r)
@@ -56,21 +62,15 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
     switch (Type) {
-      case NormBallType::L2OB:
-        return linalg::L2<Point>()(x - c) < r;
-      case NormBallType::L2CB:
-        return linalg::L2<Point>()(x - c) <= r;
-      case NormBallType::L1OB:
-        return linalg::L1<Point>()(x - c) < r;
-      case NormBallType::L1CB:
-        return linalg::L1<Point>()(x - c) <= r;
-      case NormBallType::LinfOB:
-        return linalg::Linf<Point>()(x - c) < r;
-      case NormBallType::LinfCB:
+      case NormBallType::L2:
+        return linalg::L2<PointT>()(x - c) <= r;
+      case NormBallType::L1:
+        return linalg::L1<PointT>()(x - c) <= r;
+      case NormBallType::Linf:
       default:
-        return linalg::Linf<Point>()(x - c) <= r;
+        return linalg::Linf<PointT>()(x - c) <= r;
     }
   }
 
@@ -79,7 +79,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const { return r >= 0; }
+  constexpr bool is_well_formed() const { return r >= 0; }
 
   /**
    * @brief equality comparison
@@ -106,6 +106,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    *
    * @return transformed ball (ellipse for L2, polyhedron for L1/Linf)
    */
+#if 0
   template <linalg::SquareMatrixLike Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
              std::same_as<T, linalg::mat_type_t<Mat>>)
@@ -129,10 +130,8 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
         U_T = transpose(U);
       const auto P = (r * r) * (U * U_T);
 
-      if constexpr (Type == NormBallType::L2OB)
-        return Ellipsoid<Space, EllipsoidType::OE>(point, P);
-      else
-        return Ellipsoid<Space, EllipsoidType::CE>(point, P);
+      return Ellipsoid<EllipsoidMeta<Space>, Child>(
+          point, P, std::get<0>(this->children));
     }
     /* L1 case
      *
@@ -256,6 +255,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
                           linalg::Matrix<T, 0, N>>(A, b);
     }
   }
+#endif
 
   /**
    * @brief canonicalize impl
@@ -298,12 +298,8 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
    * [ 0  -1^T r ]
    */
   constexpr auto canonicalize_impl() const {
-    static_assert(Type != NormBallType::L2CB || Type != NormBallType::L1CB ||
-                      Type != NormBallType::LinfCB,
-                  "cannot canonicalize an open set -> non-proper cone");
-
     const auto I = linalg::make_identity<T, N>();
-    if constexpr (Type == NormBallType::L2CB) {
+    if constexpr (Type == NormBallType::L2) {
       linalg::Matrix<T, N + 1, N + 1> F;
       F = linalg::set_block<0, N, 0, N>(F, I);
       F[N][N] = r;
@@ -313,7 +309,7 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
       const auto soc = conic::SecondOrderCone<linalg::Vector<T, N>>();
       const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
       return conic::ConeBlock(map, soc, rplus);
-    } else if constexpr (Type == NormBallType::LinfCB) {
+    } else if constexpr (Type == NormBallType::Linf) {
       linalg::Matrix<T, 2 * N, N + 1> F;
       F = linalg::set_block<0, N, 0, N>(F, I);
       F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * I);
@@ -343,10 +339,9 @@ class NormBall : public ConvexSet<Space, NormBall<Space, Type>> {
     }
   }
 
- private:
   /** @brief member variables in the norm ball */
-  Point c;  //< n-dim vector of type T representing center of ball
-  T r;      //< scalar of type T representing radius
+  PointT c;  //< n-dim vector of type T representing center of ball
+  T r;       //< scalar of type T representing radius
 };
 
 }  // namespace convex

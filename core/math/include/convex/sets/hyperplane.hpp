@@ -20,15 +20,14 @@ namespace convex {
 template <linalg::RnSpace Space>
 using HyperplaneDom = ConvexDomain<Space, SignType::FREE>;
 
-/// @brief alias for codomain on hyperplane
+/// @brief alias for codomain on halfspace
 template <linalg::RnSpace Space>
-  requires(linalg::space_dim_v<Space> == 1)
-using HyperplaneCodom = ConvexDomain<Space, SignType::FREE>;
+using HyperplaneCodom = HyperplaneDom<Space>;
 
 /// @brief alias for meta on hyperplane
-template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+template <linalg::RnSpace Space>
 using HyperplaneMeta =
-    ConvexAtomMeta<HyperplaneDom<Dom>, HyperplaneCodom<Codom>,
+    ConvexAtomMeta<HyperplaneDom<Space>, HyperplaneCodom<Space>,
                    CurvatureType::CONVEX>;
 
 /**
@@ -135,7 +134,6 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
     return conic::ConeBlock(map, zoc, rplus);
   }
 
- private:
   /** @brief member var in hyperplane */
   PointT a;  //< n-dim vec of type T
   T b;       //< bias scalar of type T

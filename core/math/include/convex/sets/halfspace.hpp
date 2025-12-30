@@ -22,12 +22,11 @@ using HalfspaceDom = ConvexDomain<Space, SignType::FREE>;
 
 /// @brief alias for codomain on halfspace
 template <linalg::RnSpace Space>
-  requires(linalg::space_dim_v<Space> == 1)
-using HalfspaceCodom = ConvexDomain<Space, SignType::FREE>;
+using HalfspaceCodom = HalfspaceDom<Space>;
 
 /// @brief alias for meta on halfspace
-template <linalg::RnSpace Dom, linalg::RnSpace Codom>
-using HalfspaceMeta = ConvexAtomMeta<HalfspaceDom<Dom>, HalfspaceCodom<Codom>,
+template <linalg::RnSpace Space>
+using HalfspaceMeta = ConvexAtomMeta<HalfspaceDom<Space>, HalfspaceCodom<Space>,
                                      CurvatureType::CONVEX>;
 
 /**
@@ -159,7 +158,6 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
     return conic::ConeBlock(map, rplus, rplus);
   }
 
- private:
   /** @brief member variables in the halfspace */
   PointT a;  //< n-dim vector of type T
   T b;       //< bias scalar of type T

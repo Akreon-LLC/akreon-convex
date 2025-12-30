@@ -16,6 +16,19 @@
 
 namespace convex {
 
+/// @brief alias for domain on affine subspace
+template <linalg::RnSpace Space>
+using LMIDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on affine subspace
+template <linalg::RnSpace Space>
+using LMICodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for meta on affine subspace
+template <linalg::RnSpace Space>
+using LMIMeta =
+    ConvexAtomMeta<LMIDom<Space>, LMICodom<Space>, CurvatureType::CONVEX>;
+
 /**
  * @brief LMI (linear matrix inequality)
  *
@@ -31,42 +44,18 @@ namespace convex {
  * Transformed to pre-image of PsdCone
  * F(x) = F_0 + \sum_i F(x) >= 0... F_0 = B, F_i = -A_i
  */
-template <linalg::RnSpace Space>
-  requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
-class LMI : public ConvexSet<Space, LMI<Space>> {
- public:
+template <typename Meta, typename Child>
+struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, LMI<Space>>;
-  using typename ConvexBase::Point;
+  using ConvexBase = ConvexSet<Meta, LMI<Meta, Child>, Child>;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
   /// @brief bring into scope the const data members
-  using ConvexBase::Dim;
   using ConvexBase::N;
 
   /// @brief lifted matrix for P
   using Mat = linalg::Matrix<T, N, N>;
-
-  /**
-   * @brief CTOR for LMI
-   *
-   * @param parameter pack of symmetric matrices in R^n where first param is B
-   * and the following are As
-   */
-  template <typename... Fs>
-  constexpr explicit LMI(Fs&&... xs) {
-    static_assert(sizeof...(xs) == N + 1);
-    int i = 0;
-    auto set_mat = [&](const auto& x) {
-      if (i == 0)
-        B = x;
-      else
-        A[i - 1] = x;
-      i++;
-    };
-    ((void)set_mat(std::forward<Fs>(xs)), ...);
-  }
 
   /**
    * @brief CTOR for LMI A & B split out
@@ -74,8 +63,9 @@ class LMI : public ConvexSet<Space, LMI<Space>> {
    * @param A vector of matrices
    * @param B matrix
    */
-  constexpr explicit LMI(const linalg::Vector<Mat, N>& A_in, const Mat& B_in)
-      : A(A_in), B(B_in) {}
+  constexpr explicit LMI(const linalg::Vector<Mat, N>& A_in, const Mat& B_in,
+                         const Child& child_in)
+      : ConvexBase(child_in), A(A_in), B(B_in) {}
 
   /**
    * @brief contains function to see if x is in the LMI defined as
@@ -88,7 +78,7 @@ class LMI : public ConvexSet<Space, LMI<Space>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
     auto res = B;
     for (size_t i = 0; i < N; ++i) res = res - (x(i) * A(i));
     linalg::SymmetricMatrix S(res);
@@ -100,7 +90,7 @@ class LMI : public ConvexSet<Space, LMI<Space>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const {
+  constexpr bool is_well_formed() const {
     if (linalg::SymmetricMatrix(B).type == linalg::SymmetricMatrixType::INV)
       return false;
     for (size_t i = 0; i < N; ++i)
@@ -133,20 +123,6 @@ class LMI : public ConvexSet<Space, LMI<Space>> {
   constexpr auto transform_impl(const affine::AffineMap<Mat>& /* map */) const {
     return *this;
   }
-
-  /**
-   * @brief helper to get As
-   *
-   * @return vector of matrices
-   */
-  constexpr auto get_A() const { return A; }
-
-  /**
-   * @brief helper to get B
-   *
-   * @return B
-   */
-  constexpr auto get_B() const { return B; }
 
   /**
    * @brief canonicalize impl
@@ -186,7 +162,6 @@ class LMI : public ConvexSet<Space, LMI<Space>> {
     return conic::ConeBlock(map, psd_cone, rplus);
   }
 
- private:
   /** @brief member vars for LMI */
   linalg::Vector<Mat, N> A;
   Mat B;

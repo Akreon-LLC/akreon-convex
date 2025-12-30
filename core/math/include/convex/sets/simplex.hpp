@@ -16,6 +16,19 @@
 
 namespace convex {
 
+/// @brief alias for domain on hyperplane
+template <linalg::RnSpace Space>
+using SimplexDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on hyperplane
+template <linalg::RnSpace Space>
+using SimplexCodom = SimplexDom<Space>;
+
+/// @brief alias for meta on hyperplane
+template <linalg::RnSpace Space>
+using SimplexMeta = ConvexAtomMeta<SimplexDom<Space>, SimplexCodom<Space>,
+                                   CurvatureType::CONVEX>;
+
 /**
  * @brief Simplex definition
  *
@@ -23,21 +36,20 @@ namespace convex {
  *
  * Useful in probabilities
  */
-template <linalg::RnSpace Space>
-  requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Simplex : public ConvexSet<Space, Simplex<Space>> {
- public:
+template <typename Meta, typename Child>
+struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Simplex<Space>>;
-  using typename ConvexBase::Point;
+  using ConvexBase = ConvexSet<Meta, Simplex<Meta, Child>, Child>;
+  using ConvexBase::N;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
-  /// @brief bring into scope the const data members
-  using ConvexBase::Dim;
-
-  /// @brief helper to get n elements in point
-  static constexpr size_t N = linalg::vec_size_v<Point>;
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   */
+  constexpr explicit Simplex(const Child& child_in) : ConvexBase(child_in) {}
 
   /**
    * @brief contains function to see if x is in the simplex
@@ -47,7 +59,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& tol) const {
+  constexpr bool contains_impl(const PointT& x, const T& tol) const {
     // (dakre) projected map would just be id
     T sum(0);
     for (size_t i = 0; i < N; ++i) {
@@ -62,7 +74,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const { return true; }
+  constexpr bool is_well_formed() const { return true; }
 
   /**
    * @brief transform simplex to polyhedron
@@ -89,6 +101,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
    *
    * @return polyhedron
    */
+#if 0
   template <linalg::MatrixLike Mat>
     requires(std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
@@ -109,6 +122,7 @@ class Simplex : public ConvexSet<Space, Simplex<Space>> {
     return Polyhedron<Space, HalfspaceType::CLH, decltype(A), decltype(C)>(
         A, b, C, d);
   }
+#endif
 
   /**
    * @brief equality comparison
