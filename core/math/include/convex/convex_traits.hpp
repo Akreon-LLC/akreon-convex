@@ -179,8 +179,13 @@ struct KLDivergenceFn;
 template <typename Meta, typename Derived, typename Child>
 struct ConvexSet;
 
+/// @brief forward declaration of affine subspace
 template <typename Meta, typename Child>
 struct AffineSubspace;
+
+/// @brief forward declaration of ellipsoid set
+template <typename Meta, typename Child>
+struct Ellipsoid;
 
 template <typename Atom>
 struct atom_traits {};
@@ -270,6 +275,12 @@ struct atom_traits<ConvexSet<Meta, Derived, Child>> : std::true_type {
 
 template <typename Meta, typename Child>
 struct atom_traits<AffineSubspace<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::SET;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Ellipsoid<Meta, Child>> : std::true_type {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::SET;
 };

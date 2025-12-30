@@ -17,23 +17,32 @@
 
 namespace convex {
 
+/// @brief alias for domain on ellipsoid
+template <linalg::RnSpace Space>
+using EllipsoidDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for domain on ellipsoid
+template <linalg::RnSpace Space>
+using EllipsoidCodom = EllipsoidDom<Space>;
+
+/// @brief alias for meta on ellipsoid
+template <linalg::RnSpace Space>
+using EllipsoidMeta = ConvexAtomMeta<EllipsoidDom<Space>, EllipsoidCodom<Space>,
+                                     CurvatureType::CONVEX>;
+
 /**
  * @brief Ellipsoid defined as the following
  *
  * E = { x | (x - c)^T P (x - c) <= 1 } s.t. P \in S^n_+
  */
-template <linalg::RnSpace Space, EllipsoidType Type>
-  requires(linalg::space_dim_v<Space> ==
-           linalg::vec_size_v<linalg::space_point_t<Space>>)
-class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
- public:
+template <typename Meta, typename Child>
+struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, Ellipsoid<Space, Type>>;
-  using typename ConvexBase::Point;
+  using ConvexBase = ConvexSet<Meta, Ellipsoid<Meta, Child>, Child>;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
   /// @brief bring into scope the const data members
-  using ConvexBase::Dim;
   using ConvexBase::N;
 
   /// @brief common mat type for P
@@ -44,9 +53,11 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
    *
    * @param center point (i.e., n-dim vector of type T)
    * @param P \in S^n_+
+   * @param child
    */
-  constexpr explicit Ellipsoid(const Point& c_in, const Mat& P_in)
-      : c(c_in), P(P_in) {}
+  constexpr explicit Ellipsoid(const PointT& c_in, const Mat& P_in,
+                               const Child& child_in)
+      : ConvexBase(child_in), c(c_in), P(P_in) {}
 
   /**
    * @brief contains function to see if x is in the ellipsoid (x - c)^T P^{-1}
@@ -57,20 +68,12 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
     const auto delta = x - c;
     const auto delta_T = linalg::transpose(as_col_vector(delta));
     const auto res = (delta_T * (linalg::inverse(P) * delta));
     static_assert(linalg::vec_size_v<decltype(res)> == 1);
-
-    switch (Type) {
-      case EllipsoidType::OE:
-        return res(0) < 1;
-      case EllipsoidType::CE:
-      default:
-        return res(0) <= 1;
-    }
-    return false;
+    return res(0) <= T(1);
   }
 
   /**
@@ -78,7 +81,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const {
+  constexpr bool is_well_formed() const {
     linalg::SymmetricMatrix S(P);
     return S.type == linalg::SymmetricMatrixType::PD;
   }
@@ -105,7 +108,7 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
              std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto U_inv = linalg::inverse(map.linear_part());
-    return Ellipsoid<Space, Type>(map.linear_part() * c + map.translation(),
+    return Ellipsoid<Meta, Child>(map.linear_part() * c + map.translation(),
                                   transpose(U_inv) * P * U_inv);
   }
 
@@ -168,9 +171,8 @@ class Ellipsoid : public ConvexSet<Space, Ellipsoid<Space, Type>> {
     return conic::ConeBlock(map, soc);
   }
 
- private:
   /** @brief member variables in the ellipsoid */
-  Point c;  //< n-dim vector of type T representing center of ellipsoid
+  PointT c;  //< n-dim vector of type T representing center of ellipsoid
   Mat P;    //< square matrix representing directions for ellipsoid (valid \in
             // S^n_+)
 };

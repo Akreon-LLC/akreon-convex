@@ -46,6 +46,35 @@ TEST_CASE("Test affine subspace", "[convex_sets]") {
   }
 }
 
+TEST_CASE("Test ellipsoid set", "[convex_sets]") {
+  SECTION("Test ellipsoid set (implicitly closed)") {
+    using Space = Matrixd<1, 2>;
+    constexpr auto c = Vector<double, 2>{1.5, 2.0};
+    constexpr auto P = make_identity<double, 2>();
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto ellipsoid =
+        Ellipsoid<EllipsoidMeta<Space>, decltype(x)>(c, P, x);
+    REQUIRE(ellipsoid.is_well_formed());
+    STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
+    STATIC_REQUIRE(ellipsoid.contains(c));
+    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
+    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
+
+#if 0
+    constexpr auto cone_block = ellipsoid.canonicalize();
+    constexpr auto F = make_identity<double, 3>();
+    STATIC_REQUIRE(
+        cone_block.map ==
+        affine::AffineMap(F, Vectord<3>{-1.0 * c(0), -1.0 * c(1), 0.0}));
+
+    constexpr auto cones = cone_block.cones;
+    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+    STATIC_REQUIRE(sz == 1);
+    STATIC_REQUIRE(cone_block.validate());
+#endif
+  }
+}
+
 #if 0
 TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   SECTION("Test hyperplane") {
@@ -163,61 +192,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   }
 }
 
-TEST_CASE("Test ellipsoid set", "[convex_sets]") {
-  SECTION("Quick test to check convex sets types") {
-    STATIC_REQUIRE(
-        ConvexSetLike<Ellipsoid<Matrix<double, 1, 5>, EllipsoidType::OE>>);
-    STATIC_REQUIRE(
-        ConvexSetLike<Ellipsoid<Matrix<float, 1, 2>, EllipsoidType::CE>>);
-  }
 
-  SECTION("Test open ellipsoid set") {
-    constexpr auto c = Vector<double, 2>{1.5, 2.0};
-    constexpr auto P = make_identity<double, 2>();
-    constexpr auto ellipsoid =
-        Ellipsoid<Matrix<double, 1, 2>, EllipsoidType::OE>(c, P);
-    STATIC_REQUIRE(ellipsoid.is_well_formed());
-    STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
-    STATIC_REQUIRE(ellipsoid.contains(c));
-    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
-    STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{1.5, 1.0}));
-
-    constexpr auto ellipsoid_id =
-        ellipsoid.transform(AffineMap<decltype(P)>(P, Vectord<2>{}));
-    STATIC_REQUIRE(ellipsoid_id == ellipsoid);
-
-    constexpr mat_traits<Matrix<double, 2, 2>> R_mat;
-    constexpr auto R = R_mat(M_PI / 2, 0.0, 0.0, M_PI / 2);
-    constexpr auto ellipsoid_90 =
-        ellipsoid.transform(AffineMap<decltype(R)>(R, Vectord<2>{}));
-    STATIC_REQUIRE(ellipsoid_90 ==
-                   Ellipsoid<Matrix<double, 1, 2>, EllipsoidType::OE>(
-                       R * c, transpose(inverse(R)) * inverse(R)));
-  }
-
-  SECTION("Test closed ellipsoid set") {
-    constexpr auto c = Vector<double, 2>{1.5, 2.0};
-    constexpr auto P = make_identity<double, 2>();
-    constexpr auto ellipsoid =
-        Ellipsoid<Matrix<double, 1, 2>, EllipsoidType::CE>(c, P);
-    REQUIRE(ellipsoid.is_well_formed());
-    STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
-    STATIC_REQUIRE(ellipsoid.contains(c));
-    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
-    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
-
-    constexpr auto cone_block = ellipsoid.canonicalize();
-    constexpr auto F = make_identity<double, 3>();
-    STATIC_REQUIRE(
-        cone_block.map ==
-        affine::AffineMap(F, Vectord<3>{-1.0 * c(0), -1.0 * c(1), 0.0}));
-
-    constexpr auto cones = cone_block.cones;
-    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 1);
-    STATIC_REQUIRE(cone_block.validate());
-  }
-}
 
 TEST_CASE("Polyhedron", "[convex_sets]") {
   using Space = Matrix<double, 1, 3>;

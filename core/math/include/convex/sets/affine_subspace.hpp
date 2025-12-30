@@ -55,6 +55,7 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    *
    * @param A \in R^{m x n}
    * @param b \in R^m
+   * @param child
    */
   constexpr explicit AffineSubspace(const Mat& A_in, const AmbientVec& b_in,
                                     const Child& child_in)

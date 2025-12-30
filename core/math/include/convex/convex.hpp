@@ -32,7 +32,7 @@
 #include "functions/norm_fn.hpp"
 #include "functions/square_fn.hpp"
 #include "sets/affine_subspace.hpp"
-// #include "sets/ellipsoid.hpp"
+#include "sets/ellipsoid.hpp"
 // #include "sets/halfspace.hpp"
 // #include "sets/hyperplane.hpp"
 // #include "sets/lmi.hpp"
