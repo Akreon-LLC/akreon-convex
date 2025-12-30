@@ -178,12 +178,10 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
 
 TEST_CASE("Test LMI", "[convex_sets]") {
   SECTION("Test LMI", "[A(x) <= B]") {
-#if 0
     using Space = linalg::Matrixd<1, 3>;
     constexpr auto I = make_identity<double, 3>();
-    // TODO change to PSD var
     constexpr auto x = Variable<FreeVarMeta<Space>>();
-    constexpr linalg::Vector<decltype(I), 3> A{I, I, I};
+    constexpr linalg::Vector<linalg::Matrixd<3, 3>, 3> A{I, I, I};
     constexpr LMI<LMIMeta<Space>, decltype(x)> set(A, I, x);
     STATIC_REQUIRE(set.is_well_formed());
     STATIC_REQUIRE(!set.contains(Vectord<3>{1.0, 2.0, 3.0}));
@@ -191,6 +189,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));
     STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
 
+#if 0
     constexpr auto cone_block = set.canonicalize();
     constexpr mat_traits<Matrix<double, 7, 4>> F_mat;
     constexpr auto F = F_mat(-1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0,

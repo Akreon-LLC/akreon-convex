@@ -121,7 +121,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
    */
   template <linalg::MatrixLike Mat>
   constexpr auto transform_impl(const affine::AffineMap<Mat>& /* map */) const {
-    return *this;
+    throw std::runtime_error("Transform is not eligible on an LMI set");
   }
 
   /**
