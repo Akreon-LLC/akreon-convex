@@ -13,6 +13,7 @@
 #pragma once
 
 #include "convex_traits.hpp"
+#include "convex_util.hpp"
 
 namespace convex {
 
@@ -162,7 +163,10 @@ struct Atom {
 
   constexpr auto add(const T& beta) const { return self().add_impl(beta); }
 
-  constexpr auto canonicalize() const { return self().canonicalize_impl(); }
+  template <linalg::RnSpace DecVarDom>
+  constexpr auto canonicalize(const ConeMapBuilder<DecVarDom>& builder) const {
+    return self().canonicalize_impl(builder);
+  }
 
   constexpr const Derived& self() const {
     return static_cast<const Derived&>(*this);

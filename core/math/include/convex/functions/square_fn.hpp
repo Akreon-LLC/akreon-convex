@@ -160,6 +160,7 @@ struct Square : ConvexFn<Meta, Square<Meta, Child>, Child> {
    *
    * @return cone block
    */
+#if 0
   template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
             affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
   constexpr auto canonicalize_impl(
@@ -195,6 +196,7 @@ struct Square : ConvexFn<Meta, Square<Meta, Child>, Child> {
         conic::ConeBlock(
             map, std::tuple_cat(cone_block.cones, std::make_tuple(rsoc))));
   }
+#endif
 };
 
 }  // namespace convex

@@ -13,9 +13,23 @@
 #pragma once
 
 #include "affine/affine_map.hpp"
+#include "convex/cone_traits.hpp"
 #include "convex/convex_traits.hpp"
 
 namespace convex {
+
+/* @brief create empty cone block
+ *
+ * @return cone block
+ */
+template <linalg::FieldLike T>
+constexpr auto create_empty_cblk() {
+  constexpr auto empty = std::make_tuple();
+  constexpr conic::ConeBlock cb(
+      affine::AffineMap(linalg::Matrix<T, 0, 0>{}, linalg::Vector<T, 0>{}),
+      empty);
+  return cb;
+}
 
 /// @brief cone map builder functor
 template <linalg::RnSpace DecVarDom>

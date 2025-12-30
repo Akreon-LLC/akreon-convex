@@ -195,6 +195,7 @@ struct Norm : ConvexFn<Meta, Norm<Meta, Child, NormFunc>, Child> {
    *
    * @return cone block
    */
+#if 0
   template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
             affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
   constexpr auto canonicalize_impl(
@@ -293,6 +294,7 @@ struct Norm : ConvexFn<Meta, Norm<Meta, Child, NormFunc>, Child> {
                                   std::make_tuple(rplus1, rplus1, rplus2))));
     }
   }
+#endif
 };
 
 }  // namespace convex

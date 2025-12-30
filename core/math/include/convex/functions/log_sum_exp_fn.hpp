@@ -170,6 +170,7 @@ struct LogSumExp : ConvexFn<Meta, LogSumExp<Meta, Child>, Child> {
    *
    * @return cone block
    */
+#if 0
   template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
             affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
   constexpr auto canonicalize_impl(
@@ -211,6 +212,7 @@ struct LogSumExp : ConvexFn<Meta, LogSumExp<Meta, Child>, Child> {
                          std::tuple_cat(cone_block.cones,
                                         std::make_tuple(exp_cone, rplus))));
   }
+#endif
 };
 
 }  // namespace convex

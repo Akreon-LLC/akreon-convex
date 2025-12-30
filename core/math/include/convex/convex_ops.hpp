@@ -29,6 +29,23 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   constexpr explicit Sum(const Cs... cs)
       : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
 
+  template <linalg::RnSpace DecVarDom>
+  constexpr auto canonicalize_impl(
+      const ConeMapBuilder<DecVarDom>& builder) const {
+    auto cones = std::make_tuple();
+    auto canonicalize_child = [&](const auto& child) {
+      const auto canon = child.canonicalize(builder);
+      /// (dakre) TODO update linear selector
+      const auto child_sel = std::get<0>(canon);
+
+      /// (dakre) TODO concatenate cones to tuple
+      const auto child_cb = std::get<1>(canon);
+      cones = std::tuple_cat(cones, child_cb.cones);
+    };
+    std::apply([&](const auto&... child) { (canonicalize_child(child), ...); },
+               this->children);
+  }
+
   /// TODO (dakre) this is more of a debug util however i need to ensure
   /// dom-codom and sum is correct for canonicalization... if theres a nice way
   /// to present this for debug then cool if not then ditch it

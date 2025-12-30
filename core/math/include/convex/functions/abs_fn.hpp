@@ -180,28 +180,30 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
-            affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
-  constexpr auto canonicalize_impl(
-      const ConeMapBuilder<DecVarDom>& cmap_builder, const CoordMap& coord_map,
-      const conic::ConeBlock<ConeMap, Cs...>& cone_block) const {
-    using AffineMatT = affine::affine_mat_t<CoordMap>;
+  template <linalg::RnSpace DecVarDom>
+  constexpr auto canonicalize_fn(
+      const ConeMapBuilder<DecVarDom>& builder) const {
+    const auto child_canon = std::get<0>(this->children).canonicalize();
+    const auto child_sel = std::get<0>(child_canon);
+    const auto child_cb = std::get<1>(child_canon);
+
+    using AffineMatT = affine::affine_mat_t<decltype(child_sel)>;
     static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
     static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == 1,
                   "input affine map from cone block has invalid codom dim for "
                   "scalar fn domain (i.e., != 1");
     linalg::Matrix<T, 5, Dom + 2> F;
-    F = linalg::set_block<0, 1, 0, Dom>(F, coord_map.linear_part());
-    F = linalg::set_block<1, 2, 0, Dom>(F, T(-1) * coord_map.linear_part());
+    F = linalg::set_block<0, 1, 0, Dom>(F, child_sel.linear_part());
+    F = linalg::set_block<1, 2, 0, Dom>(F, T(-1) * child_sel.linear_part());
     F[0][1] = T(1);
     F[1][1] = T(1);
     F[2][1] = T(-1);
     F[3][1] = T(1);
 
     linalg::Vector<T, 5> g;
-    g[0] = coord_map.translation()(0);
-    g[1] = T(-1) * coord_map.translation()(0);
+    g[0] = child_sel.translation()(0);
+    g[1] = T(-1) * child_sel.translation()(0);
 
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
@@ -213,7 +215,7 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-    const auto map_res = cmap_builder(coord_map_up, cone_block.map, -1);
+    const auto map_res = builder(coord_map_up, child_cb.map, -1);
     const auto emitted_map = std::get<0>(map_res);
     const auto map = std::get<1>(map_res);
 
@@ -221,9 +223,9 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
     return std::tuple(
         emitted_map,
         conic::ConeBlock(
-            map, std::tuple_cat(
-                     cone_block.cones,
-                     std::make_tuple(rplus, rplus, rplus, rplus, rplus))));
+            map,
+            std::tuple_cat(child_cb.cones, std::make_tuple(rplus, rplus, rplus,
+                                                           rplus, rplus))));
   }
 };
 

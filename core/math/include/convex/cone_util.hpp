@@ -98,40 +98,4 @@ struct ConeBlock {
   std::tuple<Cs...> cones;  ///< tuple of cones aligned with map
 };
 
-/**
- * @brief Canonical Form
- *
- * Houses a tuple of cones along with the linear weighting vector for the
- * objective
- *
- * min. c^T x
- * s.t. F z + g \in K = {K_0 x K_1 x ... K_{m}}
- */
-template <linalg::RnSpace Domain, ConeBlockLike... Cblks>
-struct CanonicalForm {
-  /// @brief alias to extract type traits from domain
-  using T = linalg::space_type_t<Domain>;
-  using Point = linalg::space_point_t<Domain>;
-
-  /// @brief helper to get dim of point & cone blocks
-  static constexpr size_t N = linalg::vec_size_v<Point>;
-  static constexpr size_t M = sizeof...(Cblks);
-
-  /**
-   * @brief CTOR for CanonicalForm
-   *
-   * @param param pack of cone blocks
-   */
-  constexpr explicit CanonicalForm(const Point& c_in, Cblks... cblks)
-      : cone_blocks(std::forward<Cblks>(cblks)...) {
-    for (size_t i = 0; i < N; ++i) c[i] = c_in(i);
-    c[N] = T(1);
-  }
-
-  /** @brief member vars for canonical form */
-  linalg::Vector<T, N + 1> c;  //< linear weight on objective c^T [x;t] where
-                               // t is the last lift var
-  std::tuple<Cblks...> cone_blocks;  //< K = k_0 x k_1 x ... k_{m} cones
-};
-
 }  // namespace conic

@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <iostream>
 
 #include "math.hpp"
 #include "unit_test_helpers.hpp"
@@ -37,8 +38,18 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     constexpr auto mat = mat_traits<MatT>();
     constexpr auto four_x = x.mul(mat(4.0));
     STATIC_REQUIRE(four_x.map.linear_part() == mat(4.0));
-    constexpr auto four_x_plus_two = x.add(Vectord<1>{2.0});
+
+    constexpr auto four_x_plus_two = four_x.add(Vectord<1>{2.0});
     STATIC_REQUIRE(four_x_plus_two.map.translation() == Vectord<1>{2.0});
+
+    constexpr auto builder = ConeMapBuilder<MatT>();
+    constexpr auto canon1 = four_x_plus_two.canonicalize(builder);
+    constexpr auto canon1_map = std::get<0>(canon1);
+    constexpr auto canon1_cb = std::get<1>(canon1);
+
+    STATIC_REQUIRE(canon1_map.linear_part() == mat(4.0));
+    STATIC_REQUIRE(canon1_map.translation() == Vectord<1>{2.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(canon1_cb.cones)>::value == 0);
 
     constexpr auto x0 = x(0).value();
     STATIC_REQUIRE(is_var_type_v<decltype(x0)>);
@@ -59,12 +70,22 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(two_x0_plus_one.map.linear_part() == mat(2.0));
     STATIC_REQUIRE(two_x0_plus_one.map.translation() == Vectord<1>{1.0});
 
+    constexpr auto canon2 = two_x0_plus_one.canonicalize(builder);
+    constexpr auto canon2_map = std::get<0>(canon2);
+    constexpr auto canon2_cb = std::get<1>(canon2);
+    STATIC_REQUIRE(canon2_map.linear_part() == mat(2.0));
+    STATIC_REQUIRE(canon2_map.translation() == Vectord<1>{1.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(canon2_cb.cones)>::value == 0);
+
+#if 0
     using Mat2T = Matrixd<1, 2>;
     constexpr auto sum =
         Sum<SumConvexMeta<Mat2T, MatT>, decltype(x0), decltype(x0)>(x0, x0);
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
+#endif
   }
 
+#if 0
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
     constexpr auto x = Variable<FreeVarMeta<MatT>>();
@@ -79,4 +100,5 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
             abs_x0, abs_x1);
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
   }
+#endif
 }

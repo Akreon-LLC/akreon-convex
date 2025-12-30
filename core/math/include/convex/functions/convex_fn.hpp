@@ -140,17 +140,13 @@ struct ConvexFn : Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
    * f(x) -> epi / hypo -> homogenized cone
    *
    * @param cone map builder
-   * @param coord map
-   * @param cone block
    *
-   * @return updated cone block
+   * @return (emitted map, cone block)
    */
-  template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
-            affine::AffineMapLike ConeMap, conic::ConeLike... Cones>
-  constexpr auto canonicalize(
-      const ConeMapBuilder<DecVarDom>& cmap_builder, const CoordMap& coord_map,
-      const conic::ConeBlock<ConeMap, Cones...>& cone_block) const {
-    return self().canonicalize_impl(cmap_builder, coord_map, cone_block);
+  template <linalg::RnSpace DecVarDom>
+  constexpr auto canonicalize_impl(
+      const ConeMapBuilder<DecVarDom>& cmap_builder) const {
+    return self().canonicalize_fn(cmap_builder);
   }
 
   /**

@@ -142,6 +142,7 @@ struct Max : ConvexFn<Meta, Max<Meta, Child>, Child> {
    * [ -A -1 ] [ x; t ] + [ -b ; 0 ] -> (-(A x + b), -t)
    * @return cone block
    */
+#if 0
   template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
             affine::AffineMapLike ConeMap, conic::ConeLike... Cs>
   constexpr auto canonicalize_impl(
@@ -177,6 +178,7 @@ struct Max : ConvexFn<Meta, Max<Meta, Child>, Child> {
         emitted_map,
         conic::ConeBlock(map, std::tuple_cat(cone_block.cones, rpluses)));
   }
+#endif
 };
 
 }  // namespace convex
