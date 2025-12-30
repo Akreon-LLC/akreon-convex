@@ -12,13 +12,10 @@
 
 #pragma once
 
-#include <optional>
-
 #include "affine/affine_map.hpp"
 #include "algebra/algebra_util.hpp"
 #include "convex/cone_traits.hpp"
-#include "convex/convex_set_traits.hpp"
-#include "linalg/symmetric_matrix.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
 
@@ -29,20 +26,21 @@ namespace convex {
  *
  * Templated by a vector space and derived class
  */
-template <linalg::RnSpace Space, typename Derived>
-class ConvexSet {
- public:
-  /// @brief alias to extract underlying scalar type of convex set
-  using T = linalg::space_type_t<Space>;
+template <typename Meta, typename Derived, typename Child>
+struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
+  /// @brief alias to extract type traits from Domain convex set
+  using BaseT = Atom<Meta, ConvexSet<Meta, Derived, Child>, Child>;
+  using typename BaseT::PointT;
+  using typename BaseT::T;
+  using typename BaseT::TransT;
 
-  /// @brief alias for point
-  using Point = linalg::space_point_t<Space>;
-
-  /// @brief helper to extract dimension of convex set
-  static constexpr size_t Dim = linalg::space_dim_v<Space>;
-
-  /// @brief helper to get n elements in point
-  static constexpr size_t N = linalg::vec_size_v<Point>;
+  /**
+   * @brief CTOR
+   *
+   * @param children
+   */
+  constexpr explicit ConvexSet(const Child& child_in)
+      : BaseT(std::make_tuple(child_in)) {}
 
   /**
    * @brief is_well_formed
@@ -51,7 +49,10 @@ class ConvexSet {
    *
    * @return T/F
    */
-  constexpr auto is_well_formed() const { return self().is_well_formed_impl(); }
+  constexpr void validate_domain_impl() const {
+    if (!self().is_well_formed_impl())
+      throw std::domain_error("Convex set is not well formed");
+  }
 
   /**
    * @brief contains to check if the point lies in the convex set
@@ -61,7 +62,7 @@ class ConvexSet {
    *
    * @return T/F
    */
-  constexpr bool contains(const Point& x, T tol = 1e-8) const {
+  constexpr bool contains(const PointT& x, T tol = 1e-8) const {
     return self().contains_impl(x, tol);
   }
 
@@ -87,7 +88,8 @@ class ConvexSet {
    *
    * @return T/F
    */
-  constexpr bool operator==(const ConvexSet<Space, Derived>& other) const {
+  constexpr bool operator==(
+      const ConvexSet<Meta, Derived, Child>& other) const {
     return self().is_equal_impl(other);
   }
 
@@ -98,14 +100,15 @@ class ConvexSet {
    *
    * @return T/F
    */
-  constexpr bool operator!=(const ConvexSet<Space, Derived>& other) const {
+  constexpr bool operator!=(
+      const ConvexSet<Meta, Derived, Child>& other) const {
     return !self().is_equal_impl(other);
   }
 
   /**
    * @brief canonicalize
    *
-   * P^{-1}(C) -> K 
+   * P^{-1}(C) -> K
    *
    * @return cone block
    */
@@ -116,9 +119,7 @@ class ConvexSet {
    *
    * @return const reference to the derived object
    */
-  constexpr const Derived& self() const {
-    return static_cast<const Derived&>(*this);
-  }
+  constexpr auto self() const { return static_cast<const Derived&>(*this); }
 };
 
 }  // namespace convex

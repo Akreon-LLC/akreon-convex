@@ -16,29 +16,36 @@
 
 namespace convex {
 
+/// @brief alias for domain on affine subspace
+template <linalg::RnSpace Space>
+using AffineDom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for codomain on affine subspace
+template <linalg::RnSpace Space>
+using AffineCodom = ConvexDomain<Space, SignType::FREE>;
+
+/// @brief alias for meta on affine subspace
+template <linalg::RnSpace Dom, linalg::RnSpace Codom>
+using AffineMeta =
+    ConvexAtomMeta<AffineDom<Dom>, AffineCodom<Codom>, CurvatureType::AFFINE>;
+
 /**
  * @brief Affine Set in the perspective of an affine equality set
  *
  * C = { x | A x = b }
  * C is an affine subspace of R^n where A \in R^{m x n} and b \in R^m
  */
-template <linalg::RnSpace Space, linalg::MatrixLike Mat>
-  requires(linalg::space_dim_v<Space> ==
-               linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           linalg::space_dim_v<Space> == linalg::mat_cols_v<Mat>)
-class AffineSubspace : public ConvexSet<Space, AffineSubspace<Space, Mat>> {
- public:
-  /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Space, AffineSubspace<Space, Mat>>;
-  using typename ConvexBase::Point;
+template <typename Meta, typename Child>
+struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
+  /// @brief bring into scope convex fn alias / helpers
+  using ConvexBase = ConvexSet<Meta, AffineSubspace<Meta, Child>, Child>;
+  using ConvexBase::M;
+  using ConvexBase::N;
+  using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
-  /// @brief bring into scope the const data members
-  using ConvexBase::Dim;
-  using ConvexBase::N;
-
-  /// @brief helper to get number of rows in basis
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
+  /// @brief linear map
+  using Mat = linalg::Matrix<T, M, N>;
 
   /// @brief alias for ambient vector
   using AmbientVec = linalg::Vector<T, M>;
@@ -49,8 +56,9 @@ class AffineSubspace : public ConvexSet<Space, AffineSubspace<Space, Mat>> {
    * @param A \in R^{m x n}
    * @param b \in R^m
    */
-  constexpr explicit AffineSubspace(const Mat& A_in, const AmbientVec& b_in)
-      : A(A_in), b(b_in) {}
+  constexpr explicit AffineSubspace(const Mat& A_in, const AmbientVec& b_in,
+                                    const Child& child_in)
+      : ConvexBase(child_in), A(A_in), b(b_in) {}
 
   /**
    * @brief contains function
@@ -60,7 +68,7 @@ class AffineSubspace : public ConvexSet<Space, AffineSubspace<Space, Mat>> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const Point& x, const T& tol) const {
+  constexpr bool contains_impl(const PointT& x, const T& tol) const {
     return linalg::L2<AmbientVec>()(A * x - b) < tol;
   }
 
@@ -69,7 +77,7 @@ class AffineSubspace : public ConvexSet<Space, AffineSubspace<Space, Mat>> {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed_impl() const {
+  constexpr bool is_well_formed() const {
     const auto rank = linalg::QR(A).get_rank();
     return rank == N;
   }
@@ -104,7 +112,8 @@ class AffineSubspace : public ConvexSet<Space, AffineSubspace<Space, Mat>> {
   constexpr auto transform_impl(const affine::AffineMap<TMat>& map) const {
     const auto A_tilde = A * linalg::inverse(map.linear_part());
     const auto b_tilde = b + A_tilde * map.translation();
-    return AffineSubspace<Space, Mat>(A_tilde, b_tilde);
+    return AffineSubspace<Meta, Child>(std::get<0>(this->children), A_tilde,
+                                       b_tilde);
   }
 
   /**
@@ -131,8 +140,7 @@ class AffineSubspace : public ConvexSet<Space, AffineSubspace<Space, Mat>> {
     return conic::ConeBlock(map, zoc, rplus);
   }
 
- private:
-  /** @brief private data members for affine subspace */
+  /** @brief data members for affine subspace */
   Mat A;         //< basis that spans the space of R^n
   AmbientVec b;  //< offset vector which translates the basis to a new origin
 };

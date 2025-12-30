@@ -18,10 +18,6 @@
 
 namespace convex {
 
-/// @brief forward declaration of convex set
-template <linalg::RnSpace Space, typename Derived>
-class ConvexSet;
-
 /// @brief simple enum to describe type of halfspace
 enum struct HalfspaceType { CLH, OLH, CUH, OUH };
 
@@ -115,13 +111,6 @@ template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> ==
            linalg::vec_size_v<linalg::space_point_t<Space>>)
 class PowerCone;
-
-/// @brief affine subspace type
-template <linalg::RnSpace Space, linalg::MatrixLike Mat>
-  requires(linalg::space_dim_v<Space> ==
-               linalg::vec_size_v<linalg::space_point_t<Space>> &&
-           linalg::space_dim_v<Space> == linalg::mat_cols_v<Mat>)
-class AffineSubspace;
 
 /// @brief forward declaration of nonneg orthant
 template <linalg::RnSpace Space>

@@ -24,6 +24,7 @@ struct Atom {
   using PointT = dom_point_t<Domain>;
 
   static constexpr size_t N = dom_size_v<Domain>;
+  static constexpr size_t M = dom_size_v<Codomain>;
   static constexpr CurvatureType Curvature = meta_curv_v<Meta>;
   static constexpr SignType DomSign = dom_sign_v<Domain>;
   static constexpr SignType CodomSign = dom_sign_v<Codomain>;

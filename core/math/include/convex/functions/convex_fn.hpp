@@ -23,7 +23,7 @@ namespace convex {
  * Similar space constraints on R^n with convex set domain
  */
 template <typename Meta, typename Derived, typename Child>
-struct ConvexFn : public Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
+struct ConvexFn : Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
   /// @brief alias to extract type traits from Domain convex set
   using BaseT = Atom<Meta, ConvexFn<Meta, Derived, Child>, Child>;
   using typename BaseT::LinearMatT;
@@ -34,9 +34,6 @@ struct ConvexFn : public Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
   /**
    * @brief CTOR
    *
-   * @param domain
-   * @param curvature
-   * @param range
    * @param children
    */
   constexpr explicit ConvexFn(const Child& child_in)
@@ -45,9 +42,6 @@ struct ConvexFn : public Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
   /**
    * @brief CTOR
    *
-   * @param domain
-   * @param curvature
-   * @param range
    * @param children
    * @param affine map
    */

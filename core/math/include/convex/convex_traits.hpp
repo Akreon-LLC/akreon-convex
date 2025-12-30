@@ -16,7 +16,7 @@
 
 namespace convex {
 
-enum struct AtomType : uint8_t { VAR = 0, OP, FN };
+enum struct AtomType : uint8_t { VAR = 0, OP, FN, SET };
 
 enum struct SignType : uint8_t {
   FREE = 0,
@@ -175,6 +175,13 @@ template <typename Meta>
 struct KLDivergenceFn;
 #endif
 
+/// @brief forward declaration of convex set
+template <typename Meta, typename Derived, typename Child>
+struct ConvexSet;
+
+template <typename Meta, typename Child>
+struct AffineSubspace;
+
 template <typename Atom>
 struct atom_traits {};
 
@@ -255,6 +262,18 @@ struct atom_traits<Norm<Meta, Child, NormFunc>> : std::true_type {
   static constexpr AtomType Type = AtomType::FN;
 };
 
+template <typename Meta, typename Derived, typename Child>
+struct atom_traits<ConvexSet<Meta, Derived, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::SET;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<AffineSubspace<Meta, Child>> : std::true_type {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::SET;
+};
+
 template <linalg::RnSpace Dom>
 using SumDom = ConvexDomain<Dom, SignType::FREE>;
 
@@ -302,4 +321,7 @@ template <typename Atom>
 inline constexpr bool is_op_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::OP;
 
+template <typename Atom>
+inline constexpr bool is_set_type_v =
+    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::SET;
 }  // namespace convex
