@@ -219,11 +219,12 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     /// (dakre) TODO- should this be an intersection betwen poly & affine
     /// subspace
     constexpr auto I = make_identity<double, 3>();
-    constexpr auto poly =
+    constexpr auto res =
         simplex.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{}));
-    STATIC_REQUIRE(poly.contains(Vectord<3>{0.8, 0.1, 0.1}));
-    STATIC_REQUIRE(!poly.contains(Vectord<3>{-0.8, 0.1, 0.1}));
-    // STATIC_REQUIRE(!poly.contains(Vectord<3>{0.8, 0.1, 0.0}));
+    STATIC_REQUIRE(is_cap_type_v<decltype(res)>);
+    STATIC_REQUIRE(res.contains(Vectord<3>{0.8, 0.1, 0.1}));
+    STATIC_REQUIRE(!res.contains(Vectord<3>{-0.8, 0.1, 0.1}));
+    STATIC_REQUIRE(!res.contains(Vectord<3>{0.8, 0.1, 0.0}));
 
 #if 0
     constexpr auto cone_block = simplex.canonicalize();

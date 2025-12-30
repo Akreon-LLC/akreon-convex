@@ -16,7 +16,7 @@
 
 namespace convex {
 
-enum struct AtomType : uint8_t { VAR = 0, OP, FN, SET };
+enum struct AtomType : uint8_t { VAR = 0, FN, SET, ADD, CAP };
 
 enum struct SignType : uint8_t {
   FREE = 0,
@@ -217,6 +217,9 @@ struct NormBall;
 template <typename Meta, typename Child, HalfspaceType HType>
 struct Polyhedron;
 
+template <typename Meta, typename... Cs>
+struct Intersection;
+
 template <typename Atom>
 struct atom_traits {};
 
@@ -359,10 +362,6 @@ template <linalg::RnSpace Codom>
 using SumCodom = ConvexDomain<Codom, SignType::FREE>;
 
 template <linalg::RnSpace Dom, linalg::RnSpace Codom>
-using SumAffineMeta =
-    ConvexAtomMeta<SumDom<Dom>, SumCodom<Codom>, CurvatureType::AFFINE>;
-
-template <linalg::RnSpace Dom, linalg::RnSpace Codom>
 using SumConvexMeta =
     ConvexAtomMeta<SumDom<Dom>, SumCodom<Codom>, CurvatureType::CONVEX>;
 
@@ -373,13 +372,30 @@ using SumConcaveMeta =
 template <linalg::RnSpace Dom, linalg::RnSpace Codom, typename... Cs>
 struct atom_traits<Sum<SumConvexMeta<Dom, Codom>, Cs...>> {
   using ConvexMeta = SumConvexMeta<Dom, Codom>;
-  static constexpr AtomType Type = AtomType::OP;
+  static constexpr AtomType Type = AtomType::ADD;
 };
 
 template <linalg::RnSpace Dom, linalg::RnSpace Codom, typename... Cs>
 struct atom_traits<Sum<SumConcaveMeta<Dom, Codom>, Cs...>> {
   using ConvexMeta = SumConcaveMeta<Dom, Codom>;
-  static constexpr AtomType Type = AtomType::OP;
+  static constexpr AtomType Type = AtomType::ADD;
+};
+
+template <linalg::RnSpace Space>
+using IntersectionDom = ConvexDomain<Space, SignType::FREE>;
+
+template <linalg::RnSpace Space>
+using IntersectionCodom = IntersectionDom<Space>;
+
+template <linalg::RnSpace Space>
+using IntersectionMeta =
+    ConvexAtomMeta<IntersectionDom<Space>, IntersectionCodom<Space>,
+                   CurvatureType::CONVEX>;
+
+template <linalg::RnSpace Space, typename... Cs>
+struct atom_traits<Intersection<IntersectionMeta<Space>, Cs...>> {
+  using ConvexMeta = IntersectionMeta<Space>;
+  static constexpr AtomType Type = AtomType::CAP;
 };
 
 template <typename Atom>
@@ -395,10 +411,15 @@ inline constexpr bool is_var_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::VAR;
 
 template <typename Atom>
-inline constexpr bool is_op_type_v =
-    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::OP;
-
-template <typename Atom>
 inline constexpr bool is_set_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::SET;
+
+template <typename Atom>
+inline constexpr bool is_add_type_v =
+    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::ADD;
+
+template <typename Atom>
+inline constexpr bool is_cap_type_v =
+    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::CAP;
+
 }  // namespace convex

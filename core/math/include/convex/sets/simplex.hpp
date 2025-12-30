@@ -115,12 +115,21 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
     using Dom = linalg::Matrix<T, 1, N>;
     using Codom = linalg::Matrix<T, 1, N>;
 
-    // (dakre) TODO return intersection between poly and affine subspace
-    //     linalg::vec_traits<linalg::Vector<T, N>> vec;
-    //     const auto ones = vec.fill(T(1));
-    //     const auto one_T_U_inv = as_row_vector(ones) * U_inv;
-    return Polyhedron<PolyhedronMeta<Dom, Codom>, Child, HalfspaceType::LH>(
-        A, b, std::get<0>(this->children));
+    const auto poly =
+        Polyhedron<PolyhedronMeta<Dom, Codom>, Child, HalfspaceType::LH>(
+            A, b, std::get<0>(this->children));
+
+    linalg::vec_traits<linalg::Vector<T, N>> vec;
+    const auto ones = vec.fill(T(1));
+    const auto one_T_U_inv = as_row_vector(ones) * U_inv;
+    const auto C = as_vector(one_T_U_inv);
+    const auto d = T(1) + (one_T_U_inv * t)(0);
+
+    const auto hyperplane = Hyperplane<HyperplaneMeta<Dom>, Child>(
+        C, d, std::get<0>(this->children));
+
+    return Intersection<IntersectionMeta<Dom>, decltype(poly),
+                        decltype(hyperplane)>(poly, hyperplane);
   }
 
   /**

@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include "convex_traits.hpp"
 
 namespace convex {
@@ -20,10 +22,50 @@ template <typename Meta, typename... Cs>
 struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   using BaseT = Atom<Meta, Sum<Meta, Cs...>, Cs...>;
   using typename BaseT::Domain;
+  using typename BaseT::PointT;
+  using typename BaseT::T;
   static_assert(dom_size_v<Domain> == sizeof...(Cs));
 
   constexpr explicit Sum(const Cs... cs)
       : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
+
+  /// TODO (dakre) this is more of a debug util however i need to ensure
+  /// dom-codom and sum is correct for canonicalization... if theres a nice way
+  /// to present this for debug then cool if not then ditch it
+#if 0
+  constexpr std::optional<T> eval(const PointT& x) const {
+    T res(0);
+    bool invalid(false);
+    auto eval_child = [&](const auto& child) {
+      const auto rv = child.eval(x);
+      if (!rv.has_value())
+        invalid = true;
+      else
+        res += rv.value();
+    };
+    std::apply([&](const auto&... child) { (eval_child(child), ...); },
+               this->children);
+    return invalid ? std::nullopt : res;
+  }
+#endif
+};
+
+template <typename Meta, typename... Cs>
+struct Intersection : Atom<Meta, Intersection<Meta, Cs...>, Cs...> {
+  using BaseT = Atom<Meta, Intersection<Meta, Cs...>, Cs...>;
+  using typename BaseT::Domain;
+  using typename BaseT::PointT;
+
+  constexpr explicit Intersection(const Cs... cs)
+      : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
+
+  constexpr bool contains(const PointT& x) const {
+    bool rv = true;
+    auto eval_child = [&](const auto& child) { rv &= child.contains(x); };
+    std::apply([&](const auto&... child) { (eval_child(child), ...); },
+               this->children);
+    return rv;
+  }
 };
 
 }  // namespace convex

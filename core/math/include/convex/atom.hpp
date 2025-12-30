@@ -57,6 +57,11 @@ struct Atom {
         self().validate_domain_impl(child);
       }
 
+      if constexpr (is_set_type_v<decltype(self())>) {
+        if (!is_var_type_v<decltype(child)>)
+          throw std::domain_error("Set expects child to be a variable type");
+      }
+
       const SignType& dom_sign =
           dom_sign_v<meta_dom_t<atom_meta_t<decltype(self())>>>;
       if (dom_sign != SignType::FREE) {
@@ -115,6 +120,17 @@ struct Atom {
         }
       }
 
+      if constexpr (is_cap_type_v<decltype(self())>) {
+        if (!is_set_type_v<decltype(child)>)
+          throw std::domain_error("Intersection operating on non-convex set");
+      }
+
+      if constexpr (is_add_type_v<decltype(self())>) {
+        /// (dakre) TODO add in minkowski sum
+        if (is_set_type_v<decltype(child)>)
+          throw std::domain_error("Minkowski sum is currently not supported");
+      }
+
       const CurvatureType& child_curv =
           meta_curv_v<atom_meta_t<decltype(child)>>;
       num_convex += child_curv != CurvatureType::CONCAVE;
@@ -123,7 +139,7 @@ struct Atom {
     std::apply([&](const auto&... child) { (validate_child(child), ...); },
                children);
 
-    if constexpr (is_op_type_v<decltype(self())>) {
+    if constexpr (is_add_type_v<decltype(self())>) {
       const CurvatureType& parent_curv = meta_curv_v<Meta>;
       if (parent_curv == CurvatureType::CONVEX) {
         if (num_convex != N)
