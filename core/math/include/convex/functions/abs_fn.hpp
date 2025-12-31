@@ -52,7 +52,6 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
   /// @brief bring into scope convex fn alias / helpers
   using ConvexBase = ConvexFn<Meta, Abs<Meta, Child>, Child>;
   using ConvexBase::N;
-  using typename ConvexBase::LinearMatT;
   using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
@@ -62,16 +61,6 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Abs(const Child& child_in) : ConvexBase(child_in) {}
-
-  /**
-   * @brief CTOR
-   *
-   * @param child
-   * @param map
-   */
-  constexpr explicit Abs(const Child& child_in,
-                         const affine::AffineMap<LinearMatT>& map_in)
-      : ConvexBase(child_in, map_in) {}
 
   /**
    * @brief mono
@@ -125,10 +114,9 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     using Space = dom_space_t<meta_dom_t<Meta>>;
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      return Abs<AbsMeta<Space>, Child>(std::get<0>(this->children), this->map);
+      return Abs<AbsMeta<Space>, Child>(std::get<0>(this->children));
     } else {
-      return Abs<AbsConcaveMeta<Space>, Child>(std::get<0>(this->children),
-                                               this->map);
+      return Abs<AbsConcaveMeta<Space>, Child>(std::get<0>(this->children));
     }
   }
 
@@ -180,30 +168,32 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  template <linalg::RnSpace DecVarDom>
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike Map,
+            conic::ConeBlockLike CB>
   constexpr auto canonicalize_fn(
-      const ConeMapBuilder<DecVarDom>& builder) const {
-    const auto child_canon = std::get<0>(this->children).canonicalize();
-    const auto child_sel = std::get<0>(child_canon);
-    const auto child_cb = std::get<1>(child_canon);
+      const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
+    const auto child_builder =
+        std::get<0>(this->children).canonicalize(builder);
+    const auto child_coord = child_builder.coord_map;
+    const auto child_cb = child_builder.cb;
 
-    using AffineMatT = affine::affine_mat_t<decltype(child_sel)>;
+    using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
     static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
     static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == 1,
                   "input affine map from cone block has invalid codom dim for "
                   "scalar fn domain (i.e., != 1");
     linalg::Matrix<T, 5, Dom + 2> F;
-    F = linalg::set_block<0, 1, 0, Dom>(F, child_sel.linear_part());
-    F = linalg::set_block<1, 2, 0, Dom>(F, T(-1) * child_sel.linear_part());
+    F = linalg::set_block<0, 1, 0, Dom>(F, child_coord.linear_part());
+    F = linalg::set_block<1, 2, 0, Dom>(F, T(-1) * child_coord.linear_part());
     F[0][1] = T(1);
     F[1][1] = T(1);
     F[2][1] = T(-1);
     F[3][1] = T(1);
 
     linalg::Vector<T, 5> g;
-    g[0] = child_sel.translation()(0);
-    g[1] = T(-1) * child_sel.translation()(0);
+    g[0] = child_coord.translation()(0);
+    g[1] = T(-1) * child_coord.translation()(0);
 
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
@@ -215,17 +205,12 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-    const auto map_res = builder(coord_map_up, child_cb.map, -1);
-    const auto emitted_map = std::get<0>(map_res);
-    const auto map = std::get<1>(map_res);
-
+    const auto new_builder =
+        ConeBlockBuilder<DecVarDom, decltype(coord_map_up), decltype(child_cb)>(
+            coord_map_up, child_cb);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    return std::tuple(
-        emitted_map,
-        conic::ConeBlock(
-            map,
-            std::tuple_cat(child_cb.cones, std::make_tuple(rplus, rplus, rplus,
-                                                           rplus, rplus))));
+    const auto cones = std::make_tuple(rplus, rplus, rplus, rplus, rplus);
+    return new_builder(-1, cones);
   }
 };
 

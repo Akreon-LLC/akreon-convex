@@ -26,10 +26,8 @@ template <typename Meta, typename Derived, typename Child>
 struct ConvexFn : Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
   /// @brief alias to extract type traits from Domain convex set
   using BaseT = Atom<Meta, ConvexFn<Meta, Derived, Child>, Child>;
-  using typename BaseT::LinearMatT;
   using typename BaseT::PointT;
   using typename BaseT::T;
-  using typename BaseT::TransT;
 
   /**
    * @brief CTOR
@@ -39,15 +37,8 @@ struct ConvexFn : Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
   constexpr explicit ConvexFn(const Child& child_in)
       : BaseT(std::make_tuple(child_in)) {}
 
-  /**
-   * @brief CTOR
-   *
-   * @param children
-   * @param affine map
-   */
-  constexpr explicit ConvexFn(const Child& child_in,
-                              const affine::AffineMap<LinearMatT>& map_in)
-      : BaseT(std::make_tuple(child_in), map_in) {}
+  /// (dakre) TODO - add affine map to constructor with member var (similar to
+  /// variable)
 
   /**
    * @brief validate domain
@@ -143,10 +134,11 @@ struct ConvexFn : Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
    *
    * @return (emitted map, cone block)
    */
-  template <linalg::RnSpace DecVarDom>
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike Map,
+            conic::ConeBlockLike CB>
   constexpr auto canonicalize_impl(
-      const ConeMapBuilder<DecVarDom>& cmap_builder) const {
-    return self().canonicalize_fn(cmap_builder);
+      const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
+    return self().canonicalize_fn(builder);
   }
 
   /**

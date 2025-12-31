@@ -42,10 +42,10 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     constexpr auto four_x_plus_two = four_x.add(Vectord<1>{2.0});
     STATIC_REQUIRE(four_x_plus_two.map.translation() == Vectord<1>{2.0});
 
-    constexpr auto builder = ConeMapBuilder<MatT>();
-    constexpr auto canon1 = four_x_plus_two.canonicalize(builder);
-    constexpr auto canon1_map = std::get<0>(canon1);
-    constexpr auto canon1_cb = std::get<1>(canon1);
+    constexpr auto builder = create_empty_cblk_builder<MatT>();
+    constexpr auto new_builder = four_x_plus_two.canonicalize(builder);
+    constexpr auto canon1_map = new_builder.coord_map;
+    constexpr auto canon1_cb = new_builder.cb;
 
     STATIC_REQUIRE(canon1_map.linear_part() == mat(4.0));
     STATIC_REQUIRE(canon1_map.translation() == Vectord<1>{2.0});
@@ -70,35 +70,67 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(two_x0_plus_one.map.linear_part() == mat(2.0));
     STATIC_REQUIRE(two_x0_plus_one.map.translation() == Vectord<1>{1.0});
 
-    constexpr auto canon2 = two_x0_plus_one.canonicalize(builder);
-    constexpr auto canon2_map = std::get<0>(canon2);
-    constexpr auto canon2_cb = std::get<1>(canon2);
+    constexpr auto new_builder2 = two_x0_plus_one.canonicalize(builder);
+    constexpr auto canon2_map = new_builder2.coord_map;
+    constexpr auto canon2_cb = new_builder2.cb;
     STATIC_REQUIRE(canon2_map.linear_part() == mat(2.0));
     STATIC_REQUIRE(canon2_map.translation() == Vectord<1>{1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(canon2_cb.cones)>::value == 0);
 
-#if 0
     using Mat2T = Matrixd<1, 2>;
     constexpr auto sum =
         Sum<SumConvexMeta<Mat2T, MatT>, decltype(x0), decltype(x0)>(x0, x0);
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
-#endif
+
+    constexpr auto new_builder3 = sum.canonicalize(builder);
+    constexpr auto canon3_map = new_builder3.coord_map;
+    constexpr auto canon3_cb = new_builder3.cb;
+
+    STATIC_REQUIRE(all_equal(canon3_map.linear_part(), mat(2.0)));
+    STATIC_REQUIRE(canon3_map.translation() == Vectord<1>{0.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(canon3_cb.cones)>::value == 0);
   }
 
-#if 0
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
     constexpr auto x = Variable<FreeVarMeta<MatT>>();
     constexpr auto x0 = x(0).value();
     constexpr auto x1 = x(1).value();
+    using Mat1T = Matrixd<1, 1>;
+    constexpr auto sum =
+        Sum<SumConvexMeta<MatT, Mat1T>, decltype(x0), decltype(x1)>(x0, x1);
+
+    STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
+
+    constexpr auto builder = create_empty_cblk_builder<MatT>();
+    constexpr auto new_builder = sum.canonicalize(builder);
+    constexpr auto canon_map = new_builder.coord_map;
+    constexpr auto canon_cb = new_builder.cb;
+
+    constexpr auto mat = mat_traits<MatT>();
+    STATIC_REQUIRE(all_equal(canon_map.linear_part(), mat(1.0, 1.0)));
+    STATIC_REQUIRE(canon_map.translation() == Vectord<1>{0.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 0);
 
     using Space = Matrixd<1, 1>;
     constexpr auto abs_x0 = Abs<AbsMeta<Space>, decltype(x0)>(x0);
     constexpr auto abs_x1 = Abs<AbsMeta<Space>, decltype(x1)>(x1);
-    constexpr auto sum =
+    constexpr auto sum_abs =
         Sum<SumConvexMeta<MatT, Space>, decltype(abs_x0), decltype(abs_x1)>(
             abs_x0, abs_x1);
-    STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
-  }
+    STATIC_REQUIRE(std::tuple_size<decltype(sum_abs.children)>::value == 2);
+
+#if 0
+    constexpr auto new_builder2 = sum.canonicalize(builder);
+    constexpr auto canon2_map = new_builder2.coord_map;
+
+    constexpr linalg::Vector<double, 6> coord{0.0, 0.0, 1.0, 0.0, 0.0, 1.0};
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon2_map.linear_part()));
+    constexpr auto canon2_cb = new_builder2.cb;
+
+    STATIC_REQUIRE(all_equal(canon2_map.linear_part(), mat(2.0)));
+    STATIC_REQUIRE(canon2_map.translation() == Vectord<1>{0.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(canon2_cb.cones)>::value == 10);
 #endif
+  }
 }

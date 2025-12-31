@@ -25,11 +25,34 @@ using AffineMap2d = AffineMap<linalg::Matrix<T, 2, 2>>;
 template <linalg::FieldLike T>
 using AffineMap3d = AffineMap<linalg::Matrix<T, 3, 3>>;
 
+/**
+ * @brief make map ID
+ *
+ * @return [I; 0]
+ */
 template <linalg::SquareMatrixLike Mat>
 constexpr AffineMap<Mat> make_map_id() {
   using T = linalg::mat_type_t<Mat>;
   static constexpr size_t N = linalg::mat_rows_v<Mat>;
   return AffineMap<Mat>(linalg::make_identity<T, N>(), linalg::Vector<T, N>{});
+}
+
+/**
+ * @brief make map selector
+ *
+ * @param idx selected ind
+ *
+ * @return [ 0... 1.. ; 0 ]
+ */
+template <linalg::MatrixLike Mat>
+  requires(linalg::mat_rows_v<Mat> == 1)
+constexpr AffineMap<Mat> make_selector_map(const size_t& idx) {
+  if (idx >= linalg::mat_cols_v<Mat>)
+    throw std::domain_error("Selected index >= number of cols");
+  using T = linalg::mat_type_t<Mat>;
+  Mat A;
+  A[0][idx] = T(1);
+  return AffineMap<Mat>(A, linalg::Vector<T, 1>{});
 }
 
 /**

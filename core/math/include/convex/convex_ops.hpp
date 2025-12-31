@@ -18,6 +18,22 @@
 
 namespace convex {
 
+template <size_t idx = 0, typename Children, typename Builder, typename Fn>
+constexpr auto tuple_fold_left(Children&& children, Builder&& builder,
+                               Fn&& fn) {
+  constexpr size_t N = std::tuple_size_v<std::remove_reference_t<Children>>;
+  if constexpr (idx == N)
+    return std::forward<Builder>(builder);
+  else {
+    auto&& child = std::get<idx>(std::forward<Children>(children));
+    auto new_builder =
+        std::forward<Fn>(fn)(child, std::forward<Builder>(builder));
+    return tuple_fold_left<idx + 1>(std::forward<Children>(children),
+                                    std::move(new_builder),
+                                    std::forward<Fn>(fn));
+  }
+}
+
 template <typename Meta, typename... Cs>
 struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   using BaseT = Atom<Meta, Sum<Meta, Cs...>, Cs...>;
@@ -29,42 +45,15 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   constexpr explicit Sum(const Cs... cs)
       : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
 
-  template <linalg::RnSpace DecVarDom>
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike Map,
+            conic::ConeBlockLike CB>
   constexpr auto canonicalize_impl(
-      const ConeMapBuilder<DecVarDom>& builder) const {
-    auto cones = std::make_tuple();
-    auto canonicalize_child = [&](const auto& child) {
-      const auto canon = child.canonicalize(builder);
-      /// (dakre) TODO update linear selector
-      const auto child_sel = std::get<0>(canon);
-
-      /// (dakre) TODO concatenate cones to tuple
-      const auto child_cb = std::get<1>(canon);
-      cones = std::tuple_cat(cones, child_cb.cones);
+      const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
+    auto canonicalize_child = [&](const auto& child, const auto& builder) {
+      return child.canonicalize(builder);
     };
-    std::apply([&](const auto&... child) { (canonicalize_child(child), ...); },
-               this->children);
+    return tuple_fold_left(this->children, builder, canonicalize_child);
   }
-
-  /// TODO (dakre) this is more of a debug util however i need to ensure
-  /// dom-codom and sum is correct for canonicalization... if theres a nice way
-  /// to present this for debug then cool if not then ditch it
-#if 0
-  constexpr std::optional<T> eval(const PointT& x) const {
-    T res(0);
-    bool invalid(false);
-    auto eval_child = [&](const auto& child) {
-      const auto rv = child.eval(x);
-      if (!rv.has_value())
-        invalid = true;
-      else
-        res += rv.value();
-    };
-    std::apply([&](const auto&... child) { (eval_child(child), ...); },
-               this->children);
-    return invalid ? std::nullopt : res;
-  }
-#endif
 };
 
 template <typename Meta, typename... Cs>

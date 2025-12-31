@@ -51,17 +51,17 @@ template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   using BaseT = Atom<Meta, ScalarView<Meta, Child>, Child>;
-  using BaseT::N;
   using typename BaseT::Domain;
-  using typename BaseT::LinearMatT;
   using typename BaseT::T;
-  using typename BaseT::TransT;
+
+  static constexpr size_t N = dom_size_v<meta_dom_t<atom_meta_t<Child>>>;
+
+  using SelMatT = linalg::Matrix<T, 1, N>;
+  using TransT = linalg::Vector<T, 1>;
 
   constexpr explicit ScalarView(const size_t& idx_in, const Child& child_in)
-      : BaseT(
-            std::make_tuple(child_in),
-            affine::AffineMap(as_row_vector(child_in.map.linear_part()(idx_in)),
-                              child_in.map.translation())),
+      : BaseT(std::make_tuple(child_in)),
+        map(affine::make_selector_map<SelMatT>(idx_in)),
         idx(idx_in) {
     if (!is_var_type_v<Child>)
       throw std::domain_error(
@@ -69,32 +69,45 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   }
 
   constexpr explicit ScalarView(const size_t& idx_in, const Child& child_in,
-                                const affine::AffineMap<LinearMatT>& map_in)
-      : BaseT(std::make_tuple(child_in), map_in), idx(idx_in) {
+                                const affine::AffineMap<SelMatT>& map_in)
+      : BaseT(std::make_tuple(child_in)), map(map_in), idx(idx_in) {
     if (!is_var_type_v<Child>)
       throw std::domain_error(
           "Scalar view child must be the decision variable");
   }
 
   constexpr auto mul_impl(const T& alpha) const {
-    affine::AffineMap<LinearMatT> new_map(alpha * this->map.linear_part(),
-                                          this->map.translation());
+    affine::AffineMap<SelMatT> new_map(alpha * map.linear_part(),
+                                       map.translation());
     return ScalarView(idx, std::get<0>(this->children), new_map);
   }
 
   constexpr auto add_impl(const T& beta) const {
-    affine::AffineMap<LinearMatT> new_map(
-        this->map.linear_part(), TransT{beta} + this->map.translation());
+    affine::AffineMap<SelMatT> new_map(map.linear_part(),
+                                       TransT{beta} + map.translation());
     return ScalarView(idx, std::get<0>(this->children), new_map);
   }
 
-  template <linalg::RnSpace DecVarDom>
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike Map,
+            conic::ConeBlockLike CB>
   constexpr auto canonicalize_impl(
-      const ConeMapBuilder<DecVarDom>& /*builder*/) const {
-    const auto cb = create_empty_cblk<T>();
-    return std::tuple(this->map, cb);
+      const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
+    const auto cb = builder.cb;
+    if constexpr (std::same_as<decltype(map), Map>) {
+      auto A = map.linear_part();
+      auto b = map.translation();
+      A = A + builder.coord_map.linear_part();
+      b = b + builder.coord_map.translation();
+
+      const auto new_map = Map(A, b);
+      return ConeBlockBuilder<DecVarDom, decltype(new_map), decltype(cb)>(
+          new_map, cb);
+    } else {
+      return ConeBlockBuilder<DecVarDom, decltype(map), decltype(cb)>(map, cb);
+    }
   }
 
+  affine::AffineMap<SelMatT> map;
   size_t idx;
 };
 
@@ -105,14 +118,16 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   using BaseT::DomSign;
   using BaseT::N;
   using typename BaseT::Domain;
-  using typename BaseT::LinearMatT;
   using typename BaseT::T;
-  using typename BaseT::TransT;
 
-  constexpr explicit Variable() : BaseT(affine::make_map_id<LinearMatT>()) {}
+  using LinearMatT = linalg::Matrix<T, N, N>;
+  using TransT = linalg::Vector<T, N>;
+
+  constexpr explicit Variable()
+      : BaseT(), map(affine::make_map_id<LinearMatT>()) {}
 
   constexpr explicit Variable(const affine::AffineMap<LinearMatT>& map_in)
-      : BaseT(map_in) {}
+      : BaseT(), map(map_in) {}
 
   using ScalarDom = ConvexDomain<linalg::Matrix<T, 1, 1>, DomSign>;
   using ScalarMeta =
@@ -124,29 +139,43 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   }
 
   constexpr auto mul_impl(const T& alpha) const {
-    affine::AffineMap<LinearMatT> new_map(alpha * this->map.linear_part(),
-                                          this->map.translation());
+    affine::AffineMap<LinearMatT> new_map(alpha * map.linear_part(),
+                                          map.translation());
     return Variable(new_map);
   }
 
-  constexpr auto mul_impl(const LinearMatT& alpha) const {
-    affine::AffineMap<LinearMatT> new_map(alpha * this->map.linear_part(),
-                                          this->map.translation());
+  constexpr auto mul(const LinearMatT& alpha) const {
+    affine::AffineMap<LinearMatT> new_map(alpha * map.linear_part(),
+                                          map.translation());
     return Variable(new_map);
   }
 
-  constexpr auto add_impl(const TransT& beta) const {
-    affine::AffineMap<LinearMatT> new_map(
-        this->map.linear_part(), TransT{beta} + this->map.translation());
+  constexpr auto add(const TransT& beta) const {
+    affine::AffineMap<LinearMatT> new_map(map.linear_part(),
+                                          TransT{beta} + map.translation());
     return Variable(new_map);
   }
 
-  template <linalg::RnSpace DecVarDom>
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike Map,
+            conic::ConeBlockLike CB>
   constexpr auto canonicalize_impl(
-      const ConeMapBuilder<DecVarDom>& /*builder*/) const {
-    const auto cb = create_empty_cblk<T>();
-    return std::tuple(this->map, cb);
+      const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
+    const auto cb = builder.cb;
+    if constexpr (std::same_as<decltype(map), Map>) {
+      auto A = map.linear_part();
+      auto b = map.translation();
+      A = A + builder.coord_map.linear_part();
+      b = b + builder.coord_map.translation();
+
+      const auto new_map = Map(A, b);
+      return ConeBlockBuilder<DecVarDom, decltype(new_map), decltype(cb)>(
+          new_map, cb);
+    } else {
+      return ConeBlockBuilder<DecVarDom, decltype(map), decltype(cb)>(map, cb);
+    }
   }
+
+  affine::AffineMap<LinearMatT> map;
 };
 
 }  // namespace convex

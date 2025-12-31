@@ -30,24 +30,10 @@ struct Atom {
   static constexpr SignType DomSign = dom_sign_v<Domain>;
   static constexpr SignType CodomSign = dom_sign_v<Codomain>;
 
-  using LinearMatT = linalg::Matrix<T, N, N>;
-  using TransT = linalg::Vector<T, N>;
-
   constexpr explicit Atom() { validate_domain(); }
 
   constexpr explicit Atom(const std::tuple<Cs...> child_in)
       : children(std::move(child_in)) {
-    validate_domain();
-  }
-
-  constexpr explicit Atom(const affine::AffineMap<LinearMatT>& map_in)
-      : map(map_in) {
-    validate_domain();
-  }
-
-  constexpr explicit Atom(const std::tuple<Cs...> child_in,
-                          const affine::AffineMap<LinearMatT>& map_in)
-      : children(std::move(child_in)), map(map_in) {
     validate_domain();
   }
 
@@ -153,18 +139,14 @@ struct Atom {
     }
   }
 
-  constexpr auto mul(const LinearMatT& alpha) const {
-    return self().mul_impl(alpha);
-  }
-
-  constexpr auto add(const TransT& beta) const { return self().add_impl(beta); }
-
   constexpr auto mul(const T& alpha) const { return self().mul_impl(alpha); }
 
   constexpr auto add(const T& beta) const { return self().add_impl(beta); }
 
-  template <linalg::RnSpace DecVarDom>
-  constexpr auto canonicalize(const ConeMapBuilder<DecVarDom>& builder) const {
+  template <linalg::RnSpace DecVarDom, affine::AffineMapLike ConeMap,
+            conic::ConeBlockLike CB>
+  constexpr auto canonicalize(
+      const ConeBlockBuilder<DecVarDom, ConeMap, CB>& builder) const {
     return self().canonicalize_impl(builder);
   }
 
@@ -173,7 +155,6 @@ struct Atom {
   }
 
   std::tuple<Cs...> children;
-  affine::AffineMap<LinearMatT> map;
 };
 
 }  // namespace convex

@@ -160,8 +160,4 @@ concept ConeBlockLike = requires(const Cblk& cblk) {
   { cblk.cones };
 };
 
-/// @brief canonical form forward decl
-template <linalg::RnSpace Domain, ConeBlockLike... Cblks>
-struct CanonicalForm;
-
 }  // namespace conic
