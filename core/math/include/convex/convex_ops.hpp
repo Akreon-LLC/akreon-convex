@@ -49,8 +49,8 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
             conic::ConeBlockLike CB>
   constexpr auto canonicalize_impl(
       const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
-    auto canonicalize_child = [&](const auto& child, const auto& builder) {
-      return child.canonicalize(builder);
+    auto canonicalize_child = [&](const auto& child, const auto& builder_in) {
+      return child.canonicalize(builder_in);
     };
     return tuple_fold_left(this->children, builder, canonicalize_child);
   }

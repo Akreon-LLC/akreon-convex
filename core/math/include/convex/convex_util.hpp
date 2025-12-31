@@ -54,23 +54,24 @@ struct ConeBlockBuilder {
 
     static_assert(std::same_as<T, linalg::mat_type_t<ConeMapT>>,
                   "type mismatch between cone map and coord map");
-    static constexpr size_t SelDom = linalg::mat_cols_v<CoordMapT>;
-    static constexpr size_t SelCodom = linalg::mat_rows_v<CoordMapT>;
+    static constexpr size_t CoordDom = linalg::mat_cols_v<CoordMapT>;
+    static constexpr size_t CoordCodom = linalg::mat_rows_v<CoordMapT>;
 
     static constexpr size_t ConeDom = linalg::mat_cols_v<ConeMapT>;
     static constexpr size_t ConeCodom = linalg::mat_rows_v<ConeMapT>;
 
     static constexpr size_t FullDom =
-        ConeDom == 0 ? SelDom : ConeDom + SelDom - N;
-    static constexpr size_t FullCodom = SelCodom + ConeCodom;
+        ConeDom == 0 ? CoordDom : ConeDom + CoordDom - N;
+    static constexpr size_t FullCodom = CoordCodom + ConeCodom;
 
     linalg::Matrix<T, FullCodom, FullDom> F;
     F = linalg::set_block<0, ConeCodom, 0, ConeDom>(F, cone_map.linear_part());
 
     const auto A = coord_map.linear_part();
     // const auto b = coord_map.translation();
-    const auto dec_spanning_blk = linalg::get_block<0, SelCodom, 0, N>(A);
-    const auto aux_spanning_blk = linalg::get_block<0, SelCodom, N, SelDom>(A);
+    const auto dec_spanning_blk = linalg::get_block<0, CoordCodom, 0, N>(A);
+    const auto aux_spanning_blk =
+        linalg::get_block<0, CoordCodom, N, CoordDom>(A);
 
     F = linalg::set_block<ConeCodom, FullCodom, 0, N>(F, dec_spanning_blk);
     F = linalg::set_block<ConeCodom, FullCodom, N, FullDom>(F,
@@ -78,7 +79,7 @@ struct ConeBlockBuilder {
 
     linalg::Vector<T, FullCodom> g;
     for (size_t i = 0; i < ConeCodom; ++i) g[i] = cone_map.translation()(i);
-    for (size_t i = 0; i < SelCodom; ++i)
+    for (size_t i = 0; i < CoordCodom; ++i)
       g[i + ConeCodom] = coord_map.translation()(i);
 
     linalg::Vector<T, FullDom> sel;
