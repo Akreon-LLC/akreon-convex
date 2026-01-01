@@ -76,13 +76,13 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
           "Scalar view child must be the decision variable");
   }
 
-  constexpr auto mul_impl(const T& alpha) const {
+  constexpr auto mul(const T& alpha) const {
     affine::AffineMap<SelMatT> new_map(alpha * map.linear_part(),
                                        map.translation());
     return ScalarView(idx, std::get<0>(this->children), new_map);
   }
 
-  constexpr auto add_impl(const T& beta) const {
+  constexpr auto add(const T& beta) const {
     affine::AffineMap<SelMatT> new_map(map.linear_part(),
                                        TransT{beta} + map.translation());
     return ScalarView(idx, std::get<0>(this->children), new_map);
@@ -135,10 +135,12 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   using ScalarViewT = ScalarView<ScalarMeta, Variable<Meta>>;
   constexpr std::optional<ScalarViewT> operator()(const size_t& idx) const {
     if (idx >= N) return std::nullopt;
-    return ScalarViewT(idx, *this);
+    affine::AffineMap<linalg::Matrix<T, 1, N>> scalar_map(
+        this->map.linear_part()(idx), this->map.translation()(idx));
+    return ScalarViewT(idx, *this, scalar_map);
   }
 
-  constexpr auto mul_impl(const T& alpha) const {
+  constexpr auto mul(const T& alpha) const {
     affine::AffineMap<LinearMatT> new_map(alpha * map.linear_part(),
                                           map.translation());
     return Variable(new_map);

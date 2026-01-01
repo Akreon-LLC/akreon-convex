@@ -139,10 +139,6 @@ struct Atom {
     }
   }
 
-  constexpr auto mul(const T& alpha) const { return self().mul_impl(alpha); }
-
-  constexpr auto add(const T& beta) const { return self().add_impl(beta); }
-
   template <linalg::RnSpace DecVarDom, affine::AffineMapLike ConeMap,
             conic::ConeBlockLike CB>
   constexpr auto canonicalize(

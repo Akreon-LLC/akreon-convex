@@ -91,6 +91,43 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(std::tuple_size<decltype(canon3_cb.cones)>::value == 0);
   }
 
+  SECTION("N-dim var") {
+    using MatT = Matrixd<1, 5>;
+    constexpr auto mat = mat_traits<MatT>();
+
+    constexpr auto x = Variable<FreeVarMeta<MatT>>();
+    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x)>>> ==
+                   SignType::FREE);
+    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x)>>> ==
+                   SignType::FREE);
+    STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(x)>> ==
+                   CurvatureType::AFFINE);
+    STATIC_REQUIRE(is_var_type_v<decltype(x)>);
+
+    constexpr auto three_x = x.mul(3.0);
+    constexpr auto three_I = 3.0 * make_identity<double, 5>();
+    STATIC_REQUIRE(three_x.map.linear_part() == three_I);
+    STATIC_REQUIRE(three_x.map.translation() == Vectord<5>{});
+
+    constexpr auto x3 = three_x(3).value();
+    STATIC_REQUIRE(is_var_type_v<decltype(x3)>);
+    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x3)>>> ==
+                   SignType::FREE);
+    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x3)>>> ==
+                   SignType::FREE);
+    STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(x3)>> ==
+                   CurvatureType::AFFINE);
+
+    constexpr auto two_x3 = x3.mul(2.0);
+    STATIC_REQUIRE(
+        all_equal(two_x3.map.linear_part(), mat(0.0, 0.0, 0.0, 6.0, 0.0)));
+
+    constexpr auto two_x3_plus_one = two_x3.add(2.0);
+    STATIC_REQUIRE(two_x3_plus_one.map.linear_part() ==
+                   mat(0.0, 0.0, 0.0, 6.0, 0.0));
+    STATIC_REQUIRE(two_x3_plus_one.map.translation() == Vectord<1>{2.0});
+  }
+
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
     constexpr auto x = Variable<FreeVarMeta<MatT>>();
