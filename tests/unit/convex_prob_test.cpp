@@ -128,6 +128,39 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(two_x3_plus_one.map.translation() == Vectord<1>{2.0});
   }
 
+  SECTION("Var -> Scalar View -> Abs") {
+    using Space = Matrixd<1, 3>;
+    using Scalar = Matrixd<1, 1>;
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x1 = x(1).value().mul(1.5).add(-1.0);
+    constexpr auto abs_fn = Abs<AbsMeta<Scalar>, decltype(x1)>(x1);
+
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto new_builder = abs_fn.canonicalize(builder);
+    constexpr auto canon_map = new_builder.coord_map;
+    constexpr auto canon_cb = new_builder.cb;
+
+    constexpr auto mat = mat_traits<Matrixd<1, 5>>();
+    STATIC_REQUIRE(canon_map.linear_part() == mat(0.0, 0.0, 0.0, 0.0, 1.0));
+    STATIC_REQUIRE(canon_map.translation() == Vectord<1>{0.0});
+
+    constexpr auto cones = canon_cb.cones;
+    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+    STATIC_REQUIRE(sz == 5);
+    STATIC_REQUIRE(canon_cb.validate());
+
+    constexpr auto map = canon_cb.map;
+    STATIC_REQUIRE(mat_rows_v<decltype(map.linear_part())> == 5);
+    STATIC_REQUIRE(mat_cols_v<decltype(map.linear_part())> == 5);
+    STATIC_REQUIRE(vec_size_v<decltype(map.translation())> == 5);
+    constexpr mat_traits<Matrix<double, 5, 5>> F_mat;
+    constexpr auto F =
+        F_mat(0.0, 1.5, 0.0, 1.0, 0.0, 0.0, -1.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              -1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(all_equal(map.linear_part(), F));
+    STATIC_REQUIRE(map.translation() == Vectord<5>{-1.0, 1.0, 0.0, 0.0, 0.0});
+  }
+
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
     constexpr auto x = Variable<FreeVarMeta<MatT>>();
