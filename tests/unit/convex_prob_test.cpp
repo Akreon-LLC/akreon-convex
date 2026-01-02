@@ -192,9 +192,10 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
     constexpr auto new_builder2 = sum_abs.canonicalize(builder);
 
-    //constexpr auto canon2_map = new_builder2.coord_map;
-    //constexpr linalg::Vector<double, 6> coord{0.0, 0.0, 1.0, 0.0, 0.0, 1.0};
-    //STATIC_REQUIRE(all_equal(as_row_vector(coord), canon2_map.linear_part()));
+    constexpr auto canon2_map = new_builder2.coord_map;
+
+    constexpr linalg::Vector<double, 6> coord{0.0, 0.0, 0.0, 1.0, 0.0, 1.0};
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon2_map.linear_part()));
 
     constexpr auto canon2_cb = new_builder2.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon2_cb.cones)>::value == 10);

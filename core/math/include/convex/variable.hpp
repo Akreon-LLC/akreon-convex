@@ -93,18 +93,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   constexpr auto canonicalize_impl(
       const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
     const auto cb = builder.cb;
-    if constexpr (std::same_as<decltype(map), Map>) {
-      auto A = map.linear_part();
-      auto b = map.translation();
-      A = A + builder.coord_map.linear_part();
-      b = b + builder.coord_map.translation();
-
-      const auto new_map = Map(A, b);
-      return ConeBlockBuilder<DecVarDom, decltype(new_map), decltype(cb)>(
-          new_map, cb);
-    } else {
-      return ConeBlockBuilder<DecVarDom, decltype(map), decltype(cb)>(map, cb);
-    }
+    return ConeBlockBuilder<DecVarDom, decltype(map), decltype(cb)>(map, cb);
   }
 
   affine::AffineMap<SelMatT> map;
@@ -163,18 +152,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   constexpr auto canonicalize_impl(
       const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
     const auto cb = builder.cb;
-    if constexpr (std::same_as<decltype(map), Map>) {
-      auto A = map.linear_part();
-      auto b = map.translation();
-      A = A + builder.coord_map.linear_part();
-      b = b + builder.coord_map.translation();
-
-      const auto new_map = Map(A, b);
-      return ConeBlockBuilder<DecVarDom, decltype(new_map), decltype(cb)>(
-          new_map, cb);
-    } else {
-      return ConeBlockBuilder<DecVarDom, decltype(map), decltype(cb)>(map, cb);
-    }
+    return ConeBlockBuilder<DecVarDom, decltype(map), decltype(cb)>(map, cb);
   }
 
   affine::AffineMap<LinearMatT> map;

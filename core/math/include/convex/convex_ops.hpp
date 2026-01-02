@@ -18,19 +18,51 @@
 
 namespace convex {
 
-template <size_t idx = 0, typename Children, typename Builder, typename Fn>
-constexpr auto tuple_fold_left(Children&& children, Builder&& builder,
-                               Fn&& fn) {
+template <affine::AffineMapLike PrevMap, affine::AffineMapLike NextMap>
+constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
+  using PrevMatT = affine::affine_mat_t<PrevMap>;
+  using NextMatT = affine::affine_mat_t<NextMap>;
+  using T = linalg::mat_type_t<PrevMatT>;
+
+  static constexpr size_t PrevDom = linalg::mat_cols_v<PrevMatT>;
+  static constexpr size_t PrevCodom = linalg::mat_rows_v<PrevMatT>;
+
+  static constexpr size_t NextDom = linalg::mat_cols_v<NextMatT>;
+  static constexpr size_t NextCodom = linalg::mat_rows_v<NextMatT>;
+
+  if constexpr (PrevDom == 0 && PrevCodom == 0)
+    return next;
+  else {
+    static_assert(PrevCodom == NextCodom,
+                  "Codomains must align between previous and next map");
+
+    linalg::Matrix<T, PrevCodom, NextDom> F;
+    for (size_t i = 0; i < PrevCodom; ++i) {
+      for (size_t j = 0; j < PrevDom; ++j)
+        F[i][j] = prev.linear_part()(i)(j) + next.linear_part()(i)(j);
+      for (size_t j = PrevDom; j < NextDom; ++j)
+        F[i][j] = next.linear_part()(i)(j);
+    }
+
+    return affine::AffineMap<decltype(F)>(F, prev.translation());
+  }
+}
+
+template <size_t idx = 0, typename Children, typename Builder, typename Fn,
+          affine::AffineMapLike Map>
+constexpr auto tuple_fold_left(Children&& children, Builder&& builder, Fn&& fn,
+                               Map&& selector) {
   constexpr size_t N = std::tuple_size_v<std::remove_reference_t<Children>>;
   if constexpr (idx == N)
-    return std::forward<Builder>(builder);
+    return std::tuple(selector, std::forward<Builder>(builder));
   else {
     auto&& child = std::get<idx>(std::forward<Children>(children));
     auto new_builder =
         std::forward<Fn>(fn)(child, std::forward<Builder>(builder));
-    return tuple_fold_left<idx + 1>(std::forward<Children>(children),
-                                    std::move(new_builder),
-                                    std::forward<Fn>(fn));
+    auto new_selector = update_selector(selector, new_builder.coord_map);
+    return tuple_fold_left<idx + 1>(
+        std::forward<Children>(children), std::move(new_builder),
+        std::forward<Fn>(fn), std::move(new_selector));
   }
 }
 
@@ -40,7 +72,9 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   using typename BaseT::Domain;
   using typename BaseT::PointT;
   using typename BaseT::T;
-  static_assert(dom_size_v<Domain> == sizeof...(Cs));
+  static_assert(dom_size_v<Domain> == sizeof...(Cs),
+                "Size of domain is not equal to children");
+  static_assert(sizeof...(Cs) > 1, "Number of children not greater than 1");
 
   constexpr explicit Sum(const Cs... cs)
       : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
@@ -52,8 +86,12 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
     auto canonicalize_child = [&](const auto& child, const auto& builder_in) {
       return child.canonicalize(builder_in);
     };
-    // (dakre) TODO return reduced cone block with map and cone blocks
-    return tuple_fold_left(this->children, builder, canonicalize_child);
+    const auto res = tuple_fold_left(this->children, builder,
+                                     canonicalize_child, builder.coord_map);
+    const auto selector = std::get<0>(res);
+    const auto new_builder = std::get<1>(res);
+    return ConeBlockBuilder<DecVarDom, decltype(selector),
+                            decltype(new_builder.cb)>(selector, new_builder.cb);
   }
 };
 
