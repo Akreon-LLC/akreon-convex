@@ -210,7 +210,7 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
             coord_map_up, child_cb);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     const auto cones = std::make_tuple(rplus, rplus, rplus, rplus, rplus);
-    return new_builder(-1, cones);
+    return new_builder(1, cones);
   }
 };
 

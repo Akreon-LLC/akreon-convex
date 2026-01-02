@@ -52,6 +52,7 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
     auto canonicalize_child = [&](const auto& child, const auto& builder_in) {
       return child.canonicalize(builder_in);
     };
+    // (dakre) TODO return reduced cone block with map and cone blocks
     return tuple_fold_left(this->children, builder, canonicalize_child);
   }
 };

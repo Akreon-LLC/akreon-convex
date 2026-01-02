@@ -41,41 +41,52 @@ struct ConeBlockBuilder {
   /**
    * @brief update cone map
    *
-   * @param selector idx from end (expects negative number)
+   * @param selector idx from start aux col
    * @param emitted cones from child
    *
    * @return new cone block builder
    */
   template <conic::ConeLike... Cs>
-  constexpr auto operator()(const int& ridx,
+  constexpr auto operator()(const size_t& idx,
                             const std::tuple<Cs...>& cones) const {
     const auto& cone_map = cb.map;
     using ConeMapT = affine::affine_mat_t<decltype(cone_map)>;
 
     static_assert(std::same_as<T, linalg::mat_type_t<ConeMapT>>,
                   "type mismatch between cone map and coord map");
+
     static constexpr size_t CoordDom = linalg::mat_cols_v<CoordMapT>;
     static constexpr size_t CoordCodom = linalg::mat_rows_v<CoordMapT>;
 
     static constexpr size_t ConeDom = linalg::mat_cols_v<ConeMapT>;
     static constexpr size_t ConeCodom = linalg::mat_rows_v<ConeMapT>;
 
-    static constexpr size_t FullDom =
-        ConeDom == 0 ? CoordDom : ConeDom + CoordDom - N;
-    static constexpr size_t FullCodom = CoordCodom + ConeCodom;
+    static constexpr size_t ConeAux = ConeDom == 0 ? 0 : ConeDom - N;
+    static constexpr size_t CoordAux = CoordDom - N;
+    static constexpr size_t CoordAuxStartCol = ConeDom == 0 ? N : ConeDom;
+    static constexpr size_t CoordAuxEndCol = CoordAuxStartCol + CoordAux;
+
+    /// (dakre) F cols: [ dec vars | cone aux | coord aux ]
+    static constexpr size_t FullDom = N + ConeAux + CoordAux;
+    static constexpr size_t FullCodom = ConeCodom + CoordCodom;
 
     linalg::Matrix<T, FullCodom, FullDom> F;
-    F = linalg::set_block<0, ConeCodom, 0, ConeDom>(F, cone_map.linear_part());
 
+    /// (0) fill upper left with prev cone map [ dec var | cone aux ]
+    if constexpr (ConeDom != 0) {
+      F = linalg::set_block<0, ConeCodom, 0, ConeDom>(F,
+                                                      cone_map.linear_part());
+    }
+
+    /// (1) fill bottom left from coord map
     const auto A = coord_map.linear_part();
-    // const auto b = coord_map.translation();
     const auto dec_spanning_blk = linalg::get_block<0, CoordCodom, 0, N>(A);
-    const auto aux_spanning_blk =
-        linalg::get_block<0, CoordCodom, N, CoordDom>(A);
-
+    const auto coord_aux_blk = linalg::get_block<0, CoordCodom, N, CoordDom>(A);
     F = linalg::set_block<ConeCodom, FullCodom, 0, N>(F, dec_spanning_blk);
-    F = linalg::set_block<ConeCodom, FullCodom, N, FullDom>(F,
-                                                            aux_spanning_blk);
+
+    /// (2) fill bottom right with new aux vars from latest cone
+    F = linalg::set_block<ConeCodom, FullCodom, CoordAuxStartCol,
+                          CoordAuxEndCol>(F, coord_aux_blk);
 
     linalg::Vector<T, FullCodom> g;
     for (size_t i = 0; i < ConeCodom; ++i) g[i] = cone_map.translation()(i);
@@ -83,7 +94,10 @@ struct ConeBlockBuilder {
       g[i + ConeCodom] = coord_map.translation()(i);
 
     linalg::Vector<T, FullDom> sel;
-    sel[FullDom + ridx] = T(1);
+    if (CoordAuxStartCol + idx >= FullDom)
+      throw std::domain_error("Selecting aux var that is out of bounds");
+
+    sel[CoordAuxStartCol + idx] = T(1);
     const auto sel_row = linalg::as_row_vector(sel);
     const auto new_coord_map =
         affine::AffineMap<decltype(sel_row)>(sel_row, linalg::Vector<T, 1>{});
