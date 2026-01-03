@@ -106,12 +106,14 @@ struct ConeBlockBuilder {
     static constexpr size_t CoordAuxEndCol =
         Type == OrigType::OP ? CoordAuxStartCol + CoordAux : FullDom;
 
-    linalg::Matrix<T, FullCodom, FullDom> F;
+    linalg::Matrix<T, FullCodom, FullDom> F{};
+    linalg::Vector<T, FullCodom> g{};
 
     /// (0) fill upper left with prev cone map [ dec var | cone aux ]
     if constexpr (ConeDom != 0) {
       F = linalg::set_block<0, ConeCodom, 0, ConeDom>(F,
                                                       cone_map.linear_part());
+      for (size_t i = 0; i < ConeCodom; ++i) g[i] = cone_map.translation()(i);
     }
 
     /// (1) fill bottom left from coord map
@@ -124,12 +126,10 @@ struct ConeBlockBuilder {
     F = linalg::set_block<ConeCodom, FullCodom, CoordAuxStartCol,
                           CoordAuxEndCol>(F, coord_aux_blk);
 
-    linalg::Vector<T, FullCodom> g;
-    for (size_t i = 0; i < ConeCodom; ++i) g[i] = cone_map.translation()(i);
     for (size_t i = 0; i < CoordCodom; ++i)
       g[i + ConeCodom] = coord_map.translation()(i);
 
-    linalg::Vector<T, FullDom> sel;
+    linalg::Vector<T, FullDom> sel{};
     if (FullDom + idx >= FullDom)
       throw std::domain_error("Selecting aux var that is out of bounds");
 

@@ -194,7 +194,19 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(
         all_equal(canon_map.linear_part(), mat(0.0, 0.0, 0.0, 0.0, 1.0)));
     STATIC_REQUIRE(canon_map.translation() == Vectord<1>{});
-    STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 10);
+
+    constexpr auto map = canon_cb.map;
+    STATIC_REQUIRE(mat_rows_v<decltype(map.linear_part())> == 10);
+    STATIC_REQUIRE(mat_cols_v<decltype(map.linear_part())> == 5);
+    STATIC_REQUIRE(vec_size_v<decltype(map.translation())> == 10);
+    constexpr mat_traits<Matrix<double, 10, 5>> F_mat;
+    constexpr auto F =
+        F_mat(1.0, 1.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 1.0,
+              0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, 1.0, 1.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0,
+              1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(all_equal(map.linear_part(), F));
+    STATIC_REQUIRE(map.translation() == Vectord<10>{});
   }
 
   SECTION("Sum of abs") {
@@ -237,5 +249,19 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
     constexpr auto canon2_cb = new_builder2.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon2_cb.cones)>::value == 10);
+
+    constexpr auto map = canon2_cb.map;
+    STATIC_REQUIRE(mat_rows_v<decltype(map.linear_part())> == 10);
+    STATIC_REQUIRE(mat_cols_v<decltype(map.linear_part())> == 6);
+    STATIC_REQUIRE(vec_size_v<decltype(map.translation())> == 10);
+    constexpr mat_traits<Matrix<double, 10, 6>> F_mat;
+    constexpr auto F =
+        F_mat(1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(all_equal(map.linear_part(), F));
+    STATIC_REQUIRE(map.translation() == Vectord<10>{});
   }
 }
