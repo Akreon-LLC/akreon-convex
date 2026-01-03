@@ -18,6 +18,39 @@
 
 namespace convex {
 
+template <typename Builder>
+concept BuilderLike = requires(const Builder& builder) {
+  { builder.coord_map };
+  { builder.cb };
+};
+
+template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+          conic::ConeBlockLike CB>
+struct ConeBlockBuilder;
+
+template <typename Builder>
+struct builder_traits;
+
+template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+          conic::ConeBlockLike CB>
+struct builder_traits<ConeBlockBuilder<DecVarDom, CoordMap, CB>> {
+  using Dom = DecVarDom;
+  using Map = CoordMap;
+  using ConeBlock = CB;
+};
+
+template <typename Builder>
+using builder_dom_t =
+    typename builder_traits<linalg::remove_cvref_t<Builder>>::Dom;
+
+template <typename Builder>
+using builder_map_t =
+    typename builder_traits<linalg::remove_cvref_t<Builder>>::Map;
+
+template <typename Builder>
+using builder_cb_t =
+    typename builder_traits<linalg::remove_cvref_t<Builder>>::ConeBlock;
+
 /// @brief cone map builder functor
 template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
           conic::ConeBlockLike CB>
@@ -39,16 +72,15 @@ struct ConeBlockBuilder {
       : coord_map(coord_in), cb(cb_in) {}
 
   /**
-   * @brief update cone map
+   * @brief make new builder
    *
    * @param selector idx from start aux col
    * @param emitted cones from child
    *
    * @return new cone block builder
    */
-  template <conic::ConeLike... Cs>
-  constexpr auto operator()(const size_t& idx,
-                            const std::tuple<Cs...>& cones) const {
+  template <OrigType Type, conic::ConeLike... Cs>
+  constexpr auto make(const size_t& idx, const std::tuple<Cs...>& cones) const {
     const auto& cone_map = cb.map;
     using ConeMapT = affine::affine_mat_t<decltype(cone_map)>;
 
@@ -63,12 +95,16 @@ struct ConeBlockBuilder {
 
     static constexpr size_t ConeAux = ConeDom == 0 ? 0 : ConeDom - N;
     static constexpr size_t CoordAux = CoordDom - N;
-    static constexpr size_t CoordAuxStartCol = ConeDom == 0 ? N : ConeDom;
-    static constexpr size_t CoordAuxEndCol = CoordAuxStartCol + CoordAux;
 
     /// (dakre) F cols: [ dec vars | cone aux | coord aux ]
-    static constexpr size_t FullDom = N + ConeAux + CoordAux;
+    static constexpr size_t FullDom =
+        Type == OrigType::OP ? N + ConeAux + CoordAux : CoordDom;
     static constexpr size_t FullCodom = ConeCodom + CoordCodom;
+
+    static constexpr size_t CoordAuxStartCol =
+        Type == OrigType::OP ? ((ConeDom == 0) ? N : ConeDom) : N;
+    static constexpr size_t CoordAuxEndCol =
+        Type == OrigType::OP ? CoordAuxStartCol + CoordAux : FullDom;
 
     linalg::Matrix<T, FullCodom, FullDom> F;
 
@@ -94,10 +130,10 @@ struct ConeBlockBuilder {
       g[i + ConeCodom] = coord_map.translation()(i);
 
     linalg::Vector<T, FullDom> sel;
-    if (CoordAuxStartCol + idx >= FullDom)
+    if (FullDom + idx >= FullDom)
       throw std::domain_error("Selecting aux var that is out of bounds");
 
-    sel[CoordAuxStartCol + idx] = T(1);
+    sel[FullDom + idx] = T(1);
     const auto sel_row = linalg::as_row_vector(sel);
     const auto new_coord_map =
         affine::AffineMap<decltype(sel_row)>(sel_row, linalg::Vector<T, 1>{});

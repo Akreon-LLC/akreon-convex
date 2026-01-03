@@ -168,12 +168,11 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  template <linalg::RnSpace DecVarDom, affine::AffineMapLike Map,
-            conic::ConeBlockLike CB>
-  constexpr auto canonicalize_fn(
-      const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize_fn(const Builder& builder) const {
     const auto child_builder =
-        std::get<0>(this->children).canonicalize(builder);
+        std::get<0>(this->children)
+            .template canonicalize<OrigType::FN>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
 
@@ -206,11 +205,13 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
-        ConeBlockBuilder<DecVarDom, decltype(coord_map_up), decltype(child_cb)>(
+        ConeBlockBuilder<builder_dom_t<decltype(builder)>,
+                         decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     const auto cones = std::make_tuple(rplus, rplus, rplus, rplus, rplus);
-    return new_builder(1, cones);
+
+    return new_builder.template make<Type>(-1, cones);
   }
 };
 

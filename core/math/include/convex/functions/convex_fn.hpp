@@ -134,11 +134,9 @@ struct ConvexFn : Atom<Meta, ConvexFn<Meta, Derived, Child>, Child> {
    *
    * @return (emitted map, cone block)
    */
-  template <linalg::RnSpace DecVarDom, affine::AffineMapLike Map,
-            conic::ConeBlockLike CB>
-  constexpr auto canonicalize_impl(
-      const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
-    return self().canonicalize_fn(builder);
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize_impl(const Builder& builder) const {
+    return self().template canonicalize_fn<Type>(builder);
   }
 
   /**

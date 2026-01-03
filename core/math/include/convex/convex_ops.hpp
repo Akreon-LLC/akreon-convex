@@ -79,18 +79,16 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   constexpr explicit Sum(const Cs... cs)
       : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
 
-  template <linalg::RnSpace DecVarDom, affine::AffineMapLike Map,
-            conic::ConeBlockLike CB>
-  constexpr auto canonicalize_impl(
-      const ConeBlockBuilder<DecVarDom, Map, CB>& builder) const {
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize_impl(const Builder& builder) const {
     auto canonicalize_child = [&](const auto& child, const auto& builder_in) {
-      return child.canonicalize(builder_in);
+      return child.template canonicalize<OrigType::OP>(builder_in);
     };
     const auto res = tuple_fold_left(this->children, builder,
                                      canonicalize_child, builder.coord_map);
     const auto selector = std::get<0>(res);
     const auto new_builder = std::get<1>(res);
-    return ConeBlockBuilder<DecVarDom, decltype(selector),
+    return ConeBlockBuilder<builder_dom_t<Builder>, decltype(selector),
                             decltype(new_builder.cb)>(selector, new_builder.cb);
   }
 };

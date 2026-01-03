@@ -139,11 +139,9 @@ struct Atom {
     }
   }
 
-  template <linalg::RnSpace DecVarDom, affine::AffineMapLike ConeMap,
-            conic::ConeBlockLike CB>
-  constexpr auto canonicalize(
-      const ConeBlockBuilder<DecVarDom, ConeMap, CB>& builder) const {
-    return self().canonicalize_impl(builder);
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize(const Builder& builder) const {
+    return self().template canonicalize_impl<Type>(builder);
   }
 
   constexpr const Derived& self() const {

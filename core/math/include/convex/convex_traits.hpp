@@ -16,6 +16,8 @@
 
 namespace convex {
 
+enum struct OrigType : uint8_t { FN = 0, OP };
+
 enum struct AtomType : uint8_t { VAR = 0, FN, SET, ADD, CAP };
 
 enum struct SignType : uint8_t {

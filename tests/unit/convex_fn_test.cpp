@@ -37,7 +37,7 @@ TEST_CASE("Test abs function", "[convex_fn]") {
                              1.0, 0.0, 0.0, 0.0, 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = abs_fn.canonicalize(builder);
+    constexpr auto new_builder = abs_fn.canonicalize<OrigType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -61,7 +61,7 @@ TEST_CASE("Test abs function", "[convex_fn]") {
     constexpr auto F1 = F1_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, -1.0, -1.0,
                                0.0, 1.0, 0.0, 0.0, 0.0, -1.0);
 
-    constexpr auto builder1 = abs_concave.canonicalize(builder);
+    constexpr auto builder1 = abs_concave.canonicalize<OrigType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 

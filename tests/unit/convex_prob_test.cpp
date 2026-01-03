@@ -43,7 +43,8 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(four_x_plus_two.map.translation() == Vectord<1>{2.0});
 
     constexpr auto builder = create_empty_cblk_builder<MatT>();
-    constexpr auto new_builder = four_x_plus_two.canonicalize(builder);
+    constexpr auto new_builder =
+        four_x_plus_two.template canonicalize<OrigType::FN>(builder);
     constexpr auto canon1_map = new_builder.coord_map;
     constexpr auto canon1_cb = new_builder.cb;
 
@@ -70,7 +71,8 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(two_x0_plus_one.map.linear_part() == mat(2.0));
     STATIC_REQUIRE(two_x0_plus_one.map.translation() == Vectord<1>{1.0});
 
-    constexpr auto new_builder2 = two_x0_plus_one.canonicalize(builder);
+    constexpr auto new_builder2 =
+        two_x0_plus_one.template canonicalize<OrigType::FN>(builder);
     constexpr auto canon2_map = new_builder2.coord_map;
     constexpr auto canon2_cb = new_builder2.cb;
     STATIC_REQUIRE(canon2_map.linear_part() == mat(2.0));
@@ -82,7 +84,8 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
         Sum<SumConvexMeta<Mat2T, MatT>, decltype(x0), decltype(x0)>(x0, x0);
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
 
-    constexpr auto new_builder3 = sum.canonicalize(builder);
+    constexpr auto new_builder3 =
+        sum.template canonicalize<OrigType::FN>(builder);
     constexpr auto canon3_map = new_builder3.coord_map;
     constexpr auto canon3_cb = new_builder3.cb;
 
@@ -136,7 +139,8 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     constexpr auto abs_fn = Abs<AbsMeta<Scalar>, decltype(x1)>(x1);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = abs_fn.canonicalize(builder);
+    constexpr auto new_builder =
+        abs_fn.template canonicalize<OrigType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -161,6 +165,38 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(map.translation() == Vectord<5>{-1.0, 1.0, 0.0, 0.0, 0.0});
   }
 
+  SECTION("Composed abs") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto abs_x = Abs<AbsMeta<Space>, decltype(x)>(x);
+    constexpr auto abs_abs_x = Abs<AbsMeta<Space>, decltype(abs_x)>(abs_x);
+
+    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(abs_abs_x)>>> ==
+                   SignType::FREE);
+    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(abs_abs_x)>>> ==
+                   SignType::NONNEG);
+    STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(abs_abs_x)>> ==
+                   CurvatureType::CONVEX);
+    STATIC_REQUIRE(is_fn_type_v<decltype(abs_abs_x)>);
+
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto new_builder =
+        abs_abs_x.template canonicalize<OrigType::FN>(builder);
+    constexpr auto canon_cb = new_builder.cb;
+
+    constexpr auto cones = canon_cb.cones;
+    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+    STATIC_REQUIRE(sz == 10);
+    STATIC_REQUIRE(canon_cb.validate());
+
+    constexpr auto canon_map = new_builder.coord_map;
+    constexpr auto mat = mat_traits<Matrixd<1, 5>>();
+    STATIC_REQUIRE(
+        all_equal(canon_map.linear_part(), mat(0.0, 0.0, 0.0, 0.0, 1.0)));
+    STATIC_REQUIRE(canon_map.translation() == Vectord<1>{});
+    STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 10);
+  }
+
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
     constexpr auto x = Variable<FreeVarMeta<MatT>>();
@@ -173,7 +209,8 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
 
     constexpr auto builder = create_empty_cblk_builder<MatT>();
-    constexpr auto new_builder = sum.canonicalize(builder);
+    constexpr auto new_builder =
+        sum.template canonicalize<OrigType::OP>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -190,7 +227,8 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
             abs_x0, abs_x1);
     STATIC_REQUIRE(std::tuple_size<decltype(sum_abs.children)>::value == 2);
 
-    constexpr auto new_builder2 = sum_abs.canonicalize(builder);
+    constexpr auto new_builder2 =
+        sum_abs.template canonicalize<OrigType::OP>(builder);
 
     constexpr auto canon2_map = new_builder2.coord_map;
 
