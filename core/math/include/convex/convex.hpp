@@ -23,7 +23,7 @@
 #include "cones/zoc.hpp"
 #include "convex_ops.hpp"
 #include "functions/abs_fn.hpp"
-//#include "functions/exp_fn.hpp"
+#include "functions/exp_fn.hpp"
 //#include "functions/geo_mean_fn.hpp"
 //#include "functions/inv_pos_fn.hpp"
 //#include "functions/log_fn.hpp"

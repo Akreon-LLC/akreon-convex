@@ -224,7 +224,7 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
    * @return cone block
    */
   template <OrigType Type, BuilderLike Builder>
-  constexpr auto canonicalize(const Builder& builder) const {
+  constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
             .template canonicalize<OrigType::FN>(builder);

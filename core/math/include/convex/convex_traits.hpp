@@ -104,10 +104,6 @@ template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct ScalarView;
 
-/// @brief forward declaration - convex fn
-template <typename Meta, typename Derived, typename Child>
-struct ConvexFn;
-
 /// @brief forward declaration - max fn
 template <typename Meta, typename Child>
 struct Max;
@@ -240,12 +236,6 @@ template <typename Meta, typename Child>
 struct atom_traits<ScalarView<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::VAR;
-};
-
-template <typename Meta, typename Derived, typename Child>
-struct atom_traits<ConvexFn<Meta, Derived, Child>> {
-  using ConvexMeta = Meta;
-  static constexpr AtomType Type = AtomType::FN;
 };
 
 template <typename Meta, typename Child>
