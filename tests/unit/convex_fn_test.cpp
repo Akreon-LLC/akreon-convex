@@ -51,11 +51,11 @@ TEST_CASE("Test abs function", "[convex_fn]") {
     STATIC_REQUIRE(sz == 5);
     STATIC_REQUIRE(canon_cb.validate());
 
-    constexpr auto abs_concave = abs_fn.negate();
+    constexpr auto abs_concave = abs_fn.mul<-2.0>();
     STATIC_REQUIRE(abs_concave(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(abs_concave(Vectord<1>{0.0}).value() == 0.0);
     STATIC_REQUIRE(abs_concave(Vectord<1>{-2.0}).has_value());
-    STATIC_REQUIRE(abs_concave(Vectord<1>{-2.0}).value() == -2.0);
+    STATIC_REQUIRE(abs_concave(Vectord<1>{-2.0}).value() == -4.0);
 
     constexpr mat_traits<Matrix<double, 5, 3>> F1_mat;
     constexpr auto F1 = F1_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, -1.0, -1.0,
@@ -65,7 +65,8 @@ TEST_CASE("Test abs function", "[convex_fn]") {
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
-    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
+    constexpr linalg::Vector<double, 3> coord2{0.0, 0.0, 2.0};
+    STATIC_REQUIRE(all_equal(as_row_vector(coord2), canon_map1.linear_part()));
     STATIC_REQUIRE(canon_cb1.map == affine::AffineMap(F1, Vectord<5>{}));
 
     constexpr auto cones1 = canon_cb1.cones;

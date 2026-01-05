@@ -79,8 +79,10 @@ struct ConeBlockBuilder {
    *
    * @return new cone block builder
    */
-  template <OrigType Type, conic::ConeLike... Cs>
-  constexpr auto make(const size_t& idx, const std::tuple<Cs...>& cones) const {
+  template <OrigType Type, affine::AffineMapLike LiftedMap,
+            conic::ConeLike... Cs>
+  constexpr auto make(const int& idx, const LiftedMap& lift_map,
+                      const std::tuple<Cs...>& cones) const {
     const auto& cone_map = cb.map;
     using ConeMapT = affine::affine_mat_t<decltype(cone_map)>;
 
@@ -130,10 +132,11 @@ struct ConeBlockBuilder {
       g[i + ConeCodom] = coord_map.translation()(i);
 
     linalg::Vector<T, FullDom> sel{};
+    linalg::Vector<T, 1> bias{lift_map.translation()(0)};
     if (FullDom + idx >= FullDom)
       throw std::domain_error("Selecting aux var that is out of bounds");
 
-    sel[FullDom + idx] = T(1);
+    sel[FullDom + idx] = lift_map.linear_part()(0)(0);
     const auto sel_row = linalg::as_row_vector(sel);
     const auto new_coord_map =
         affine::AffineMap<decltype(sel_row)>(sel_row, linalg::Vector<T, 1>{});

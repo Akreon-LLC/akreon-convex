@@ -12,7 +12,8 @@
 
 #pragma once
 
-#include "convex_fn.hpp"
+#include "convex/convex_traits.hpp"
+#include "convex/convex_util.hpp"
 
 namespace convex {
 
@@ -48,26 +49,44 @@ using AbsConcaveMeta = ConvexAtomMeta<AbsDom<Space>, AbsConcaveCodom<Space>,
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
-struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
+struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
   /// @brief bring into scope convex fn alias / helpers
-  using ConvexBase = ConvexFn<Meta, Abs<Meta, Child>, Child>;
+  using ConvexBase = Atom<Meta, Abs<Meta, Child>, Child>;
   using ConvexBase::N;
   using typename ConvexBase::PointT;
   using typename ConvexBase::T;
+
+  /// @brief alias for lifted var map
+  using LiftedVarMatT = linalg::Matrix<T, 1, 1>;
+  using LiftedVarBiasT = linalg::Vector<T, 1>;
+
+  /// @brief alias to extract space type
+  using Space = dom_space_t<meta_dom_t<Meta>>;
 
   /**
    * @brief CTOR
    *
    * @param child
    */
-  constexpr explicit Abs(const Child& child_in) : ConvexBase(child_in) {}
+  constexpr explicit Abs(const Child& child_in)
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMatT>()) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param child
+   * @param map
+   */
+  constexpr explicit Abs(const Child& child_in,
+                         const affine::AffineMap<LiftedVarMatT>& map_in)
+      : ConvexBase(child_in), lift_map(map_in) {}
 
   /**
    * @brief mono
    *
    * @return monotonicity
    */
-  constexpr MonotonicityType monotonicity_impl() const {
+  constexpr MonotonicityType monotonicity() const {
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     static constexpr SignType sign =
         dom_sign_v<meta_codom_t<atom_meta_t<Child>>>;
@@ -91,33 +110,69 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
   }
 
   /**
+   * @brief eval via operator overload
+   *
+   * @param point x
+   *
+   * @return result
+   */
+  constexpr std::optional<T> operator()(const PointT& x) const {
+    return eval(x);
+  }
+
+  /**
    * @brief eval impl
    *
    * @param x \in R
    *
    * @return abs(x) \in R
    */
-  constexpr std::optional<T> eval_impl(const PointT& x) const {
+  constexpr std::optional<T> eval(const PointT& x) const {
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
-      return linalg::constexpr_abs(x(0));
+      return alpha * linalg::constexpr_abs(x(0)) + beta;
     else
-      return T(-1) * linalg::constexpr_abs(x(0));
+      return T(-1) * alpha * linalg::constexpr_abs(x(0)) + beta;
   }
 
   /**
-   * @brief negate impl
+   * @brief mul
    *
-   * @return negated f
+   * @return abs fn (updated map)
    */
-  constexpr auto negate_impl() const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
-    using Space = dom_space_t<meta_dom_t<Meta>>;
-    if constexpr (Tag == CurvatureType::CONCAVE) {
-      return Abs<AbsMeta<Space>, Child>(std::get<0>(this->children));
+  template <T Scalar>
+  constexpr auto mul() const {
+    if constexpr (Scalar < T(0)) {
+      const auto alpha = T(-1) * Scalar;
+      affine::AffineMap<LiftedVarMatT> new_map(alpha * lift_map.linear_part(),
+                                               lift_map.translation());
+      static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+      if constexpr (Tag == CurvatureType::CONCAVE) {
+        return Abs<AbsMeta<Space>, Child>(std::get<0>(this->children), new_map);
+      } else {
+        return Abs<AbsConcaveMeta<Space>, Child>(std::get<0>(this->children),
+                                                 new_map);
+      }
     } else {
-      return Abs<AbsConcaveMeta<Space>, Child>(std::get<0>(this->children));
+      affine::AffineMap<LiftedVarMatT> new_map(Scalar * lift_map.linear_part(),
+                                               lift_map.translation());
+      return Abs<Meta, Child>(std::get<0>(this->children, new_map));
     }
+  }
+
+  /**
+   * @brief add
+   *
+   * @param scalar
+   *
+   * @return abs fn (updated map)
+   */
+  constexpr auto add(const T& beta) const {
+    LiftedVarBiasT bias{beta + lift_map.translation()(0)};
+    affine::AffineMap<LiftedVarMatT> new_map(lift_map.linear_part(), bias);
+    return Abs<Meta, Child>(std::get<0>(this->children, new_map));
   }
 
   /**
@@ -169,7 +224,7 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
    * @return cone block
    */
   template <OrigType Type, BuilderLike Builder>
-  constexpr auto canonicalize_fn(const Builder& builder) const {
+  constexpr auto canonicalize(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
             .template canonicalize<OrigType::FN>(builder);
@@ -211,8 +266,12 @@ struct Abs : ConvexFn<Meta, Abs<Meta, Child>, Child> {
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     const auto cones = std::make_tuple(rplus, rplus, rplus, rplus, rplus);
 
-    return new_builder.template make<Type>(-1, cones);
+    return new_builder.template make<Type>(idx, lift_map, cones);
   }
+
+  /** @brief member vars */
+  affine::AffineMap<LiftedVarMatT> lift_map;
+  const int idx{-1};
 };
 
 }  // namespace convex

@@ -37,11 +37,56 @@ struct Atom {
     validate_domain();
   }
 
+  /**
+   * @brief validate domain for fn
+   *
+   * @param child curvature
+   *
+   * @return void
+   */
+  constexpr void validate_fn_domain(const auto& child) const {
+    using ChildCodom = meta_codom_t<atom_meta_t<decltype(child)>>;
+    using ParentDom = meta_dom_t<Meta>;
+    if constexpr (dom_size_v<ParentDom> != dom_size_v<ChildCodom>) {
+      throw std::domain_error(
+          "Mismatch in size between parent domain and child codomain");
+    }
+    const CurvatureType& child_curv = meta_curv_v<atom_meta_t<decltype(child)>>;
+    const CurvatureType parent_curv = meta_curv_v<Meta>;
+    if (self().monotonicity() == MonotonicityType::UNKNOWN &&
+        child_curv != CurvatureType::AFFINE)
+      throw std::domain_error(
+          "Function's monotonicity is unknown and child curvature is "
+          "non-affine");
+
+    if (child_curv == CurvatureType::AFFINE ||
+        parent_curv == CurvatureType::AFFINE)
+      return;
+
+    if (parent_curv == CurvatureType::CONVEX) {
+      if ((self().monotonicity() == MonotonicityType::NONDEC &&
+           child_curv == CurvatureType::CONVEX) ||
+          (self().monotonicity() == MonotonicityType::NONINC &&
+           child_curv == CurvatureType::CONCAVE))
+        return;
+    }
+
+    if (parent_curv == CurvatureType::CONCAVE) {
+      if ((self().monotonicity() == MonotonicityType::NONDEC &&
+           child_curv == CurvatureType::CONCAVE) ||
+          (self().monotonicity() == MonotonicityType::NONINC &&
+           child_curv == CurvatureType::CONVEX))
+        return;
+    }
+
+    throw std::domain_error("Functions composition fails DCP compliance");
+  }
+
   constexpr void validate_domain() const {
     size_t num_convex = 0, num_concave = 0;
     auto validate_child = [&](const auto& child) {
       if constexpr (is_fn_type_v<decltype(self())>) {
-        self().validate_domain_impl(child);
+        validate_fn_domain(child);
       }
 
       if constexpr (is_set_type_v<decltype(self())>) {
