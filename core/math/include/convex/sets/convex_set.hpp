@@ -32,7 +32,8 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
   using BaseT = Atom<Meta, ConvexSet<Meta, Derived, Child>, Child>;
   using typename BaseT::PointT;
   using typename BaseT::T;
-  using typename BaseT::TransT;
+
+  static_assert(is_var_type_v<Child>, "Convex set assumes variable in its domain");
 
   /**
    * @brief CTOR

@@ -22,7 +22,6 @@ using namespace convex;
 using namespace affine;
 using namespace conic;
 
-/*
 TEST_CASE("Test affine subspace", "[convex_sets]") {
   SECTION("Test affine subspace") {
     using Space = Matrixd<1, 3>;
@@ -399,4 +398,3 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
 #endif
   }
 }
-*/
