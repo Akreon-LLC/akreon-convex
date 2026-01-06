@@ -16,6 +16,14 @@
 
 namespace convex {
 
+/// @brief alias for lifted var map
+template <typename T>
+using LiftedVarMat = linalg::Matrix<T, 1, 1>;
+
+/// @brief alias for lifted var map
+template <typename T>
+using LiftedVarBias = linalg::Vector<T, 1>;
+
 enum struct OrigType : uint8_t { FN = 0, OP };
 
 enum struct AtomType : uint8_t { VAR = 0, FN, SET, ADD, CAP };

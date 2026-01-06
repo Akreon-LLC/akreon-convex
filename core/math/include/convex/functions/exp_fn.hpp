@@ -56,10 +56,6 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
   using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
-  /// @brief alias for lifted var map
-  using LiftedVarMatT = linalg::Matrix<T, 1, 1>;
-  using LiftedVarBiasT = linalg::Vector<T, 1>;
-
   /// @brief alias to extract space type
   using Space = dom_space_t<meta_dom_t<Meta>>;
 
@@ -69,7 +65,8 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Exp(const Child& child_in)
-      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMatT>()) {}
+      : ConvexBase(child_in),
+        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
 
   /**
    * @brief CTOR
@@ -78,7 +75,7 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
    * @param map
    */
   constexpr explicit Exp(const Child& child_in,
-                         const affine::AffineMap<LiftedVarMatT>& map_in)
+                         const affine::AffineMap<LiftedVarMat<T>>& map_in)
       : ConvexBase(child_in), lift_map(map_in) {}
 
   /**
@@ -131,8 +128,8 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
   constexpr auto mul() const {
     if constexpr (Scalar < T(0)) {
       const auto alpha = T(-1) * Scalar;
-      affine::AffineMap<LiftedVarMatT> new_map(alpha * lift_map.linear_part(),
-                                               lift_map.translation());
+      affine::AffineMap<LiftedVarMat<T>> new_map(alpha * lift_map.linear_part(),
+                                                 lift_map.translation());
       static constexpr CurvatureType Tag = meta_curv_v<Meta>;
       if constexpr (Tag == CurvatureType::CONCAVE) {
         return Exp<ExpMeta<Space>, Child>(std::get<0>(this->children), new_map);
@@ -141,8 +138,8 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
                                                  new_map);
       }
     } else {
-      affine::AffineMap<LiftedVarMatT> new_map(Scalar * lift_map.linear_part(),
-                                               lift_map.translation());
+      affine::AffineMap<LiftedVarMat<T>> new_map(
+          Scalar * lift_map.linear_part(), lift_map.translation());
       return Exp<Meta, Child>(std::get<0>(this->children, new_map));
     }
   }
@@ -155,8 +152,8 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
    * @return abs fn (updated map)
    */
   constexpr auto add(const T& beta) const {
-    LiftedVarBiasT bias{beta + lift_map.translation()(0)};
-    affine::AffineMap<LiftedVarMatT> new_map(lift_map.linear_part(), bias);
+    LiftedVarBias<T> bias{beta + lift_map.translation()(0)};
+    affine::AffineMap<LiftedVarMat<T>> new_map(lift_map.linear_part(), bias);
     return Exp<Meta, Child>(std::get<0>(this->children, new_map));
   }
 
@@ -223,7 +220,7 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
   }
 
   /** @brief member vars */
-  affine::AffineMap<LiftedVarMatT> lift_map;
+  affine::AffineMap<LiftedVarMat<T>> lift_map;
   const int idx{-1};
 };
 
