@@ -321,7 +321,7 @@ TEST_CASE("Test max fn") {
     STATIC_REQUIRE(sz == 5);
     STATIC_REQUIRE(canon_cb.validate());
 
-    constexpr auto max_concave = max_fn.mul<-1.0>();
+    constexpr auto max_concave = max_fn.mul<-1.0>().add(0.0);
     STATIC_REQUIRE(max_concave(x).value() == -5.0);
 
     constexpr auto F1 =
@@ -346,7 +346,6 @@ TEST_CASE("Test max fn") {
   }
 }
 
-/*
 TEST_CASE("Test norm fn", "[convex_fn]") {
   // constexpr auto map_id = affine::make_map_id<linalg::Matrixd<2, 2>>();
   // constexpr auto cb = create_empty_cblk<double>();
@@ -472,7 +471,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(cone_block.validate());
 #endif
 
-    constexpr auto norm_concave = norm.negate();
+    constexpr auto norm_concave = norm.mul<-1.0>().add(0.0);
     STATIC_REQUIRE(norm_concave(Vectord<2>{1.0, 2.0}).value() == -3.0);
 
 #if 0
@@ -528,7 +527,7 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(cone_block.validate());
 #endif
 
-    constexpr auto square_concave = square_fn.negate();
+    constexpr auto square_concave = square_fn.mul<-1.0>().add(0.0);
     STATIC_REQUIRE(square_concave(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(square_concave(Vectord<1>{0.0}).value() == 0.0);
     STATIC_REQUIRE(square_concave(Vectord<1>{1.0}).has_value());
@@ -552,7 +551,6 @@ TEST_CASE("Test square function", "[convex_fn]") {
 #endif
   }
 }
-*/
 
 TEST_CASE("Test log sum exp", "[convex_fn]") {
   SECTION("Test log sum exp") {
