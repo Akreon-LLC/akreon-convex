@@ -139,7 +139,7 @@ struct ConeBlockBuilder {
     sel[FullDom + idx] = lift_map.linear_part()(0)(0);
     const auto sel_row = linalg::as_row_vector(sel);
     const auto new_coord_map =
-        affine::AffineMap<decltype(sel_row)>(sel_row, linalg::Vector<T, 1>{});
+        affine::AffineMap<decltype(sel_row)>(sel_row, bias);
     const auto new_map = affine::AffineMap<decltype(F)>(F, g);
     const auto new_cb =
         conic::ConeBlock(new_map, std::tuple_cat(cb.cones, cones));

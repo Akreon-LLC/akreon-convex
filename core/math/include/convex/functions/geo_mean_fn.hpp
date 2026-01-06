@@ -110,11 +110,13 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
   constexpr std::optional<T> eval(const PointT& x) const {
     T prod(1);
     std::for_each(x.begin(), x.end(), [&](const auto& pt) { prod *= pt; });
+    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto beta = lift_map.translation()(0);
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX)
-      return T(-1) * linalg::constexpr_nrt<T>(prod, N);
+      return T(-1) * alpha * linalg::constexpr_nrt<T>(prod, N) + beta;
     else
-      return linalg::constexpr_nrt<T>(prod, N);
+      return alpha * linalg::constexpr_nrt<T>(prod, N) + beta;
   }
 
   /**
@@ -143,6 +145,19 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
           Scalar * lift_map.linear_part(), lift_map.translation());
       return GeoMean<Meta, Child>(std::get<0>(this->children, new_map));
     }
+  }
+
+  /**
+   * @brief add
+   *
+   * @param scalar
+   *
+   * @return abs fn (updated map)
+   */
+  constexpr auto add(const T& beta) const {
+    LiftedVarBias<T> bias{beta + lift_map.translation()(0)};
+    affine::AffineMap<LiftedVarMat<T>> new_map(lift_map.linear_part(), bias);
+    return GeoMean<Meta, Child>(std::get<0>(this->children), new_map);
   }
 
   /**

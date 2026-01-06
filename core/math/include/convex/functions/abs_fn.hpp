@@ -169,7 +169,7 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
   constexpr auto add(const T& beta) const {
     LiftedVarBias<T> bias{beta + lift_map.translation()(0)};
     affine::AffineMap<LiftedVarMat<T>> new_map(lift_map.linear_part(), bias);
-    return Abs<Meta, Child>(std::get<0>(this->children, new_map));
+    return Abs<Meta, Child>(std::get<0>(this->children), new_map);
   }
 
   /**
