@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <iostream>
 
 #include "math.hpp"
 #include "unit_test_helpers.hpp"
@@ -240,7 +241,6 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
   }
 }
 
-/*
 TEST_CASE("Test log function", "[convex_fn]") {
   SECTION("Test log fn") {
     using Space = Matrixd<1, 1>;
@@ -249,53 +249,48 @@ TEST_CASE("Test log function", "[convex_fn]") {
     STATIC_REQUIRE(!log_fn(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(log_fn(Vectord<1>{1.0}).value() == 0.0);
 
-#if 0
-    constexpr auto cmap_builder = ConeMapBuilder<Space>();
-    constexpr auto map_id = affine::make_map_id<Space>();
-    constexpr auto cb = create_empty_cblk<double>();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto new_builder = log_fn.canonicalize<OrigType::FN>(builder);
+    constexpr auto canon_map = new_builder.coord_map;
+    constexpr auto canon_cb = new_builder.cb;
 
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
     constexpr auto F = F_mat(0.0, 1.0, 0.0, 0.0, 1.0, 0.0);
 
-    constexpr auto canon = log_fn.canonicalize(cmap_builder, map_id, cb);
-
     constexpr linalg::Vector<double, 2> coord{0.0, 1.0};
-    STATIC_REQUIRE(
-        all_equal(as_row_vector(coord), std::get<0>(canon).linear_part()));
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
 
-    constexpr auto cone_block = std::get<1>(canon);
-    STATIC_REQUIRE(cone_block.map ==
+    STATIC_REQUIRE(canon_cb.map ==
                    affine::AffineMap(F, Vectord<3>{0.0, 1.0, 0.0}));
 
-    constexpr auto cones = cone_block.cones;
+    constexpr auto cones = canon_cb.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 1);
-    STATIC_REQUIRE(cone_block.validate());
-#endif
+    STATIC_REQUIRE(canon_cb.validate());
 
-    constexpr auto log_convex = log_fn.negate();
+    constexpr auto log_convex = log_fn.mul<-1.0>();
     STATIC_REQUIRE(!log_convex(Vectord<1>{0.0}).has_value());
     STATIC_REQUIRE(log_convex(Vectord<1>{1.0}).value() == 0.0);
 
-#if 0
     constexpr auto F1 = F_mat(0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
 
-    constexpr auto canon1 = log_convex.canonicalize(cmap_builder, map_id, cb);
-    STATIC_REQUIRE(
-        all_equal(as_row_vector(coord), std::get<0>(canon1).linear_part()));
+    constexpr auto builder1 = log_convex.canonicalize<OrigType::FN>(builder);
+    constexpr auto canon_map1 = builder1.coord_map;
+    constexpr auto canon_cb1 = builder1.cb;
 
-    constexpr auto cone_block1 = std::get<1>(canon1);
-    STATIC_REQUIRE(cone_block1.map ==
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
+
+    STATIC_REQUIRE(canon_cb1.map ==
                    affine::AffineMap(F1, Vectord<3>{0.0, 1.0, 0.0}));
 
-    constexpr auto cones1 = cone_block1.cones;
+    constexpr auto cones1 = canon_cb1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
     STATIC_REQUIRE(sz1 == 1);
-    STATIC_REQUIRE(cone_block1.validate());
-#endif
+    STATIC_REQUIRE(canon_cb1.validate());
   }
 }
 
+/*
 TEST_CASE("Test max fn") {
   SECTION("Test max fn") {
     using Space = Matrixd<1, 5>;
