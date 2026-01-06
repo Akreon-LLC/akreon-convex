@@ -260,7 +260,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       linalg::Vector<T, N + 1> g;
       for (size_t i = 0; i < N; ++i) g[i] = child_coord.translation()(i);
 
-      if constexpr (Tag == CurvatureType::CONVEX) {
+      if constexpr (Tag == CurvatureType::CONCAVE) {
         F[N][N] = T(-1);
       } else {
         F[N][N] = T(1);
