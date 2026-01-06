@@ -34,15 +34,16 @@ TEST_CASE("Test affine subspace", "[convex_sets]") {
     STATIC_REQUIRE(affine_set.contains(Vectord<3>{}));
     STATIC_REQUIRE(!affine_set.contains(Vectord<3>{1.0, 1.0, 1.0}));
 
-#if 0
-    constexpr auto cone_block = affine_set.canonicalize();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        affine_set.template canonicalize<OrigType::SET>(builder);
+
     constexpr auto A = make_identity<double, 4>();
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<4>{}));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 }
 
@@ -60,8 +61,9 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
     STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
 
-#if 0
-    constexpr auto cone_block = ellipsoid.canonicalize();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        ellipsoid.template canonicalize<OrigType::SET>(builder);
     constexpr auto F = make_identity<double, 3>();
     STATIC_REQUIRE(
         cone_block.map ==
@@ -71,7 +73,6 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 }
 
@@ -93,8 +94,9 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
         hyperplane.transform(AffineMap<Matrix<double, 3, 3>>(I, Vectord<3>{}));
     STATIC_REQUIRE(hyperplane_id == hyperplane);
 
-#if 0
-    constexpr auto cone_block = hyperplane.canonicalize();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        hyperplane.template canonicalize<OrigType::SET>(builder);
     constexpr mat_traits<Matrix<double, 2, 4>> A_mat;
     constexpr auto A =
         A_mat(point(0), point(1), point(2), -1 * b, 0.0, 0.0, 0.0, 1.0);
@@ -105,7 +107,6 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 
   SECTION("Test closed lower halfspace") {
@@ -123,8 +124,9 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     STATIC_REQUIRE(!halfspace.contains(Vectord<2>{1.0, 2.0}));
     STATIC_REQUIRE(!halfspace.contains(Vectord<2>{-1.0, 5.0}));
 
-#if 0
-    constexpr auto cone_block = halfspace.canonicalize();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        halfspace.template canonicalize<OrigType::SET>(builder);
     constexpr mat_traits<Matrix<double, 2, 3>> A_mat;
     constexpr auto A = A_mat(-1 * point(0), -1 * point(1), b, 0.0, 0.0, 1.0);
 
@@ -134,7 +136,6 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 
   SECTION("Test closed upper halfspace") {
@@ -160,8 +161,9 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
         AffineMap<Matrix<double, 3, 3>>(make_identity<double, 3>(), t));
     STATIC_REQUIRE(halfspace_trans != halfspace_id);
 
-#if 0
-    constexpr auto cone_block = halfspace.canonicalize();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        halfspace.template canonicalize<OrigType::SET>(builder);
     constexpr mat_traits<Matrix<double, 2, 4>> A_mat;
     constexpr auto A = A_mat(-1 * point(0), -1 * point(1), -1 * point(2), b,
                              0.0, 0.0, 0.0, 1.0);
@@ -172,7 +174,6 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 }
 
@@ -189,8 +190,10 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));
     STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
 
-#if 0
-    constexpr auto cone_block = set.canonicalize();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        set.template canonicalize<OrigType::SET>(builder);
+
     constexpr mat_traits<Matrix<double, 7, 4>> F_mat;
     constexpr auto F = F_mat(-1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0,
                              -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -201,7 +204,6 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 }
 
@@ -216,8 +218,6 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(!simplex.contains(Vectord<3>{-0.8, 0.1, 0.1}));
     STATIC_REQUIRE(!simplex.contains(Vectord<3>{0.8, 0.1, 0.0}));
 
-    /// (dakre) TODO- should this be an intersection betwen poly & affine
-    /// subspace
     constexpr auto I = make_identity<double, 3>();
     constexpr auto res =
         simplex.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{}));
@@ -226,8 +226,9 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     STATIC_REQUIRE(!res.contains(Vectord<3>{-0.8, 0.1, 0.1}));
     STATIC_REQUIRE(!res.contains(Vectord<3>{0.8, 0.1, 0.0}));
 
-#if 0
-    constexpr auto cone_block = simplex.canonicalize();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        simplex.template canonicalize<OrigType::SET>(builder);
     constexpr mat_traits<Matrix<double, 4, 4>> A_mat;
     constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                              1.0, 0.0, -1.0, -1.0, -1.0, 1.0);
@@ -238,7 +239,6 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 }
 
@@ -255,17 +255,16 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     using Codom = Matrixd<1, 7>;
     constexpr auto x = Variable<FreeVarMeta<Space>>();
     constexpr Vector<double, 7> b{1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 2.0};
-    constexpr Polyhedron<PolyhedronMeta<Dom, Codom>, decltype(x),
-                         HalfspaceType::LH>
-        poly(A, b, x);
+    constexpr Polyhedron<PolyhedronMeta<Dom, Codom>, decltype(x)> poly(A, b, x);
 
     STATIC_REQUIRE(poly.is_well_formed());
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{}));
     STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
 
-#if 0
-    constexpr auto cone_block = poly.canonicalize();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        poly.template canonicalize<OrigType::SET>(builder);
 
     constexpr mat_traits<Matrix<double, 2, 4>> P_mat;
     constexpr auto P = P_mat(-1.0, 0.0, 0.0, b(0), 0.0, 0.0, 0.0, 1.0);
@@ -278,7 +277,6 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 14);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 }
 
@@ -303,17 +301,19 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
         make_identity<float, 2>(), Vectorf<2>{}));
     STATIC_REQUIRE(res == ellipse);
 
-#if 0
     constexpr mat_traits<Matrix<float, 3, 3>> F_mat;
     constexpr auto F = F_mat(1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, r);
     constexpr linalg::Vector<float, 3> g{-1 * c(0), -1 * c(1), 0.f};
-    constexpr auto cone_block = ball.canonicalize();
+
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        ball.template canonicalize<OrigType::SET>(builder);
+
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 
   SECTION("Test closed L1 norm ball") {
@@ -341,7 +341,6 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(res.contains(Vectord<8>{c(0) + 0.3, c(1) - 0.2, c(2) + 0.1,
                                            c(3) - 0.1, 0.3, 0.2, 0.1, 0.1}));
 
-#if 0
     constexpr mat_traits<Matrix<double, 9, 9>> F_mat;
     constexpr auto F = F_mat(
         1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0.,
@@ -353,13 +352,15 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     constexpr linalg::Vector<double, 9> g{
         -1 * c(0), -1 * c(1), -1 * c(2), -1 * c(3), c(0), c(1), c(2), c(3), 0.};
 
-    constexpr auto cone_block = ball.canonicalize();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        ball.template canonicalize<OrigType::SET>(builder);
+
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 3);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 
   SECTION("Test closed  Linf norm ball") {
@@ -382,19 +383,21 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!res.contains(Vectorf<3>{}));
     STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
 
-#if 0
     constexpr mat_traits<Matrix<float, 6, 4>> F_mat;
     constexpr auto F =
         F_mat(1.f, 0.f, 0.f, r, 0.f, 1.f, 0.f, r, 0.f, 0.f, 1.f, r, -1.f, 0.f,
               0.f, r, 0.f, -1.f, 0.f, r, 0.f, 0.f, -1.f, r);
     constexpr linalg::Vector<float, 6> g{-1 * c(0), -1 * c(1), -1 * c(2),
                                          c(0),      c(1),      c(2)};
-    constexpr auto cone_block = ball.canonicalize();
+
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto cone_block =
+        ball.template canonicalize<OrigType::SET>(builder);
+
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
-#endif
   }
 }

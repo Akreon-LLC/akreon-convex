@@ -148,7 +148,8 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize_set(const Builder& /* builder */) const {
     linalg::Matrix<T, N + 1, N + 1> F;
     linalg::Vector<T, N + 1> g;
     const auto eig_decomp = linalg::EigenDecomposition(P);

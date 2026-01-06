@@ -145,10 +145,8 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    *
    * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
-    static_assert(Type != HalfspaceType::UH && Type != HalfspaceType::LH,
-                  "cannot cannonicalize an open set -> non-proper cone");
-
+  template <OrigType OType, BuilderLike Builder>
+  constexpr auto canonicalize_set(const Builder& /*builder*/) const {
     linalg::Matrix<T, 2, N + 1> F;
     F = linalg::set_block<0, 1, 0, N>(F, T(-1) * linalg::as_row_vector(a));
     F[0][N] = b;

@@ -24,7 +24,7 @@ using LiftedVarMat = linalg::Matrix<T, 1, 1>;
 template <typename T>
 using LiftedVarBias = linalg::Vector<T, 1>;
 
-enum struct OrigType : uint8_t { FN = 0, OP };
+enum struct OrigType : uint8_t { FN = 0, SET, OP };
 
 enum struct AtomType : uint8_t { VAR = 0, FN, SET, ADD, CAP };
 
@@ -220,7 +220,7 @@ template <typename Meta, typename Child, NormBallType Type>
 struct NormBall;
 
 /// @brief forward declaration of polyhedron set
-template <typename Meta, typename Child, HalfspaceType HType>
+template <typename Meta, typename Child>
 struct Polyhedron;
 
 template <typename Meta, typename... Cs>
@@ -348,8 +348,8 @@ struct atom_traits<NormBall<Meta, Child, BType>> {
   static constexpr AtomType Type = AtomType::SET;
 };
 
-template <typename Meta, typename Child, HalfspaceType HType>
-struct atom_traits<Polyhedron<Meta, Child, HType>> {
+template <typename Meta, typename Child>
+struct atom_traits<Polyhedron<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::SET;
 };

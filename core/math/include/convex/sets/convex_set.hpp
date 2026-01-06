@@ -33,7 +33,8 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
   using typename BaseT::PointT;
   using typename BaseT::T;
 
-  static_assert(is_var_type_v<Child>, "Convex set assumes variable in its domain");
+  static_assert(is_var_type_v<Child>,
+                "Convex set assumes variable in its domain");
 
   /**
    * @brief CTOR
@@ -113,7 +114,10 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
    *
    * @return cone block
    */
-  constexpr auto canonicalize() const { return self().canonicalize_impl(); }
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize_impl(const Builder& builder) const {
+    return self().template canonicalize_set<Type>(builder);
+  }
 
   /**
    * @brief self function which returns a const ref to the derived object

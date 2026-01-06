@@ -38,10 +38,10 @@ using PolyhedronMeta =
  * intersection with an affine subspace or additional constraint to be added in
  * the problem space
  */
-template <typename Meta, typename Child, HalfspaceType Type>
-struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child, Type>, Child> {
+template <typename Meta, typename Child>
+struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Meta, Polyhedron<Meta, Child, Type>, Child>;
+  using ConvexBase = ConvexSet<Meta, Polyhedron<Meta, Child>, Child>;
   using ConvexBase::M;
   using ConvexBase::N;
   using typename ConvexBase::PointT;
@@ -71,7 +71,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child, Type>, Child> {
    */
   constexpr bool is_well_formed() const {
     for (size_t i = 0; i < M; ++i)
-      if (!Halfspace<HalfspaceMeta<Space>, Child, Type>(
+      if (!Halfspace<HalfspaceMeta<Space>, Child, HalfspaceType::LH>(
                A(i), b(i), std::get<0>(this->children))
                .is_well_formed())
         return false;
@@ -87,8 +87,9 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child, Type>, Child> {
    */
   constexpr bool contains_impl(const PointT& x, const T& tol) const {
     for (size_t i = 0; i < M; ++i) {
-      const auto half = Halfspace<HalfspaceMeta<Space>, Child, Type>(
-          A(i), b(i), std::get<0>(this->children));
+      const auto half =
+          Halfspace<HalfspaceMeta<Space>, Child, HalfspaceType::LH>(
+              A(i), b(i), std::get<0>(this->children));
       if (!half.contains(x, tol)) return false;
     }
     return true;
@@ -120,8 +121,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child, Type>, Child> {
     const auto A_new = A * U_inv;
     const auto b_new = b + A_new * trans;
 
-    return Polyhedron<Meta, Child, Type>(A_new, b_new,
-                                         std::get<0>(this->children));
+    return Polyhedron<Meta, Child>(A_new, b_new, std::get<0>(this->children));
   }
 
   /**
@@ -155,14 +155,15 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child, Type>, Child> {
    *
    * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize_set(const Builder& builder) const {
     std::tuple<> empty;
     static constexpr size_t Codom = 2 * M;
     static constexpr size_t Dom = N + 1;
     linalg::Matrix<T, Codom, Dom> F;
     linalg::Vector<T, Codom> g;
     conic::ConeBlock cb(affine::AffineMap(F, g), empty);
-    return canonicalize_halfspaces<0>(cb);
+    return canonicalize_halfspaces<0>(builder, cb);
   }
 
   /**
@@ -172,22 +173,26 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child, Type>, Child> {
    *
    * @return halfspaces
    */
-  template <size_t i, affine::AffineMapLike Map, conic::ConeLike... Cs>
+  template <size_t i, BuilderLike Builder, affine::AffineMapLike Map,
+            conic::ConeLike... Cs>
   constexpr auto canonicalize_halfspaces(
+      const Builder& builder,
       const conic::ConeBlock<Map, Cs...>& cone_block) const {
     if constexpr (i >= M)
       return cone_block;
     else {
       const auto halfspace =
-          Halfspace<HalfspaceMeta<Space>, Child, Type>(A(i), b(i));
-      const auto cb = halfspace.canonicalize();
+          Halfspace<HalfspaceMeta<Space>, Child, HalfspaceType::LH>(
+              A(i), b(i), std::get<0>(this->children));
+      const auto cb = halfspace.template canonicalize<OrigType::SET>(builder);
       auto F = cone_block.map.linear_part();
       const auto g = cone_block.map.translation();
       static constexpr size_t j = 2 * i;
       F = linalg::set_block<j, j + 2, 0, N + 1>(F, cb.map.linear_part());
       const auto map = affine::AffineMap<decltype(F)>(F, g);
       const auto cones = std::tuple_cat(cone_block.cones, cb.cones);
-      return canonicalize_halfspaces<i + 1>(conic::ConeBlock(map, cones));
+      return canonicalize_halfspaces<i + 1>(builder,
+                                            conic::ConeBlock(map, cones));
     }
   }
 

@@ -129,7 +129,8 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize_set(const Builder& /*builder*/) const {
     linalg::Matrix<T, M + 1, N + 1> F;
     F = linalg::set_block<0, M, 0, N>(F, A);
     F = linalg::set_block<0, M, N, N + 1>(F, linalg::as_col_vector(T(-1) * b));

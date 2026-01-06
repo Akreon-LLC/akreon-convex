@@ -115,9 +115,8 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
     using Dom = linalg::Matrix<T, 1, N>;
     using Codom = linalg::Matrix<T, 1, N>;
 
-    const auto poly =
-        Polyhedron<PolyhedronMeta<Dom, Codom>, Child, HalfspaceType::LH>(
-            A, b, std::get<0>(this->children));
+    const auto poly = Polyhedron<PolyhedronMeta<Dom, Codom>, Child>(
+        A, b, std::get<0>(this->children));
 
     linalg::vec_traits<linalg::Vector<T, N>> vec;
     const auto ones = vec.fill(T(1));
@@ -156,7 +155,8 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
    * [ I    0 ] [ x; t ]
    * [ -1^T 1 ]
    */
-  constexpr auto canonicalize_impl() const {
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize_set(const Builder& /* builder */) const {
     linalg::Matrix<T, N + 1, N + 1> F;
     for (size_t i = 0; i < N; ++i) F[i][i] = T(1);
     for (size_t i = 0; i < N; ++i) F[N][i] = T(-1);

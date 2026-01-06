@@ -123,7 +123,8 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  constexpr auto canonicalize_impl() const {
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize_set(const Builder& /* builder */) const {
     linalg::Matrix<T, 2, N + 1> F;
     F = linalg::set_block<0, 1, 0, N>(F, linalg::as_row_vector(a));
     F[0][N] = T(-1) * b;

@@ -201,7 +201,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
 
       using Dom = linalg::Matrix<T, 1, 2 * N>;
       using Codom = linalg::Matrix<T, 1, 3 * N + 1>;
-      return Polyhedron<PolyhedronMeta<Dom, Codom>, Child, HalfspaceType::LH>(
+      return Polyhedron<PolyhedronMeta<Dom, Codom>, Child>(
           A, b, std::get<0>(this->children));
     }
     /* Linf case
@@ -244,7 +244,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
 
       using Dom = linalg::Matrix<T, 1, N>;
       using Codom = linalg::Matrix<T, 1, 2 * N>;
-      return Polyhedron<PolyhedronMeta<Dom, Codom>, Child, HalfspaceType::LH>(
+      return Polyhedron<PolyhedronMeta<Dom, Codom>, Child>(
           A, b, std::get<0>(this->children));
     }
   }
@@ -289,7 +289,8 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    * [ -I I    0 ]
    * [ 0  -1^T r ]
    */
-  constexpr auto canonicalize_impl() const {
+  template <OrigType OType, BuilderLike Builder>
+  constexpr auto canonicalize_set(const Builder& /* builder*/) const {
     const auto I = linalg::make_identity<T, N>();
     if constexpr (Type == NormBallType::L2) {
       linalg::Matrix<T, N + 1, N + 1> F;

@@ -144,7 +144,8 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
    *
    * smat(u) >= 0, t>= 0
    */
-  constexpr auto canonicalize() const {
+  template <OrigType Type, BuilderLike Builder>
+  constexpr auto canonicalize(const Builder& /* builder */) const {
     static constexpr size_t K = N * (N + 1) / 2;
     linalg::Matrix<T, K + 1, N + 1> F;
     for (size_t i = 0; i < N; ++i) {
