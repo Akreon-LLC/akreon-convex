@@ -50,8 +50,8 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
 
 template <size_t idx = 0, typename Children, typename Builder, typename Fn,
           affine::AffineMapLike Map>
-constexpr auto tuple_fold_left(Children&& children, Builder&& builder, Fn&& fn,
-                               Map&& selector) {
+constexpr auto tuple_fold_sum(Children&& children, Builder&& builder, Fn&& fn,
+                              Map&& selector) {
   constexpr size_t N = std::tuple_size_v<std::remove_reference_t<Children>>;
   if constexpr (idx == N)
     return std::tuple(selector, std::forward<Builder>(builder));
@@ -60,9 +60,9 @@ constexpr auto tuple_fold_left(Children&& children, Builder&& builder, Fn&& fn,
     auto new_builder =
         std::forward<Fn>(fn)(child, std::forward<Builder>(builder));
     auto new_selector = update_selector(selector, new_builder.coord_map);
-    return tuple_fold_left<idx + 1>(
-        std::forward<Children>(children), std::move(new_builder),
-        std::forward<Fn>(fn), std::move(new_selector));
+    return tuple_fold_sum<idx + 1>(std::forward<Children>(children),
+                                   std::move(new_builder), std::forward<Fn>(fn),
+                                   std::move(new_selector));
   }
 }
 
@@ -79,19 +79,36 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   constexpr explicit Sum(const Cs... cs)
       : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
 
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
+    static_assert(Type != AtomType::SET, "Minkowski sum is not yet supported");
+
     auto canonicalize_child = [&](const auto& child, const auto& builder_in) {
-      return child.template canonicalize<OrigType::OP>(builder_in);
+      return child.template canonicalize<AtomType::ADD>(builder_in);
     };
-    const auto res = tuple_fold_left(this->children, builder,
-                                     canonicalize_child, builder.coord_map);
+    const auto res = tuple_fold_sum(this->children, builder, canonicalize_child,
+                                    builder.coord_map);
     const auto selector = std::get<0>(res);
     const auto new_builder = std::get<1>(res);
     return ConeBlockBuilder<builder_dom_t<Builder>, decltype(selector),
                             decltype(new_builder.cb)>(selector, new_builder.cb);
   }
 };
+
+template <size_t idx = 0, typename Children, typename Builder, typename Fn>
+constexpr auto tuple_fold_cap(Children&& children, Builder&& builder, Fn&& fn) {
+  constexpr size_t N = std::tuple_size_v<std::remove_reference_t<Children>>;
+  if constexpr (idx == N)
+    return std::forward<Builder>(builder);
+  else {
+    auto&& child = std::get<idx>(std::forward<Children>(children));
+    auto new_builder =
+        std::forward<Fn>(fn)(child, std::forward<Builder>(builder));
+    return tuple_fold_cap<idx + 1>(std::forward<Children>(children),
+                                   std::move(new_builder),
+                                   std::forward<Fn>(fn));
+  }
+}
 
 template <typename Meta, typename... Cs>
 struct Intersection : Atom<Meta, Intersection<Meta, Cs...>, Cs...> {
@@ -101,6 +118,16 @@ struct Intersection : Atom<Meta, Intersection<Meta, Cs...>, Cs...> {
 
   constexpr explicit Intersection(const Cs... cs)
       : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
+
+  template <AtomType Type, BuilderLike Builder>
+  constexpr auto canonicalize_impl(const Builder& builder) const {
+    static_assert(Type == AtomType::SET || Type == AtomType::CAP,
+                  "Intersection is only supported on convex sets");
+    auto canonicalize_child = [&](const auto& child, const auto& builder_in) {
+      return child.template canonicalize<AtomType::CAP>(builder_in);
+    };
+    return tuple_fold_cap(this->children, builder, canonicalize_child);
+  }
 
   constexpr bool contains(const PointT& x) const {
     bool rv = true;

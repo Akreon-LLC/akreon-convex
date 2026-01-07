@@ -88,7 +88,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
     return ScalarView(idx, std::get<0>(this->children), new_map);
   }
 
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto cb = builder.cb;
     return ConeBlockBuilder<builder_dom_t<Builder>, decltype(map),
@@ -146,7 +146,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
     return Variable(new_map);
   }
 
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto cb = builder.cb;
     return ConeBlockBuilder<builder_dom_t<Builder>, decltype(map),

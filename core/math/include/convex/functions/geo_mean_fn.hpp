@@ -183,11 +183,11 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
-            .template canonicalize<OrigType::FN>(builder);
+            .template canonicalize<AtomType::FN>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
 

@@ -184,7 +184,7 @@ struct Atom {
     }
   }
 
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
     return self().template canonicalize_impl<Type>(builder);
   }

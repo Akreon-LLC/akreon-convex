@@ -145,11 +145,11 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    *
    * @return cone block
    */
-  template <OrigType OType, BuilderLike Builder>
+  template <AtomType AType, BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
-            .template canonicalize<OrigType::SET>(builder);
+            .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
 
@@ -166,12 +166,12 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
     linalg::Vector<T, 2> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    const auto cones = std::make_tuple(rplus, rplus);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    const auto new_map = new_builder.template update_map<OType>();
-    return conic::ConeBlock(new_map, rplus, rplus);
+    return new_builder.template make<AType>(this->idx, this->lift_map, cones);
   }
 
   /** @brief member variables in the halfspace */

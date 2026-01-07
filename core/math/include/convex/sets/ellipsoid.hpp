@@ -148,11 +148,11 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
-            .template canonicalize<OrigType::SET>(builder);
+            .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
 
@@ -182,12 +182,12 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     for (size_t i = 0; i < N; ++i) g[i] = wc(i);
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
+    const auto cones = std::make_tuple(soc);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    const auto new_map = new_builder.template update_map<Type>();
-    return conic::ConeBlock(new_map, soc);
+    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
   }
 
   /** @brief member variables in the ellipsoid */

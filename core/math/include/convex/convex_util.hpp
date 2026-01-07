@@ -76,7 +76,7 @@ struct ConeBlockBuilder {
    *
    * @return map
    */
-  template <OrigType Type>
+  template <AtomType Type>
   constexpr auto update_map() const {
     const auto& cone_map = cb.map;
     using ConeMapT = affine::affine_mat_t<decltype(cone_map)>;
@@ -95,13 +95,13 @@ struct ConeBlockBuilder {
 
     /// (dakre) F cols: [ dec vars | cone aux | coord aux ]
     static constexpr size_t FullDom =
-        Type == OrigType::OP ? N + ConeAux + CoordAux : CoordDom;
+        Type == AtomType::ADD ? N + ConeAux + CoordAux : CoordDom;
     static constexpr size_t FullCodom = ConeCodom + CoordCodom;
 
     static constexpr size_t CoordAuxStartCol =
-        Type == OrigType::OP ? ((ConeDom == 0) ? N : ConeDom) : N;
+        Type == AtomType::ADD ? ((ConeDom == 0) ? N : ConeDom) : N;
     static constexpr size_t CoordAuxEndCol =
-        Type == OrigType::OP ? CoordAuxStartCol + CoordAux : FullDom;
+        Type == AtomType::ADD ? CoordAuxStartCol + CoordAux : FullDom;
 
     linalg::Matrix<T, FullCodom, FullDom> F{};
     linalg::Vector<T, FullCodom> g{};
@@ -138,7 +138,7 @@ struct ConeBlockBuilder {
    *
    * @return new cone block builder
    */
-  template <OrigType Type, affine::AffineMapLike LiftedMap,
+  template <AtomType Type, affine::AffineMapLike LiftedMap,
             conic::ConeLike... Cs>
   constexpr auto make(const int& idx, const LiftedMap& lift_map,
                       const std::tuple<Cs...>& cones) const {

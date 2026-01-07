@@ -61,7 +61,9 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    */
   constexpr explicit AffineSubspace(const Mat& A_in, const AmbientVec& b_in,
                                     const Child& child_in)
-      : ConvexBase(child_in), A(A_in), b(b_in) {}
+      : ConvexBase(child_in),
+        A(A_in),
+        b(b_in) {}
 
   /**
    * @brief contains function
@@ -131,11 +133,11 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
-            .template canonicalize<OrigType::SET>(builder);
+            .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
 
@@ -160,8 +162,8 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    const auto new_map = new_builder.template update_map<Type>();
-    return conic::ConeBlock(new_map, std::make_tuple(zoc, rplus));
+    const auto cones = std::make_tuple(zoc, rplus);
+    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
   }
 
   /** @brief data members for affine subspace */

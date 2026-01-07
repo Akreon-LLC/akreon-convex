@@ -38,7 +38,7 @@ TEST_CASE("Test abs function", "[convex_fn]") {
                              1.0, 0.0, 0.0, 0.0, 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = abs_fn.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = abs_fn.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -62,7 +62,7 @@ TEST_CASE("Test abs function", "[convex_fn]") {
     constexpr auto F1 = F1_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, -1.0, -1.0,
                                0.0, 1.0, 0.0, 0.0, 0.0, -1.0);
 
-    constexpr auto builder1 = abs_concave.canonicalize<OrigType::FN>(builder);
+    constexpr auto builder1 = abs_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
@@ -87,7 +87,7 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
     STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}).value() == 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = exp_fn.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = exp_fn.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -109,7 +109,7 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
     STATIC_REQUIRE(exp_concave(Vectord<1>{0.0}).value() == -1.0);
 
     constexpr auto F1 = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, -1.0);
-    constexpr auto builder1 = exp_concave.canonicalize<OrigType::FN>(builder);
+    constexpr auto builder1 = exp_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
@@ -139,7 +139,7 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
                       3.0) <= eps);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = geo_mean.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = geo_mean.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -165,7 +165,7 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
               0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0);
 
     constexpr auto builder1 =
-        geo_mean_convex.canonicalize<OrigType::FN>(builder);
+        geo_mean_convex.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
@@ -196,7 +196,7 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
     constexpr auto F = F_mat(0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = inv_pos_fn.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = inv_pos_fn.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -224,7 +224,7 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
     constexpr auto F1 = F1_mat(0.0, 0.0, 1.0, 0.0, 0.0, -1.0);
 
     constexpr auto builder1 =
-        inv_pos_concave.canonicalize<OrigType::FN>(builder);
+        inv_pos_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
@@ -250,7 +250,7 @@ TEST_CASE("Test log function", "[convex_fn]") {
     STATIC_REQUIRE(log_fn(Vectord<1>{1.0}).value() == 0.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = log_fn.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = log_fn.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -274,7 +274,7 @@ TEST_CASE("Test log function", "[convex_fn]") {
 
     constexpr auto F1 = F_mat(0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
 
-    constexpr auto builder1 = log_convex.canonicalize<OrigType::FN>(builder);
+    constexpr auto builder1 = log_convex.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
@@ -307,7 +307,7 @@ TEST_CASE("Test max fn") {
               0.0, 0.0, -1.0, 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = max_fn.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = max_fn.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -331,7 +331,7 @@ TEST_CASE("Test max fn") {
 
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
 
-    constexpr auto builder1 = max_concave.canonicalize<OrigType::FN>(builder);
+    constexpr auto builder1 = max_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
@@ -368,7 +368,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     constexpr auto F = F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = norm.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = norm.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -383,7 +383,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(canon_cb.validate());
 
     constexpr auto norm_concave = norm.mul<-1.0>().add(0.0);
-    constexpr auto builder1 = norm_concave.canonicalize<OrigType::FN>(builder);
+    constexpr auto builder1 = norm_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
@@ -410,7 +410,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
         F_mat(1.0, 0.0, 1.0, 0.0, 1.0, 1.0, -1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = norm.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = norm.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -425,7 +425,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(canon_cb.validate());
 
     constexpr auto norm_concave = norm.mul<-1.0>().add(0.0);
-    constexpr auto builder1 = norm_concave.canonicalize<OrigType::FN>(builder);
+    constexpr auto builder1 = norm_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
@@ -454,7 +454,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
               0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = norm.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = norm.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -475,7 +475,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
         F_mat(1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0,
               0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0);
 
-    constexpr auto builder1 = norm_concave.canonicalize<OrigType::FN>(builder);
+    constexpr auto builder1 = norm_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
@@ -503,7 +503,7 @@ TEST_CASE("Test square function", "[convex_fn]") {
     constexpr auto F = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = square_fn.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = square_fn.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -526,7 +526,7 @@ TEST_CASE("Test square function", "[convex_fn]") {
 
     constexpr auto F1 = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, -1.0);
     constexpr auto builder1 =
-        square_concave.canonicalize<OrigType::FN>(builder);
+        square_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
@@ -568,7 +568,7 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
                                                   0.0, 0.0, 0.0, 0.0, 1.0};
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder = lse.canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = lse.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -596,7 +596,7 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
               0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
               0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, -1.0);
 
-    constexpr auto builder1 = lse_concave.canonicalize<OrigType::FN>(builder);
+    constexpr auto builder1 = lse_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 

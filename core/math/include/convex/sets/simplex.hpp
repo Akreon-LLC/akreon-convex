@@ -155,11 +155,11 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
    * [ I    0 ] [ x; t ]
    * [ -1^T 1 ]
    */
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
-            .template canonicalize<OrigType::SET>(builder);
+            .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
 
@@ -177,12 +177,12 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
     const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    const auto cones = std::make_tuple(rplus1, rplus2);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    const auto new_map = new_builder.template update_map<Type>();
-    return conic::ConeBlock(new_map, rplus1, rplus2);
+    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
   }
 };
 

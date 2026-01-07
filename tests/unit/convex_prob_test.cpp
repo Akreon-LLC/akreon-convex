@@ -44,7 +44,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
     constexpr auto builder = create_empty_cblk_builder<MatT>();
     constexpr auto new_builder =
-        four_x_plus_two.template canonicalize<OrigType::FN>(builder);
+        four_x_plus_two.template canonicalize<AtomType::FN>(builder);
     constexpr auto canon1_map = new_builder.coord_map;
     constexpr auto canon1_cb = new_builder.cb;
 
@@ -72,7 +72,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(two_x0_plus_one.map.translation() == Vectord<1>{1.0});
 
     constexpr auto new_builder2 =
-        two_x0_plus_one.template canonicalize<OrigType::FN>(builder);
+        two_x0_plus_one.template canonicalize<AtomType::FN>(builder);
     constexpr auto canon2_map = new_builder2.coord_map;
     constexpr auto canon2_cb = new_builder2.cb;
     STATIC_REQUIRE(canon2_map.linear_part() == mat(2.0));
@@ -85,7 +85,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
 
     constexpr auto new_builder3 =
-        sum.template canonicalize<OrigType::FN>(builder);
+        sum.template canonicalize<AtomType::FN>(builder);
     constexpr auto canon3_map = new_builder3.coord_map;
     constexpr auto canon3_cb = new_builder3.cb;
 
@@ -108,7 +108,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(is_var_type_v<decltype(x)>);
 
     constexpr auto builder = create_empty_cblk_builder<MatT>();
-    constexpr auto new_builder = x.template canonicalize<OrigType::FN>(builder);
+    constexpr auto new_builder = x.template canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     STATIC_REQUIRE(canon_map == affine::make_map_id<Matrixd<5, 5>>());
 
@@ -148,7 +148,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder =
-        abs_fn.template canonicalize<OrigType::FN>(builder);
+        abs_fn.template canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -189,7 +189,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder =
-        abs_abs_x.template canonicalize<OrigType::FN>(builder);
+        abs_abs_x.template canonicalize<AtomType::FN>(builder);
     constexpr auto canon_cb = new_builder.cb;
 
     constexpr auto cones = canon_cb.cones;
@@ -230,7 +230,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
     constexpr auto builder = create_empty_cblk_builder<MatT>();
     constexpr auto new_builder =
-        sum.template canonicalize<OrigType::OP>(builder);
+        sum.template canonicalize<AtomType::ADD>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     constexpr auto canon_cb = new_builder.cb;
 
@@ -248,7 +248,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(std::tuple_size<decltype(sum_abs.children)>::value == 2);
 
     constexpr auto new_builder2 =
-        sum_abs.template canonicalize<OrigType::OP>(builder);
+        sum_abs.template canonicalize<AtomType::ADD>(builder);
 
     constexpr auto canon2_map = new_builder2.coord_map;
 
@@ -271,5 +271,27 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
               1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(map.linear_part(), F));
     STATIC_REQUIRE(map.translation() == Vectord<10>{});
+  }
+
+  SECTION("Intersection of sets") {
+    using Space = Matrixd<1, 3>;
+    constexpr Vector<double, 3> point{1.0, 2.0, 3.0};
+    constexpr auto b = 0.6;
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> hyperplane(point,
+                                                                        b, x);
+    STATIC_REQUIRE(hyperplane.is_well_formed());
+
+    constexpr auto r = 2.0;
+    constexpr auto ball =
+        NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L2>(
+            Vectord<3>{}, r, x);
+    STATIC_REQUIRE(ball.is_well_formed());
+
+#if 0
+    constexpr auto intersect =
+        Intersection<IntersectionMeta<Space>, decltype(hyperplane),
+                     decltype(ball)>(hyperplane, ball);
+#endif
   }
 }

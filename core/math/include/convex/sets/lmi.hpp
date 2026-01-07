@@ -144,11 +144,11 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
    *
    * smat(u) >= 0, t>= 0
    */
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
-            .template canonicalize<OrigType::SET>(builder);
+            .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
 
@@ -172,17 +172,17 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
     const auto psd_cone =
         conic::PositiveSemidefiniteCone<linalg::Vector<T, K>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    const auto cones = std::make_tuple(psd_cone, rplus);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    const auto new_map = new_builder.template update_map<Type>();
-    return conic::ConeBlock(new_map, psd_cone, rplus);
+    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
   }
 
   /** @brief member vars for LMI */
-  linalg::Vector<Mat, N> A;
-  Mat B;
+  linalg::Vector<Mat, N> A;  ///< LMI of As
+  Mat B;                     ///< B offset
 };
 
 }  // namespace convex

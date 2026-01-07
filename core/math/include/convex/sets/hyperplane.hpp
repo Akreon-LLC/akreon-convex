@@ -123,11 +123,11 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  template <OrigType Type, BuilderLike Builder>
+  template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
-            .template canonicalize<OrigType::SET>(builder);
+            .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
 
@@ -145,12 +145,12 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, 1>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    const auto cones = std::make_tuple(zoc, rplus);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    const auto new_map = new_builder.template update_map<Type>();
-    return conic::ConeBlock(new_map, zoc, rplus);
+    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
   }
 
   /** @brief member var in hyperplane */
