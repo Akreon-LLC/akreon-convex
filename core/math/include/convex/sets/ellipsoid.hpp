@@ -149,7 +149,19 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    * @return cone block
    */
   template <OrigType Type, BuilderLike Builder>
-  constexpr auto canonicalize_set(const Builder& /* builder */) const {
+  constexpr auto canonicalize_set(const Builder& builder) const {
+    const auto child_builder =
+        std::get<0>(this->children)
+            .template canonicalize<OrigType::SET>(builder);
+    const auto child_coord = child_builder.coord_map;
+    const auto child_cb = child_builder.cb;
+
+    static constexpr size_t ChildCodom =
+        linalg::mat_cols_v<decltype(child_coord.linear_part())>;
+    static_assert(ChildCodom == N,
+                  "Convex set domain does not equal the child coordinate "
+                  "linear map's codomain in size");
+
     linalg::Matrix<T, N + 1, N + 1> F;
     linalg::Vector<T, N + 1> g;
     const auto eig_decomp = linalg::EigenDecomposition(P);
@@ -170,7 +182,12 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     for (size_t i = 0; i < N; ++i) g[i] = wc(i);
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
-    return conic::ConeBlock(map, soc);
+
+    const auto new_builder =
+        ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+                         decltype(child_cb)>(map, child_cb);
+    const auto new_map = new_builder.template update_map<Type>();
+    return conic::ConeBlock(new_map, soc);
   }
 
   /** @brief member variables in the ellipsoid */

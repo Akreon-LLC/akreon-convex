@@ -107,6 +107,14 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
                    CurvatureType::AFFINE);
     STATIC_REQUIRE(is_var_type_v<decltype(x)>);
 
+    constexpr auto builder = create_empty_cblk_builder<MatT>();
+    constexpr auto new_builder = x.template canonicalize<OrigType::FN>(builder);
+    constexpr auto canon_map = new_builder.coord_map;
+    STATIC_REQUIRE(canon_map == affine::make_map_id<Matrixd<5, 5>>());
+
+    constexpr auto canon_cb = new_builder.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 0);
+
     constexpr auto three_x = x.mul(3.0);
     constexpr auto three_I = 3.0 * make_identity<double, 5>();
     STATIC_REQUIRE(three_x.map.linear_part() == three_I);

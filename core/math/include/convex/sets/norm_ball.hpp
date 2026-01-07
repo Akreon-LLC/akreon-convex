@@ -290,7 +290,19 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    * [ 0  -1^T r ]
    */
   template <OrigType OType, BuilderLike Builder>
-  constexpr auto canonicalize_set(const Builder& /* builder*/) const {
+  constexpr auto canonicalize_set(const Builder& builder) const {
+    const auto child_builder =
+        std::get<0>(this->children)
+            .template canonicalize<OrigType::SET>(builder);
+    const auto child_coord = child_builder.coord_map;
+    const auto child_cb = child_builder.cb;
+
+    static constexpr size_t ChildCodom =
+        linalg::mat_cols_v<decltype(child_coord.linear_part())>;
+    static_assert(ChildCodom == N,
+                  "Convex set domain does not equal the child coordinate "
+                  "linear map's codomain in size");
+
     const auto I = linalg::make_identity<T, N>();
     if constexpr (Type == NormBallType::L2) {
       linalg::Matrix<T, N + 1, N + 1> F;
@@ -301,7 +313,12 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto map = affine::AffineMap<decltype(F)>(F, g);
       const auto soc = conic::SecondOrderCone<linalg::Vector<T, N>>();
       const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-      return conic::ConeBlock(map, soc, rplus);
+
+      const auto new_builder =
+          ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+                           decltype(child_cb)>(map, child_cb);
+      const auto new_map = new_builder.template update_map<OType>();
+      return conic::ConeBlock(new_map, soc, rplus);
     } else if constexpr (Type == NormBallType::Linf) {
       linalg::Matrix<T, 2 * N, N + 1> F;
       F = linalg::set_block<0, N, 0, N>(F, I);
@@ -313,7 +330,12 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g[i] = c(j);
       const auto map = affine::AffineMap<decltype(F)>(F, g);
       const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
-      return conic::ConeBlock(map, rplus, rplus);
+
+      const auto new_builder =
+          ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+                           decltype(child_cb)>(map, child_cb);
+      const auto new_map = new_builder.template update_map<OType>();
+      return conic::ConeBlock(new_map, rplus, rplus);
     } else {
       linalg::Matrix<T, 2 * N + 1, 2 * N + 1> F;
       F = linalg::set_block<0, N, 0, N>(F, I);
@@ -328,7 +350,12 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto map = affine::AffineMap<decltype(F)>(F, g);
       const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-      return conic::ConeBlock(map, rplus1, rplus1, rplus2);
+
+      const auto new_builder =
+          ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+                           decltype(child_cb)>(map, child_cb);
+      const auto new_map = new_builder.template update_map<OType>();
+      return conic::ConeBlock(new_map, rplus1, rplus1, rplus2);
     }
   }
 

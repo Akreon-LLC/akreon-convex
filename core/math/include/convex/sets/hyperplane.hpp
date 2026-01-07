@@ -124,7 +124,19 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    * @return cone block
    */
   template <OrigType Type, BuilderLike Builder>
-  constexpr auto canonicalize_set(const Builder& /* builder */) const {
+  constexpr auto canonicalize_set(const Builder& builder) const {
+    const auto child_builder =
+        std::get<0>(this->children)
+            .template canonicalize<OrigType::SET>(builder);
+    const auto child_coord = child_builder.coord_map;
+    const auto child_cb = child_builder.cb;
+
+    static constexpr size_t ChildCodom =
+        linalg::mat_cols_v<decltype(child_coord.linear_part())>;
+    static_assert(ChildCodom == N,
+                  "Convex set domain does not equal the child coordinate "
+                  "linear map's codomain in size");
+
     linalg::Matrix<T, 2, N + 1> F;
     F = linalg::set_block<0, 1, 0, N>(F, linalg::as_row_vector(a));
     F[0][N] = T(-1) * b;
@@ -133,7 +145,12 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, 1>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    return conic::ConeBlock(map, zoc, rplus);
+
+    const auto new_builder =
+        ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+                         decltype(child_cb)>(map, child_cb);
+    const auto new_map = new_builder.template update_map<Type>();
+    return conic::ConeBlock(new_map, zoc, rplus);
   }
 
   /** @brief member var in hyperplane */

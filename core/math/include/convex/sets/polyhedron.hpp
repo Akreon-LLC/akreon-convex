@@ -157,13 +157,34 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    */
   template <OrigType Type, BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
+    const auto child_builder =
+        std::get<0>(this->children)
+            .template canonicalize<OrigType::SET>(builder);
+    const auto child_coord = child_builder.coord_map;
+    const auto child_cb = child_builder.cb;
+
+    static constexpr size_t ChildCodom =
+        linalg::mat_cols_v<decltype(child_coord.linear_part())>;
+    static_assert(ChildCodom == N,
+                  "Convex set domain does not equal the child coordinate "
+                  "linear map's codomain in size");
+
     std::tuple<> empty;
     static constexpr size_t Codom = 2 * M;
     static constexpr size_t Dom = N + 1;
     linalg::Matrix<T, Codom, Dom> F;
     linalg::Vector<T, Codom> g;
     conic::ConeBlock cb(affine::AffineMap(F, g), empty);
-    return canonicalize_halfspaces<0>(builder, cb);
+
+    const auto new_cb = canonicalize_halfspaces<0>(builder, cb);
+    const auto map = new_cb.map;
+    const auto cones = new_cb.cones;
+
+    const auto new_builder =
+        ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+                         decltype(child_cb)>(map, child_cb);
+    const auto new_map = new_builder.template update_map<Type>();
+    return conic::ConeBlock(new_map, cones);
   }
 
   /**

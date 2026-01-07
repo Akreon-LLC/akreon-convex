@@ -44,6 +44,8 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
   using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
+  static_assert(M == N, "Affine subspace's linear map must be square");
+
   /// @brief linear map
   using Mat = linalg::Matrix<T, M, N>;
 
@@ -130,16 +132,36 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    * @return cone block
    */
   template <OrigType Type, BuilderLike Builder>
-  constexpr auto canonicalize_set(const Builder& /*builder*/) const {
+  constexpr auto canonicalize_set(const Builder& builder) const {
+    const auto child_builder =
+        std::get<0>(this->children)
+            .template canonicalize<OrigType::SET>(builder);
+    const auto child_coord = child_builder.coord_map;
+    const auto child_cb = child_builder.cb;
+
+    static constexpr size_t ChildCodom =
+        linalg::mat_cols_v<decltype(child_coord.linear_part())>;
+    static_assert(ChildCodom == N,
+                  "Convex set domain does not equal the child coordinate "
+                  "linear map's codomain in size");
+
     linalg::Matrix<T, M + 1, N + 1> F;
-    F = linalg::set_block<0, M, 0, N>(F, A);
-    F = linalg::set_block<0, M, N, N + 1>(F, linalg::as_col_vector(T(-1) * b));
-    F[M][N] = T(1);
     linalg::Vector<T, M + 1> g;
+    const auto composed_map = affine::AffineMap<Mat>(A, b).compose(child_coord);
+    F = linalg::set_block<0, M, 0, N>(F, composed_map.linear_part());
+    F = linalg::set_block<0, M, N, N + 1>(
+        F, linalg::as_col_vector(T(-1) * composed_map.translation()));
+    F[M][N] = T(1);
+
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, M>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    return conic::ConeBlock(map, zoc, rplus);
+
+    const auto new_builder =
+        ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+                         decltype(child_cb)>(map, child_cb);
+    const auto new_map = new_builder.template update_map<Type>();
+    return conic::ConeBlock(new_map, std::make_tuple(zoc, rplus));
   }
 
   /** @brief data members for affine subspace */

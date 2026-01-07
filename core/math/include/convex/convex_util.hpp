@@ -72,17 +72,12 @@ struct ConeBlockBuilder {
       : coord_map(coord_in), cb(cb_in) {}
 
   /**
-   * @brief make new builder
+   * @brief make new map
    *
-   * @param selector idx from start aux col
-   * @param emitted cones from child
-   *
-   * @return new cone block builder
+   * @return map
    */
-  template <OrigType Type, affine::AffineMapLike LiftedMap,
-            conic::ConeLike... Cs>
-  constexpr auto make(const int& idx, const LiftedMap& lift_map,
-                      const std::tuple<Cs...>& cones) const {
+  template <OrigType Type>
+  constexpr auto update_map() const {
     const auto& cone_map = cb.map;
     using ConeMapT = affine::affine_mat_t<decltype(cone_map)>;
 
@@ -131,6 +126,26 @@ struct ConeBlockBuilder {
     for (size_t i = 0; i < CoordCodom; ++i)
       g[i + ConeCodom] = coord_map.translation()(i);
 
+    const auto new_map = affine::AffineMap<decltype(F)>(F, g);
+    return new_map;
+  }
+
+  /**
+   * @brief make new builder
+   *
+   * @param selector idx from start aux col
+   * @param emitted cones from child
+   *
+   * @return new cone block builder
+   */
+  template <OrigType Type, affine::AffineMapLike LiftedMap,
+            conic::ConeLike... Cs>
+  constexpr auto make(const int& idx, const LiftedMap& lift_map,
+                      const std::tuple<Cs...>& cones) const {
+    const auto new_map = this->template update_map<Type>();
+    static constexpr size_t FullDom =
+        linalg::mat_cols_v<decltype(new_map.linear_part())>;
+
     linalg::Vector<T, FullDom> sel{};
     linalg::Vector<T, 1> bias{lift_map.translation()(0)};
     if (FullDom + idx >= FullDom)
@@ -140,7 +155,6 @@ struct ConeBlockBuilder {
     const auto sel_row = linalg::as_row_vector(sel);
     const auto new_coord_map =
         affine::AffineMap<decltype(sel_row)>(sel_row, bias);
-    const auto new_map = affine::AffineMap<decltype(F)>(F, g);
     const auto new_cb =
         conic::ConeBlock(new_map, std::tuple_cat(cb.cones, cones));
     return ConeBlockBuilder<DecVarDom, decltype(new_coord_map),
