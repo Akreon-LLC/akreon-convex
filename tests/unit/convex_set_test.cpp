@@ -243,6 +243,8 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
 
     constexpr auto cone_block1 =
         res.template canonicalize<AtomType::CAP>(builder).cb;
+    STATIC_REQUIRE(mat_cols_v<decltype(cone_block1.map.linear_part())> == 5);
+    STATIC_REQUIRE(mat_rows_v<decltype(cone_block1.map.linear_part())> == 8);
 
     constexpr auto cones1 = cone_block1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;

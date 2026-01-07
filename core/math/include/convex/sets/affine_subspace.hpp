@@ -61,9 +61,7 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    */
   constexpr explicit AffineSubspace(const Mat& A_in, const AmbientVec& b_in,
                                     const Child& child_in)
-      : ConvexBase(child_in),
-        A(A_in),
-        b(b_in) {}
+      : ConvexBase(child_in), A(A_in), b(b_in) {}
 
   /**
    * @brief contains function

@@ -93,15 +93,17 @@ struct ConeBlockBuilder {
     static constexpr size_t ConeAux = ConeDom == 0 ? 0 : ConeDom - N;
     static constexpr size_t CoordAux = CoordDom - N;
 
+    static constexpr bool is_op =
+        Type == AtomType::ADD || Type == AtomType::CAP;
+
     /// (dakre) F cols: [ dec vars | cone aux | coord aux ]
-    static constexpr size_t FullDom =
-        Type == AtomType::ADD ? N + ConeAux + CoordAux : CoordDom;
+    static constexpr size_t FullDom = is_op ? N + ConeAux + CoordAux : CoordDom;
     static constexpr size_t FullCodom = ConeCodom + CoordCodom;
 
     static constexpr size_t CoordAuxStartCol =
-        Type == AtomType::ADD ? ((ConeDom == 0) ? N : ConeDom) : N;
+        is_op ? ((ConeDom == 0) ? N : ConeDom) : N;
     static constexpr size_t CoordAuxEndCol =
-        Type == AtomType::ADD ? CoordAuxStartCol + CoordAux : FullDom;
+        is_op ? CoordAuxStartCol + CoordAux : FullDom;
 
     linalg::Matrix<T, FullCodom, FullDom> F{};
     linalg::Vector<T, FullCodom> g{};
