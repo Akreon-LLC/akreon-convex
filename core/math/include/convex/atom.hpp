@@ -106,7 +106,7 @@ struct Atom {
             break;
           }
           case SignType::NONNEG: {
-            if (child_sign != SignType::POS || child_sign != SignType::NONNEG)
+            if (child_sign != SignType::POS && child_sign != SignType::NONNEG)
               throw std::domain_error(
                   "Parent expects non-negative child codomain");
             break;
@@ -117,7 +117,7 @@ struct Atom {
             break;
           }
           case SignType::NONPOS: {
-            if (child_sign != SignType::NONPOS || child_sign != SignType::NEG)
+            if (child_sign != SignType::NONPOS && child_sign != SignType::NEG)
               throw std::domain_error(
                   "Parent expects non-positive child codomain");
             break;
@@ -129,7 +129,7 @@ struct Atom {
             break;
           }
           case SignType::PSD: {
-            if (child_sign != SignType::PSD || child_sign != SignType::PD)
+            if (child_sign != SignType::PSD && child_sign != SignType::PD)
               throw std::domain_error(
                   "Parent expects positive semi-definite child codomain");
             break;
@@ -141,7 +141,7 @@ struct Atom {
             break;
           }
           case SignType::NSD: {
-            if (child_sign != SignType::NSD || child_sign != SignType::ND)
+            if (child_sign != SignType::NSD && child_sign != SignType::ND)
               throw std::domain_error(
                   "Parent expects negative semi-definite child codomain");
             break;

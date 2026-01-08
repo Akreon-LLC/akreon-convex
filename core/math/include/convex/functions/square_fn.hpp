@@ -222,9 +222,9 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
 
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F[2][1] = T(1);
+      F[2][Dom] = T(1);
     } else {
-      F[2][1] = T(-1);
+      F[2][Dom] = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

@@ -201,11 +201,9 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
    * -------------
    * [ 0  0 -1^T ]
    *
-   * @param cone map builder
-   * @param coord map
-   * @param cone block
+   * @param cone block builder
    *
-   * @return cone block
+   * @return cone block builder
    */
   template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
@@ -219,8 +217,10 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
     static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
     static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == N,
-                  "input affine map from cone block has invalid dom which is a "
+                  "Input affine map from cone block has invalid dom which is a "
                   "mismatch between domain in the convex function");
+    static_assert(Dom == N,
+                  "Expecting child affine map to have square linear part");
     linalg::Matrix<T, 2 * N + 2, 2 * Dom + 1> F;
     linalg::Vector<T, 2 * N + 2> g;
     F = linalg::set_block<0, N, 0, Dom>(F, child_coord.linear_part());

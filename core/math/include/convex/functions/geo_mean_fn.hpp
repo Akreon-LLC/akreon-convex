@@ -178,10 +178,8 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
    * [ 0 -1 ]
    *
    * @param cone map builder
-   * @param coord_map
-   * @param cone_block
    *
-   * @return cone block
+   * @return cone block builder
    */
   template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
@@ -204,9 +202,9 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
 
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F[N][N] = T(-1);
+      F[N][Dom] = T(-1);
     } else {
-      F[N][N] = T(1);
+      F[N][Dom] = T(1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

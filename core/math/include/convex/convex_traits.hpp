@@ -152,6 +152,11 @@ struct InvPos;
 template <typename Meta, typename Child>
 struct LogSumExp;
 
+/// @brief forward declaration - log sum exp fn
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+struct Sqrt;
+
 template <typename Meta, typename... Cs>
 struct Sum;
 
@@ -294,6 +299,12 @@ struct atom_traits<Square<Meta, Child>> {
 
 template <typename Meta, typename Child, linalg::NormLike NormFunc>
 struct atom_traits<Norm<Meta, Child, NormFunc>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Sqrt<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };

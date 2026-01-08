@@ -218,7 +218,9 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
    * [  0    1  0 ]
    * [  0    0 -1 ]
    *
-   * @return cone block
+   * @param cone block builder
+   *
+   * @return cone block builder
    */
   template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {

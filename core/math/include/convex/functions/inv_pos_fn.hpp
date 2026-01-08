@@ -182,9 +182,9 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
    * [ a^T  0 ]
    * [ 0   -1 ]
    *
-   * @param cone block
+   * @param cone block builder
    *
-   * @return cone block
+   * @return cone block builder
    */
   template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
@@ -208,9 +208,9 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
 
     static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F[2][1] = T(1);
+      F[2][Dom] = T(1);
     } else {
-      F[2][1] = T(-1);
+      F[2][Dom] = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

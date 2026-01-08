@@ -610,3 +610,57 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     STATIC_REQUIRE(canon_cb1.validate());
   }
 }
+
+TEST_CASE("Square Root Function", "[convex_fn]") {
+  SECTION("Test sqrt function") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto x = Variable<PosVarMeta<Space>>();
+    constexpr auto sqrt_fn = Sqrt<SqrtMeta<Space>, decltype(x)>(x);
+    STATIC_REQUIRE(sqrt_fn(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(sqrt_fn(Vectord<1>{0.0}).value() == constexpr_sqrt(0.0));
+    STATIC_REQUIRE(sqrt_fn(Vectord<1>{2.0}).has_value());
+    STATIC_REQUIRE(sqrt_fn(Vectord<1>{2.0}).value() == constexpr_sqrt(2.0));
+
+    constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
+    constexpr auto F = F_mat(0.0, 1.0, 0.0, 0.0, 1.0, 0.0);
+
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto new_builder = sqrt_fn.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map = new_builder.coord_map;
+    constexpr auto canon_cb = new_builder.cb;
+
+    constexpr linalg::Vector<double, 2> coord{0.0, 1.0};
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
+
+    STATIC_REQUIRE(canon_cb.map ==
+                   affine::AffineMap(F, Vectord<3>{0.0, 0.5, 0.0}));
+
+    constexpr auto cones = canon_cb.cones;
+    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+    STATIC_REQUIRE(sz == 1);
+    STATIC_REQUIRE(canon_cb.validate());
+
+    constexpr auto sqrt_concave = sqrt_fn.mul<-1.0>().add(0.0);
+    STATIC_REQUIRE(sqrt_concave(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(sqrt_concave(Vectord<1>{0.0}).value() ==
+                   -1.0 * constexpr_sqrt(0.0));
+    STATIC_REQUIRE(sqrt_concave(Vectord<1>{1.0}).has_value());
+    STATIC_REQUIRE(sqrt_concave(Vectord<1>{1.0}).value() ==
+                   -1.0 * constexpr_sqrt(1.0));
+
+    constexpr auto F1 = F_mat(0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
+    constexpr auto builder1 = sqrt_concave.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map1 = builder1.coord_map;
+    constexpr auto canon_cb1 = builder1.cb;
+
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
+
+    STATIC_REQUIRE(canon_cb1.map ==
+                   affine::AffineMap(F1, Vectord<3>{0.0, 0.5, 0.0}));
+
+    constexpr auto cones1 = canon_cb1.cones;
+    constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
+    STATIC_REQUIRE(sz1 == 1);
+    STATIC_REQUIRE(canon_cb1.validate());
+  }
+}

@@ -195,8 +195,10 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
     static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
     static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == N,
-                  "input affine map from cone block has invalid dom which is a "
+                  "Input affine map from cone block has invalid dom which is a "
                   "mismatch between domain in the convex function");
+    static_assert(Dom == N,
+                  "Expecting child affine map to have square linear part");
     linalg::Matrix<T, N, Dom + 1> F;
     F = linalg::set_block<0, N, 0, Dom>(F, T(-1) * child_coord.linear_part());
 
