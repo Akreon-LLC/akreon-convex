@@ -15,37 +15,56 @@
 #include <optional>
 #include <tuple>
 
+#include "algebra/solver_traits.hpp"
 #include "convex_traits.hpp"
 #include "convex_util.hpp"
 
 namespace convex {
 
-/// @brief alias for scalar var domain
+/// @brief alias for free var domain
 template <linalg::RnSpace Dom>
 using FreeVarDom = ConvexDomain<Dom, SignType::FREE>;
 
-/// @brief alias for scalar var meta
+/// @brief alias for free var meta
 template <linalg::RnSpace Dom>
 using FreeVarMeta =
     ConvexAtomMeta<FreeVarDom<Dom>, FreeVarDom<Dom>, CurvatureType::AFFINE>;
 
-/// @brief alias for scalar var domain
+/// @brief alias for nonneg var domain
 template <linalg::RnSpace Dom>
 using NonnegVarDom = ConvexDomain<Dom, SignType::NONNEG>;
 
-/// @brief alias for scalar var meta
+/// @brief alias for nonneg var meta
 template <linalg::RnSpace Dom>
 using NonnegVarMeta =
     ConvexAtomMeta<NonnegVarDom<Dom>, NonnegVarDom<Dom>, CurvatureType::AFFINE>;
 
-/// @brief alias for scalar var domain
+/// @brief alias for var domain
 template <linalg::RnSpace Dom>
 using PosVarDom = ConvexDomain<Dom, SignType::POS>;
 
-/// @brief alias for scalar var meta
+/// @brief alias for pos var meta
 template <linalg::RnSpace Dom>
 using PosVarMeta =
     ConvexAtomMeta<PosVarDom<Dom>, PosVarDom<Dom>, CurvatureType::AFFINE>;
+
+/// @brief alias for nonpos domain
+template <linalg::RnSpace Dom>
+using NonposVarDom = ConvexDomain<Dom, SignType::NONPOS>;
+
+/// @brief alias for nonpos meta
+template <linalg::RnSpace Dom>
+using NonposVarMeta =
+    ConvexAtomMeta<NonposVarDom<Dom>, NonposVarDom<Dom>, CurvatureType::AFFINE>;
+
+/// @brief alias for neg domain
+template <linalg::RnSpace Dom>
+using NegVarDom = ConvexDomain<Dom, SignType::NEG>;
+
+/// @brief alias for neg meta
+template <linalg::RnSpace Dom>
+using NegVarMeta =
+    ConvexAtomMeta<NegVarDom<Dom>, NegVarDom<Dom>, CurvatureType::AFFINE>;
 
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
@@ -148,11 +167,53 @@ struct Variable : Atom<Meta, Variable<Meta>> {
 
   template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
-    const auto cb = builder.cb;
     return ConeBlockBuilder<builder_dom_t<Builder>, decltype(map),
-                            decltype(cb)>(map, cb);
+                            decltype(builder.cb)>(map, builder.cb);
   }
 
+  template <AtomType Type, BuilderLike Builder>
+  constexpr auto add_var_block(const Builder& builder) const {
+    static constexpr SignType sign = dom_sign_v<meta_dom_t<Meta>>;
+    const auto child_builder = this->template canonicalize<Type>(builder);
+    if constexpr (SignType::FREE == sign) {
+      return child_builder;
+    } else {
+      const auto child_cb = child_builder.cb;
+
+      auto F = linalg::make_identity<T, N>();
+      auto g = linalg::Vector<T, N>{};
+      if constexpr (SignType::NONNEG == sign) {
+        /// no-op
+      } else if constexpr (SignType::NONPOS == sign) {
+        F = T(-1) * F;
+      } else if constexpr (SignType::POS == sign) {
+        const auto eps = linalg::SolverTraits<T>::tol;
+        for (size_t i = 0; i < N; ++i) g[i] = T(-1) * eps;
+      } else if constexpr (SignType::NEG == sign) {
+        F = T(-1) * F;
+        const auto eps = linalg::SolverTraits<T>::tol;
+        for (size_t i = 0; i < N; ++i) g[i] = T(-1) * eps;
+      } else if constexpr (SignType::PSD == sign) {
+      } else if constexpr (SignType::NSD == sign) {
+      } else if constexpr (SignType::PD == sign) {
+      } else if constexpr (SignType::ND == sign) {
+      } else {
+        throw std::domain_error("Unknown sign type for decision variable");
+      }
+
+      const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+      const auto new_builder =
+          ConeBlockBuilder<builder_dom_t<decltype(builder)>,
+                           decltype(coord_map_up), decltype(child_cb)>(
+              coord_map_up, child_cb);
+      const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
+      const auto cones = std::make_tuple(rplus);
+
+      return new_builder.template make<Type>(cones);
+    }
+  }
+
+  /** @brief member vars */
   affine::AffineMap<LinearMatT> map;
 };
 

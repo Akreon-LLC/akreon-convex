@@ -118,12 +118,15 @@ struct ConeBlockBuilder {
     /// (1) fill bottom left from coord map
     const auto A = coord_map.linear_part();
     const auto dec_spanning_blk = linalg::get_block<0, CoordCodom, 0, N>(A);
-    const auto coord_aux_blk = linalg::get_block<0, CoordCodom, N, CoordDom>(A);
     F = linalg::set_block<ConeCodom, FullCodom, 0, N>(F, dec_spanning_blk);
 
     /// (2) fill bottom right with new aux vars from latest cone
-    F = linalg::set_block<ConeCodom, FullCodom, CoordAuxStartCol,
-                          CoordAuxEndCol>(F, coord_aux_blk);
+    if constexpr (Type != AtomType::VAR) {
+      const auto coord_aux_blk =
+          linalg::get_block<0, CoordCodom, N, CoordDom>(A);
+      F = linalg::set_block<ConeCodom, FullCodom, CoordAuxStartCol,
+                            CoordAuxEndCol>(F, coord_aux_blk);
+    }
 
     for (size_t i = 0; i < CoordCodom; ++i)
       g[i + ConeCodom] = coord_map.translation()(i);
@@ -162,6 +165,21 @@ struct ConeBlockBuilder {
     return ConeBlockBuilder<DecVarDom, decltype(new_coord_map),
                             decltype(new_cb)>(new_coord_map, new_cb);
   }
+  /**
+   * @brief make new builder
+   *
+   * @param emitted cones from child
+   *
+   * @return new cone block builder
+   */
+  template <AtomType Type, conic::ConeLike... Cs>
+  constexpr auto make(const std::tuple<Cs...>& cones) const {
+    const auto new_map = this->template update_map<Type>();
+    const auto new_cb =
+        conic::ConeBlock(new_map, std::tuple_cat(cb.cones, cones));
+    return ConeBlockBuilder<DecVarDom, decltype(new_map), decltype(new_cb)>(
+        new_map, new_cb);
+  }
 
   CoordMap coord_map;
   CB cb;
@@ -180,6 +198,10 @@ constexpr auto create_empty_cblk() {
   return cb;
 }
 
+/* @brief create empty cone block builder
+ *
+ * @return cone block builder
+ */
 template <linalg::RnSpace DecVarDom>
 constexpr auto create_empty_cblk_builder() {
   using T = linalg::space_type_t<DecVarDom>;

@@ -145,10 +145,6 @@ concept ConeLike = requires(const Cone& cone, const cone_slack_t<Cone>& s) {
   { cone.dual_hessian(s) };
 };
 
-/// @brief cone to rows
-template <ConeLike Cone, linalg::VectorLike Vec>
-struct ConeToRows;
-
 /// @brief cone block forward decl
 template <affine::AffineMapLike Map, ConeLike... Cs>
 struct ConeBlock;

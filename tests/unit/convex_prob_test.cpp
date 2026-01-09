@@ -23,7 +23,7 @@ using namespace affine;
 using namespace conic;
 using namespace unit_test;
 
-TEST_CASE("Test var setup (simple)", "[convex]") {
+TEST_CASE("Test var setup", "[convex_vars]") {
   SECTION("Free var") {
     using MatT = Matrixd<1, 1>;
     constexpr auto x = Variable<FreeVarMeta<MatT>>();
@@ -44,9 +44,15 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
     constexpr auto builder = create_empty_cblk_builder<MatT>();
     constexpr auto new_builder =
-        four_x_plus_two.template canonicalize<AtomType::FN>(builder);
+        four_x_plus_two.template canonicalize<AtomType::VAR>(builder);
     constexpr auto canon1_map = new_builder.coord_map;
     constexpr auto canon1_cb = new_builder.cb;
+
+    constexpr auto noop_var_block =
+        four_x_plus_two.template canonicalize<AtomType::VAR>(builder);
+    STATIC_REQUIRE(canon1_map == noop_var_block.coord_map);
+    STATIC_REQUIRE(canon1_cb.map == noop_var_block.cb.map);
+    STATIC_REQUIRE(canon1_cb.cones == noop_var_block.cb.cones);
 
     STATIC_REQUIRE(canon1_map.linear_part() == mat(4.0));
     STATIC_REQUIRE(canon1_map.translation() == Vectord<1>{2.0});
@@ -72,7 +78,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(two_x0_plus_one.map.translation() == Vectord<1>{1.0});
 
     constexpr auto new_builder2 =
-        two_x0_plus_one.template canonicalize<AtomType::FN>(builder);
+        two_x0_plus_one.template canonicalize<AtomType::VAR>(builder);
     constexpr auto canon2_map = new_builder2.coord_map;
     constexpr auto canon2_cb = new_builder2.cb;
     STATIC_REQUIRE(canon2_map.linear_part() == mat(2.0));
@@ -85,7 +91,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
 
     constexpr auto new_builder3 =
-        sum.template canonicalize<AtomType::FN>(builder);
+        sum.template canonicalize<AtomType::VAR>(builder);
     constexpr auto canon3_map = new_builder3.coord_map;
     constexpr auto canon3_cb = new_builder3.cb;
 
@@ -108,7 +114,8 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(is_var_type_v<decltype(x)>);
 
     constexpr auto builder = create_empty_cblk_builder<MatT>();
-    constexpr auto new_builder = x.template canonicalize<AtomType::FN>(builder);
+    constexpr auto new_builder =
+        x.template canonicalize<AtomType::VAR>(builder);
     constexpr auto canon_map = new_builder.coord_map;
     STATIC_REQUIRE(canon_map == affine::make_map_id<Matrixd<5, 5>>());
 
@@ -173,6 +180,75 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(map.translation() == Vectord<5>{-1.0, 1.0, 0.0, 0.0, 0.0});
   }
 
+  SECTION("Var -> cones") {
+    constexpr auto cone_eps = -1.0 * SolverTraits<double>::tol;
+
+    using Space = Matrixd<1, 5>;
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto builder2 = x.add_var_block<AtomType::VAR>(builder);
+    constexpr auto I = linalg::make_identity<double, 5>();
+    STATIC_REQUIRE(std::tuple_size<decltype(builder2.cb.cones)>::value == 0);
+    STATIC_REQUIRE(builder2.cb.map.linear_part() == Matrixd<0, 0>{});
+    STATIC_REQUIRE(builder2.coord_map.linear_part() == I);
+
+    constexpr auto x_nonneg = Variable<NonnegVarMeta<Space>>();
+    constexpr auto builder3 = x_nonneg.add_var_block<AtomType::VAR>(builder);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder3.cb.cones)>::value == 1);
+    STATIC_REQUIRE(all_equal(builder3.cb.map.linear_part(), I));
+    STATIC_REQUIRE(builder3.cb.map.translation() == Vectord<5>{});
+
+    constexpr auto x_pos = Variable<PosVarMeta<Space>>();
+    constexpr auto builder4 = x_pos.add_var_block<AtomType::VAR>(builder);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder4.cb.cones)>::value == 1);
+    STATIC_REQUIRE(all_equal(builder4.cb.map.linear_part(), I));
+    STATIC_REQUIRE(
+        builder4.cb.map.translation() ==
+        Vectord<5>{cone_eps, cone_eps, cone_eps, cone_eps, cone_eps});
+
+    constexpr auto x_nonpos = Variable<NonposVarMeta<Space>>();
+    constexpr auto builder5 = x_nonpos.add_var_block<AtomType::VAR>(builder);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder5.cb.cones)>::value == 1);
+    STATIC_REQUIRE(builder5.coord_map.linear_part() == -1.0 * I);
+    STATIC_REQUIRE(builder3.cb.map.translation() == Vectord<5>{});
+
+    constexpr auto x_neg = Variable<NegVarMeta<Space>>();
+    constexpr auto builder6 = x_neg.add_var_block<AtomType::VAR>(builder);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder6.cb.cones)>::value == 1);
+    STATIC_REQUIRE(all_equal(builder6.cb.map.linear_part(), -1.0 * I));
+    STATIC_REQUIRE(
+        builder6.cb.map.translation() ==
+        Vectord<5>{cone_eps, cone_eps, cone_eps, cone_eps, cone_eps});
+  }
+
+  SECTION("Var + Fn -> Cones") {
+    using Space = Matrixd<1, 2>;
+    using Codom = Matrixd<1, 1>;
+    constexpr auto x = Variable<NonnegVarMeta<Space>>();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto builder2 = x.add_var_block<AtomType::VAR>(builder);
+    constexpr auto I = linalg::make_identity<double, 2>();
+    STATIC_REQUIRE(std::tuple_size<decltype(builder2.cb.cones)>::value == 1);
+    STATIC_REQUIRE(builder2.coord_map.linear_part() == I);
+    STATIC_REQUIRE(builder2.coord_map.translation() == Vectord<2>{});
+
+    constexpr auto max_fn = Max<MaxMeta<Space, Codom>, decltype(x)>(x);
+    constexpr auto builder3 =
+        max_fn.template canonicalize<AtomType::FN>(builder2);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder3.cb.cones)>::value == 3);
+    STATIC_REQUIRE(mat_rows_v<decltype(builder3.cb.map.linear_part())> == 4);
+    STATIC_REQUIRE(mat_cols_v<decltype(builder3.cb.map.linear_part())> == 3);
+    STATIC_REQUIRE(vec_size_v<decltype(builder3.cb.map.translation())> == 4);
+
+    constexpr mat_traits<Matrix<double, 4, 3>> F_mat;
+    constexpr auto F =
+        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
+    STATIC_REQUIRE(all_equal(F, builder3.cb.map.linear_part()));
+    STATIC_REQUIRE(builder3.cb.map.translation() == Vectord<4>{});
+  }
+}
+
+TEST_CASE("Simple function ops", "[convex_ops]") {
   SECTION("Composed abs") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<FreeVarMeta<Space>>();
@@ -219,7 +295,7 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
 
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
-    constexpr auto x = Variable<FreeVarMeta<MatT>>();
+    constexpr auto x = Variable<NegVarMeta<MatT>>();
     constexpr auto x0 = x(0).value();
     constexpr auto x1 = x(1).value();
     using Mat1T = Matrixd<1, 1>;
@@ -272,7 +348,9 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
     STATIC_REQUIRE(all_equal(map.linear_part(), F));
     STATIC_REQUIRE(map.translation() == Vectord<10>{});
   }
+}
 
+TEST_CASE("Simple convex set ops", "[convex_ops]") {
   SECTION("Intersection of sets") {
     using Space = Matrixd<1, 3>;
     constexpr Vector<double, 3> point{1.0, 2.0, 3.0};
@@ -288,10 +366,16 @@ TEST_CASE("Test var setup (simple)", "[convex]") {
             Vectord<3>{}, r, x);
     STATIC_REQUIRE(ball.is_well_formed());
 
-#if 0
-    constexpr auto intersect =
+    constexpr auto intersection =
         Intersection<IntersectionMeta<Space>, decltype(hyperplane),
                      decltype(ball)>(hyperplane, ball);
-#endif
+
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto new_builder =
+        intersection.template canonicalize<AtomType::CAP>(builder);
+    constexpr auto canon_cb = new_builder.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 4);
+    STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 6);
+    STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 5);
   }
 }

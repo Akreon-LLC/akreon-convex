@@ -25,7 +25,7 @@ using namespace conic;
 TEST_CASE("Test affine subspace", "[convex_sets]") {
   SECTION("Test affine subspace") {
     using Space = Matrixd<1, 3>;
-    constexpr auto x = Variable<PosVarMeta<Space>>();
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
     constexpr auto I = make_identity<double, 3>();
     constexpr auto affine_set =
         AffineSubspace<AffineMeta<Space, Space>, decltype(x)>(I, Vectord<3>{},
