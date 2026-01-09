@@ -219,6 +219,30 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(
         builder6.cb.map.translation() ==
         Vectord<5>{cone_eps, cone_eps, cone_eps, cone_eps, cone_eps});
+
+    constexpr auto x_psd = Variable<PSDVarMeta<Space>>();
+    constexpr auto builder7 = x_psd.add_var_block<AtomType::VAR>(builder);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder7.cb.cones)>::value == 1);
+    STATIC_REQUIRE(all_equal(builder7.cb.map.linear_part(), I));
+    STATIC_REQUIRE(builder7.cb.map.translation() == Vectord<5>{});
+
+    constexpr auto x_nsd = Variable<NSDVarMeta<Space>>();
+    constexpr auto builder8 = x_nsd.add_var_block<AtomType::VAR>(builder);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder8.cb.cones)>::value == 1);
+    STATIC_REQUIRE(all_equal(builder8.cb.map.linear_part(), I));
+    STATIC_REQUIRE(builder8.cb.map.translation() == Vectord<5>{});
+
+    constexpr auto x_pd = Variable<PDVarMeta<Space>>();
+    constexpr auto builder9 = x_pd.add_var_block<AtomType::VAR>(builder);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder9.cb.cones)>::value == 1);
+    STATIC_REQUIRE(all_equal(builder9.cb.map.linear_part(), I));
+    STATIC_REQUIRE(builder9.cb.map.translation() == Vectord<5>{});
+
+    constexpr auto x_nd = Variable<NDVarMeta<Space>>();
+    constexpr auto builder10 = x_nd.add_var_block<AtomType::VAR>(builder);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder10.cb.cones)>::value == 1);
+    STATIC_REQUIRE(all_equal(builder10.cb.map.linear_part(), I));
+    STATIC_REQUIRE(builder10.cb.map.translation() == Vectord<5>{});
   }
 
   SECTION("Var + Fn -> Cones") {

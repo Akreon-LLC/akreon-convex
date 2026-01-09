@@ -66,6 +66,42 @@ template <linalg::RnSpace Dom>
 using NegVarMeta =
     ConvexAtomMeta<NegVarDom<Dom>, NegVarDom<Dom>, CurvatureType::AFFINE>;
 
+/// @brief alias for psd var domain
+template <linalg::RnSpace Dom>
+using PSDVarDom = ConvexDomain<Dom, SignType::NONNEG>;
+
+/// @brief alias for psd var meta
+template <linalg::RnSpace Dom>
+using PSDVarMeta =
+    ConvexAtomMeta<PSDVarDom<Dom>, PSDVarDom<Dom>, CurvatureType::AFFINE>;
+
+/// @brief alias for pd var domain
+template <linalg::RnSpace Dom>
+using PDVarDom = ConvexDomain<Dom, SignType::NONNEG>;
+
+/// @brief alias for pd var meta
+template <linalg::RnSpace Dom>
+using PDVarMeta =
+    ConvexAtomMeta<PDVarDom<Dom>, PDVarDom<Dom>, CurvatureType::AFFINE>;
+
+/// @brief alias for nsd var domain
+template <linalg::RnSpace Dom>
+using NSDVarDom = ConvexDomain<Dom, SignType::NONNEG>;
+
+/// @brief alias for nsd var meta
+template <linalg::RnSpace Dom>
+using NSDVarMeta =
+    ConvexAtomMeta<NSDVarDom<Dom>, NSDVarDom<Dom>, CurvatureType::AFFINE>;
+
+/// @brief alias for pd var domain
+template <linalg::RnSpace Dom>
+using NDVarDom = ConvexDomain<Dom, SignType::NONNEG>;
+
+/// @brief alias for pd var meta
+template <linalg::RnSpace Dom>
+using NDVarMeta =
+    ConvexAtomMeta<NDVarDom<Dom>, NDVarDom<Dom>, CurvatureType::AFFINE>;
+
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
@@ -174,6 +210,9 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   template <AtomType Type, BuilderLike Builder>
   constexpr auto add_var_block(const Builder& builder) const {
     static constexpr SignType sign = dom_sign_v<meta_dom_t<Meta>>;
+    static constexpr bool is_sdp = SignType::PSD == sign ||
+                                   SignType::NSD == sign ||
+                                   SignType::PD == sign || SignType::ND == sign;
     const auto child_builder = this->template canonicalize<Type>(builder);
     if constexpr (SignType::FREE == sign) {
       return child_builder;
@@ -182,34 +221,38 @@ struct Variable : Atom<Meta, Variable<Meta>> {
 
       auto F = linalg::make_identity<T, N>();
       auto g = linalg::Vector<T, N>{};
-      if constexpr (SignType::NONNEG == sign) {
+      if constexpr (SignType::NONNEG == sign || SignType::PSD == sign) {
         /// no-op
-      } else if constexpr (SignType::NONPOS == sign) {
+      } else if constexpr (SignType::NONPOS == sign || SignType::NSD == sign) {
         F = T(-1) * F;
-      } else if constexpr (SignType::POS == sign) {
+      } else if constexpr (SignType::POS == sign || SignType::PD == sign) {
         const auto eps = linalg::SolverTraits<T>::tol;
         for (size_t i = 0; i < N; ++i) g[i] = T(-1) * eps;
-      } else if constexpr (SignType::NEG == sign) {
+      } else if constexpr (SignType::NEG == sign || SignType::ND == sign) {
         F = T(-1) * F;
         const auto eps = linalg::SolverTraits<T>::tol;
         for (size_t i = 0; i < N; ++i) g[i] = T(-1) * eps;
-      } else if constexpr (SignType::PSD == sign) {
-      } else if constexpr (SignType::NSD == sign) {
-      } else if constexpr (SignType::PD == sign) {
-      } else if constexpr (SignType::ND == sign) {
       } else {
-        throw std::domain_error("Unknown sign type for decision variable");
+        throw std::domain_error("Unknown sign in variable");
       }
-
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+
       const auto new_builder =
           ConeBlockBuilder<builder_dom_t<decltype(builder)>,
                            decltype(coord_map_up), decltype(child_cb)>(
               coord_map_up, child_cb);
-      const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
-      const auto cones = std::make_tuple(rplus);
+      if constexpr (!is_sdp) {
+        const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
+        const auto cones = std::make_tuple(rplus);
 
-      return new_builder.template make<Type>(cones);
+        return new_builder.template make<Type>(cones);
+      } else {
+        const auto psd_cone =
+            conic::PositiveSemidefiniteCone<linalg::Vector<T, N>>();
+        const auto cones = std::make_tuple(psd_cone);
+
+        return new_builder.template make<Type>(cones);
+      }
     }
   }
 
