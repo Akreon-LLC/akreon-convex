@@ -664,3 +664,53 @@ TEST_CASE("Square Root Function", "[convex_fn]") {
     STATIC_REQUIRE(canon_cb1.validate());
   }
 }
+
+TEST_CASE("Softplus Function", "[convex_fn]") {
+  SECTION("Test softplus") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto softplus_fn = Softplus<SoftplusMeta<Space>, decltype(x)>(x);
+    STATIC_REQUIRE(softplus_fn(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(softplus_fn(Vectord<1>{0.0}).value() ==
+                   constexpr_ln(1 + constexpr_exp(0.0)).value());
+
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto new_builder =
+        softplus_fn.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map = new_builder.coord_map;
+
+    constexpr linalg::Vector<double, 4> coord{0.0, 1.0, 0.0, 0.0};
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
+
+    constexpr auto canon_cb = new_builder.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 3);
+
+    constexpr mat_traits<Matrix<double, 7, 4>> F_mat;
+    constexpr auto F = F_mat(0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                             1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                             0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, -1.0);
+    STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
+    STATIC_REQUIRE(canon_cb.map.translation() ==
+                   Vectord<7>{0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0});
+
+    constexpr auto softplus_concave = softplus_fn.mul<-1.0>().add(0.0);
+    STATIC_REQUIRE(softplus_concave(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(softplus_concave(Vectord<1>{0.0}).value() ==
+                   -1.0 * constexpr_ln(1 + constexpr_exp(0.0)).value());
+
+    constexpr auto new_builder1 =
+        softplus_concave.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map1 = new_builder1.coord_map;
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
+
+    constexpr auto canon_cb1 = new_builder1.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb1.cones)>::value == 3);
+
+    constexpr auto F1 = F_mat(0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, -1.0);
+    STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
+    STATIC_REQUIRE(canon_cb1.map.translation() ==
+                   Vectord<7>{0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0});
+  }
+}

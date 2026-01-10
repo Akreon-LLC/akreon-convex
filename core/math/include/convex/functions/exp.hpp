@@ -122,7 +122,7 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
   /**
    * @brief mul
    *
-   * @return abs fn (updated map)
+   * @return exp fn (updated map)
    */
   template <T Scalar>
   constexpr auto mul() const {
@@ -149,7 +149,7 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
    *
    * @param scalar
    *
-   * @return abs fn (updated map)
+   * @return exp fn (updated map)
    */
   constexpr auto add(const T& beta) const {
     LiftedVarBias<T> bias{beta + lift_map.translation()(0)};
@@ -182,7 +182,7 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
    * @return cone block builder
    */
   template <AtomType Type, BuilderLike Builder>
-  constexpr auto canonicalize(const Builder& builder) const {
+  constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
             .template canonicalize<AtomType::FN>(builder);

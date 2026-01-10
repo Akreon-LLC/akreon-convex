@@ -157,8 +157,10 @@ template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct Sqrt;
 
-template <typename Meta, typename... Cs>
-struct Sum;
+/// @brief forward declaration - softplus fn
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 1)
+struct Softplus;
 
 // (dakre) TODO currently unimplemented but forward dec stub here
 #if 0
@@ -170,11 +172,6 @@ struct LogDetFn;
 /// @brief forward declaration - harmonic mean fn
 template <typename Meta>
 struct HarmonicMeanFn;
-
-/// @brief forward declaration - sigmoid fn
-template <typename Meta>
-struct SigmoidFn;
-
 /// @brief forward declaration - huber fn
 template <typename Meta>
 struct HuberFn;
@@ -183,6 +180,10 @@ struct HuberFn;
 template <typename Meta>
 struct KLDivergenceFn;
 #endif
+
+/// @brief forward declataion - sum op
+template <typename Meta, typename... Cs>
+struct Sum;
 
 /// @brief forward declaration of convex set
 template <typename Meta, typename Derived, typename Child>
@@ -305,6 +306,12 @@ struct atom_traits<Norm<Meta, Child, NormFunc>> {
 
 template <typename Meta, typename Child>
 struct atom_traits<Sqrt<Meta, Child>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<Softplus<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
