@@ -59,6 +59,9 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
   /// @brief alias to extract space type
   using Space = dom_space_t<meta_dom_t<Meta>>;
 
+  /// @brief curvature tag
+  static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+
   /**
    * @brief CTOR
    *
@@ -84,7 +87,6 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     static constexpr SignType sign =
         dom_sign_v<meta_codom_t<atom_meta_t<Child>>>;
     if constexpr (Tag == CurvatureType::CONVEX) {
@@ -125,7 +127,6 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
    * @return abs(x) \in R
    */
   constexpr std::optional<T> eval(const PointT& x) const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
@@ -145,7 +146,6 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
       const auto alpha = T(-1) * Scalar;
       affine::AffineMap<LiftedVarMat<T>> new_map(alpha * lift_map.linear_part(),
                                                  lift_map.translation());
-      static constexpr CurvatureType Tag = meta_curv_v<Meta>;
       if constexpr (Tag == CurvatureType::CONCAVE) {
         return Abs<AbsMeta<Space>, Child>(std::get<0>(this->children), new_map);
       } else {
@@ -248,7 +248,6 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
     g[0] = child_coord.translation()(0);
     g[1] = T(-1) * child_coord.translation()(0);
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
       F[2][Dom + 1] = T(1);
       F[4][Dom + 1] = T(1);

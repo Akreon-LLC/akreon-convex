@@ -61,6 +61,9 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
   /// @brief alias to extract space type
   using Space = dom_space_t<meta_dom_t<Meta>>;
 
+  /// @brief curvature tag
+  static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+
   /**
    * @brief CTOR
    *
@@ -86,7 +89,6 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX)
       return MonotonicityType::NONINC;
     else
@@ -112,7 +114,6 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
    * @return res \in R_++ or R_-- (depending on convex or concave)
    */
   constexpr std::optional<T> eval(const PointT& x) const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
     if (x(0) <= T(0)) return std::nullopt;
@@ -134,7 +135,6 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
       const auto alpha = T(-1) * Scalar;
       affine::AffineMap<LiftedVarMat<T>> new_map(alpha * lift_map.linear_part(),
                                                  lift_map.translation());
-      static constexpr CurvatureType Tag = meta_curv_v<Meta>;
       if constexpr (Tag == CurvatureType::CONCAVE) {
         return InvPos<InvPosMeta<Space>, Child>(std::get<0>(this->children),
                                                 new_map);
@@ -206,7 +206,6 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
     g[0] = linalg::constexpr_sqrt(T(2));
     g[1] = child_coord.translation()(0);
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
       F[2][Dom] = T(1);
     } else {

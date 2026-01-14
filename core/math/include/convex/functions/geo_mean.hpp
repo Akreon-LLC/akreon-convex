@@ -57,6 +57,9 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
   /// @brief alias to extract space type
   using Space = dom_space_t<meta_dom_t<Meta>>;
 
+  /// @brief curvature tag
+  static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+
   /**
    * @brief CTOR
    *
@@ -82,7 +85,6 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONCAVE)
       return MonotonicityType::NONDEC;
     else
@@ -112,7 +114,6 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
     std::for_each(x.begin(), x.end(), [&](const auto& pt) { prod *= pt; });
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX)
       return T(-1) * alpha * linalg::constexpr_nrt<T>(prod, N) + beta;
     else
@@ -132,7 +133,6 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
       const auto alpha = T(-1) * Scalar;
       affine::AffineMap<LiftedVarMat<T>> new_map(alpha * lift_map.linear_part(),
                                                  lift_map.translation());
-      static constexpr CurvatureType Tag = meta_curv_v<Meta>;
       if constexpr (Tag == CurvatureType::CONCAVE) {
         return GeoMean<GeoMeanConvexMeta<Dom, Codom>, Child>(
             std::get<0>(this->children), new_map);
@@ -200,7 +200,6 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
     linalg::Vector<T, N + 1> g;
     for (size_t i = 0; i < N; ++i) g[i] = child_coord.translation()(i);
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
       F[N][Dom] = T(-1);
     } else {

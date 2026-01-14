@@ -59,6 +59,9 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
   /// @brief alias to extract space type
   using Space = dom_space_t<meta_dom_t<Meta>>;
 
+  /// @brief curvature tag
+  static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+
   /**
    * @brief CTOR
    *
@@ -84,7 +87,6 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONCAVE)
       return MonotonicityType::NONDEC;
     else
@@ -114,7 +116,6 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
 
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONCAVE)
       return alpha * (T(2) * x(0) * x(1)) / (x(0) + x(1)) + beta;
     else
@@ -134,7 +135,6 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
       const auto alpha = T(-1) * Scalar;
       affine::AffineMap<LiftedVarMat<T>> new_map(alpha * lift_map.linear_part(),
                                                  lift_map.translation());
-      static constexpr CurvatureType Tag = meta_curv_v<Meta>;
       if constexpr (Tag == CurvatureType::CONVEX)
         return HarmonicMean<HarmonicMeanMeta<Dom, Codom>, Child>(
             std::get<0>(this->children), new_map);
@@ -210,7 +210,6 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
     g[1] = child_coord.translation()(0);
     g[2] = child_coord.translation()(1);
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONCAVE) {
       F[0][Dom] = T(1) / linalg::constexpr_sqrt(T(2));
       F[1][Dom] = T(-0.5);

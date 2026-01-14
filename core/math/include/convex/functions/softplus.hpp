@@ -60,6 +60,9 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
   /// @brief alias to extract space type
   using Space = dom_space_t<meta_dom_t<Meta>>;
 
+  /// @brief curvature tag
+  static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+
   /**
    * @brief CTOR
    *
@@ -85,7 +88,6 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX)
       return MonotonicityType::NONDEC;
     else
@@ -111,7 +113,6 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
    * @return log(1 + exp(x))
    */
   constexpr std::optional<T> eval(const PointT& x) const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
@@ -135,7 +136,6 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
       const auto alpha = T(-1) * Scalar;
       affine::AffineMap<LiftedVarMat<T>> new_map(alpha * lift_map.linear_part(),
                                                  lift_map.translation());
-      static constexpr CurvatureType Tag = meta_curv_v<Meta>;
       if constexpr (Tag == CurvatureType::CONCAVE) {
         return Softplus<SoftplusMeta<Space>, Child>(std::get<0>(this->children),
                                                     new_map);
@@ -218,7 +218,6 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
     linalg::Matrix<T, 7, Dom + 3> F;
     linalg::Vector<T, 7> g;
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
       F[0][Dom] = T(-1);
       F[3][Dom] = T(-1);

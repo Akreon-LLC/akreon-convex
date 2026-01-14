@@ -57,6 +57,9 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
   /// @brief alias to extract space type
   using Space = dom_space_t<meta_dom_t<Meta>>;
 
+  /// @brief curvature tag
+  static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+
   /**
    * @brief CTOR
    *
@@ -82,7 +85,6 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX)
       return MonotonicityType::NONDEC;
     else
@@ -113,7 +115,6 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
       if (mx < pt) mx = pt;
     });
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
@@ -133,7 +134,6 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
       const auto alpha = T(-1) * Scalar;
       affine::AffineMap<LiftedVarMat<T>> new_map(alpha * lift_map.linear_part(),
                                                  lift_map.translation());
-      static constexpr CurvatureType Tag = meta_curv_v<Meta>;
       using Dom = dom_space_t<meta_dom_t<Meta>>;
       using Codom = dom_space_t<meta_codom_t<Meta>>;
       if constexpr (Tag == CurvatureType::CONCAVE) {
@@ -205,7 +205,6 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
     linalg::Vector<T, N> g;
     for (size_t i = 0; i < N; ++i) g[i] = T(-1) * child_coord.translation()(i);
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(1);
     } else {

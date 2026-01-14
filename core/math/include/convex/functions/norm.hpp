@@ -53,6 +53,9 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
   using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
+  /// @brief curvature tag
+  static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+
   /**
    * @brief CTOR
    *
@@ -78,7 +81,6 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     static constexpr SignType sign =
         dom_sign_v<meta_codom_t<atom_meta_t<Child>>>;
     if constexpr (Tag == CurvatureType::CONVEX) {
@@ -119,7 +121,6 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
    * @return y (scalar \in R)
    */
   constexpr std::optional<T> eval(const PointT& x) const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
@@ -139,7 +140,6 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       const auto alpha = T(-1) * Scalar;
       affine::AffineMap<LiftedVarMat<T>> new_map(alpha * lift_map.linear_part(),
                                                  lift_map.translation());
-      static constexpr CurvatureType Tag = meta_curv_v<Meta>;
       using Dom = dom_space_t<meta_dom_t<Meta>>;
       using Codom = dom_space_t<meta_codom_t<Meta>>;
 
@@ -254,7 +254,6 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
     static_assert(Dom == N,
                   "Expecting child affine map to have square linear part");
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (std::same_as<NormFunc, linalg::L2<Vec>>) {
       linalg::Matrix<T, N + 1, Dom + 1> F;
       F = linalg::set_block<0, N, 0, Dom>(F, child_coord.linear_part());

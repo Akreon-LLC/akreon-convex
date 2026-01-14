@@ -55,6 +55,9 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
   using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
+  /// @brief curvature tag
+  static constexpr CurvatureType Tag = meta_curv_v<Meta>;
+
   /**
    * @brief CTOR
    *
@@ -80,7 +83,6 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX)
       return MonotonicityType::NONDEC;
     else
@@ -112,7 +114,6 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
 
     const auto res = linalg::constexpr_ln(sum);
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX)
       return res;
     else {
@@ -132,7 +133,6 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
       const auto alpha = T(-1) * Scalar;
       affine::AffineMap<LiftedVarMat<T>> new_map(alpha * lift_map.linear_part(),
                                                  lift_map.translation());
-      static constexpr CurvatureType Tag = meta_curv_v<Meta>;
 
       using Dom = dom_space_t<meta_dom_t<Meta>>;
       using Codom = dom_space_t<meta_codom_t<Meta>>;
@@ -223,7 +223,6 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
     F = linalg::set_block<0, N, 0, Dom>(F, child_coord.linear_part());
     const auto I = linalg::make_identity<T, Dom>();
 
-    static constexpr CurvatureType Tag = meta_curv_v<Meta>;
     if constexpr (Tag == CurvatureType::CONVEX) {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(-1);
     } else {
