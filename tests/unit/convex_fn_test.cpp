@@ -822,3 +822,49 @@ TEST_CASE("KL Div Function", "[convex_fn]") {
     STATIC_REQUIRE(canon_cb1.map.translation() == Vectord<8>{});
   }
 }
+
+TEST_CASE("Huber Function", "[convex_fn]") {
+  SECTION("Test huber") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto delta = 1.0;
+    constexpr auto huber_fn = Huber<HuberMeta<Space>, decltype(x)>(delta, x);
+    STATIC_REQUIRE(huber_fn(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(huber_fn(Vectord<1>{0.0}).value() == 0.0);
+    STATIC_REQUIRE(huber_fn(Vectord<1>{1.0}).value() == 0.5);
+
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto new_builder = huber_fn.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map = new_builder.coord_map;
+
+    constexpr linalg::Vector<double, 3> coord{0.0, 0.0, 1.0};
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
+
+    constexpr auto canon_cb = new_builder.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 4);
+
+    constexpr mat_traits<Matrix<double, 6, 3>> F_mat;
+    constexpr auto F = F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+                             0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 1.0);
+    STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
+    STATIC_REQUIRE(canon_cb.map.translation() ==
+                   Vectord<6>{0.0, 0.0, 0.0, 1.0, 0.0, 1.0});
+
+    constexpr auto huber_concave = huber_fn.mul<-1.0>().add(0.0);
+    STATIC_REQUIRE(huber_concave(Vectord<1>{0.0}).has_value());
+    STATIC_REQUIRE(huber_concave(Vectord<1>{0.0}).value() == 0.0);
+    STATIC_REQUIRE(huber_concave(Vectord<1>{1.0}).value() == -0.5);
+
+    constexpr auto new_builder1 =
+        huber_concave.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map1 = new_builder1.coord_map;
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
+
+    constexpr auto canon_cb1 = new_builder1.cb;
+    constexpr auto F1 = F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -1.0, -1.0);
+    STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
+    STATIC_REQUIRE(canon_cb.map.translation() ==
+                   Vectord<6>{0.0, 0.0, 0.0, 1.0, 0.0, 1.0});
+  }
+}
