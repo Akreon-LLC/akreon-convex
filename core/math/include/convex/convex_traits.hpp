@@ -162,6 +162,11 @@ template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct Softplus;
 
+/// @brief forward declaration - harmonic mean fn
+template <typename Meta, typename Child>
+  requires(dom_size_v<meta_dom_t<Meta>> == 2)
+struct HarmonicMean;
+
 // (dakre) TODO currently unimplemented but forward dec stub here
 #if 0
 /// @brief forward declaration - log det fn
@@ -312,6 +317,12 @@ struct atom_traits<Sqrt<Meta, Child>> {
 
 template <typename Meta, typename Child>
 struct atom_traits<Softplus<Meta, Child>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<HarmonicMean<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };

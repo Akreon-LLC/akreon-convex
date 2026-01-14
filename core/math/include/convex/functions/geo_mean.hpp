@@ -122,7 +122,7 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
   /**
    * @brief mul
    *
-   * @return abs fn (updated map)
+   * @return geo mean fn (updated map)
    */
   template <T Scalar>
   constexpr auto mul() const {
@@ -152,7 +152,7 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
    *
    * @param scalar
    *
-   * @return abs fn (updated map)
+   * @return geo mean fn (updated map)
    */
   constexpr auto add(const T& beta) const {
     LiftedVarBias<T> bias{beta + lift_map.translation()(0)};

@@ -25,6 +25,7 @@
 #include "functions/abs.hpp"
 #include "functions/exp.hpp"
 #include "functions/geo_mean.hpp"
+#include "functions/harmonic_mean.hpp"
 #include "functions/inv_pos.hpp"
 #include "functions/log.hpp"
 #include "functions/log_sum_exp.hpp"

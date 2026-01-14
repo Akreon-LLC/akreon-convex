@@ -714,3 +714,51 @@ TEST_CASE("Softplus Function", "[convex_fn]") {
                    Vectord<7>{0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0});
   }
 }
+
+TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
+  SECTION("Test harmonic mean") {
+    using Dom = Matrixd<1, 2>;
+    using Codom = Matrixd<1, 1>;
+
+    constexpr auto x = Variable<PosVarMeta<Dom>>();
+    constexpr auto hmean_fn =
+        HarmonicMean<HarmonicMeanMeta<Dom, Codom>, decltype(x)>(x);
+    STATIC_REQUIRE(!hmean_fn(Vectord<2>{}).has_value());
+    STATIC_REQUIRE(hmean_fn(Vectord<2>{1.0, 1.0}).has_value());
+    STATIC_REQUIRE(hmean_fn(Vectord<2>{1.0, 1.0}).value() == 1.0);
+
+    constexpr auto builder = create_empty_cblk_builder<Codom>();
+    constexpr auto new_builder = hmean_fn.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map = new_builder.coord_map;
+
+    constexpr linalg::Vector<double, 3> coord{0.0, 0.0, 1.0};
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
+
+    constexpr auto canon_cb = new_builder.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 1);
+
+    constexpr mat_traits<Matrix<double, 3, 3>> F_mat;
+    constexpr auto F = F_mat(0.0, 0.0, 1.0 / linalg::constexpr_sqrt(2.0), 1.0,
+                             0.0, -0.5, 0.0, 1.0, -0.5);
+    STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
+    STATIC_REQUIRE(canon_cb.map.translation() == Vectord<3>{});
+
+    constexpr auto hmean_concave = hmean_fn.mul<-1.0>().add(0.0);
+    STATIC_REQUIRE(!hmean_concave(Vectord<2>{}).has_value());
+    STATIC_REQUIRE(hmean_concave(Vectord<2>{1.0, 1.0}).has_value());
+    STATIC_REQUIRE(hmean_concave(Vectord<2>{1.0, 1.0}).value() == -1.0);
+
+    constexpr auto new_builder1 =
+        hmean_concave.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map1 = new_builder1.coord_map;
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
+
+    constexpr auto canon_cb1 = new_builder1.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb1.cones)>::value == 1);
+
+    constexpr auto F1 = F_mat(0.0, 0.0, -1.0 / linalg::constexpr_sqrt(2.0), 1.0,
+                              0.0, 0.5, 0.0, 1.0, 0.5);
+    STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
+    STATIC_REQUIRE(canon_cb.map.translation() == Vectord<3>{});
+  }
+}
