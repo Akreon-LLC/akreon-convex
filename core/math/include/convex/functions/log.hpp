@@ -142,7 +142,7 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
     } else {
       affine::AffineMap<LiftedVarMat<T>> new_map(
           Scalar * lift_map.linear_part(), lift_map.translation());
-      return Log<Meta, Child>(std::get<0>(this->children, new_map));
+      return Log<Meta, Child>(std::get<0>(this->children), new_map);
     }
   }
 

@@ -55,9 +55,6 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
   using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
-  /// @brief alias for affine map (codomain 1-dim)
-  using Mat = linalg::Matrix<T, 1, N>;
-
   /**
    * @brief CTOR
    *
@@ -149,7 +146,7 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
     } else {
       affine::AffineMap<LiftedVarMat<T>> new_map(
           Scalar * lift_map.linear_part(), lift_map.translation());
-      return LogSumExp<Meta, Child>(std::get<0>(this->children, new_map));
+      return LogSumExp<Meta, Child>(std::get<0>(this->children), new_map);
     }
   }
 

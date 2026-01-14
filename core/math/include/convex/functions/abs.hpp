@@ -155,7 +155,7 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
     } else {
       affine::AffineMap<LiftedVarMat<T>> new_map(
           Scalar * lift_map.linear_part(), lift_map.translation());
-      return Abs<Meta, Child>(std::get<0>(this->children, new_map));
+      return Abs<Meta, Child>(std::get<0>(this->children), new_map);
     }
   }
 

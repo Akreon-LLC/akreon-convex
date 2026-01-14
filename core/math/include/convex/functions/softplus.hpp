@@ -146,7 +146,7 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
     } else {
       affine::AffineMap<LiftedVarMat<T>> new_map(
           Scalar * lift_map.linear_part(), lift_map.translation());
-      return Softplus<Meta, Child>(std::get<0>(this->children, new_map));
+      return Softplus<Meta, Child>(std::get<0>(this->children), new_map);
     }
   }
 

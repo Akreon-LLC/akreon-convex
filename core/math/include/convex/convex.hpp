@@ -27,6 +27,7 @@
 #include "functions/geo_mean.hpp"
 #include "functions/harmonic_mean.hpp"
 #include "functions/inv_pos.hpp"
+#include "functions/kl_div.hpp"
 #include "functions/log.hpp"
 #include "functions/log_sum_exp.hpp"
 #include "functions/max.hpp"

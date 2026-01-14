@@ -762,3 +762,63 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
     STATIC_REQUIRE(canon_cb.map.translation() == Vectord<3>{});
   }
 }
+
+TEST_CASE("KL Div Function", "[convex_fn]") {
+  SECTION("Test kl div") {
+    using Dom = Matrixd<1, 3>;
+    using Codom = Matrixd<1, 1>;
+
+    constexpr auto ones = Vectord<3>{1.0, 1.0, 1.0};
+    constexpr auto q = Variable<PosVarMeta<Dom>>();
+
+    constexpr auto kldiv_fn =
+        KLDivergence<KLDivMeta<Dom, Codom>, decltype(q)>(ones, q);
+    STATIC_REQUIRE(!kldiv_fn(Vectord<3>{}).has_value());
+    STATIC_REQUIRE(kldiv_fn(ones).has_value());
+    STATIC_REQUIRE(kldiv_fn(ones).value() == 0.0);
+
+    constexpr auto builder = create_empty_cblk_builder<Codom>();
+    constexpr auto new_builder = kldiv_fn.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map = new_builder.coord_map;
+
+    constexpr linalg::Vector<double, 10> coord{0.0, 0.0, 0.0, 0.0, 0.0,
+                                               0.0, 0.0, 0.0, 0.0, 1.0};
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
+
+    constexpr auto canon_cb = new_builder.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 2);
+
+    constexpr mat_traits<Matrix<double, 8, 10>> F_mat;
+    constexpr auto F = F_mat(
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 1.0);
+    STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
+    STATIC_REQUIRE(canon_cb.map.translation() == Vectord<8>{});
+
+    constexpr auto kldiv_concave = kldiv_fn.mul<-1.0>().add(0.0);
+    STATIC_REQUIRE(!kldiv_concave(Vectord<3>{}).has_value());
+    STATIC_REQUIRE(kldiv_concave(ones).has_value());
+    STATIC_REQUIRE(kldiv_concave(ones).value() == 0.0);
+
+    constexpr auto new_builder1 =
+        kldiv_concave.canonicalize<AtomType::FN>(builder);
+    constexpr auto canon_map1 = new_builder1.coord_map;
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
+
+    constexpr auto canon_cb1 = new_builder1.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb1.cones)>::value == 2);
+    constexpr auto F1 = F_mat(
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 1.0);
+    STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
+    STATIC_REQUIRE(canon_cb1.map.translation() == Vectord<8>{});
+  }
+}

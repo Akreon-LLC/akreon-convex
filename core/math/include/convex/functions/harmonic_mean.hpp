@@ -144,7 +144,7 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
     } else {
       affine::AffineMap<LiftedVarMat<T>> new_map(
           Scalar * lift_map.linear_part(), lift_map.translation);
-      return HarmonicMean<Meta, Child>(std::get<0>(this->children, new_map));
+      return HarmonicMean<Meta, Child>(std::get<0>(this->children), new_map);
     }
   }
 

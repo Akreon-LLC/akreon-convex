@@ -140,7 +140,7 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
     } else {
       affine::AffineMap<LiftedVarMat<T>> new_map(
           Scalar * lift_map.linear_part(), lift_map.translation());
-      return Exp<Meta, Child>(std::get<0>(this->children, new_map));
+      return Exp<Meta, Child>(std::get<0>(this->children), new_map);
     }
   }
 

@@ -167,6 +167,10 @@ template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 2)
 struct HarmonicMean;
 
+/// @brief forward declaration - kl divergence
+template <typename Meta, typename Child>
+struct KLDivergence;
+
 // (dakre) TODO currently unimplemented but forward dec stub here
 #if 0
 /// @brief forward declaration - log det fn
@@ -174,16 +178,9 @@ template <typename Meta>
   requires(linalg::SquareMatrixLike<linalg::space_point_t<meta_type_t<Meta>>>)
 struct LogDetFn;
 
-/// @brief forward declaration - harmonic mean fn
-template <typename Meta>
-struct HarmonicMeanFn;
 /// @brief forward declaration - huber fn
 template <typename Meta>
 struct HuberFn;
-
-/// @brief forward declaration - kl divergence
-template <typename Meta>
-struct KLDivergenceFn;
 #endif
 
 /// @brief forward declataion - sum op
@@ -323,6 +320,12 @@ struct atom_traits<Softplus<Meta, Child>> {
 
 template <typename Meta, typename Child>
 struct atom_traits<HarmonicMean<Meta, Child>> {
+  using ConvexMeta = Meta;
+  static constexpr AtomType Type = AtomType::FN;
+};
+
+template <typename Meta, typename Child>
+struct atom_traits<KLDivergence<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };
