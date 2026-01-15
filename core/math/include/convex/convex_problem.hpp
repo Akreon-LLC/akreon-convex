@@ -12,35 +12,46 @@
 
 #pragma once
 
-#include "convex/cone_traits.hpp"
-#include "convex/convex_traits.hpp"
+#include "convex/convex_util.hpp"
 
 namespace convex {
 
 /**
  * @brief ConvexProblem struct
  */
-template <typename Meta, BuilderLike Builder>
+template <BuilderLike Builder, bool DecVarAdded = false,
+          bool ConstraintsAdded = false, bool ProblemSet = false>
 struct ConvexProblem {
+  /**
+   * @brief CTOR
+   */
+  constexpr explicit ConvexProblem()
+    requires(!DecVarAdded)
+      : builder(create_empty_cblk_builder<builder_dom_t<Builder>>()) {}
+
+  /**
+   * @brief add dec var
+   *
+   * @param variable
+   *
+   * @return new problem
+   */
+  template <typename Meta>
+  constexpr auto add_dec_var(const Variable<Meta>& x) const
+    requires(!DecVarAdded)
+  {
+    const auto new_builder = x.template add_var_block<AtomType::VAR>(builder);
+    return ConvexProblem<decltype(new_builder), true>(new_builder);
+  }
+
   /**
    * @brief CTOR
    *
    * @param builder
    */
   constexpr explicit ConvexProblem(const Builder& builder_in)
+    requires(DecVarAdded && !ProblemSet)
       : builder(builder_in) {}
-
-  /**
-   * @brief CTOR
-   *
-   * @param decision var x
-   * @param builder
-   *
-   * return new problem
-   */
-  constexpr explicit ConvexProblem(const Variable<Meta>& x,
-                                   const Builder& builder_in)
-      : builder(x.template add_var_block<AtomType::VAR>(builder_in)) {}
 
   /**
    * @brief add constraint
@@ -50,15 +61,25 @@ struct ConvexProblem {
    * @param new problem
    */
   template <AtomLike Atom>
-  constexpr auto add_constraint(const Atom& atom) const {
+  constexpr auto add_constraint(const Atom& atom) const
+    requires(DecVarAdded && !ProblemSet)
+  {
     if constexpr (is_fn_type_v<Atom>) {
-      return ConvexProblem(atom.template canonicalize<AtomType::FN>(builder));
+      const auto new_builder =
+          atom.template canonicalize<AtomType::FN>(builder);
+      return ConvexProblem<decltype(new_builder), DecVarAdded>(new_builder);
     } else if constexpr (is_set_type_v<Atom>) {
-      return ConvexProblem(atom.template canonicalize<AtomType::SET>(builder));
+      const auto new_builder =
+          atom.template canonicalize<AtomType::SET>(builder);
+      return ConvexProblem<decltype(new_builder), DecVarAdded>(new_builder);
     } else if constexpr (is_add_type_v<Atom>) {
-      return ConvexProblem(atom.template canonicalize<AtomType::ADD>(builder));
+      const auto new_builder =
+          atom.template canonicalize<AtomType::ADD>(builder);
+      return ConvexProblem<decltype(new_builder), DecVarAdded>(new_builder);
     } else if constexpr (is_cap_type_v<Atom>) {
-      return ConvexProblem(atom.template canonicalize<AtomType::CAP>(builder));
+      const auto new_builder =
+          atom.template canonicalize<AtomType::CAP>(builder);
+      return ConvexProblem<decltype(new_builder), DecVarAdded>(new_builder);
     } else {
       throw std::domain_error(
           "Attempting to add an invalid constraint to the convex problem");
@@ -73,7 +94,9 @@ struct ConvexProblem {
    * @return new problem
    */
   template <AtomLike Atom>
-  constexpr auto minimize(const Atom& atom) const {
+  constexpr auto minimize(const Atom& atom) const
+    requires(DecVarAdded && ConstraintsAdded)
+  {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
       throw std::domain_error(
           "Attempting to minimize a set or intersection of sets");
@@ -83,12 +106,20 @@ struct ConvexProblem {
       throw std::domain_error("Attempting to minimize a concave function");
     } else {
       if constexpr (is_fn_type_v<Atom>) {
-        return ConvexProblem(atom.template canonicalize<AtomType::FN>(builder));
+        const auto new_builder =
+            atom.template canonicalize<AtomType::FN>(builder);
+        return ConvexProblem<decltype(new_builder), DecVarAdded,
+                             ConstraintsAdded, true>(new_builder);
       } else if constexpr (is_add_type_v<Atom>) {
-        return ConvexProblem(
-            atom.template canonicalize<AtomType::ADD>(builder));
+        const auto new_builder =
+            atom.template canonicalize<AtomType::ADD>(builder);
+        return ConvexProblem<decltype(new_builder), DecVarAdded,
+                             ConstraintsAdded, true>(new_builder);
       } else {
-        /// no-op
+        const auto new_builder =
+            atom.template canonicalize<AtomType::VAR>(builder);
+        return ConvexProblem<decltype(new_builder), DecVarAdded,
+                             ConstraintsAdded, true>(new_builder);
       }
     }
   }
@@ -101,22 +132,23 @@ struct ConvexProblem {
    * @return new problem
    */
   template <AtomLike Atom>
-  constexpr auto maximize(const Atom& atom) const {
+  constexpr auto maximize(const Atom& atom) const
+    requires(DecVarAdded && ConstraintsAdded)
+  {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
       throw std::domain_error(
-          "Attempting to minimize a set or intersection of sets");
+          "Attempting to maximize a set or intersection of sets");
     }
     static constexpr CurvatureType Tag = meta_curv_v<atom_meta_t<Atom>>;
     if constexpr (Tag == CurvatureType::CONVEX) {
-      throw std::domain_error("Attempting to maximize a convex function");
+      throw std::domain_error("Attempting to maximize a concave function");
     } else {
       if constexpr (is_fn_type_v<Atom>) {
-        return ConvexProblem(atom.template canonicalize<AtomType::FN>(builder));
+        return minimize(atom.template mul<-1.0>());
       } else if constexpr (is_add_type_v<Atom>) {
-        return ConvexProblem(
-            atom.template canonicalize<AtomType::ADD>(builder));
+        /// TODO - add mul -1 to sum map here
       } else {
-        /// no-op
+        return minimize(atom.mul(-1.0));
       }
     }
   }

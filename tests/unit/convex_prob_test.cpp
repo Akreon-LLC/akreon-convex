@@ -403,3 +403,15 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
     STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 5);
   }
 }
+
+#if 0
+TEST_CASE("Convex Problem Formation", "[convex_problem]") {
+  SECTION("Simple problem") {
+    using Dom = Matrixd<1, 3>;
+    constexpr auto var = Variable<FreeVarMeta<Dom>>();
+    using Codom = Matrix<1, 1>;
+    constexpr auto norm =
+        Norm<NormMeta<Dom, Codom>, decltype(var), L2<Vectord<3>>>(var);
+  }
+}
+#endif

@@ -347,12 +347,7 @@ TEST_CASE("Test max fn") {
 }
 
 TEST_CASE("Test norm fn", "[convex_fn]") {
-  // constexpr auto map_id = affine::make_map_id<linalg::Matrixd<2, 2>>();
-  // constexpr auto cb = create_empty_cblk<double>();
-
   using Space = Matrixd<1, 2>;
-  // constexpr auto cmap_builder = ConeMapBuilder<Space>();
-
   constexpr auto var = Variable<FreeVarMeta<Space>>();
   using Codom = Matrixd<1, 1>;
 
