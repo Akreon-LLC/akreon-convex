@@ -16,18 +16,50 @@
 
 namespace convex {
 
+/// @brief StageType for forming convex problem
+enum struct StageType : uint8_t {
+  INIT = 0,
+  DEC_VAR_ADDED,
+  CONSTRAINTS_ADDED,
+  PROBLEM_SET
+};
+
+/// @brief forward declaration of convex problem
+template <BuilderLike Builder, StageType Stage>
+class ConvexProblem;
+
+template <typename Prob>
+struct prob_traits;
+
+template <BuilderLike Builder, StageType Stage>
+struct prob_traits<ConvexProblem<Builder, Stage>> {
+  using BuilderT = Builder;
+  static constexpr StageType StageV = Stage;
+};
+
+/// @brief builder type from prob
+template <typename Prob>
+using prob_builder_t =
+    typename prob_traits<linalg::remove_cvref_t<Prob>>::BuilderT;
+
+/// @brief stage type from prob
+template <typename Prob>
+inline constexpr bool is_problem_set =
+    prob_traits<linalg::remove_cvref_t<Prob>>::StageV == StageType::PROBLEM_SET;
+
 /**
  * @brief ConvexProblem struct
  */
-template <BuilderLike Builder, bool DecVarAdded = false,
-          bool ConstraintsAdded = false, bool ProblemSet = false>
-struct ConvexProblem {
+template <BuilderLike Builder, StageType Stage = StageType::INIT>
+class ConvexProblem {
+ public:
   /**
    * @brief CTOR
+   *
+   * @param builder
    */
-  constexpr explicit ConvexProblem()
-    requires(!DecVarAdded)
-      : builder(create_empty_cblk_builder<builder_dom_t<Builder>>()) {}
+  constexpr explicit ConvexProblem(const Builder& builder_in)
+      : builder(builder_in) {}
 
   /**
    * @brief add dec var
@@ -38,23 +70,17 @@ struct ConvexProblem {
    */
   template <typename Meta>
   constexpr auto add_dec_var(const Variable<Meta>& x) const
-    requires(!DecVarAdded)
+    requires(Stage == StageType::INIT)
   {
     const auto new_builder = x.template add_var_block<AtomType::VAR>(builder);
-    return ConvexProblem<decltype(new_builder), true>(new_builder);
+    return ConvexProblem<decltype(new_builder), StageType::DEC_VAR_ADDED>(
+        new_builder);
   }
 
   /**
-   * @brief CTOR
-   *
-   * @param builder
-   */
-  constexpr explicit ConvexProblem(const Builder& builder_in)
-    requires(DecVarAdded && !ProblemSet)
-      : builder(builder_in) {}
-
-  /**
    * @brief add constraint
+   *
+   * TODO - update (need IN_SET, GEQ, LEQ, EQ, etc...)
    *
    * @param atom
    *
@@ -62,24 +88,29 @@ struct ConvexProblem {
    */
   template <AtomLike Atom>
   constexpr auto add_constraint(const Atom& atom) const
-    requires(DecVarAdded && !ProblemSet)
+    requires(Stage == StageType::DEC_VAR_ADDED ||
+             Stage == StageType::CONSTRAINTS_ADDED)
   {
     if constexpr (is_fn_type_v<Atom>) {
       const auto new_builder =
           atom.template canonicalize<AtomType::FN>(builder);
-      return ConvexProblem<decltype(new_builder), DecVarAdded>(new_builder);
+      return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
+          new_builder);
     } else if constexpr (is_set_type_v<Atom>) {
       const auto new_builder =
           atom.template canonicalize<AtomType::SET>(builder);
-      return ConvexProblem<decltype(new_builder), DecVarAdded>(new_builder);
+      return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
+          new_builder);
     } else if constexpr (is_add_type_v<Atom>) {
       const auto new_builder =
           atom.template canonicalize<AtomType::ADD>(builder);
-      return ConvexProblem<decltype(new_builder), DecVarAdded>(new_builder);
+      return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
+          new_builder);
     } else if constexpr (is_cap_type_v<Atom>) {
       const auto new_builder =
           atom.template canonicalize<AtomType::CAP>(builder);
-      return ConvexProblem<decltype(new_builder), DecVarAdded>(new_builder);
+      return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
+          new_builder);
     } else {
       throw std::domain_error(
           "Attempting to add an invalid constraint to the convex problem");
@@ -95,7 +126,8 @@ struct ConvexProblem {
    */
   template <AtomLike Atom>
   constexpr auto minimize(const Atom& atom) const
-    requires(DecVarAdded && ConstraintsAdded)
+    requires(Stage == StageType::CONSTRAINTS_ADDED ||
+             Stage == StageType::DEC_VAR_ADDED)
   {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
       throw std::domain_error(
@@ -108,18 +140,18 @@ struct ConvexProblem {
       if constexpr (is_fn_type_v<Atom>) {
         const auto new_builder =
             atom.template canonicalize<AtomType::FN>(builder);
-        return ConvexProblem<decltype(new_builder), DecVarAdded,
-                             ConstraintsAdded, true>(new_builder);
+        return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
+            new_builder);
       } else if constexpr (is_add_type_v<Atom>) {
         const auto new_builder =
             atom.template canonicalize<AtomType::ADD>(builder);
-        return ConvexProblem<decltype(new_builder), DecVarAdded,
-                             ConstraintsAdded, true>(new_builder);
+        return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
+            new_builder);
       } else {
         const auto new_builder =
             atom.template canonicalize<AtomType::VAR>(builder);
-        return ConvexProblem<decltype(new_builder), DecVarAdded,
-                             ConstraintsAdded, true>(new_builder);
+        return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
+            new_builder);
       }
     }
   }
@@ -133,7 +165,8 @@ struct ConvexProblem {
    */
   template <AtomLike Atom>
   constexpr auto maximize(const Atom& atom) const
-    requires(DecVarAdded && ConstraintsAdded)
+    requires(Stage == StageType::CONSTRAINTS_ADDED ||
+             Stage == StageType::DEC_VAR_ADDED)
   {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
       throw std::domain_error(
@@ -153,6 +186,51 @@ struct ConvexProblem {
     }
   }
 
+  /**
+   * @brief validate
+   *
+   * @return bool
+   */
+  constexpr bool validate() const { return builder.cb.validate(); }
+
+  /**
+   * @brief linear objective
+   *
+   * min c^T z
+   *
+   * @return c
+   */
+  constexpr auto linear_objective() const
+    requires(Stage == StageType::PROBLEM_SET)
+  {
+    return builder.coord_map.linear_part();
+  }
+
+  /**
+   * @brief constraint map (canonical form) [ F; g ]
+   *
+   * F z + g
+   *
+   * @return F
+   */
+  constexpr auto constraint_map() const
+    requires(Stage == StageType::PROBLEM_SET)
+  {
+    return builder.cb.map;
+  }
+
+  /**
+   * @brief cones
+   *
+   * @return tuple of cones
+   */
+  constexpr auto constraint_cones() const
+    requires(Stage == StageType::PROBLEM_SET)
+  {
+    return builder.cb.cones;
+  }
+
+ private:
   /** @brief member var */
   Builder builder;
 };

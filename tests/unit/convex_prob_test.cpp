@@ -404,14 +404,26 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
   }
 }
 
-#if 0
 TEST_CASE("Convex Problem Formation", "[convex_problem]") {
-  SECTION("Simple problem") {
+  SECTION("Simple L2 min. problem") {
     using Dom = Matrixd<1, 3>;
+    constexpr auto builder = create_empty_cblk_builder<Dom>();
+    constexpr ConvexProblem<decltype(builder)> prob(builder);
+
     constexpr auto var = Variable<FreeVarMeta<Dom>>();
-    using Codom = Matrix<1, 1>;
+    constexpr auto prob1 = prob.add_dec_var(var);
+
+    using Codom = Matrixd<1, 1>;
     constexpr auto norm =
         Norm<NormMeta<Dom, Codom>, decltype(var), L2<Vectord<3>>>(var);
+    constexpr auto prob2 = prob1.minimize(norm);
+    STATIC_REQUIRE(is_problem_set<decltype(prob2)>);
+    STATIC_REQUIRE(prob2.validate());
+    STATIC_REQUIRE(prob2.linear_objective() == Vectord<4>{0.0, 0.0, 0.0, 1.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob2.constraint_cones())>::value ==
+                   1);
+    STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(),
+                             make_identity<double, 4>()));
+    STATIC_REQUIRE(prob2.constraint_map().translation() == Vectord<4>{});
   }
 }
-#endif
