@@ -438,26 +438,32 @@ struct atom_traits<Intersection<IntersectionMeta<Space>, Cs...>> {
 };
 
 template <typename Atom>
+concept AtomLike = requires(const Atom& atom) {
+  { atom.validate_domain() } -> std::convertible_to<void>;
+  { atom.children };
+};
+
+template <AtomLike Atom>
 using atom_meta_t =
     typename atom_traits<linalg::remove_cvref_t<Atom>>::ConvexMeta;
 
-template <typename Atom>
+template <AtomLike Atom>
 inline constexpr bool is_fn_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::FN;
 
-template <typename Atom>
+template <AtomLike Atom>
 inline constexpr bool is_var_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::VAR;
 
-template <typename Atom>
+template <AtomLike Atom>
 inline constexpr bool is_set_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::SET;
 
-template <typename Atom>
+template <AtomLike Atom>
 inline constexpr bool is_add_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::ADD;
 
-template <typename Atom>
+template <AtomLike Atom>
 inline constexpr bool is_cap_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::CAP;
 

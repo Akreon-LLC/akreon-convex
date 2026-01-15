@@ -22,6 +22,7 @@
 #include "cones/soc.hpp"
 #include "cones/zoc.hpp"
 #include "convex_ops.hpp"
+#include "convex_problem.hpp"
 #include "functions/abs.hpp"
 #include "functions/exp.hpp"
 #include "functions/geo_mean.hpp"
