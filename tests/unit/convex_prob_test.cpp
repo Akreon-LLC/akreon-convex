@@ -407,16 +407,14 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
 TEST_CASE("Convex Problem Formation", "[convex_problem]") {
   using Dom = Matrixd<1, 3>;
   using Codom = Matrixd<1, 1>;
-  constexpr auto builder = create_empty_cblk_builder<Dom>();
-  constexpr ConvexProblem<decltype(builder)> prob(builder);
   constexpr auto var = Variable<FreeVarMeta<Dom>>();
-  constexpr auto prob1 = prob.add_dec_var(var);
+  constexpr auto prob = make_problem(var);
 
   SECTION("Simple L2 min. problem") {
     constexpr auto norm =
         Norm<NormMeta<Dom, Codom>, decltype(var), L2<Vectord<3>>>(var);
-    constexpr auto prob2 = prob1.minimize(norm);
-    STATIC_REQUIRE(is_problem_set<decltype(prob2)>);
+    constexpr auto prob2 = prob.minimize(norm);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob2)>);
     STATIC_REQUIRE(prob2.validate());
     STATIC_REQUIRE(prob2.linear_objective() == Vectord<4>{0.0, 0.0, 0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob2.constraint_cones())>::value ==
@@ -433,9 +431,9 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
         NormBall<NormBallMeta<Dom>, decltype(var), NormBallType::L1>(c, r, var);
     STATIC_REQUIRE(ball.is_well_formed());
 
-    constexpr auto prob2 = prob1.in_set(ball);
+    constexpr auto prob2 = prob.in_set(ball);
     constexpr auto prob3 = prob2.minimize(var(0).value());
-    STATIC_REQUIRE(is_problem_set<decltype(prob3)>);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
     STATIC_REQUIRE(prob3.validate());
     STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{1.0, 0.0, 0.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
@@ -450,6 +448,55 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     constexpr linalg::Vector<double, 7> g{};
     STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
     STATIC_REQUIRE(prob3.constraint_map().translation() == g);
+  }
+
+  SECTION("Simple EQ constrained min. x(1) prob") {
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto subspace =
+        AffineSubspace<AffineMeta<Dom, Dom>, decltype(var)>(I, Vectord<3>{},
+                                                            var);
+    constexpr auto prob2 = prob.in_set(subspace);
+    constexpr auto prob3 = prob2.minimize(var(1).value());
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{0.0, 1.0, 0.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   2);
+    STATIC_REQUIRE(all_equal(make_identity<double, 4>(),
+                             prob3.constraint_map().linear_part()));
+    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<4>{});
+  }
+
+  SECTION("Intersection of sets min. Linf prob") {
+    constexpr Vectord<3> a{1.0, 4.0, 6.0};
+    constexpr double b = 0.4;
+    constexpr Hyperplane<HyperplaneMeta<Dom>, decltype(var)> hyperplane(a, b,
+                                                                        var);
+    constexpr Vectord<3> c{1.0, 0.0, 1.0};
+    constexpr auto P = make_identity<double, 3>();
+    constexpr Ellipsoid<EllipsoidMeta<Dom>, decltype(var)> ellipsoid(c, P, var);
+
+    constexpr auto intersection =
+        Intersection<IntersectionMeta<Dom>, decltype(hyperplane),
+                     decltype(ellipsoid)>(hyperplane, ellipsoid);
+    constexpr auto prob2 = prob.in_set(intersection);
+
+    constexpr auto norm =
+        Norm<NormMeta<Dom, Codom>, decltype(var), Linf<Vectord<3>>>(var);
+    constexpr auto prob3 = prob2.minimize(norm);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+    STATIC_REQUIRE(prob3.linear_objective() ==
+                   Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   5);
+
+    STATIC_REQUIRE(
+        linalg::mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
+        12);
+    STATIC_REQUIRE(
+        linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
+        6);
   }
 
   /// (dakre) TODO FIXME
@@ -471,14 +518,13 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
 
 TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
   using Space = Matrixd<1, 1>;
-  constexpr auto builder = create_empty_cblk_builder<Space>();
-  constexpr ConvexProblem<decltype(builder)> prob(builder);
   constexpr auto var = Variable<PosVarMeta<Space>>();
-  constexpr auto prob1 = prob.add_dec_var(var);
+  constexpr auto prob = make_problem(var);
+
   SECTION("Simple log max. problem") {
     constexpr auto log = Log<LogMeta<Space>, decltype(var)>(var);
-    constexpr auto prob2 = prob1.maximize(log);
-    STATIC_REQUIRE(is_problem_set<decltype(prob2)>);
+    constexpr auto prob2 = prob.maximize(log);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob2)>);
     STATIC_REQUIRE(prob2.validate());
     STATIC_REQUIRE(prob2.linear_objective() == Vectord<2>{0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob2.constraint_cones())>::value ==

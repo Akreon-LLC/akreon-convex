@@ -17,12 +17,7 @@
 namespace convex {
 
 /// @brief StageType for forming convex problem
-enum struct StageType : uint8_t {
-  INIT = 0,
-  DEC_VAR_ADDED,
-  CONSTRAINTS_ADDED,
-  PROBLEM_SET
-};
+enum struct StageType : uint8_t { INIT = 0, IN_PROGRESS, PROBLEM_SET };
 
 /// @brief forward declaration of convex problem
 template <BuilderLike Builder, StageType Stage>
@@ -44,13 +39,28 @@ using prob_builder_t =
 
 /// @brief stage type from prob
 template <typename Prob>
-inline constexpr bool is_problem_set =
+inline constexpr bool is_problem_set_v =
     prob_traits<linalg::remove_cvref_t<Prob>>::StageV == StageType::PROBLEM_SET;
+
+/**
+ * @brief make problem
+ *
+ * @param dec var x
+ *
+ * @return convex problem
+ */
+template <AtomLike Var>
+constexpr auto make_problem(const Var& x) {
+  using Space = dom_space_t<meta_dom_t<atom_meta_t<Var>>>;
+  const auto builder = create_empty_cblk_builder<Space>();
+  const auto new_builder = x.template add_var_block<AtomType::VAR>(builder);
+  return ConvexProblem<decltype(new_builder), StageType::INIT>(new_builder);
+}
 
 /**
  * @brief ConvexProblem struct
  */
-template <BuilderLike Builder, StageType Stage = StageType::INIT>
+template <BuilderLike Builder, StageType Stage>
 class ConvexProblem {
  public:
   /**
@@ -62,61 +72,24 @@ class ConvexProblem {
       : builder(builder_in) {}
 
   /**
-   * @brief add dec var
-   *
-   * @param variable
-   *
-   * @return new problem
-   */
-  template <typename Meta>
-  constexpr auto add_dec_var(const Variable<Meta>& x) const
-    requires(Stage == StageType::INIT)
-  {
-    const auto new_builder = x.template add_var_block<AtomType::VAR>(builder);
-    return ConvexProblem<decltype(new_builder), StageType::DEC_VAR_ADDED>(
-        new_builder);
-  }
-
-  /**
    * @brief in set constraint
+   *
+   * (ex) A x = b is an affine subspace in set constraint
    *
    * @param atom (set)
    *
    * @return new convex prob
    */
   template <AtomLike Atom>
-  constexpr auto in_set(const Atom& atom) const
-    requires(Stage == StageType::DEC_VAR_ADDED ||
-             Stage == StageType::CONSTRAINTS_ADDED)
-  {
+  constexpr auto in_set(const Atom& atom) const {
     if constexpr (!(is_set_type_v<Atom> || is_cap_type_v<Atom>))
       throw std::domain_error("Atom is not a set type");
     else {
       const auto new_builder =
-          atom.template canonicalize<AtomType::SET>(builder);
-      return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
+          atom.template canonicalize<AtomType::CAP>(builder);
+      return ConvexProblem<decltype(new_builder), StageType::IN_PROGRESS>(
           new_builder);
     }
-  }
-
-  /**
-   * @brief eq constraint (A x = b)
-   *
-   * TODO - make meta / child type on the class?
-   *
-   * @param affine subspace atom
-   *
-   * @return new convex problem
-   */
-  template <typename Meta, typename Child>
-  constexpr auto eq(const AffineSubspace<Meta, Child>& subspace) const
-    requires(Stage == StageType::DEC_VAR_ADDED ||
-             Stage == StageType::CONSTRAINTS_ADDED)
-  {
-    const auto new_builder =
-        subspace.template canonicalize<AtomType::SET>(builder);
-    return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
-        new_builder);
   }
 
   /**
@@ -130,10 +103,7 @@ class ConvexProblem {
    * @return new convex problem
    */
   template <AtomLike LHS, AtomLike RHS>
-  constexpr auto geq(const LHS& lhs, const RHS& rhs) const
-    requires(Stage == StageType::DEC_VAR_ADDED ||
-             Stage == StageType::CONSTRAINTS_ADDED)
-  {
+  constexpr auto geq(const LHS& lhs, const RHS& rhs) const {
     (void)lhs, (void)rhs;
     /// TODO - get sum working / scalar comparison (nonneg cone for that)
     if constexpr (!(is_fn_type_v<LHS> && is_fn_type_v<RHS>))
@@ -155,10 +125,7 @@ class ConvexProblem {
    * @return new convex problem
    */
   template <AtomLike LHS, AtomLike RHS>
-  constexpr auto leq(const LHS& lhs, const RHS& rhs) const
-    requires(Stage == StageType::DEC_VAR_ADDED ||
-             Stage == StageType::CONSTRAINTS_ADDED)
-  {
+  constexpr auto leq(const LHS& lhs, const RHS& rhs) const {
     (void)lhs, (void)rhs;
     /// TODO - get sum working / scalar comparison (nonneg cone for that)
     if constexpr (!(is_fn_type_v<LHS> && is_fn_type_v<RHS>))
@@ -177,10 +144,7 @@ class ConvexProblem {
    * @return new problem
    */
   template <AtomLike Atom>
-  constexpr auto minimize(const Atom& atom) const
-    requires(Stage == StageType::CONSTRAINTS_ADDED ||
-             Stage == StageType::DEC_VAR_ADDED)
-  {
+  constexpr auto minimize(const Atom& atom) const {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
       throw std::domain_error(
           "Attempting to minimize a set or intersection of sets");
@@ -193,22 +157,10 @@ class ConvexProblem {
       if constexpr (Tag == CurvatureType::CONCAVE) {
         throw std::domain_error("Attempting to minimize a concave function");
       } else {
-        if constexpr (is_fn_type_v<Atom>) {
-          const auto new_builder =
-              atom.template canonicalize<AtomType::FN>(builder);
-          return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
-              new_builder);
-        } else if constexpr (is_add_type_v<Atom>) {
-          const auto new_builder =
-              atom.template canonicalize<AtomType::ADD>(builder);
-          return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
-              new_builder);
-        } else {
-          const auto new_builder =
-              atom.template canonicalize<AtomType::VAR>(builder);
-          return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
-              new_builder);
-        }
+        const auto new_builder =
+            atom.template canonicalize<AtomType::CAP>(builder);
+        return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
+            new_builder);
       }
     }
   }
@@ -221,10 +173,7 @@ class ConvexProblem {
    * @return new problem
    */
   template <AtomLike Atom>
-  constexpr auto maximize(const Atom& atom) const
-    requires(Stage == StageType::CONSTRAINTS_ADDED ||
-             Stage == StageType::DEC_VAR_ADDED)
-  {
+  constexpr auto maximize(const Atom& atom) const {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
       throw std::domain_error(
           "Attempting to maximize a set or intersection of sets");
