@@ -66,6 +66,7 @@ constexpr auto tuple_fold_sum(Children&& children, Builder&& builder, Fn&& fn,
   }
 }
 
+/// TODO - add negated version for concave representation
 template <typename Meta, typename... Cs>
 struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   using BaseT = Atom<Meta, Sum<Meta, Cs...>, Cs...>;

@@ -59,7 +59,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(std::tuple_size<decltype(canon1_cb.cones)>::value == 0);
 
     constexpr auto x0 = x(0).value();
-    STATIC_REQUIRE(is_var_type_v<decltype(x0)>);
+    STATIC_REQUIRE(is_index_type_v<decltype(x0)>);
     STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x0)>>> ==
                    SignType::FREE);
     STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x0)>>> ==
@@ -128,7 +128,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(three_x.map.translation() == Vectord<5>{});
 
     constexpr auto x3 = three_x(3).value();
-    STATIC_REQUIRE(is_var_type_v<decltype(x3)>);
+    STATIC_REQUIRE(is_index_type_v<decltype(x3)>);
     STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x3)>>> ==
                    SignType::FREE);
     STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x3)>>> ==
@@ -405,14 +405,13 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
 }
 
 TEST_CASE("Convex Problem Formation", "[convex_problem]") {
+  using Dom = Matrixd<1, 3>;
+  constexpr auto builder = create_empty_cblk_builder<Dom>();
+  constexpr ConvexProblem<decltype(builder)> prob(builder);
+  constexpr auto var = Variable<FreeVarMeta<Dom>>();
+  constexpr auto prob1 = prob.add_dec_var(var);
+
   SECTION("Simple L2 min. problem") {
-    using Dom = Matrixd<1, 3>;
-    constexpr auto builder = create_empty_cblk_builder<Dom>();
-    constexpr ConvexProblem<decltype(builder)> prob(builder);
-
-    constexpr auto var = Variable<FreeVarMeta<Dom>>();
-    constexpr auto prob1 = prob.add_dec_var(var);
-
     using Codom = Matrixd<1, 1>;
     constexpr auto norm =
         Norm<NormMeta<Dom, Codom>, decltype(var), L2<Vectord<3>>>(var);
@@ -425,5 +424,62 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(),
                              make_identity<double, 4>()));
     STATIC_REQUIRE(prob2.constraint_map().translation() == Vectord<4>{});
+  }
+
+  SECTION("Simple L1 ball constraint min. x(0) prob") {
+    constexpr auto c = Vectord<3>{};
+    constexpr auto r = 1.5;
+    constexpr auto ball =
+        NormBall<NormBallMeta<Dom>, decltype(var), NormBallType::L1>(c, r, var);
+    STATIC_REQUIRE(ball.is_well_formed());
+
+    constexpr auto prob2 = prob1.in_set(ball);
+    constexpr auto prob3 = prob2.minimize(var(0).value());
+    STATIC_REQUIRE(is_problem_set<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{1.0, 0.0, 0.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   3);
+
+    constexpr mat_traits<Matrix<double, 7, 7>> F_mat;
+    constexpr auto F =
+        F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, r);
+    constexpr linalg::Vector<double, 7> g{};
+    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
+    STATIC_REQUIRE(prob3.constraint_map().translation() == g);
+  }
+}
+
+TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
+  using Space = Matrixd<1, 1>;
+  constexpr auto builder = create_empty_cblk_builder<Space>();
+  constexpr ConvexProblem<decltype(builder)> prob(builder);
+  constexpr auto var = Variable<PosVarMeta<Space>>();
+  constexpr auto prob1 = prob.add_dec_var(var);
+  SECTION("Simple log max. problem") {
+    constexpr auto log = Log<LogMeta<Space>, decltype(var)>(var);
+    constexpr auto prob2 = prob1.maximize(log);
+    STATIC_REQUIRE(is_problem_set<decltype(prob2)>);
+    STATIC_REQUIRE(prob2.validate());
+    STATIC_REQUIRE(prob2.linear_objective() == Vectord<2>{0.0, 1.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob2.constraint_cones())>::value ==
+                   2);
+
+    STATIC_REQUIRE(
+        linalg::mat_rows_v<decltype(prob2.constraint_map().linear_part())> ==
+        4);
+    STATIC_REQUIRE(
+        linalg::mat_cols_v<decltype(prob2.constraint_map().linear_part())> ==
+        2);
+
+    constexpr mat_traits<Matrix<double, 4, 2>> F_mat;
+    constexpr auto solver_eps = linalg::SolverTraits<double>::tol;
+    constexpr auto F = F_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
+    STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(), F));
+    STATIC_REQUIRE(prob2.constraint_map().translation() ==
+                   Vectord<4>{-1 * solver_eps, 0.0, 1.0, 0.0});
   }
 }

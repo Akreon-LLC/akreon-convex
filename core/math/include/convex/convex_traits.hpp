@@ -24,7 +24,7 @@ using LiftedVarMat = linalg::Matrix<T, 1, 1>;
 template <typename T>
 using LiftedVarBias = linalg::Vector<T, 1>;
 
-enum struct AtomType : uint8_t { VAR = 0, FN, SET, ADD, CAP };
+enum struct AtomType : uint8_t { VAR = 0, INDEX, FN, SET, ADD, CAP };
 
 enum struct SignType : uint8_t {
   FREE = 0,
@@ -246,7 +246,7 @@ struct atom_traits<Variable<Meta>> : std::false_type {
 template <typename Meta, typename Child>
 struct atom_traits<ScalarView<Meta, Child>> {
   using ConvexMeta = Meta;
-  static constexpr AtomType Type = AtomType::VAR;
+  static constexpr AtomType Type = AtomType::INDEX;
 };
 
 template <typename Meta, typename Child>
@@ -466,5 +466,9 @@ inline constexpr bool is_add_type_v =
 template <AtomLike Atom>
 inline constexpr bool is_cap_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::CAP;
+
+template <AtomLike Atom>
+inline constexpr bool is_index_type_v =
+    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::INDEX;
 
 }  // namespace convex
