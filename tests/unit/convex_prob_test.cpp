@@ -406,13 +406,13 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
 
 TEST_CASE("Convex Problem Formation", "[convex_problem]") {
   using Dom = Matrixd<1, 3>;
+  using Codom = Matrixd<1, 1>;
   constexpr auto builder = create_empty_cblk_builder<Dom>();
   constexpr ConvexProblem<decltype(builder)> prob(builder);
   constexpr auto var = Variable<FreeVarMeta<Dom>>();
   constexpr auto prob1 = prob.add_dec_var(var);
 
   SECTION("Simple L2 min. problem") {
-    using Codom = Matrixd<1, 1>;
     constexpr auto norm =
         Norm<NormMeta<Dom, Codom>, decltype(var), L2<Vectord<3>>>(var);
     constexpr auto prob2 = prob1.minimize(norm);
@@ -451,6 +451,22 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
     STATIC_REQUIRE(prob3.constraint_map().translation() == g);
   }
+
+  /// (dakre) TODO FIXME
+#if 0
+  SECTION("Sum abs prob") {
+    constexpr auto x0 = var(0).value();
+    constexpr auto x1 = var(1).value();
+    constexpr auto x2 = var(2).value();
+    constexpr auto sq0 = Square<SquareMeta<Codom>, decltype(x0)>(x0);
+    constexpr auto sq1 = Square<SquareMeta<Codom>, decltype(x1)>(x1);
+    constexpr auto sq2 = Square<SquareMeta<Codom>, decltype(x2)>(x2);
+    constexpr auto sum = Sum<SumConvexMeta<Dom, Codom>, decltype(sq0),
+                                decltype(sq1), decltype(sq2)>(sq0, sq1, sq2);
+    constexpr auto prob2 = prob1.minimize(sum);
+    STATIC_REQUIRE(prob2.validate());
+  }
+#endif
 }
 
 TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
@@ -482,4 +498,18 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
     STATIC_REQUIRE(prob2.constraint_map().translation() ==
                    Vectord<4>{-1 * solver_eps, 0.0, 1.0, 0.0});
   }
+
+  /// (dakre) TODO FIXME (sum builder -> sum op not correct)
+#if 0
+  SECTION("Simple sum sqrt max. problem") {
+    using Mat2T = Matrixd<1, 2>;
+    constexpr auto sqrt = Sqrt<SqrtMeta<Space>, decltype(var)>(var);
+    constexpr auto sum_sqrt =
+        Sum<SumConcaveMeta<Mat2T, Space>, decltype(sqrt), decltype(sqrt)>(sqrt,
+                                                                          sqrt);
+    constexpr auto prob2 = prob1.maximize(sum_sqrt);
+    STATIC_REQUIRE(is_problem_set<decltype(prob2)>);
+    STATIC_REQUIRE(prob2.validate());
+  }
+#endif
 }

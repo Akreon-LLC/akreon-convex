@@ -66,7 +66,6 @@ constexpr auto tuple_fold_sum(Children&& children, Builder&& builder, Fn&& fn,
   }
 }
 
-/// TODO - add negated version for concave representation
 template <typename Meta, typename... Cs>
 struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   using BaseT = Atom<Meta, Sum<Meta, Cs...>, Cs...>;
@@ -77,8 +76,28 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
                 "Size of domain is not equal to children");
   static_assert(sizeof...(Cs) > 1, "Number of children not greater than 1");
 
+  using MatT = linalg::Matrix<T, 1, 1>;
+
   constexpr explicit Sum(const Cs... cs)
-      : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
+      : BaseT(std::make_tuple(std::forward<Cs>(cs)...)),
+        map(affine::make_map_id<MatT>()) {}
+
+  constexpr explicit Sum(const affine::AffineMap<MatT>& map_in,
+                         const std::tuple<Cs...>& cs)
+      : BaseT(cs), map(map_in) {}
+
+  template <T Scalar>
+  constexpr auto mul() const {
+    affine::AffineMap<MatT> new_map(Scalar * map.linear_part(),
+                                    map.translation());
+    return Sum<Meta, Cs...>(new_map, this->children);
+  }
+
+  constexpr auto add(const T& beta) const {
+    affine::AffineMap<MatT> new_map(map.linear_part(),
+                                    beta + map.translation());
+    return Sum<Meta, Cs...>(new_map, this->children);
+  }
 
   template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
@@ -90,10 +109,19 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
     const auto res = tuple_fold_sum(this->children, builder, canonicalize_child,
                                     builder.coord_map);
     const auto selector = std::get<0>(res);
+    const auto F = map.linear_part()(0)(0) * selector.linear_part();
+    const auto g = map.translation() + selector.translation();
+    const auto new_selector =
+        affine::AffineMap<decltype(selector.linear_part())>(F, g);
+
     const auto new_builder = std::get<1>(res);
-    return ConeBlockBuilder<builder_dom_t<Builder>, decltype(selector),
-                            decltype(new_builder.cb)>(selector, new_builder.cb);
+    return ConeBlockBuilder<builder_dom_t<Builder>, decltype(new_selector),
+                            decltype(new_builder.cb)>(new_selector,
+                                                      new_builder.cb);
   }
+
+  /** @brief member var */
+  affine::AffineMap<MatT> map;
 };
 
 template <size_t idx = 0, typename Children, typename Builder, typename Fn>

@@ -89,7 +89,7 @@ class ConvexProblem {
     requires(Stage == StageType::DEC_VAR_ADDED ||
              Stage == StageType::CONSTRAINTS_ADDED)
   {
-    if constexpr (!is_set_type_v<Atom>)
+    if constexpr (!(is_set_type_v<Atom> || is_cap_type_v<Atom>))
       throw std::domain_error("Atom is not a set type");
     else {
       const auto new_builder =
@@ -100,42 +100,74 @@ class ConvexProblem {
   }
 
   /**
-   * @brief add constraint
+   * @brief eq constraint (A x = b)
    *
-   * TODO - update (need IN_SET, GEQ, LEQ, EQ, etc...)
+   * TODO - make meta / child type on the class?
    *
-   * @param atom
+   * @param affine subspace atom
    *
-   * @param new problem
+   * @return new convex problem
    */
-#if 0
-  template <AtomLike Atom>
-  constexpr auto add_constraint(const Atom& atom) const
+  template <typename Meta, typename Child>
+  constexpr auto eq(const AffineSubspace<Meta, Child>& subspace) const
     requires(Stage == StageType::DEC_VAR_ADDED ||
              Stage == StageType::CONSTRAINTS_ADDED)
   {
-    if constexpr (is_fn_type_v<Atom>) {
-      const auto new_builder =
-          atom.template canonicalize<AtomType::FN>(builder);
-      return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
-          new_builder);
-    } else if constexpr (is_set_type_v<Atom>) {
-    } else if constexpr (is_add_type_v<Atom>) {
-      const auto new_builder =
-          atom.template canonicalize<AtomType::ADD>(builder);
-      return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
-          new_builder);
-    } else if constexpr (is_cap_type_v<Atom>) {
-      const auto new_builder =
-          atom.template canonicalize<AtomType::CAP>(builder);
-      return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
-          new_builder);
-    } else {
+    const auto new_builder =
+        subspace.template canonicalize<AtomType::SET>(builder);
+    return ConvexProblem<decltype(new_builder), StageType::CONSTRAINTS_ADDED>(
+        new_builder);
+  }
+
+  /**
+   * @brief geq
+   *
+   * lhs >= rhs... lhs - rhs >= 0
+   *
+   * @param lhs atom
+   * @param rhs atom
+   *
+   * @return new convex problem
+   */
+  template <AtomLike LHS, AtomLike RHS>
+  constexpr auto geq(const LHS& lhs, const RHS& rhs) const
+    requires(Stage == StageType::DEC_VAR_ADDED ||
+             Stage == StageType::CONSTRAINTS_ADDED)
+  {
+    (void)lhs, (void)rhs;
+    /// TODO - get sum working / scalar comparison (nonneg cone for that)
+    if constexpr (!(is_fn_type_v<LHS> && is_fn_type_v<RHS>))
       throw std::domain_error(
-          "Attempting to add an invalid constraint to the convex problem");
+          "GEQ needs to compare a function against another function");
+    else {
+      /// TODO - compare domains & curvature and then canonicalize sum + R+ cone
     }
   }
-#endif
+
+  /**
+   * @brief leq
+   *
+   * lhs <= rhs... 0 <= rhs - lhs
+   *
+   * @param lhs atom
+   * @param rhs atom
+   *
+   * @return new convex problem
+   */
+  template <AtomLike LHS, AtomLike RHS>
+  constexpr auto leq(const LHS& lhs, const RHS& rhs) const
+    requires(Stage == StageType::DEC_VAR_ADDED ||
+             Stage == StageType::CONSTRAINTS_ADDED)
+  {
+    (void)lhs, (void)rhs;
+    /// TODO - get sum working / scalar comparison (nonneg cone for that)
+    if constexpr (!(is_fn_type_v<LHS> && is_fn_type_v<RHS>))
+      throw std::domain_error(
+          "LEQ needs to compare a function against another function");
+    else {
+      /// TODO - compare domains & curvature and then canonicalize sum + R+ cone
+    }
+  }
 
   /**
    * @brief minimize
@@ -152,33 +184,31 @@ class ConvexProblem {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
       throw std::domain_error(
           "Attempting to minimize a set or intersection of sets");
-    }
-
-    if constexpr (is_var_type_v<Atom>) {
+    } else if constexpr (is_var_type_v<Atom>) {
       throw std::domain_error(
           "Attempting to minimize over a var type, please use affine op, "
           "convex function, or index of var instead of raw type");
-    }
-
-    static constexpr CurvatureType Tag = meta_curv_v<atom_meta_t<Atom>>;
-    if constexpr (Tag == CurvatureType::CONCAVE) {
-      throw std::domain_error("Attempting to minimize a concave function");
     } else {
-      if constexpr (is_fn_type_v<Atom>) {
-        const auto new_builder =
-            atom.template canonicalize<AtomType::FN>(builder);
-        return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
-            new_builder);
-      } else if constexpr (is_add_type_v<Atom>) {
-        const auto new_builder =
-            atom.template canonicalize<AtomType::ADD>(builder);
-        return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
-            new_builder);
+      static constexpr CurvatureType Tag = meta_curv_v<atom_meta_t<Atom>>;
+      if constexpr (Tag == CurvatureType::CONCAVE) {
+        throw std::domain_error("Attempting to minimize a concave function");
       } else {
-        const auto new_builder =
-            atom.template canonicalize<AtomType::VAR>(builder);
-        return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
-            new_builder);
+        if constexpr (is_fn_type_v<Atom>) {
+          const auto new_builder =
+              atom.template canonicalize<AtomType::FN>(builder);
+          return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
+              new_builder);
+        } else if constexpr (is_add_type_v<Atom>) {
+          const auto new_builder =
+              atom.template canonicalize<AtomType::ADD>(builder);
+          return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
+              new_builder);
+        } else {
+          const auto new_builder =
+              atom.template canonicalize<AtomType::VAR>(builder);
+          return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
+              new_builder);
+        }
       }
     }
   }
@@ -198,24 +228,20 @@ class ConvexProblem {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
       throw std::domain_error(
           "Attempting to maximize a set or intersection of sets");
-    }
-
-    if constexpr (is_var_type_v<Atom>) {
+    } else if constexpr (is_var_type_v<Atom>) {
       throw std::domain_error(
           "Attempting to maximize over a var type, please use affine op, "
           "concave function, or index of var instead of raw type");
-    }
-
-    static constexpr CurvatureType Tag = meta_curv_v<atom_meta_t<Atom>>;
-    if constexpr (Tag == CurvatureType::CONVEX) {
-      throw std::domain_error("Attempting to maximize a convex function");
     } else {
-      if constexpr (is_fn_type_v<Atom>) {
-        return minimize(atom.template mul<-1.0>());
-      } else if constexpr (is_add_type_v<Atom>) {
-        /// TODO - add mul -1 to sum map here
+      static constexpr CurvatureType Tag = meta_curv_v<atom_meta_t<Atom>>;
+      if constexpr (Tag == CurvatureType::CONVEX) {
+        throw std::domain_error("Attempting to maximize a convex function");
       } else {
-        return minimize(atom.mul(-1.0));
+        if constexpr (is_fn_type_v<Atom> || is_add_type_v<Atom>) {
+          return minimize(atom.template mul<-1.0>());
+        } else {
+          return minimize(atom.mul(-1.0));
+        }
       }
     }
   }
