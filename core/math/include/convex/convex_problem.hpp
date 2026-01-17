@@ -63,6 +63,9 @@ constexpr auto make_problem(const Var& x) {
 template <BuilderLike Builder, StageType Stage>
 class ConvexProblem {
  public:
+  /// @brief alias for scalar type
+  using T = linalg::space_type_t<builder_dom_t<Builder>>;
+
   /**
    * @brief CTOR
    *
@@ -93,28 +96,6 @@ class ConvexProblem {
   }
 
   /**
-   * @brief geq
-   *
-   * lhs >= rhs... lhs - rhs >= 0
-   *
-   * @param lhs atom
-   * @param rhs atom
-   *
-   * @return new convex problem
-   */
-  template <AtomLike LHS, AtomLike RHS>
-  constexpr auto geq(const LHS& lhs, const RHS& rhs) const {
-    (void)lhs, (void)rhs;
-    /// TODO - get sum working / scalar comparison (nonneg cone for that)
-    if constexpr (!(is_fn_type_v<LHS> && is_fn_type_v<RHS>))
-      throw std::domain_error(
-          "GEQ needs to compare a function against another function");
-    else {
-      /// TODO - compare domains & curvature and then canonicalize sum + R+ cone
-    }
-  }
-
-  /**
    * @brief leq
    *
    * lhs <= rhs... 0 <= rhs - lhs
@@ -124,15 +105,66 @@ class ConvexProblem {
    *
    * @return new convex problem
    */
-  template <AtomLike LHS, AtomLike RHS>
+  template <AtomLike LHS, typename RHS>
   constexpr auto leq(const LHS& lhs, const RHS& rhs) const {
     (void)lhs, (void)rhs;
-    /// TODO - get sum working / scalar comparison (nonneg cone for that)
-    if constexpr (!(is_fn_type_v<LHS> && is_fn_type_v<RHS>))
+    static constexpr bool lhs_valid = is_fn_type_v<LHS> || is_index_type_v<LHS>;
+    if constexpr (!lhs_valid) {
+      throw std::domain_error("LHS must be a valid atom (fn or index of var)");
+    }
+
+    static constexpr bool rhs_valid =
+        AtomLike<RHS> ? (is_fn_type_v<RHS> || is_index_type_v<RHS>)
+                      : linalg::RealLike<RHS>;
+    if constexpr (!rhs_valid) {
       throw std::domain_error(
-          "LEQ needs to compare a function against another function");
-    else {
-      /// TODO - compare domains & curvature and then canonicalize sum + R+ cone
+          "RHS must be either a valid atom (fn or index of var) or a scalar "
+          "type");
+    }
+
+    /// TODO form nonneg orthant cone 0 <= rhs - lhs and create new prob
+  }
+
+  /**
+   * @brief geq
+   *
+   * lhs >= rhs... lhs - rhs >= 0
+   * -lhs <= -rhs
+   *
+   * @param lhs atom
+   * @param rhs atom
+   *
+   * @return new convex problem
+   */
+  template <AtomLike LHS, typename RHS>
+  constexpr auto geq(const LHS& lhs, const RHS& rhs) const {
+    const auto set_rhs = [&](const auto& new_lhs) {
+      if constexpr (is_var_type_v<RHS>) {
+        const auto new_rhs = rhs.mul(-1.0);
+        return leq<LHS, decltype(new_rhs)>(new_lhs, new_rhs);
+      } else {
+        const auto new_rhs = rhs.template mul<-1.0>();
+        return leq<LHS, decltype(new_rhs)>(new_lhs, new_rhs);
+      }
+    };
+    if constexpr (is_var_type_v<LHS>) {
+      const auto new_lhs = lhs.mul(-1.0);
+      if constexpr (AtomLike<RHS>)
+        return set_rhs(new_lhs);
+      else if constexpr (linalg::RealLike<RHS>)
+        return leq<LHS, RHS>(new_lhs, T(-1) * rhs);
+      else
+        throw std::domain_error(
+            "Invalid RHS type (must be atom like or scalar)");
+    } else if constexpr (is_fn_type_v<LHS>) {
+      const auto new_lhs = lhs.template mul<-1.0>();
+      if constexpr (AtomLike<RHS>)
+        return set_rhs(new_lhs);
+      else if constexpr (linalg::RealLike<RHS>)
+        return leq<LHS, RHS>(new_lhs, T(-1) * rhs);
+      else
+        throw std::domain_error(
+            "Invalid RHS type (must be atom like or scalar)");
     }
   }
 
