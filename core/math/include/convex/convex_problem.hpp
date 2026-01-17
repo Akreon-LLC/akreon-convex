@@ -86,7 +86,7 @@ class ConvexProblem {
   template <AtomLike Atom>
   constexpr auto in_set(const Atom& atom) const {
     if constexpr (!(is_set_type_v<Atom> || is_cap_type_v<Atom>))
-      throw std::domain_error("Atom is not a set type");
+      static_assert(false, "Atom is not a set type");
     else {
       const auto new_builder =
           atom.template canonicalize<AtomType::CAP>(builder);
@@ -110,14 +110,15 @@ class ConvexProblem {
     (void)lhs, (void)rhs;
     static constexpr bool lhs_valid = is_fn_type_v<LHS> || is_index_type_v<LHS>;
     if constexpr (!lhs_valid) {
-      throw std::domain_error("LHS must be a valid atom (fn or index of var)");
+      static_assert(false, "LHS must be a valid atom (fn or index of var)");
     }
 
     static constexpr bool rhs_valid =
         AtomLike<RHS> ? (is_fn_type_v<RHS> || is_index_type_v<RHS>)
                       : linalg::RealLike<RHS>;
     if constexpr (!rhs_valid) {
-      throw std::domain_error(
+      static_assert(
+          false,
           "RHS must be either a valid atom (fn or index of var) or a scalar "
           "type");
     }
@@ -154,8 +155,7 @@ class ConvexProblem {
       else if constexpr (linalg::RealLike<RHS>)
         return leq<LHS, RHS>(new_lhs, T(-1) * rhs);
       else
-        throw std::domain_error(
-            "Invalid RHS type (must be atom like or scalar)");
+        static_assert(false, "Invalid RHS type (must be atom like or scalar)");
     } else if constexpr (is_fn_type_v<LHS>) {
       const auto new_lhs = lhs.template mul<-1.0>();
       if constexpr (AtomLike<RHS>)
@@ -163,8 +163,7 @@ class ConvexProblem {
       else if constexpr (linalg::RealLike<RHS>)
         return leq<LHS, RHS>(new_lhs, T(-1) * rhs);
       else
-        throw std::domain_error(
-            "Invalid RHS type (must be atom like or scalar)");
+        static_assert(false, "Invalid RHS type (must be atom like or scalar)");
     }
   }
 
@@ -178,16 +177,17 @@ class ConvexProblem {
   template <AtomLike Atom>
   constexpr auto minimize(const Atom& atom) const {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
-      throw std::domain_error(
-          "Attempting to minimize a set or intersection of sets");
+      static_assert(false,
+                    "Attempting to minimize a set or intersection of sets");
     } else if constexpr (is_var_type_v<Atom>) {
-      throw std::domain_error(
+      static_assert(
+          false,
           "Attempting to minimize over a var type, please use affine op, "
           "convex function, or index of var instead of raw type");
     } else {
       static constexpr CurvatureType Tag = meta_curv_v<atom_meta_t<Atom>>;
       if constexpr (Tag == CurvatureType::CONCAVE) {
-        throw std::domain_error("Attempting to minimize a concave function");
+        static_assert(false, "Attempting to minimize a concave function");
       } else {
         const auto new_builder =
             atom.template canonicalize<AtomType::CAP>(builder);
@@ -218,11 +218,10 @@ class ConvexProblem {
       if constexpr (Tag == CurvatureType::CONVEX) {
         throw std::domain_error("Attempting to maximize a convex function");
       } else {
-        if constexpr (is_fn_type_v<Atom> || is_add_type_v<Atom>) {
+        if constexpr (is_fn_type_v<Atom> || is_add_type_v<Atom>)
           return minimize(atom.template mul<-1.0>());
-        } else {
+        else
           return minimize(atom.mul(-1.0));
-        }
       }
     }
   }

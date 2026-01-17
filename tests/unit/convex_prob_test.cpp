@@ -87,7 +87,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 
     using Mat2T = Matrixd<1, 2>;
     constexpr auto sum =
-        Sum<SumConvexMeta<Mat2T, MatT>, decltype(x0), decltype(x0)>(x0, x0);
+        Sum<SumMeta<Mat2T, MatT>, decltype(x0), decltype(x0)>(x0, x0);
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
 
     constexpr auto new_builder3 =
@@ -324,7 +324,7 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     constexpr auto x1 = x(1).value();
     using Mat1T = Matrixd<1, 1>;
     constexpr auto sum =
-        Sum<SumConvexMeta<MatT, Mat1T>, decltype(x0), decltype(x1)>(x0, x1);
+        Sum<SumMeta<MatT, Mat1T>, decltype(x0), decltype(x1)>(x0, x1);
 
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
 
@@ -343,8 +343,8 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     constexpr auto abs_x0 = Abs<AbsMeta<Space>, decltype(x0)>(x0);
     constexpr auto abs_x1 = Abs<AbsMeta<Space>, decltype(x1)>(x1);
     constexpr auto sum_abs =
-        Sum<SumConvexMeta<MatT, Space>, decltype(abs_x0), decltype(abs_x1)>(
-            abs_x0, abs_x1);
+        Sum<SumMeta<MatT, Space>, decltype(abs_x0), decltype(abs_x1)>(abs_x0,
+                                                                      abs_x1);
     STATIC_REQUIRE(std::tuple_size<decltype(sum_abs.children)>::value == 2);
 
     constexpr auto new_builder2 =
@@ -499,29 +499,48 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
         6);
   }
 
-  /// (dakre) TODO FIXME
-#if 0
-  SECTION("Sum abs prob") {
+  SECTION("Sum square min. prob") {
     constexpr auto x0 = var(0).value();
     constexpr auto x1 = var(1).value();
     constexpr auto x2 = var(2).value();
     constexpr auto sq0 = Square<SquareMeta<Codom>, decltype(x0)>(x0);
     constexpr auto sq1 = Square<SquareMeta<Codom>, decltype(x1)>(x1);
     constexpr auto sq2 = Square<SquareMeta<Codom>, decltype(x2)>(x2);
-    constexpr auto sum = Sum<SumConvexMeta<Dom, Codom>, decltype(sq0),
-                                decltype(sq1), decltype(sq2)>(sq0, sq1, sq2);
-    constexpr auto prob2 = prob1.minimize(sum);
+    constexpr auto sum =
+        Sum<SumMeta<Dom, Codom>, decltype(sq0), decltype(sq1), decltype(sq2)>(
+            sq0, sq1, sq2);
+    constexpr auto prob2 = prob.minimize(sum);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob2)>);
     STATIC_REQUIRE(prob2.validate());
+    STATIC_REQUIRE(prob2.linear_objective() ==
+                   Vectord<6>{0.0, 0.0, 0.0, 1.0, 1.0, 1.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob2.constraint_cones())>::value ==
+                   3);
+
+    STATIC_REQUIRE(
+        linalg::mat_rows_v<decltype(prob2.constraint_map().linear_part())> ==
+        9);
+    STATIC_REQUIRE(
+        linalg::mat_cols_v<decltype(prob2.constraint_map().linear_part())> ==
+        6);
+    constexpr mat_traits<Matrix<double, 9, 6>> F_mat;
+    constexpr auto F = F_mat(
+        1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(), F));
+    STATIC_REQUIRE(prob2.constraint_map().translation() ==
+                   Vectord<9>{0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0});
   }
-#endif
 }
 
 TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
-  using Space = Matrixd<1, 1>;
-  constexpr auto var = Variable<PosVarMeta<Space>>();
-  constexpr auto prob = make_problem(var);
-
   SECTION("Simple log max. problem") {
+    using Space = Matrixd<1, 1>;
+    constexpr auto var = Variable<PosVarMeta<Space>>();
+    constexpr auto prob = make_problem(var);
+
     constexpr auto log = Log<LogMeta<Space>, decltype(var)>(var);
     constexpr auto prob2 = prob.maximize(log);
     STATIC_REQUIRE(is_problem_set_v<decltype(prob2)>);
@@ -545,17 +564,45 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
                    Vectord<4>{-1 * solver_eps, 0.0, 1.0, 0.0});
   }
 
-  /// (dakre) TODO FIXME (sum builder -> sum op not correct)
-#if 0
   SECTION("Simple sum sqrt max. problem") {
-    using Mat2T = Matrixd<1, 2>;
-    constexpr auto sqrt = Sqrt<SqrtMeta<Space>, decltype(var)>(var);
+    using Dom = Matrixd<1, 2>;
+    constexpr auto var = Variable<PosVarMeta<Dom>>();
+    constexpr auto prob = make_problem(var);
+
+    using Codom = Matrixd<1, 1>;
+    constexpr auto x0 = var(0).value();
+    constexpr auto x1 = var(1).value();
+    constexpr auto sqrt0 = Sqrt<SqrtMeta<Codom>, decltype(x0)>(x0);
+    constexpr auto sqrt1 = Sqrt<SqrtMeta<Codom>, decltype(x1)>(x1);
     constexpr auto sum_sqrt =
-        Sum<SumConcaveMeta<Mat2T, Space>, decltype(sqrt), decltype(sqrt)>(sqrt,
-                                                                          sqrt);
-    constexpr auto prob2 = prob1.maximize(sum_sqrt);
-    STATIC_REQUIRE(is_problem_set<decltype(prob2)>);
+        Sum<SumMeta<Dom, Codom>, decltype(sqrt0), decltype(sqrt1)>(sqrt0,
+                                                                   sqrt1);
+
+    constexpr auto prob2 = prob.maximize(sum_sqrt);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob2)>);
     STATIC_REQUIRE(prob2.validate());
+
+    STATIC_REQUIRE(std::tuple_size<decltype(prob2.constraint_cones())>::value ==
+                   3);
+    STATIC_REQUIRE(prob2.linear_objective() ==
+                   Vectord<4>{0.0, 0.0, -1.0, -1.0});
+
+    STATIC_REQUIRE(
+        linalg::mat_rows_v<decltype(prob2.constraint_map().linear_part())> ==
+        8);
+    STATIC_REQUIRE(
+        linalg::mat_cols_v<decltype(prob2.constraint_map().linear_part())> ==
+        4);
+
+    constexpr mat_traits<Matrix<double, 8, 4>> F_mat;
+    constexpr auto solver_eps = linalg::SolverTraits<double>::tol;
+    constexpr auto F =
+        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+    STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(), F));
+    STATIC_REQUIRE(prob2.constraint_map().translation() ==
+                   Vectord<8>{-1 * solver_eps, -1 * solver_eps, 0.0, 0.5, 0.0,
+                              0.0, 0.5, 0.0});
   }
-#endif
 }

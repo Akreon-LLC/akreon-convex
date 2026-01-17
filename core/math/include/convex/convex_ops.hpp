@@ -30,12 +30,7 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
   static constexpr size_t NextDom = linalg::mat_cols_v<NextMatT>;
   static constexpr size_t NextCodom = linalg::mat_rows_v<NextMatT>;
 
-  if constexpr (PrevDom == 0 && PrevCodom == 0)
-    return next;
-  else {
-    static_assert(PrevCodom == NextCodom,
-                  "Codomains must align between previous and next map");
-
+  if constexpr (PrevCodom == 1 && NextCodom == 1) {
     linalg::Matrix<T, PrevCodom, NextDom> F;
     for (size_t i = 0; i < PrevCodom; ++i) {
       for (size_t j = 0; j < PrevDom; ++j)
@@ -45,6 +40,8 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
     }
 
     return affine::AffineMap<decltype(F)>(F, prev.translation());
+  } else {
+    return next;
   }
 }
 

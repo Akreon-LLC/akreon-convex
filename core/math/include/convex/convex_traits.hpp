@@ -401,22 +401,12 @@ template <linalg::RnSpace Codom>
 using SumCodom = ConvexDomain<Codom, SignType::FREE>;
 
 template <linalg::RnSpace Dom, linalg::RnSpace Codom>
-using SumConvexMeta =
-    ConvexAtomMeta<SumDom<Dom>, SumCodom<Codom>, CurvatureType::CONVEX>;
-
-template <linalg::RnSpace Dom, linalg::RnSpace Codom>
-using SumConcaveMeta =
-    ConvexAtomMeta<SumDom<Dom>, SumCodom<Codom>, CurvatureType::CONCAVE>;
+using SumMeta =
+    ConvexAtomMeta<SumDom<Dom>, SumCodom<Codom>, CurvatureType::AFFINE>;
 
 template <linalg::RnSpace Dom, linalg::RnSpace Codom, typename... Cs>
-struct atom_traits<Sum<SumConvexMeta<Dom, Codom>, Cs...>> {
-  using ConvexMeta = SumConvexMeta<Dom, Codom>;
-  static constexpr AtomType Type = AtomType::ADD;
-};
-
-template <linalg::RnSpace Dom, linalg::RnSpace Codom, typename... Cs>
-struct atom_traits<Sum<SumConcaveMeta<Dom, Codom>, Cs...>> {
-  using ConvexMeta = SumConcaveMeta<Dom, Codom>;
+struct atom_traits<Sum<SumMeta<Dom, Codom>, Cs...>> {
+  using ConvexMeta = SumMeta<Dom, Codom>;
   static constexpr AtomType Type = AtomType::ADD;
 };
 
