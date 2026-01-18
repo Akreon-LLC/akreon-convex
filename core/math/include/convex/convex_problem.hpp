@@ -143,19 +143,24 @@ class ConvexProblem {
    *
    * @return new convex problem
    */
-#if 0
   template <AtomLike LHS, typename RHS>
   constexpr auto geq(const LHS& lhs, const RHS& rhs) const {
     check_ineq_types<LHS, RHS>();
 
-    const auto new_lhs =
-        is_index_type_v<LHS> ? lhs.mul(-1.0) : lhs.template mul<-1.0>();
-    const auto new_rhs = is_index_type_v<RHS> ? rhs.mul(-1.0)
-                         : AtomLike<RHS>      ? rhs.template mul<-1.0>()
-                                              : T(-1) * rhs;
-    return leq<LHS, decltype(new_rhs)>(new_lhs, new_rhs);
+    const auto negate_rhs = [&]() {
+      if constexpr (is_index_type_v<RHS>) {
+        return rhs.mul(-1.0);
+      } else if constexpr (AtomLike<RHS>) {
+        return rhs.template mul<-1.0>();
+      } else {
+        return T(-1) * rhs;
+      }
+    };
+
+    const auto new_lhs = negate_lhs(lhs);
+    const auto new_rhs = negate_rhs();
+    return leq<decltype(new_lhs), decltype(new_rhs)>(new_lhs, new_rhs);
   }
-#endif
 
   /**
    * @brief minimize
