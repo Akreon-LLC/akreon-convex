@@ -139,6 +139,7 @@ struct ConeBlockBuilder {
    * @brief make new builder
    *
    * @param selector idx from start aux col
+   * @param lift map
    * @param emitted cones from child
    *
    * @return new cone block builder
@@ -165,6 +166,7 @@ struct ConeBlockBuilder {
     return ConeBlockBuilder<DecVarDom, decltype(new_coord_map),
                             decltype(new_cb)>(new_coord_map, new_cb);
   }
+
   /**
    * @brief make new builder
    *

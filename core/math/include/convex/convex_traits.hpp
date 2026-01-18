@@ -24,7 +24,7 @@ using LiftedVarMat = linalg::Matrix<T, 1, 1>;
 template <typename T>
 using LiftedVarBias = linalg::Vector<T, 1>;
 
-enum struct AtomType : uint8_t { VAR = 0, INDEX, FN, SET, ADD, CAP };
+enum struct AtomType : uint8_t { VAR = 0, INDEX, FN, SET, ADD, CAP, INEQ };
 
 enum struct SignType : uint8_t {
   FREE = 0,
@@ -438,27 +438,25 @@ using atom_meta_t =
     typename atom_traits<linalg::remove_cvref_t<Atom>>::ConvexMeta;
 
 template <AtomLike Atom>
-inline constexpr bool is_fn_type_v =
-    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::FN;
+inline constexpr AtomType atom_type_v =
+    atom_traits<linalg::remove_cvref_t<Atom>>::Type;
 
 template <AtomLike Atom>
-inline constexpr bool is_var_type_v =
-    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::VAR;
+inline constexpr bool is_fn_type_v = atom_type_v<Atom> == AtomType::FN;
 
 template <AtomLike Atom>
-inline constexpr bool is_set_type_v =
-    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::SET;
+inline constexpr bool is_var_type_v = atom_type_v<Atom> == AtomType::VAR;
 
 template <AtomLike Atom>
-inline constexpr bool is_add_type_v =
-    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::ADD;
+inline constexpr bool is_set_type_v = atom_type_v<Atom> == AtomType::SET;
 
 template <AtomLike Atom>
-inline constexpr bool is_cap_type_v =
-    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::CAP;
+inline constexpr bool is_add_type_v = atom_type_v<Atom> == AtomType::ADD;
 
 template <AtomLike Atom>
-inline constexpr bool is_index_type_v =
-    atom_traits<linalg::remove_cvref_t<Atom>>::Type == AtomType::INDEX;
+inline constexpr bool is_cap_type_v = atom_type_v<Atom> == AtomType::CAP;
+
+template <AtomLike Atom>
+inline constexpr bool is_index_type_v = atom_type_v<Atom> == AtomType::INDEX;
 
 }  // namespace convex

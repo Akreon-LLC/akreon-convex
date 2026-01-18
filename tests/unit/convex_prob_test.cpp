@@ -533,6 +533,44 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob2.constraint_map().translation() ==
                    Vectord<9>{0.0, 0.5, 0.0, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0});
   }
+
+  SECTION("Simple leq min. prob") {
+    constexpr auto x0 = var(0).value();
+    constexpr auto x1 = var(1).value();
+    constexpr auto x2 = var(2).value();
+    constexpr auto exp0 =
+        Exp<ExpMeta<Codom>, decltype(x0)>(x0).template mul<-1.0>();
+    constexpr auto exp1 = Exp<ExpMeta<Codom>, decltype(x1)>(x1);
+    constexpr auto exp2 = Exp<ExpMeta<Codom>, decltype(x2)>(x2);
+    constexpr auto prob2 = prob.leq(exp0, exp1);
+    constexpr auto prob3 = prob2.minimize(exp2);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+
+    STATIC_REQUIRE(prob3.linear_objective() ==
+                   Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   4);
+
+    STATIC_REQUIRE(
+        linalg::mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
+        10);
+    STATIC_REQUIRE(
+        linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
+        6);
+    constexpr mat_traits<Matrix<double, 10, 6>> F_mat;
+    constexpr auto F =
+        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
+    STATIC_REQUIRE(
+        prob3.constraint_map().translation() ==
+        Vectord<10>{0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0});
+  }
 }
 
 TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {

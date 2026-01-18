@@ -107,23 +107,29 @@ class ConvexProblem {
    */
   template <AtomLike LHS, typename RHS>
   constexpr auto leq(const LHS& lhs, const RHS& rhs) const {
-    (void)lhs, (void)rhs;
-    static constexpr bool lhs_valid = is_fn_type_v<LHS> || is_index_type_v<LHS>;
-    if constexpr (!lhs_valid) {
-      static_assert(false, "LHS must be a valid atom (fn or index of var)");
-    }
+    check_ineq_types<LHS, RHS>();
 
-    static constexpr bool rhs_valid =
-        AtomLike<RHS> ? (is_fn_type_v<RHS> || is_index_type_v<RHS>)
-                      : linalg::RealLike<RHS>;
-    if constexpr (!rhs_valid) {
-      static_assert(
-          false,
-          "RHS must be either a valid atom (fn or index of var) or a scalar "
-          "type");
-    }
+    const auto new_lhs = negate_lhs(lhs);
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    const auto cones = std::make_tuple(rplus);
 
-    /// TODO form nonneg orthant cone 0 <= rhs - lhs and create new prob
+    if constexpr (AtomLike<RHS>) {
+      using Dom = linalg::Matrix<T, 1, 2>;
+      using Codom = linalg::Matrix<T, 1, 1>;
+      const Sum<SumMeta<Dom, Codom>, decltype(new_lhs), RHS> sum(new_lhs, rhs);
+      const auto new_builder =
+          sum.template canonicalize<AtomType::ADD>(builder);
+      const auto builder_up = new_builder.template make<AtomType::INEQ>(cones);
+      return ConvexProblem<decltype(builder_up), StageType::IN_PROGRESS>(
+          builder_up);
+    } else {
+      const auto A = new_lhs.lift_map.linear_part();
+      const auto b = new_lhs.lift_map.translation() + linalg::Vector<T, 1>{rhs};
+      const auto new_builder = builder.template make<AtomType::INEQ>(
+          -1, affine::AffineMap<decltype(A)>(A, b), cones);
+      return ConvexProblem<decltype(new_builder), StageType::IN_PROGRESS>(
+          new_builder);
+    }
   }
 
   /**
@@ -137,35 +143,19 @@ class ConvexProblem {
    *
    * @return new convex problem
    */
+#if 0
   template <AtomLike LHS, typename RHS>
   constexpr auto geq(const LHS& lhs, const RHS& rhs) const {
-    const auto set_rhs = [&](const auto& new_lhs) {
-      if constexpr (is_var_type_v<RHS>) {
-        const auto new_rhs = rhs.mul(-1.0);
-        return leq<LHS, decltype(new_rhs)>(new_lhs, new_rhs);
-      } else {
-        const auto new_rhs = rhs.template mul<-1.0>();
-        return leq<LHS, decltype(new_rhs)>(new_lhs, new_rhs);
-      }
-    };
-    if constexpr (is_var_type_v<LHS>) {
-      const auto new_lhs = lhs.mul(-1.0);
-      if constexpr (AtomLike<RHS>)
-        return set_rhs(new_lhs);
-      else if constexpr (linalg::RealLike<RHS>)
-        return leq<LHS, RHS>(new_lhs, T(-1) * rhs);
-      else
-        static_assert(false, "Invalid RHS type (must be atom like or scalar)");
-    } else if constexpr (is_fn_type_v<LHS>) {
-      const auto new_lhs = lhs.template mul<-1.0>();
-      if constexpr (AtomLike<RHS>)
-        return set_rhs(new_lhs);
-      else if constexpr (linalg::RealLike<RHS>)
-        return leq<LHS, RHS>(new_lhs, T(-1) * rhs);
-      else
-        static_assert(false, "Invalid RHS type (must be atom like or scalar)");
-    }
+    check_ineq_types<LHS, RHS>();
+
+    const auto new_lhs =
+        is_index_type_v<LHS> ? lhs.mul(-1.0) : lhs.template mul<-1.0>();
+    const auto new_rhs = is_index_type_v<RHS> ? rhs.mul(-1.0)
+                         : AtomLike<RHS>      ? rhs.template mul<-1.0>()
+                                              : T(-1) * rhs;
+    return leq<LHS, decltype(new_rhs)>(new_lhs, new_rhs);
   }
+#endif
 
   /**
    * @brief minimize
@@ -207,16 +197,17 @@ class ConvexProblem {
   template <AtomLike Atom>
   constexpr auto maximize(const Atom& atom) const {
     if constexpr (is_set_type_v<Atom> || is_cap_type_v<Atom>) {
-      throw std::domain_error(
-          "Attempting to maximize a set or intersection of sets");
+      static_assert(false,
+                    "Attempting to maximize a set or intersection of sets");
     } else if constexpr (is_var_type_v<Atom>) {
-      throw std::domain_error(
+      static_assert(
+          false,
           "Attempting to maximize over a var type, please use affine op, "
           "concave function, or index of var instead of raw type");
     } else {
       static constexpr CurvatureType Tag = meta_curv_v<atom_meta_t<Atom>>;
       if constexpr (Tag == CurvatureType::CONVEX) {
-        throw std::domain_error("Attempting to maximize a convex function");
+        static_assert(false, "Attempting to maximize a convex function");
       } else {
         if constexpr (is_fn_type_v<Atom> || is_add_type_v<Atom>)
           return minimize(atom.template mul<-1.0>());
@@ -271,6 +262,42 @@ class ConvexProblem {
   }
 
  private:
+  /**
+   * @brief check inequality types
+   *
+   * @return void
+   */
+  template <AtomLike LHS, typename RHS>
+  constexpr void check_ineq_types() const {
+    static constexpr bool lhs_valid = is_fn_type_v<LHS> || is_index_type_v<LHS>;
+    if constexpr (!lhs_valid) {
+      static_assert(false, "LHS must be a valid atom (fn or index of var)");
+    }
+
+    static constexpr bool rhs_valid =
+        AtomLike<RHS> ? (is_fn_type_v<RHS> || is_index_type_v<RHS>)
+                      : linalg::RealLike<RHS>;
+    if constexpr (!rhs_valid) {
+      static_assert(
+          false,
+          "RHS must be either a valid atom (fn or index of var) or a scalar "
+          "type");
+    }
+  }
+
+  /**
+   * @brief negate lhs
+   *
+   * @return negated LHS
+   */
+  template <AtomLike LHS>
+  constexpr auto negate_lhs(const LHS& lhs) const {
+    if constexpr (is_index_type_v<LHS>)
+      return lhs.mul(-1.0);
+    else
+      return lhs.template mul<-1.0>();
+  }
+
   /** @brief member var */
   Builder builder;
 };

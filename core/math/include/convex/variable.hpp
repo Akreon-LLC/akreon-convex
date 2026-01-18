@@ -244,13 +244,11 @@ struct Variable : Atom<Meta, Variable<Meta>> {
       if constexpr (!is_sdp) {
         const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
         const auto cones = std::make_tuple(rplus);
-
         return new_builder.template make<Type>(cones);
       } else {
         const auto psd_cone =
             conic::PositiveSemidefiniteCone<linalg::Vector<T, N>>();
         const auto cones = std::make_tuple(psd_cone);
-
         return new_builder.template make<Type>(cones);
       }
     }

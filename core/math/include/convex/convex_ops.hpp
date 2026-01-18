@@ -75,9 +75,8 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
 
   using MatT = linalg::Matrix<T, 1, 1>;
 
-  constexpr explicit Sum(const Cs... cs)
-      : BaseT(std::make_tuple(std::forward<Cs>(cs)...)),
-        map(affine::make_map_id<MatT>()) {}
+  constexpr explicit Sum(const Cs&... cs)
+      : BaseT(std::forward_as_tuple(cs...)), map(affine::make_map_id<MatT>()) {}
 
   constexpr explicit Sum(const affine::AffineMap<MatT>& map_in,
                          const std::tuple<Cs...>& cs)
