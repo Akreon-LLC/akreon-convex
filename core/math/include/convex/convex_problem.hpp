@@ -105,7 +105,7 @@ class ConvexProblem {
    *
    * @return new convex problem
    */
-  template <AtomLike LHS, typename RHS>
+  template <AtomLike LHS, AtomLike RHS>
   constexpr auto leq(const LHS& lhs, const RHS& rhs) const {
     check_ineq_types<LHS, RHS>();
 
@@ -113,23 +113,13 @@ class ConvexProblem {
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     const auto cones = std::make_tuple(rplus);
 
-    if constexpr (AtomLike<RHS>) {
-      using Dom = linalg::Matrix<T, 1, 2>;
-      using Codom = linalg::Matrix<T, 1, 1>;
-      const Sum<SumMeta<Dom, Codom>, decltype(new_lhs), RHS> sum(new_lhs, rhs);
-      const auto new_builder =
-          sum.template canonicalize<AtomType::ADD>(builder);
-      const auto builder_up = new_builder.template make<AtomType::INEQ>(cones);
-      return ConvexProblem<decltype(builder_up), StageType::IN_PROGRESS>(
-          builder_up);
-    } else {
-      const auto A = new_lhs.lift_map.linear_part();
-      const auto b = new_lhs.lift_map.translation() + linalg::Vector<T, 1>{rhs};
-      const auto new_builder = builder.template make<AtomType::INEQ>(
-          -1, affine::AffineMap<decltype(A)>(A, b), cones);
-      return ConvexProblem<decltype(new_builder), StageType::IN_PROGRESS>(
-          new_builder);
-    }
+    using Dom = linalg::Matrix<T, 1, 2>;
+    using Codom = linalg::Matrix<T, 1, 1>;
+    const Sum<SumMeta<Dom, Codom>, decltype(new_lhs), RHS> sum(new_lhs, rhs);
+    const auto new_builder = sum.template canonicalize<AtomType::ADD>(builder);
+    const auto builder_up = new_builder.template make<AtomType::INEQ>(cones);
+    return ConvexProblem<decltype(builder_up), StageType::IN_PROGRESS>(
+        builder_up);
   }
 
   /**
@@ -143,23 +133,65 @@ class ConvexProblem {
    *
    * @return new convex problem
    */
-  template <AtomLike LHS, typename RHS>
+  template <AtomLike LHS, AtomLike RHS>
   constexpr auto geq(const LHS& lhs, const RHS& rhs) const {
     check_ineq_types<LHS, RHS>();
 
     const auto negate_rhs = [&]() {
       if constexpr (is_index_type_v<RHS>) {
         return rhs.mul(-1.0);
-      } else if constexpr (AtomLike<RHS>) {
-        return rhs.template mul<-1.0>();
       } else {
-        return T(-1) * rhs;
+        return rhs.template mul<-1.0>();
       }
     };
 
     const auto new_lhs = negate_lhs(lhs);
     const auto new_rhs = negate_rhs();
     return leq<decltype(new_lhs), decltype(new_rhs)>(new_lhs, new_rhs);
+  }
+
+  /**
+   * @brief leq
+   *
+   * lhs <= rhs... 0 <= rhs - lhs
+   *
+   * @param lhs atom
+   * @param rhs scalar
+   *
+   * @return new convex problem
+   */
+  template <AtomLike LHS>
+  constexpr auto leq(const LHS& lhs, const T& rhs) const {
+    check_lhs_type<LHS>();
+
+    const auto new_lhs = negate_lhs(lhs);
+    const auto lhs_up = new_lhs.add(rhs);
+
+    const auto new_builder =
+        lhs_up.template canonicalize<AtomType::FN>(builder);
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    const auto cones = std::make_tuple(rplus);
+    const auto builder_up = new_builder.template make<AtomType::INEQ>(cones);
+    return ConvexProblem<decltype(builder_up), StageType::IN_PROGRESS>(
+        builder_up);
+  }
+
+  /**
+   * @brief geq
+   *
+   * lhs >= rhs... lhs - rhs >= 0
+   * -lhs <= -rhs
+   *
+   *  @param lhs atom
+   *  @param rhs scalar
+   *
+   *  @return new convex problem
+   */
+  template <AtomLike LHS>
+  constexpr auto geq(const LHS& lhs, const T& rhs) const {
+    check_lhs_type<LHS>();
+    const auto new_lhs = negate_lhs(lhs);
+    return leq<decltype(new_lhs)>(new_lhs, T(-1) * rhs);
   }
 
   /**
@@ -223,6 +255,15 @@ class ConvexProblem {
   }
 
   /**
+   * @brief feasibility
+   *
+   * @return new problem
+   */
+  constexpr auto feasibility() const {
+    return ConvexProblem<decltype(builder), StageType::PROBLEM_SET>(builder);
+  }
+
+  /**
    * @brief validate
    *
    * @return bool
@@ -268,20 +309,28 @@ class ConvexProblem {
 
  private:
   /**
-   * @brief check inequality types
+   * @brief check_lhs_type
    *
    * @return void
    */
-  template <AtomLike LHS, typename RHS>
-  constexpr void check_ineq_types() const {
+  template <AtomLike LHS>
+  constexpr void check_lhs_type() const {
     static constexpr bool lhs_valid = is_fn_type_v<LHS> || is_index_type_v<LHS>;
     if constexpr (!lhs_valid) {
       static_assert(false, "LHS must be a valid atom (fn or index of var)");
     }
+  }
 
-    static constexpr bool rhs_valid =
-        AtomLike<RHS> ? (is_fn_type_v<RHS> || is_index_type_v<RHS>)
-                      : linalg::RealLike<RHS>;
+  /**
+   * @brief check inequality types
+   *
+   * @return void
+   */
+  template <AtomLike LHS, AtomLike RHS>
+  constexpr void check_ineq_types() const {
+    check_lhs_type<LHS>();
+
+    static constexpr bool rhs_valid = is_fn_type_v<RHS> || is_index_type_v<RHS>;
     if constexpr (!rhs_valid) {
       static_assert(
           false,

@@ -675,3 +675,50 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
                               0.0, 0.5, 0.0});
   }
 }
+
+TEST_CASE("Simple feasibility test", "[convex_problem]") {
+  SECTION("Simple feasible check") {
+    /// (dakre) part 1 - leq
+    using Space = Matrixd<1, 1>;
+    constexpr auto var = Variable<PosVarMeta<Space>>();
+    constexpr auto prob = make_problem(var);
+
+    constexpr auto log = Log<LogMeta<Space>, decltype(var)>(var);
+    constexpr auto prob2 = prob.leq(log, 1.0);
+    constexpr auto prob3 = prob2.feasibility();
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   3);
+    STATIC_REQUIRE(
+        linalg::mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
+        5);
+    STATIC_REQUIRE(
+        linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
+        2);
+    constexpr mat_traits<Matrix<double, 5, 2>> F_mat;
+    constexpr auto F = F_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
+    constexpr auto solver_eps = linalg::SolverTraits<double>::tol;
+    constexpr auto g = Vectord<5>{-1 * solver_eps, 0.0, 1.0, 0.0, 1.0};
+    STATIC_REQUIRE(prob3.constraint_map().translation() == g);
+
+    /// (dakre) part 2 - geq
+    constexpr auto prob4 = prob.geq(log, 2.0);
+    constexpr auto prob5 = prob4.feasibility();
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob5)>);
+
+    STATIC_REQUIRE(std::tuple_size<decltype(prob5.constraint_cones())>::value ==
+                   3);
+    STATIC_REQUIRE(
+        linalg::mat_rows_v<decltype(prob5.constraint_map().linear_part())> ==
+        5);
+    STATIC_REQUIRE(
+        linalg::mat_cols_v<decltype(prob5.constraint_map().linear_part())> ==
+        2);
+    constexpr auto F1 = F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(all_equal(prob5.constraint_map().linear_part(), F1));
+    constexpr auto g1 = Vectord<5>{-1 * solver_eps, 0.0, 1.0, 0.0, -2.0};
+    STATIC_REQUIRE(prob5.constraint_map().translation() == g1);
+  }
+}
