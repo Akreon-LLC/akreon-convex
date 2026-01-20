@@ -72,6 +72,6 @@ if(BUILD_TESTING)
   add_executable(linalg_fuzz_test functional/linalg_fuzz_test.cpp)
   target_include_directories(linalg_fuzz_test PRIVATE ../math/include)
 
-  #add_executable(convex_fuzz_test functional/convex_fuzz_test.cpp)
-  #target_include_directories(convex_fuzz_test PRIVATE ../math/include)
+  add_executable(convex_fuzz_test functional/convex_fuzz_test.cpp)
+  target_include_directories(convex_fuzz_test PRIVATE ../math/include)
 endif()

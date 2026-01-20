@@ -10,6 +10,8 @@
  * from Akreon LLC.
  */
 
+#include <assert.h>
+
 #include <algorithm>
 #include <iostream>
 #include <random>
@@ -23,10 +25,15 @@ using namespace convex;
 
 int main() {
   static constexpr size_t N = 100;
-  using Space = Matrixd<1, N>;
-  constexpr auto l1 = NormFn<Space, L1<Vectord<N>>>();
-  constexpr auto l1_eval = l1.eval(Vectord<N>{});
-  constexpr auto l2 = NormFn<Space, L2<Vectord<N>>>();
-  constexpr auto l2_eval = l2.eval(Vectord<N>{});
-  return l1_eval.value() + l2_eval.value();
+  using Dom = Matrixd<1, N>;
+  using Codom = Matrixd<1, 1>;
+  constexpr auto var = Variable<FreeVarMeta<Dom>>();
+  constexpr auto prob = make_problem(var);
+
+  constexpr auto norm =
+      Norm<NormMeta<Dom, Codom>, decltype(var), L2<Vectord<N>>>(var);
+  constexpr auto prob2 = prob.minimize(norm);
+  assert(prob2.validate());
+  std::cout << prob2.linear_objective()(0)(0) << std::endl;
+  return 0;
 }
