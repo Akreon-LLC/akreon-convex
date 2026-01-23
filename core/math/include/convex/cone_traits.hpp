@@ -34,7 +34,7 @@ template <linalg::VectorLike Vec>
 struct SecondOrderCone;
 
 /// @brief forward decl for psd
-template <linalg::VectorLike Vec>
+template <linalg::VectorLike Vec, size_t N>
 struct PositiveSemidefiniteCone;
 
 /// @brief forward decl for exp
@@ -82,8 +82,8 @@ struct cone_traits<SecondOrderCone<Vec>> {
 };
 
 /// @brief cone traits derived for psd
-template <linalg::VectorLike Vec>
-struct cone_traits<PositiveSemidefiniteCone<Vec>> {
+template <linalg::VectorLike Vec, size_t Dim>
+struct cone_traits<PositiveSemidefiniteCone<Vec, Dim>> {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
   static constexpr size_t N = linalg::vec_size_v<Vec>;

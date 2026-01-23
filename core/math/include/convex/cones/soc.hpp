@@ -16,7 +16,11 @@
 
 namespace conic {
 
-/// @brief soc cone class
+/**
+ * @brief soc cone class
+ *
+ * K_soc = { (x, t) | ||x|| <= t }
+ */
 template <linalg::VectorLike Slack>
 struct SecondOrderCone : public Cone<Slack, SecondOrderCone<Slack>> {
   /// @brief bring into scope alias from cone base
@@ -31,7 +35,11 @@ struct SecondOrderCone : public Cone<Slack, SecondOrderCone<Slack>> {
    *
    * @return vector
    */
-  constexpr Slack x0_impl() const { return Slack{}; }
+  constexpr Slack x0_impl() const {
+    Slack s{};
+    s[M - 1] = T(1);
+    return s;
+  }
 
   /**
    * @brief in interior of K
@@ -41,8 +49,10 @@ struct SecondOrderCone : public Cone<Slack, SecondOrderCone<Slack>> {
    * @return bool
    */
   constexpr bool in_K_impl(const Slack& x) const {
-    (void)x;
-    return true;
+    T res{};
+    for (size_t i = 0; i < M - 1; ++i) res += x(i) * x(i);
+    res = linalg::constexpr_sqrt(res);
+    return res < x(M - 1);
   }
 
   /**

@@ -16,7 +16,10 @@
 
 namespace conic {
 
-/// @brief soc cone class
+/** @brief zoc cone class
+ *
+ * K_zoc = { x | x == 0 }
+ */
 template <linalg::VectorLike Slack>
 struct ZeroOrderCone : public Cone<Slack, ZeroOrderCone<Slack>> {
   /// @brief bring into scope alias from cone base
@@ -40,9 +43,9 @@ struct ZeroOrderCone : public Cone<Slack, ZeroOrderCone<Slack>> {
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& x) const {
-    (void)x;
-    return true;
+  constexpr bool in_K_impl(const Slack& /*x*/) const {
+    /// (dakre) always empty \equiv null set!
+    return false;
   }
 
   /**

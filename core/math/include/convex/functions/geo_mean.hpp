@@ -211,7 +211,10 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
         ConeBlockBuilder<builder_dom_t<decltype(builder)>,
                          decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
-    const auto power_cone = conic::PowerCone<linalg::Vector<T, N + 1>>();
+
+    const linalg::vec_traits<linalg::Vector<T, N>> vec_t;
+    const auto power_cone =
+        conic::PowerCone<linalg::Vector<T, N + 1>>(vec_t.fill(T(1 / N)));
     const auto cones = std::make_tuple(power_cone);
 
     return new_builder.template make<Type>(idx, lift_map, cones);

@@ -170,7 +170,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
     linalg::Vector<T, K + 1> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto psd_cone =
-        conic::PositiveSemidefiniteCone<linalg::Vector<T, K>>();
+        conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, N>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     const auto cones = std::make_tuple(psd_cone, rplus);
 

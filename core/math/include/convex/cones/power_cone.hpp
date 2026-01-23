@@ -16,7 +16,11 @@
 
 namespace conic {
 
-/// @brief power cone class
+/** @brief power cone class
+ *
+ * K_pow = { (x,t) \in R_++ x R | \prod(x_i)^a_i >= |t|, sum(a_i) == 1, a_i >= 0
+ * } a \in Q (set of rational numbers)
+ */
 template <linalg::VectorLike Slack>
 struct PowerCone : public Cone<Slack, PowerCone<Slack>> {
   /// @brief bring into scope alias from cone base
@@ -26,29 +30,38 @@ struct PowerCone : public Cone<Slack, PowerCone<Slack>> {
   using ConeBase::M;
   using typename ConeBase::T;
 
+  /// @brief alpha vec
+  using AlphaVec = linalg::Vector<T, M - 1>;
+
+  /**
+   * @brief PowerCone
+   *
+   * @param alphas \in Q^n
+   */
+  constexpr explicit PowerCone(const AlphaVec& alphas_in) : alphas(alphas_in) {}
+
   /**
    * @brief default interior point
-   *
-   * @param vector of indices
    *
    * @return vector
    */
   constexpr Slack x0_impl() const {
-    /// (dakre) TODO - acquire interior point
-    return Slack{};
+    Slack s{};
+    for (size_t i = 0; i < M - 1; ++i) s[i] = T(1);
+    return s;
   }
 
   /**
    * @brief in interior of K
    *
-   * @param primal vector
+   * @param slack vector
    *
    * @return bool
    */
   constexpr bool in_K_impl(const Slack& x) const {
-    /// (dakre) TODO - perform is interior check
-    (void)x;
-    return true;
+    T res(1);
+    for (size_t i = 0; i < M - 1; ++i) res *= x(i);
+    return linalg::constexpr_nrt<T>(res, M) < x(M - 1);
   }
 
   /**
@@ -65,6 +78,9 @@ struct PowerCone : public Cone<Slack, PowerCone<Slack>> {
     /// (dakre) TODO - compute alpha max
     return T(0);
   }
+
+  /** @brief member vars for power cone */
+  AlphaVec alphas;
 };
 
 }  // namespace conic

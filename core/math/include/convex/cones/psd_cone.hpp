@@ -40,23 +40,32 @@ struct LogDet {
   }
 };
 
-/// @brief psd cone class
-template <linalg::VectorLike Slack>
+/** @brief psd cone class
+ *
+ * X \in S^n_+, tr(X) >= 0
+ */
+template <linalg::VectorLike Slack, size_t N>
 struct PositiveSemidefiniteCone
-    : public Cone<Slack, PositiveSemidefiniteCone<Slack>> {
+    : public Cone<Slack, PositiveSemidefiniteCone<Slack, N>> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Slack, PositiveSemidefiniteCone<Slack>>;
+  using ConeBase = Cone<Slack, PositiveSemidefiniteCone<Slack, N>>;
 
   /// @brief helpers to get T and M
   using ConeBase::M;
   using typename ConeBase::T;
+
+  static_assert(M == N * (N + 1) / 2,
+                "Encoded dim for PSD Cone does not align with slack dim");
 
   /**
    * @brief default interior point
    *
    * @return vector
    */
-  constexpr Slack x0_impl() const { return Slack{}; }
+  constexpr Slack x0_impl() const {
+    const auto I = linalg::make_identity<T, N>();
+    return linalg::lower_triangle_to_vec(I);
+  }
 
   /**
    * @brief in interior of K
@@ -66,8 +75,9 @@ struct PositiveSemidefiniteCone
    * @return bool
    */
   constexpr bool in_K_impl(const Slack& x) const {
-    (void)x;
-    return true;
+    const auto X = linalg::make_smat<N, Slack>(x);
+    const auto SymMat = linalg::SymmetricMatrix(X);
+    return SymMat.is_psd();
   }
 
   /**

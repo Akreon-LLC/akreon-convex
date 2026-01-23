@@ -16,7 +16,10 @@
 
 namespace conic {
 
-/// @brief nonneg cone class
+/** @brief nonneg cone class
+ *
+ * R^n_+ = set of all nonneg R
+ */
 template <linalg::VectorLike Slack>
 struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
   /// @brief bring into scope alias from cone base
@@ -31,7 +34,7 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    *
    * @return vector
    */
-  constexpr Slack x0_impl() const { return Slack{}; }
+  constexpr Slack x0_impl() const { return Slack{T(1)}; }
 
   /**
    * @brief in interior of K
@@ -40,10 +43,7 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& x) const {
-    (void)x;
-    return true;
-  }
+  constexpr bool in_K_impl(const Slack& x) const { return x(0) > T(0); }
 
   /**
    * @brief fraction to boundary dK

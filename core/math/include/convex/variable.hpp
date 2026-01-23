@@ -246,8 +246,9 @@ struct Variable : Atom<Meta, Variable<Meta>> {
         const auto cones = std::make_tuple(rplus);
         return new_builder.template make<Type>(cones);
       } else {
+        static constexpr size_t K = N * (N + 1) / 2;
         const auto psd_cone =
-            conic::PositiveSemidefiniteCone<linalg::Vector<T, N>>();
+            conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, N>();
         const auto cones = std::make_tuple(psd_cone);
         return new_builder.template make<Type>(cones);
       }

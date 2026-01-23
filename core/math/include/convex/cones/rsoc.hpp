@@ -16,7 +16,11 @@
 
 namespace conic {
 
-/// @brief rsoc cone class
+/**
+ * @brief rsoc cone class
+ *
+ * K_rsoc = { (u, v, w) | ||u||_2^2 <= 2 v w, v >= 0, w >= 0 }
+ */
 template <linalg::VectorLike Slack>
 struct RotatedSecondOrderCone
     : public Cone<Slack, RotatedSecondOrderCone<Slack>> {
@@ -32,7 +36,7 @@ struct RotatedSecondOrderCone
    *
    * @return vector
    */
-  constexpr Slack x0_impl() const { return Slack{}; }
+  constexpr Slack x0_impl() const { return Slack{T(0), T(1), T(1)}; }
 
   /**
    * @brief in interior of K
@@ -42,8 +46,7 @@ struct RotatedSecondOrderCone
    * @return bool
    */
   constexpr bool in_K_impl(const Slack& x) const {
-    (void)x;
-    return true;
+    return x(0) * x(0) < T(2) * x(1) * x(2);
   }
 
   /**

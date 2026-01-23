@@ -16,7 +16,10 @@
 
 namespace conic {
 
-/// @brief exp cone class
+/** @brief exp cone class
+ *
+ * K_exp = { (u, v, w) | v exp(u/v) <= w, v > 0 }
+ */
 template <linalg::VectorLike Slack>
 struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
   /// @brief bring into scope alias from cone base
@@ -31,10 +34,7 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
    *
    * @return vector
    */
-  constexpr Slack x0_impl() const {
-    /// (dakre) TODO - acquire interior point
-    return Slack{};
-  }
+  constexpr Slack x0_impl() const { return Slack{T(0), T(1), T(2)}; }
 
   /**
    * @brief in interior of K
@@ -44,9 +44,7 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
    * @return bool
    */
   constexpr bool in_K_impl(const Slack& x) const {
-    /// (dakre) TODO - perform is interior check
-    (void)x;
-    return true;
+    return x(1) > T(0) && x(1) * linalg::constexpr_exp(x(0) / x(1)) < x(2);
   }
 
   /**
