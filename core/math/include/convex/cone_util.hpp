@@ -21,7 +21,7 @@ namespace conic {
  *
  * Houses the convex object -> cone block structure
  */
-template <affine::AffineMapLike Map, ConeLike... Cs>
+template <affine::AffineMapLike Map, typename... Cs>
 struct ConeBlock {
   /// @brief alias to extract scalar type from space
   using MatT = affine::affine_mat_t<Map>;

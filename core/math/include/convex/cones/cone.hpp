@@ -17,74 +17,53 @@
 namespace conic {
 
 /// @brief cone base class
-template <linalg::VectorLike Vec, typename Derived>
+template <linalg::VectorLike Slack, typename Derived>
 struct Cone {
   /// @brief alias for mat type
-  using T = linalg::vec_type_t<Vec>;
+  using T = linalg::vec_type_t<Slack>;
 
-  /// @brief helpers to get N sizes
-  static constexpr size_t N = linalg::vec_size_v<Vec>;
-
-  /**
-   * @brief compute barrier
-   *
-   * @param slack vector (primal space)
-   *
-   * @return barrier for cone
-   */
-  constexpr auto barrier(const Vec& s) const { return self().barrier_impl(s); }
+  /// @brief helpers to get M slack size
+  static constexpr size_t M = linalg::vec_size_v<Slack>;
 
   /**
-   * @brief compute barrier for dual
+   * @brief default interior point (initial slack in cone space)
    *
-   * @param dual vector (dual space)
+   * x0 \in S^0(P) or (s,y) \in S^0(D)
    *
-   * @return dual barrier
+   * @param start index
+   * @param end index
+   *
+   * @return vector
    */
-  constexpr auto dual_barrier(const Vec& y) const {
-    return self().dual_barrier_impl(y);
-  }
+  constexpr Slack x0() const { return self().x0_impl(); }
 
   /**
-   * @brief compute gradient
+   * @brief in the interior of k
    *
-   * @param slack vector (primal space)
+   * x \in K ? or (s,y) \in K^* ?
    *
-   * @return gradient for cone
+   * @param x \in K
+   *
+   * @return bool
    */
-  constexpr auto gradient(const Vec& s) const {
-    return self().gradient_impl(s);
-  }
+  constexpr bool in_K(const Slack& x) const { return self().in_K_impl(x); }
 
   /**
-   * @brief compute gradient for dual
+   * @brief fraction to boundary dK
    *
-   * @param dual vector (dual space)
+   * \sigma_x(p) = \frac{1}{\sup{\alpha | x - \alpha p \in K }}
+   * \alpha_max = \frac{1}{\sigma_x(p)}
    *
-   * @return dual gradient
+   * we want the largest alpha that stays within K for our next step
+   * x_{k+1} = x_{k} - \alpha p
+   *
+   * @param x \in K
+   * @param p \in E
+   *
+   * @return \alpha_max
    */
-  constexpr auto dual_gradient(const Vec& y) const {
-    return self().dual_gradient_impl(y);
-  }
-
-  /**
-   * @brief compute hessian
-   *
-   * @param slack vector (primal space)
-   *
-   * @return hessian for cone
-   */
-  constexpr auto hessian(const Vec& s) const { return self().hessian_impl(s); }
-
-  /**
-   * @brief compute dual hessian
-   *
-   * @param dual vector (dual space)
-   *
-   * @return hessian for dual cone
-   */
-  constexpr auto dual_hessian(const Vec& y) const {
-    return self().hessian_impl(y);
+  constexpr T alpha_max(const Slack& x, const linalg::Vector<T, M>& p) const {
+    return self().alpha_max_impl(x, p);
   }
 
   /**

@@ -17,64 +17,52 @@
 namespace conic {
 
 /// @brief exp cone class
-template <linalg::VectorLike Vec>
-struct ExpCone : public Cone<Vec, ExpCone<Vec>> {
+template <linalg::VectorLike Slack>
+struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Vec, ExpCone<Vec>>;
+  using ConeBase = Cone<Slack, ExpCone<Slack>>;
+
+  /// @brief helpers to get T and M
+  using ConeBase::M;
+  using typename ConeBase::T;
 
   /**
-   * @brief compute barrier
+   * @brief default interior point
    *
-   * @param slack vector (primal space)
-   *
-   * @return barrier for cone
+   * @return vector
    */
-  constexpr auto barrier_impl(const Vec& /*s*/) const { return false; }
+  constexpr Slack x0_impl() const {
+    /// (dakre) TODO - acquire interior point
+    return Slack{};
+  }
 
   /**
-   * @brief compute dual barrier
+   * @brief in interior of K
    *
-   * @param dual vector (dual space)
+   * @param x \in K
    *
-   * @return dual barrier for cone
+   * @return bool
    */
-  constexpr auto dual_barrier_impl(const Vec& /*y*/) const { return false; }
+  constexpr bool in_K_impl(const Slack& x) const {
+    /// (dakre) TODO - perform is interior check
+    (void)x;
+    return true;
+  }
 
   /**
-   * @brief compute gradient
+   * @brief fraction to boundary dK
    *
-   * @param slack vector (primal space)
+   * @param x \in K
+   * @param p \in E
    *
-   * @return gradient for cone
+   * @return \alpha_max
    */
-  constexpr auto gradient_impl(const Vec& /*s*/) const { return false; }
-
-  /**
-   * @brief compute gradient
-   *
-   * @param dual vector (dual space)
-   *
-   * @return gradient for dual cone
-   */
-  constexpr auto dual_gradient_impl(const Vec& /*y*/) const { return false; }
-
-  /**
-   * @brief compute hessian
-   *
-   * @param slack vector (primal space)
-   *
-   * @return hessian for cone
-   */
-  constexpr auto hessian_impl(const Vec& /*s*/) const { return false; }
-
-  /**
-   * @brief compute hessian
-   *
-   * @param dual vector (dual space)
-   *
-   * @return hessian for dual cone
-   */
-  constexpr auto dual_hessian_impl(const Vec& /*y*/) const { return false; }
+  constexpr T alpha_max_impl(const Slack& x,
+                             const linalg::Vector<T, M>& p) const {
+    (void)x, (void)p;
+    /// (dakre) TODO - compute alpha max
+    return T(0);
+  }
 };
 
 }  // namespace conic

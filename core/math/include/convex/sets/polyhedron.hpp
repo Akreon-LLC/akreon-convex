@@ -194,7 +194,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    * @return halfspaces
    */
   template <size_t i, BuilderLike Builder, affine::AffineMapLike Map,
-            conic::ConeLike... Cs>
+            typename... Cs>
   constexpr auto canonicalize_halfspaces(
       const Builder& builder,
       const conic::ConeBlock<Map, Cs...>& cone_block) const {

@@ -144,8 +144,7 @@ struct ConeBlockBuilder {
    *
    * @return new cone block builder
    */
-  template <AtomType Type, affine::AffineMapLike LiftedMap,
-            conic::ConeLike... Cs>
+  template <AtomType Type, affine::AffineMapLike LiftedMap, typename... Cs>
   constexpr auto make(const int& idx, const LiftedMap& lift_map,
                       const std::tuple<Cs...>& cones) const {
     const auto new_map = this->template update_map<Type>();
@@ -174,7 +173,7 @@ struct ConeBlockBuilder {
    *
    * @return new cone block builder
    */
-  template <AtomType Type, conic::ConeLike... Cs>
+  template <AtomType Type, typename... Cs>
   constexpr auto make(const std::tuple<Cs...>& cones) const {
     const auto new_map = this->template update_map<Type>();
     const auto new_cb =

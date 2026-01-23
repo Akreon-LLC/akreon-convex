@@ -134,19 +134,8 @@ template <class Cone>
 inline constexpr size_t cone_dim_t =
     cone_traits<linalg::remove_cvref_t<Cone>>::N;
 
-/// @brief concept for convex object like
-template <class Cone>
-concept ConeLike = requires(const Cone& cone, const cone_slack_t<Cone>& s) {
-  { cone.barrier(s) };
-  { cone.dual_barrier(s) };
-  { cone.gradient(s) };
-  { cone.dual_gradient(s) };
-  { cone.hessian(s) };
-  { cone.dual_hessian(s) };
-};
-
 /// @brief cone block forward decl
-template <affine::AffineMapLike Map, ConeLike... Cs>
+template <affine::AffineMapLike Map, typename... Cs>
 struct ConeBlock;
 
 /// @brief concept for cone block like used in canonical form
