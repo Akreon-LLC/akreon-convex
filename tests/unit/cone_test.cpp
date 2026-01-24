@@ -28,6 +28,9 @@ TEST_CASE("Test cone formations", "[cone_test]") {
     using Slack = Vectord<3>;
     constexpr ExpCone<Slack> exp_cone;
     STATIC_REQUIRE(exp_cone.in_K(exp_cone.x0()));
+
+    constexpr ExpCone<Vectord<9>> exp_cone9;
+    STATIC_REQUIRE(exp_cone9.in_K(exp_cone9.x0()));
   }
 
   SECTION("Test power cone") {

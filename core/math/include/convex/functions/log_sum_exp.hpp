@@ -218,8 +218,8 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
                   "mismatch between domain in the convex function");
     static_assert(Dom == N,
                   "Expecting child affine map to have square linear part");
-    linalg::Matrix<T, 2 * N + 2, 2 * Dom + 1> F;
-    linalg::Vector<T, 2 * N + 2> g;
+    linalg::Matrix<T, 3 * N + 1, 2 * Dom + 1> F;
+    linalg::Vector<T, 3 * N + 1> g;
     F = linalg::set_block<0, N, 0, Dom>(F, child_coord.linear_part());
     const auto I = linalg::make_identity<T, Dom>();
 
@@ -228,11 +228,11 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
     } else {
       for (size_t i = 0; i < N; ++i) F[i][N] = T(1);
     }
-    F = linalg::set_block<N + 1, 2 * N + 1, N + 1, 2 * N + 1>(F, I);
-    for (size_t i = 0; i < N; ++i) F[2 * N + 1][N + 1 + i] = T(-1);
+    F = linalg::set_block<2 * N, 3 * N, N + 1, 2 * N + 1>(F, I);
+    for (size_t i = 0; i < N; ++i) F[3 * N][N + 1 + i] = T(-1);
     for (size_t i = 0; i < N; ++i) g[i] = child_coord.translation()(i);
-    g[N] = T(1);
-    g[2 * N + 1] = T(1);
+    for (size_t i = N; i < 2 * N; ++i) g[i] = T(1);
+    g[3 * N] = T(1);
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
@@ -240,7 +240,7 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
                          decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
 
-    const auto exp_cone = conic::ExpCone<linalg::Vector<T, 2 * N + 1>>();
+    const auto exp_cone = conic::ExpCone<linalg::Vector<T, 3 * N>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     const auto cones = std::make_tuple(exp_cone, rplus);
 

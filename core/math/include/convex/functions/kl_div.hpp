@@ -180,7 +180,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
    * Exp cone: let x = -s_i, y = p_i, z = q_i
    * Nonneg cone: 0 <= t - 1^T s
    *
-   * [ 0 0 -1   0 ] [ p; q; s; t ] + [ 0; 0; b; 0]
+   * [ 0 0 -I   0 ] [ p; q; s; t ] + [ 0; 0; b; 0]
    * [ I 0  0   0 ]
    * [ 0 A  0   0 ]
    *  ------------
@@ -191,7 +191,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
    * Exp cone: let x = s_i, y = p_i, z = q_i
    * Nonneg cone: 0 <= t - 1^T s
    *
-   * [ 0 0  1   0 ] [ p; q; s; t ] + [ 0; 0; b; 0]
+   * [ 0 0  I   0 ] [ p; q; s; t ] + [ 0; 0; b; 0]
    * [ I 0  0   0 ]
    * [ 0 A  0   0 ]
    *  ------------
@@ -217,21 +217,20 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
                   "mismatch between domain in the convex function");
     static_assert(Dom == N,
                   "Expecting child affine map to have square linear part");
-    linalg::Matrix<T, 2 * N + 2, 3 * N + 1> F;
-    linalg::Vector<T, 2 * N + 2> g;
-    for (size_t i = 0; i < N; ++i) g[N + 1 + i] = child_coord.translation()(i);
-
-    if constexpr (Tag == CurvatureType::CONVEX)
-      for (size_t i = 0; i < N; ++i) F[0][2 * N + i] = T(-1);
-    else
-      for (size_t i = 0; i < N; ++i) F[0][2 * N + i] = T(1);
+    linalg::Matrix<T, 3 * N + 1, 3 * N + 1> F;
+    linalg::Vector<T, 3 * N + 1> g;
+    for (size_t i = 0; i < N; ++i) g[2 * N + i] = child_coord.translation()(i);
 
     const auto I = linalg::make_identity<T, N>();
-    F = linalg::set_block<1, N + 1, 0, N>(F, I);
-    F = linalg::set_block<N + 1, 2 * N + 1, N, 2 * N>(
-        F, child_coord.linear_part());
-    for (size_t i = 0; i < N; ++i) F[2 * N + 1][2 * N + i] = T(-1);
-    F[2 * N + 1][3 * N] = T(1);
+    if constexpr (Tag == CurvatureType::CONVEX)
+      F = linalg::set_block<0, N, 2 * N, 3 * N>(F, T(-1) * I);
+    else
+      F = linalg::set_block<0, N, 2 * N, 3 * N>(F, I);
+
+    F = linalg::set_block<N, 2 * N, 0, N>(F, I);
+    F = linalg::set_block<2 * N, 3 * N, N, 2 * N>(F, child_coord.linear_part());
+    for (size_t i = 0; i < N; ++i) F[3 * N][2 * N + i] = T(-1);
+    F[3 * N][3 * N] = T(1);
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
@@ -239,7 +238,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
                          decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
 
-    const auto exp_cone = conic::ExpCone<linalg::Vector<T, 2 * N + 1>>();
+    const auto exp_cone = conic::ExpCone<linalg::Vector<T, 3 * N>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     const auto cones = std::make_tuple(exp_cone, rplus);
 

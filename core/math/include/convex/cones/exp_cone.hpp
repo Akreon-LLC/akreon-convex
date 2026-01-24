@@ -19,6 +19,10 @@ namespace conic {
 /** @brief exp cone class
  *
  * K_exp = { (u, v, w) | v exp(u/v) <= w, v > 0 }
+ *
+ * To support F block being affine in x then aux vars the coords
+ * are strided by 3*N nominally. So u coords are the first M/3 rows, v are the
+ * next M/3 rows, and w are the final rows
  */
 template <linalg::VectorLike Slack>
 struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
@@ -29,14 +33,20 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
   using ConeBase::M;
   using typename ConeBase::T;
 
-  static_assert(M == 3, "Exp cone must be a triplet");
+  static_assert(M % 3 == 0, "Exp cone must be a triplet");
 
   /**
    * @brief default interior point
    *
    * @return vector
    */
-  constexpr Slack x0_impl() const { return Slack{T(0), T(1), T(2)}; }
+  constexpr Slack x0_impl() const {
+    Slack s{};
+    for (size_t i = 0; i < M / 3; ++i) s[i] = T(0);
+    for (size_t i = M / 3; i < 2 * M / 3; ++i) s[i] = T(1);
+    for (size_t i = 2 * M / 3; i < M; ++i) s[i] = T(2);
+    return s;
+  }
 
   /**
    * @brief in interior of K
@@ -46,7 +56,13 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
    * @return bool
    */
   constexpr bool in_K_impl(const Slack& x) const {
-    return x(1) > T(0) && x(1) * linalg::constexpr_exp(x(0) / x(1)) < x(2);
+    for (size_t i = 0; i < M / 3; ++i) {
+      const auto u = x(i);
+      const auto v = x(M / 3 + i);
+      const auto w = x(2 * M / 3 + i);
+      if (v <= T(0) || v * linalg::constexpr_exp(u / v) >= w) return false;
+    }
+    return true;
   }
 
   /**

@@ -537,8 +537,6 @@ TEST_CASE("Test square function", "[convex_fn]") {
   }
 }
 
-/// (dakre) TODO - refactor to n exp cones rep
-#if 0
 TEST_CASE("Test log sum exp", "[convex_fn]") {
   SECTION("Test log sum exp") {
     using Space = Matrixd<1, 4>;
@@ -552,18 +550,19 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}).value() -
                                  1.21428330036) < eps);
 
-    constexpr mat_traits<Matrix<double, 10, 9>> F_mat;
-    constexpr auto F =
-        F_mat(1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-              -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, -1.0);
-    constexpr auto g = linalg::Vector<double, 10>{0.0, 0.0, 0.0, 0.0, 1.0,
-                                                  0.0, 0.0, 0.0, 0.0, 1.0};
-
+    constexpr mat_traits<Matrix<double, 13, 9>> F_mat;
+    constexpr auto F = F_mat(
+        1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, -1.0, -1.0, -1.0, -1.0);
+    constexpr auto g = linalg::Vector<double, 13>{
+        0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0};
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder = lse.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
@@ -584,14 +583,16 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     STATIC_REQUIRE(
         constexpr_abs(lse_concave(Vectord<4>{}).value() + 1.38629436112) < eps);
 
-    constexpr auto F1 =
-        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-              1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, -1.0);
+    constexpr auto F1 = F_mat(
+        1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+        0.0, -1.0, -1.0, -1.0, -1.0);
 
     constexpr auto builder1 = lse_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
@@ -607,7 +608,6 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
     STATIC_REQUIRE(canon_cb1.validate());
   }
 }
-#endif
 
 TEST_CASE("Square Root Function", "[convex_fn]") {
   SECTION("Test sqrt function") {
@@ -713,8 +713,6 @@ TEST_CASE("Softplus Function", "[convex_fn]") {
   }
 }
 
-/// (dakre) TODO - refactor to n rsoc cones rep
-#if 0
 TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
   SECTION("Test harmonic mean") {
     using Dom = Matrixd<1, 2>;
@@ -762,9 +760,7 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
     STATIC_REQUIRE(canon_cb.map.translation() == Vectord<3>{});
   }
 }
-#endif
 
-#if 0
 TEST_CASE("KL Div Function", "[convex_fn]") {
   SECTION("Test kl div") {
     using Dom = Matrixd<1, 3>;
@@ -790,16 +786,18 @@ TEST_CASE("KL Div Function", "[convex_fn]") {
     constexpr auto canon_cb = new_builder.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 2);
 
-    constexpr mat_traits<Matrix<double, 8, 10>> F_mat;
-    constexpr auto F = F_mat(
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 1.0);
+    constexpr mat_traits<Matrix<double, 10, 10>> F_mat;
+    constexpr auto F =
+        F_mat(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 1.0);
     STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
-    STATIC_REQUIRE(canon_cb.map.translation() == Vectord<8>{});
+    STATIC_REQUIRE(canon_cb.map.translation() == Vectord<10>{});
 
     constexpr auto kldiv_concave = kldiv_fn.mul<-1.0>().add(0.0);
     STATIC_REQUIRE(!kldiv_concave(Vectord<3>{}).has_value());
@@ -813,18 +811,20 @@ TEST_CASE("KL Div Function", "[convex_fn]") {
 
     constexpr auto canon_cb1 = new_builder1.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb1.cones)>::value == 2);
-    constexpr auto F1 = F_mat(
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 1.0);
+    constexpr auto F1 =
+        F_mat(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 1.0);
+
     STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
-    STATIC_REQUIRE(canon_cb1.map.translation() == Vectord<8>{});
+    STATIC_REQUIRE(canon_cb1.map.translation() == Vectord<10>{});
   }
 }
-#endif
 
 TEST_CASE("Huber Function", "[convex_fn]") {
   SECTION("Test huber") {
