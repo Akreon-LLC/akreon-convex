@@ -59,9 +59,18 @@ struct PowerCone : public Cone<Slack, PowerCone<Slack>> {
    * @return bool
    */
   constexpr bool in_K_impl(const Slack& x) const {
-    T res(1);
-    for (size_t i = 0; i < M - 1; ++i) res *= x(i);
-    return linalg::constexpr_nrt<T>(res, M) < x(M - 1);
+    if (T(x(M - 1)) == T(0)) {
+      for (size_t i = 0; i < M - 1; ++i)
+        if (x(i) < T(0)) return false;
+      return true;
+    } else {
+      T res{};
+      for (size_t i = 0; i < M - 1; ++i) {
+        if (x(i) < T(0)) return false;
+        res += alphas(i) * linalg::constexpr_ln(x(i)).value();
+      }
+      return res > linalg::constexpr_ln(linalg::constexpr_abs(x(M - 1)));
+    }
   }
 
   /**

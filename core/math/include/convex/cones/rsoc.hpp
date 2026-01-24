@@ -31,6 +31,8 @@ struct RotatedSecondOrderCone
   using ConeBase::M;
   using typename ConeBase::T;
 
+  static_assert(M == 3, "RSOC must be a triplet");
+
   /**
    * @brief default interior point
    *

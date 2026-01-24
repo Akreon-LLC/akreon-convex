@@ -29,6 +29,8 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
   using ConeBase::M;
   using typename ConeBase::T;
 
+  static_assert(M == 3, "Exp cone must be a triplet");
+
   /**
    * @brief default interior point
    *

@@ -68,6 +68,11 @@ if(BUILD_TESTING)
   target_link_libraries(convex_prob_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(convex_prob_test PRIVATE ../math/include)
 
+  add_executable(cone_test unit/cone_test.cpp)
+  add_test(NAME cone_test COMMAND cone_test)
+  target_link_libraries(cone_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(cone_test PRIVATE ../math/include)
+
   # Functional Tests
   add_executable(linalg_fuzz_test functional/linalg_fuzz_test.cpp)
   target_include_directories(linalg_fuzz_test PRIVATE ../math/include)

@@ -34,7 +34,11 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    *
    * @return vector
    */
-  constexpr Slack x0_impl() const { return Slack{T(1)}; }
+  constexpr Slack x0_impl() const {
+    Slack s{};
+    for (size_t i = 0; i < M; ++i) s[i] = T(1);
+    return s;
+  }
 
   /**
    * @brief in interior of K
@@ -43,7 +47,11 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& x) const { return x(0) > T(0); }
+  constexpr bool in_K_impl(const Slack& x) const {
+    for (size_t i = 0; i < M; ++i)
+      if (x(i) <= T(0)) return false;
+    return true;
+  }
 
   /**
    * @brief fraction to boundary dK
