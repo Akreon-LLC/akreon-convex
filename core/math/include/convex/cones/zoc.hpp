@@ -56,10 +56,9 @@ struct ZeroOrderCone : public Cone<Slack, ZeroOrderCone<Slack>> {
    *
    * @return \alpha_max
    */
-  constexpr T alpha_max_impl(const Slack& x,
-                             const linalg::Vector<T, M>& p) const {
-    (void)x, (void)p;
-    return T(0);
+  constexpr T alpha_max_impl(const Slack& /*x*/,
+                             const linalg::Vector<T, M>& /*p*/) const {
+    return std::nullopt;
   }
 };
 

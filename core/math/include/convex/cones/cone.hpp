@@ -12,6 +12,9 @@
 
 #pragma once
 
+#include <climits>
+#include <optional>
+
 #include "convex/cone_traits.hpp"
 
 namespace conic {
@@ -62,7 +65,8 @@ struct Cone {
    *
    * @return \alpha_max
    */
-  constexpr T alpha_max(const Slack& x, const linalg::Vector<T, M>& p) const {
+  constexpr std::optional<T> alpha_max(const Slack& x,
+                                       const linalg::Vector<T, M>& p) const {
     return self().alpha_max_impl(x, p);
   }
 

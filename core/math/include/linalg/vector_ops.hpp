@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "vector.hpp"
@@ -70,7 +69,7 @@ constexpr auto operator+(const Vec& A, const Vec& B) {
  * \alpha * A = \alpha A
  *
  * @param alpha of scalar type T
- * @param vector X of type T with N elements
+ * @param vector x of type T with N elements
  *
  * @return vector
  */
@@ -135,12 +134,12 @@ constexpr auto dot(const Vec& A, const Vec& B) {
  * @return (N x 1) matrix
  */
 template <VectorLike Vec>
-constexpr auto transpose(const Vec& X) {
+constexpr auto transpose(const Vec& x) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
-  Matrix<T, N, 1> X_t;
-  for (size_t i = 0; i < N; ++i) X_t[i][0] = X(i);
-  return X_t;
+  Matrix<T, N, 1> x_t;
+  for (size_t i = 0; i < N; ++i) x_t[i][0] = x(i);
+  return x_t;
 }
 
 /**
@@ -152,16 +151,16 @@ constexpr auto transpose(const Vec& X) {
  */
 template <VectorLike Vec>
   requires(ComplexLike<vec_type_t<Vec>>)
-constexpr auto conjugate(const Vec& X) {
+constexpr auto conjugate(const Vec& x) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
   Vector<T, N> result;
-  for (size_t i = 0; i < N; ++i) result[i] = std::conj(X(i));
+  for (size_t i = 0; i < N; ++i) result[i] = std::conj(x(i));
   return result;
 }
 
 /**
- * @brief cross product between X x Y = Z
+ * @brief cross product between x x y = Z
  *
  * @param vector of type T with 3 elements
  * @param vector of type T with 3 elements
@@ -170,9 +169,9 @@ constexpr auto conjugate(const Vec& X) {
  */
 template <VectorLike Vec>
   requires(vec_size_v<Vec> == 3)
-constexpr auto cross(const Vec& X, const Vec& Y) {
-  return Vec{X(1) * Y(2) - X(2) * Y(1), -(X(0) * Y(2) - X(2) * Y(0)),
-             X(0) * Y(1) - X(1) * Y(0)};
+constexpr auto cross(const Vec& x, const Vec& y) {
+  return Vec{x(1) * y(2) - x(2) * y(1), -(x(0) * y(2) - x(2) * y(0)),
+             x(0) * y(1) - x(1) * y(0)};
 }
 
 /**
@@ -185,11 +184,11 @@ constexpr auto cross(const Vec& X, const Vec& Y) {
  */
 template <VectorLike Vec>
   requires(vec_size_v<Vec> > 0)
-constexpr bool all_zero(const Vec& X) {
+constexpr bool all_zero(const Vec& x) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
   int cnt = 0;
-  for (size_t i = 0; i < N; ++i) cnt += X(i) == T(0);
+  for (size_t i = 0; i < N; ++i) cnt += x(i) == T(0);
   return cnt == N;
 }
 
@@ -202,15 +201,49 @@ constexpr bool all_zero(const Vec& X) {
  */
 template <size_t idx, VectorLike Vec>
   requires(vec_size_v<Vec> > 0 && idx < vec_size_v<Vec>)
-constexpr auto splice(const Vec& X) {
+constexpr auto splice(const Vec& x) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
   Vector<T, idx> a;
   size_t i = 0;
-  for (; i < idx; ++i) a[i] = X(i);
+  for (; i < idx; ++i) a[i] = x(i);
   Vector<T, N - idx> b;
-  for (size_t j = 0; i < N; ++i, ++j) b[j] = X(i);
+  for (size_t j = 0; i < N; ++i, ++j) b[j] = x(i);
   return std::tuple(a, b);
+}
+
+/**
+ * @brief min element
+ *
+ * @param vector x
+ *
+ * @return min element
+ */
+template <VectorLike Vec>
+  requires(vec_size_v<Vec> > 0)
+constexpr auto min(const Vec& x) {
+  using T = vec_type_t<Vec>;
+  constexpr size_t N = vec_size_v<Vec>;
+  T mn = x(0);
+  for (size_t i = 1; i < N; ++i) mn = x(i) < mn ? x(i) : mn;
+  return mn;
+}
+
+/**
+ * @brief max element
+ *
+ * @param vector x
+ *
+ * @return max element
+ */
+template <VectorLike Vec>
+  requires(vec_size_v<Vec> > 0)
+constexpr auto max(const Vec& x) {
+  using T = vec_type_t<Vec>;
+  constexpr size_t N = vec_size_v<Vec>;
+  T mx = x(0);
+  for (size_t i = 1; i < N; ++i) mx = x(i) > mx ? x(i) : mx;
+  return mx;
 }
 
 }  // namespace linalg

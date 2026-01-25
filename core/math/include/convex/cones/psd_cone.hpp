@@ -83,15 +83,26 @@ struct PositiveSemidefiniteCone
   /**
    * @brief fraction to boundary dK
    *
+   * (dakre) TODO - review further
+   *
+   * sigma_x = \frac{1}{sup{alpha | X - alpha P in K}}
+   * let M = L^{-1} P L^{-T} ... cholesky factorization
+   * X - alpha P \equiv L (I - alpha M) L^{T}
+   * I - alpha M >= 0... PSD \equiv alpha <= 1 / eig_max(M)
+   *
+   * alpha_max = 1 / eig_max(M) if eig_max(M) > 0 else inf
+   *
+   * However this is another decomposition cost so we can step
+   * by unit length and then backtrack with the IPM algo
+   *
    * @param x \in K
-   * @param p \in E
+   * @param p \in E (delta dir)
    *
    * @return \alpha_max
    */
-  constexpr T alpha_max_impl(const Slack& x,
-                             const linalg::Vector<T, M>& p) const {
-    (void)x, (void)p;
-    return T(0);
+  constexpr std::optional<T> alpha_max_impl(
+      const Slack& /*x*/, const linalg::Vector<T, M>& /*p*/) const {
+    return T(1);
   }
 };
 

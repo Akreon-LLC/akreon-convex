@@ -170,6 +170,9 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto C = B + B;
     constexpr auto D = add(B, B);
 
+    STATIC_REQUIRE(min(A) == 1.0);
+    STATIC_REQUIRE(max(A) == 2.0);
+
     constexpr auto B_inv = inverse(B);
     constexpr auto B_B_inv = B * B_inv;
     // (dakre) this case is acting like pseudoinverse since B is degenerate

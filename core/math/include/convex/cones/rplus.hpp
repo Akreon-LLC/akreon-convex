@@ -56,15 +56,20 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
   /**
    * @brief fraction to boundary dK
    *
+   * sigma_x = \frac{1}{sup{alpha | x - alpha p \in K}}
+   * sup{alpha | x - alpha p \in K} = 1 / sigma_x(p)
+   * alpha = min. x_i / p_i
+   *
    * @param x \in K
-   * @param p \in E
+   * @param p \in E (delta dir)
    *
    * @return \alpha_max
    */
-  constexpr T alpha_max_impl(const Slack& x,
-                             const linalg::Vector<T, M>& p) const {
-    (void)x, (void)p;
-    return T(0);
+  constexpr std::optional<T> alpha_max_impl(
+      const Slack& x, const linalg::Vector<T, M>& p) const {
+    T mn = std::numeric_limits<T>::max();
+    for (size_t i = 0; i < M; ++i) mn = x(i) / p(i) < mn ? x(i) / p(i) : mn;
+    return mn == std::numeric_limits<T>::max() ? std::nullopt : mn;
   }
 };
 

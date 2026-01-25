@@ -58,15 +58,45 @@ struct SecondOrderCone : public Cone<Slack, SecondOrderCone<Slack>> {
   /**
    * @brief fraction to boundary dK
    *
+   * sigma_x = \frac{1}{sup{alpha | x - alpha p in K}}
+   * p = [ delta x; delta t ]
+   * ||x - alpha delta(x)||_2 <= (t + alpha delta(t))^2
+   * ||x - alpha delta(x)||_2^2 <= (t + alpha delta(t))^2
+   * (x - alpha delta(x))^2 - (t + alpha delta(t))^2 <= 0
+   *
+   * a alpha^2 + b alpha + c <= 0
+   *
+   * a = ||delta(x)||^2 - delta(t)^2
+   * b = 2(x^T delta(x) - t delta(t))
+   * c = ||x||^2 - t^2 < 0... strictly in int(K)
+   *
+   * alpha_max = piecewise{
+   *   \frac{-b + \sqrt(b^2 - 4 ac)}{2a}, a > 0
+   *   \frac{-c}{b}, a = 0 & b > 0
+   *   +inf, a < 0
+   * }
+   *
    * @param x \in K
-   * @param p \in E
+   * @param p \in E (delta dir)
    *
    * @return \alpha_max
    */
-  constexpr T alpha_max_impl(const Slack& x,
-                             const linalg::Vector<T, M>& p) const {
-    (void)x, (void)p;
-    return T(0);
+  constexpr std::optional<T> alpha_max_impl(
+      const Slack& x, const linalg::Vector<T, M>& p) const {
+    const auto var = linalg::splice<M - 1>(x);
+    const auto t = x(M - 1);
+    const auto delta_var = linalg::splice<M - 1>(p);
+    const auto delta_t = p(M - 1);
+
+    const auto a = linalg::L2(delta_var) - delta_t * delta_t;
+    const auto b = T(2) * (linalg::dot(var, delta_var) - t * delta_t);
+    const auto c = linalg::L2(var) - t * t;
+
+    if (a > T(0))
+      return a;
+    else if (a == T(0) && b > T(0))
+      return T(-1) * c / b;
+    return std::nullopt;
   }
 };
 
