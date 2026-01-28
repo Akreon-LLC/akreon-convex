@@ -10,10 +10,9 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
-#include "../../math/include/linalg/inner_product_space.hpp"
+#include "linalg/linalg.hpp"
 
 namespace lti {
 

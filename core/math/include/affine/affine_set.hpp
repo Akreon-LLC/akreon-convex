@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "linalg/linear_algebra.hpp"
+#include "linalg/linalg.hpp"
 #include "affine_traits.hpp"
 
 namespace affine {

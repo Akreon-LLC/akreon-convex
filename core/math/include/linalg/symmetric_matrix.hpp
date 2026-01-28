@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "linear_algebra.hpp"
+#include "linalg_util.hpp"
 #include "matrix_traits.hpp"
 
 namespace linalg {

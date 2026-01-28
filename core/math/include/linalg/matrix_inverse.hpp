@@ -10,10 +10,9 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
-#include "linear_algebra.hpp"
+#include "linalg_util.hpp"
 
 namespace linalg {
 
