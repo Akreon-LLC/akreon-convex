@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "linalg/spectral/qr.hpp"
 #include "linalg_util.hpp"
 
 namespace linalg {

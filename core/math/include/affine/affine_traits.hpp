@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "algebra/algebra_traits.hpp"
+#include "linalg/vector/algebra_traits.hpp"
 
 namespace affine {
 

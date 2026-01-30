@@ -13,7 +13,7 @@
 #pragma once
 
 #include "affine_set.hpp"
-#include "linalg/matrix_inverse.hpp"
+#include "linalg/operator/matrix_inverse.hpp"
 
 namespace affine {
 

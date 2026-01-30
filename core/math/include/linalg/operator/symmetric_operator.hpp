@@ -12,14 +12,13 @@
 
 #pragma once
 
-#include "matrix_traits.hpp"
+#include "operator_traits.hpp"
 
 namespace linalg {
 
 /**
  * @brief Symmetric linear operator CRTP base
  */
-
 template <SquareMatrixLike Mat, typename Derived>
 struct SymmetricOperator {
   /// @brief alias helpers for types
@@ -70,7 +69,8 @@ struct SymmetricOperator {
    * @return T/F
    */
   constexpr bool is_psd() const {
-    return type == SymmetricMatrixType::PD || type == SymmetricMatrixType::PSD;
+    return type == SymmetricOperatorType::PD ||
+           type == SymmetricOperatorType::PSD;
   }
 
   /**
@@ -79,7 +79,28 @@ struct SymmetricOperator {
    * @return T/F
    */
   constexpr bool is_nsd() const {
-    return type == SymmetricMatrixType::ND || type == SymmetricMatrixType::NSD;
+    return type == SymmetricOperatorType::ND ||
+           type == SymmetricOperatorType::NSD;
+  }
+
+  /**
+   * @brief is indefinite
+   *
+   * @return T/F
+   */
+  constexpr bool is_ind() const { return type == SymmetricOperatorType::IND; }
+
+  /**
+   * @brief solve
+   *
+   * L^T x = b via foward solve
+   *
+   * @param vec b
+   *
+   * @return vec x
+   */
+  constexpr Vector<T, N> solve(const Vector<T, N>& /*b*/) const {
+    return Vector<T, N>{};
   }
 
   /**
@@ -97,7 +118,7 @@ struct SymmetricOperator {
   constexpr const Derived& self() const { return static_cast<Derived&>(*this); }
 
   /** @brief member variables */
-  SymmetricMatrixType type;  //< SymmetricMatrixType value
+  SymmetricOperatorType type;  //< SymmetricOperatorType value
   Vector<T, DIM> L;  //< Data stored from input square matrix as flattened
                      // n(n+1)/2 dim vector
 };

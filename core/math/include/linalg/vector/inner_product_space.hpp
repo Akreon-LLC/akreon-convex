@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "linalg_util.hpp"
+#include "linalg/linalg_util.hpp"
 
 namespace linalg {
 

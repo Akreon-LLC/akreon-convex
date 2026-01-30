@@ -13,9 +13,9 @@
 #pragma once
 
 #include "affine/affine_map.hpp"
-#include "algebra/algebra_util.hpp"
 #include "convex/cone_traits.hpp"
 #include "convex/convex_traits.hpp"
+#include "linalg/vector/algebra_util.hpp"
 
 namespace convex {
 

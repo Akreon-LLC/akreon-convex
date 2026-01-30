@@ -13,7 +13,7 @@
 #pragma once
 
 #include "cone.hpp"
-#include "linalg/symmetric_matrix.hpp"
+#include "linalg/operator/symmetric_matrix.hpp"
 
 namespace conic {
 
@@ -33,7 +33,7 @@ struct LogDet {
    */
   constexpr std::optional<T> operator()(const Point& X) const {
     linalg::SymmetricMatrix S(X);
-    if (S.type != linalg::SymmetricMatrixType::PD) return std::nullopt;
+    if (S.type != linalg::SymmetricOperatorType::PD) return std::nullopt;
     if (!S.det.has_value()) return std::nullopt;
     if (!linalg::is_real(S.det.value())) return std::nullopt;
     return linalg::constexpr_ln(S.det.value().real());

@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include "linalg/operator/hessenberg.hpp"
 #include "qr.hpp"
 
 namespace linalg {
@@ -22,8 +23,7 @@ namespace linalg {
  * similarity transforms to diagonalize A into eigenvalues.
  */
 template <SquareMatrixLike Mat>
-class EigenDecomposition {
- public:
+struct EigenDecomposition {
   // @brief alias for underlying type
   using T = mat_type_t<Mat>;
 
@@ -44,34 +44,13 @@ class EigenDecomposition {
   constexpr EigenDecomposition(const Mat& A) : converged(false) { solve_qr(A); }
 
   /**
-   * @brief basic get eigenvalues function
-   *
-   * @return vector of eigenvalues
-   */
-  constexpr auto get_eigenvalues() const { return lambda; }
-
-  /**
-   * @brief basic get eigenvectors function
-   *
-   * @return matrix of eigenvectors
-   */
-  constexpr auto get_eigenvectors() const { return V; }
-
-  /**
-   * @brief basic get for convergence flag
-   *
-   * @return T/F
-   */
-  constexpr auto get_converged() const { return converged; }
-
-  /**
    * @brief get spectral radius
    *
    * AKA maximum magnitude of a matrix as dictated by its max abs eigenvalue
    *
    * @return \rho
    */
-  constexpr auto get_spectral_radius() const {
+  constexpr auto spectral_radius() const {
     Complex rho(0.0);
     for (size_t i = 0; i < N; ++i) {
       const auto mag_rho =
@@ -91,11 +70,16 @@ class EigenDecomposition {
    *
    * @return det (T)
    */
-  constexpr auto get_determinant() const {
+  constexpr auto determinant() const {
     Complex det(1);
     for (const auto& lam : lambda) det *= lam;
     return det;
   }
+
+  /** @brief eigendecomposition member variables */
+  Vector<Complex, N> lambda;  ///< eigenvalues
+  Matrix<Complex, N, N> V;    ///< eigenvectors
+  bool converged;             ///< eigenvalue convergence flag
 
  private:
   /**
@@ -123,8 +107,8 @@ class EigenDecomposition {
     // of 2x2 or 1x1 schur blocks
     for (size_t i = 0; i < STEPS; ++i) {
       const auto qr = QR(H);
-      const auto Q = qr.get_Q();
-      const auto R = qr.get_R();
+      const auto Q = qr.Q();
+      const auto R = qr.R();
 
       // R U = U^T (U R) U = U^T H U (similarity transform)
       H = R * Q;
@@ -239,7 +223,7 @@ class EigenDecomposition {
       int GM = 0, defect = 0;
       if (AM > 1) {
         const auto I = make_identity<Complex, N>();
-        GM = N - QR(as_complex_matrix(A) - eigs(i) * I).get_rank();
+        GM = N - QR(as_complex_matrix(A) - eigs(i) * I).rank();
         defect = std::max(0, AM - GM);
       }
 
@@ -478,11 +462,6 @@ class EigenDecomposition {
 
     return normalize(v, L2<Vector<Complex, N>>());
   }
-
-  /** @brief eigendecomposition member variables */
-  Vector<Complex, N> lambda;  ///< eigenvalues
-  Matrix<Complex, N, N> V;    ///< eigenvectors
-  bool converged;             ///< eigenvalue convergence flag
 };
 
 }  // namespace linalg

@@ -29,6 +29,7 @@ struct Vector;
 /// @brief alias for matrix definition
 template <typename T, size_t Rows, size_t Cols>
 using Matrix = Vector<Vector<T, Cols>, Rows>;
+//struct Matrix;
 
 /// @brief base type traits definition for vector
 template <class Vec>

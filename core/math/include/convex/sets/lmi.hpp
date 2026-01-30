@@ -91,11 +91,11 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
    * @return T/F
    */
   constexpr bool is_well_formed() const {
-    if (linalg::SymmetricMatrix(B).type == linalg::SymmetricMatrixType::INV)
+    if (linalg::SymmetricMatrix(B).type == linalg::SymmetricOperatorType::INV)
       return false;
     for (size_t i = 0; i < N; ++i)
       if (linalg::SymmetricMatrix(A(i)).type ==
-          linalg::SymmetricMatrixType::INV)
+          linalg::SymmetricOperatorType::INV)
         return false;
     return true;
   }

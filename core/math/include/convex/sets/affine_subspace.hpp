@@ -81,7 +81,7 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    * @return T/F
    */
   constexpr bool is_well_formed() const {
-    const auto rank = linalg::QR(A).get_rank();
+    const auto rank = linalg::QR(A).rank();
     return rank == N;
   }
 

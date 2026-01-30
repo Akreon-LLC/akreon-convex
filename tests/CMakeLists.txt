@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.22)
 
 include_directories(../core/math/include)
 include_directories(../core/physics/include)
-include_directories(../core/controls/include)
 
 if(BUILD_TESTING)
   FetchContent_Declare(
@@ -42,11 +41,6 @@ if(BUILD_TESTING)
   add_test(NAME one_dof_smd_test COMMAND one_dof_smd_test)
   target_link_libraries(one_dof_smd_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(one_dof_smd_test PRIVATE ../physics/include)
-
-  add_executable(lti_systems_test unit/lti_systems_test.cpp)
-  add_test(NAME lti_systems_test COMMAND lti_systems_test)
-  target_link_libraries(lti_systems_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(lti_systems_test PRIVATE ../controls/include)
 
   add_executable(affine_set_test unit/affine_set_test.cpp)
   add_test(NAME affine_set_test COMMAND affine_set_test)

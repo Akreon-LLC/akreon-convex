@@ -23,8 +23,7 @@ namespace linalg {
  * vectors
  */
 template <MatrixLike Mat>
-class SVD {
- public:
+struct SVD {
   // @brief aliasing complex and real types for eigen decomposition
   using T = mat_type_t<Mat>;
   using Real = scalar_type_t<T>;
@@ -41,33 +40,12 @@ class SVD {
    * @param tolerance dictating algorithm convergence
    */
   constexpr SVD(const Mat& A) : converged(false) { svd(A); }
-  /**
-   * @brief basic get for left singular vectors
-   *
-   * @return matrix of left singular vectors
-   */
-  constexpr auto get_left_singular_vectors() const { return U; }
 
-  /**
-   * @brief basic get for right singular vectors
-   *
-   * @return matrix of right singular vectors
-   */
-  constexpr auto get_right_singular_vectors() const { return VT; }
-
-  /**
-   * @brief basic get for singular values
-   *
-   * @return matrix of singular values
-   */
-  constexpr auto get_singular_values() const { return S; }
-
-  /**
-   * @brief basic get for convergence flag
-   *
-   * @return T/F
-   */
-  constexpr auto get_converged() const { return converged; }
+  /** @brief SVD member variables */
+  Matrix<Complex, Cols, Cols> VT;  ///< right singular vectors
+  Matrix<Complex, Rows, Rows> U;   ///< left singular vectors
+  Matrix<Real, Rows, Cols> S;      ///< singular values
+  bool converged;                  ///< converged
 
  private:
   /**
@@ -86,11 +64,11 @@ class SVD {
       M = conjugate_transpose(A) * A;
 
     const auto result = EigenDecomposition(M);
-    converged = result.get_converged();
+    converged = result.converged;
     if (!converged) return;
 
     // 2. convert eigenvalues to singular values
-    const auto tmp_lambdas = result.get_eigenvalues();
+    const auto tmp_lambdas = result.lambda;
     Vector<Real, Cols> lambdas;
     for (size_t i = 0; i < Cols; ++i) {
       assert(is_real(tmp_lambdas(i)));
@@ -100,7 +78,7 @@ class SVD {
     // (dakre) these eigenvectors are projected onto the row space thus
     // resembling the right singular vectors of the row space of Lambda above
     // U (A^T A) VT -> U \Sigma VT
-    auto V = result.get_eigenvectors();
+    const auto& V = result.V;
 
     for (size_t i = 0; i < Cols; ++i)
       S[i][i] = constexpr_sqrt(std::max<Real>(0, lambdas(i)));
@@ -147,11 +125,6 @@ class SVD {
     U = U_tmp;
     VT = VT_tmp;
   }
-
-  /** @brief SVD member variables */
-  Matrix<Complex, Cols, Cols> VT;  ///< right singular vectors
-  Matrix<Complex, Rows, Rows> U;   ///< left singular vectors
-  Matrix<Real, Rows, Cols> S;      ///< singular values
-  bool converged;                  ///< converged
 };
+
 }  // namespace linalg

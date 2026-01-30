@@ -18,7 +18,7 @@
 #include <ranges>
 #include <span>
 
-#include "algebra/algebra_util.hpp"
+#include "algebra_util.hpp"
 
 namespace linalg {
 

@@ -92,7 +92,7 @@ struct KKTSystem : linalg::SymmetricOperator<Mat, KKTSystem<Mat>> {
 
     /// (dakre) check if LDL^T completed
     if (!ldl_t(true)) {
-      this->type = linalg::SymmetricMatrixType::INV;
+      this->type = linalg::SymmetricOperatorType::INV;
       return;
     }
 
@@ -100,7 +100,7 @@ struct KKTSystem : linalg::SymmetricOperator<Mat, KKTSystem<Mat>> {
     this->L = lower_triangle_to_vec(A);
 
     // (dakre) KKT system is indefinite by nature
-    this->type = linalg::SymmetricMatrixType::IND;
+    this->type = linalg::SymmetricOperatorType::IND;
   }
 };
 

@@ -10,11 +10,10 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
-#include "linalg/linalg.hpp"
 #include "affine_traits.hpp"
+#include "linalg/linalg.hpp"
 
 namespace affine {
 
@@ -42,7 +41,8 @@ class ParametricAffineSet {
 
   /// (dakre) TODO refactor to drop this unecessary constraint
   /// @brief static assertion to check that the system is over determined
-  static_assert(N >= M);
+  static_assert(
+      N >= M, "Parametric affine set currently requires overdetermined system");
 
   /**
    * @brief CTOR for parametric affine set
@@ -63,9 +63,7 @@ class ParametricAffineSet {
    *
    * @return T/F
    */
-  constexpr bool is_well_formed() const {
-    return linalg::QR(U).get_rank() == M;
-  }
+  constexpr bool is_well_formed() const { return linalg::QR(U).rank() == M; }
 
   /**
    * @brief return reference point in set

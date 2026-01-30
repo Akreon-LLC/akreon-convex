@@ -10,7 +10,19 @@
  * from Akreon LLC.
  */
 
+#include <algorithm>
+#include <catch2/catch_test_macros.hpp>
+#include <iostream>
 
-#pragma once
+#include "math.hpp"
+#include "unit_test_helpers.hpp"
 
-#include "lti/dlti_system.hpp"
+using namespace linalg;
+using namespace convex;
+using namespace affine;
+using namespace conic;
+using namespace unit_test;
+
+TEST_CASE("Test KKT System", "[kkt_system]") {
+  SECTION("") {}
+}

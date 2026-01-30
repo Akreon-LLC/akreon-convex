@@ -460,6 +460,6 @@ template <AtomLike Atom>
 inline constexpr bool is_index_type_v = atom_type_v<Atom> == AtomType::INDEX;
 
 template <linalg::SquareMatrixLike Mat>
-struct KKT;
+struct KKTSystem;
 
 }  // namespace convex

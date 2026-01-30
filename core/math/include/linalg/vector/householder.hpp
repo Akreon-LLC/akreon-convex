@@ -12,9 +12,9 @@
 
 #pragma once
 
-#include "matrix.hpp"
-#include "norms/vector_norms.hpp"
-#include "vector_ops.hpp"
+#include "linalg/linalg_ops.hpp"
+#include "linalg/linalg_util.hpp"
+#include "linalg/norms/vector_norms.hpp"
 
 namespace linalg {
 /**

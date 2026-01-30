@@ -61,9 +61,9 @@ void fuzz_test(const scalar_type_t<T>& tol) {
   for (size_t i = 0; i < TRIALS; ++i) {
     const auto A = make_A<T, Rows, Cols>(rng, dist);
     const auto res = QR(A);
-    const auto Q = res.get_Q();
-    const auto R = res.get_R();
-    const auto r = res.get_rank();
+    const auto Q = res.Q();
+    const auto R = res.R();
+    const auto r = res.rank();
     static_assert(std::same_as<decltype(Q), const Matrix<T, Rows, Rows>>);
     static_assert(std::same_as<decltype(R), const Matrix<T, Rows, Cols>>);
     const auto A_prime = Q * R;
@@ -77,26 +77,26 @@ void fuzz_test(const scalar_type_t<T>& tol) {
 
     if constexpr (Rows == Cols) {
       const auto eig_decomp = EigenDecomposition(A);
-      if (!eig_decomp.get_converged()) {
+      if (!eig_decomp.converged) {
         std::cerr << "A" << std::endl;
         print_mat(A);
         std::cerr << "Eigen values" << std::endl;
-        print_vec(eig_decomp.get_eigenvalues());
+        print_vec(eig_decomp.lambda);
         throw std::runtime_error("eig decomp failed to find solution");
       }
     }
 
     const auto svd = SVD(A);
-    const auto U = svd.get_left_singular_vectors();
-    const auto S = svd.get_singular_values();
-    const auto VT = svd.get_right_singular_vectors();
+    const auto U = svd.U;
+    const auto S = svd.S;
+    const auto VT = svd.VT;
     static_assert(
         std::same_as<decltype(U), const Matrix<std::complex<T>, Rows, Rows>>);
     static_assert(
         std::same_as<decltype(VT), const Matrix<std::complex<T>, Cols, Cols>>);
     static_assert(std::same_as<decltype(S), const Matrix<T, Rows, Cols>>);
 
-    if (!svd.get_converged() &&
+    if (!svd.converged &&
         all_equal(as_complex_matrix(A), U * (as_complex_matrix(S) * VT))) {
       std::cerr << "A" << std::endl;
       print_mat(A);

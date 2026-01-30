@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
@@ -63,8 +62,8 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     constexpr auto x3 = Vectord<3>{0.0, 1.0, 1.0};
     constexpr auto A = Matrix<double, 3, 3>{x1, x2, x3};
     constexpr auto qr = QR(A);
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
+    constexpr auto Q = qr.Q();
+    constexpr auto R = qr.R();
     constexpr auto A_prime = Q * R;
     STATIC_REQUIRE(all_equal(A_prime, A));
 
@@ -82,14 +81,14 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     constexpr auto x3 = Vectord<2>{1.0, 0.0};
     constexpr auto A = Matrixd<3, 2>{x1, x2, x3};
     constexpr auto qr = QR(A);
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
+    constexpr auto Q = qr.Q();
+    constexpr auto R = qr.R();
     STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<3, 3>>);
     STATIC_REQUIRE(std::same_as<decltype(R), const Matrixd<3, 2>>);
     constexpr auto A_prime = Q * R;
     STATIC_REQUIRE(all_equal(A_prime, A));
 
-    constexpr auto rank = qr.get_rank();
+    constexpr auto rank = qr.rank();
     STATIC_REQUIRE(rank == 2);
 
     constexpr auto QTQ = transpose(Q) * Q;
@@ -102,14 +101,14 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     constexpr auto x2 = Vectord<3>{0.0, 1.0, 1.0};
     constexpr auto A = Matrixd<2, 3>{x1, x2};
     constexpr auto qr = QR(transpose(A));
-    constexpr auto Q = transpose(qr.get_Q());
-    constexpr auto L = transpose(qr.get_R());
+    constexpr auto Q = transpose(qr.Q());
+    constexpr auto L = transpose(qr.R());
     STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<3, 3>>);
     STATIC_REQUIRE(std::same_as<decltype(L), const Matrixd<2, 3>>);
     constexpr auto A_prime = L * Q;
     STATIC_REQUIRE(all_equal(A_prime, A));
 
-    constexpr auto rank = qr.get_rank();
+    constexpr auto rank = qr.rank();
     STATIC_REQUIRE(rank == 2);
   }
 
@@ -121,8 +120,8 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     constexpr auto x2 = Vectorcd<2>{std::conj(b), c};
     constexpr auto A = Matrixcd<2, 2>{x1, x2};
     constexpr auto qr = QR(A);
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
+    constexpr auto Q = qr.Q();
+    constexpr auto R = qr.R();
     constexpr auto A_prime = Q * R;
     STATIC_REQUIRE(all_equal(A_prime, A));
 
@@ -131,7 +130,7 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
 
     constexpr auto QTQ = conjugate_transpose(Q) * Q;
     STATIC_REQUIRE(all_equal(QTQ, make_identity<std::complex<double>, 2>()));
-    STATIC_REQUIRE(2 == qr.get_rank());
+    STATIC_REQUIRE(2 == qr.rank());
   }
 }
 
@@ -142,12 +141,12 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto x3 = Vectord<2>{1.0, 3.0};
     constexpr auto A = Matrixd<3, 2>{x1, x2, x3};
     constexpr auto qr = QR(A);
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
+    constexpr auto Q = qr.Q();
+    constexpr auto R = qr.R();
     STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixd<3, 3>>);
     STATIC_REQUIRE(std::same_as<decltype(R), const Matrixd<3, 2>>);
 
-    constexpr auto rank = qr.get_rank();
+    constexpr auto rank = qr.rank();
     STATIC_REQUIRE(rank == 2);
 
     constexpr auto A_prime = Q * R;
@@ -174,12 +173,12 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto x3 = Vectorcd<2>{a, c};
     constexpr auto A = Matrixcd<3, 2>{x1, x2, x3};
     constexpr auto qr = QR(A);
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
+    constexpr auto Q = qr.Q();
+    constexpr auto R = qr.R();
     STATIC_REQUIRE(std::same_as<decltype(Q), const Matrixcd<3, 3>>);
     STATIC_REQUIRE(std::same_as<decltype(R), const Matrixcd<3, 2>>);
 
-    constexpr auto rank = qr.get_rank();
+    constexpr auto rank = qr.rank();
     STATIC_REQUIRE(rank == 2);
 
     constexpr auto QTQ = transpose(Q) * Q;
@@ -198,8 +197,8 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto X = Vector<double, 1>{0.0};
     constexpr auto A = Matrix<double, 1, 1>{X};
     constexpr auto qr = QR(A);
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
+    constexpr auto Q = qr.Q();
+    constexpr auto R = qr.R();
     STATIC_REQUIRE(Q(0)(0) == 1.0);
     STATIC_REQUIRE(R(0)(0) == 0.0);
   }
@@ -210,8 +209,8 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
 
     constexpr Vector<double, 2> b{2.0, 3.0};
     constexpr auto qr = QR(transpose(A));
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
+    constexpr auto Q = qr.Q();
+    constexpr auto R = qr.R();
     constexpr auto x_min = min_norm(Q, R, b);
     STATIC_REQUIRE(euclidean_distance(A * x_min, b) <= eps);
   }
@@ -222,8 +221,8 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
 
     constexpr Vector<std::complex<double>, 2> b{2.0, -3.0};
     constexpr auto qr = QR(transpose(A));
-    constexpr auto Q = qr.get_Q();
-    constexpr auto R = qr.get_R();
+    constexpr auto Q = qr.Q();
+    constexpr auto R = qr.R();
     constexpr auto x_min = min_norm(Q, R, b);
     STATIC_REQUIRE(euclidean_distance(A * x_min, b) <= eps);
   }
@@ -234,20 +233,19 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto diag = Vectord<3>{1.0, 2.0, 3.0};
     constexpr auto A = make_diag<double, 3>(diag);
     constexpr auto result = EigenDecomposition(A);
-    constexpr auto converged = result.get_converged();
-    STATIC_REQUIRE(converged);
+    STATIC_REQUIRE(result.converged);
 
-    constexpr auto lambdas = result.get_eigenvalues();
+    constexpr auto lambdas = result.lambda;
     STATIC_REQUIRE(lambdas(0).real() == diag(0));
     STATIC_REQUIRE(lambdas(1).real() == diag(1));
     STATIC_REQUIRE(lambdas(2).real() == diag(2));
 
-    STATIC_REQUIRE(result.get_determinant() == 6.0);
+    STATIC_REQUIRE(result.determinant() == 6.0);
 
-    constexpr auto V = result.get_eigenvectors();
+    constexpr auto V = result.V;
     STATIC_REQUIRE(all_equal(V, make_identity<std::complex<double>, 3>()));
 
-    constexpr auto rho = result.get_spectral_radius();
+    constexpr auto rho = result.spectral_radius();
     STATIC_REQUIRE(rho == std::complex<double>(3.0));
   }
 
@@ -258,16 +256,14 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto result = EigenDecomposition(A);
     constexpr auto expected =
         make_diag(Vectorcd<2>{std::complex(3.0, 0.0), std::complex(1.0, 0.0)});
-    constexpr auto converged = result.get_converged();
-    STATIC_REQUIRE(converged);
+    STATIC_REQUIRE(result.converged);
 
-    STATIC_REQUIRE(
-        is_same(result.get_determinant(), std::complex(3.0, 0.0), eps));
+    STATIC_REQUIRE(is_same(result.determinant(), std::complex(3.0, 0.0), eps));
 
-    constexpr auto lambdas = result.get_eigenvalues();
+    constexpr auto lambdas = result.lambda;
     STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
 
-    constexpr auto V = result.get_eigenvectors();
+    constexpr auto V = result.V;
     constexpr auto VTV = conjugate_transpose(V) * V;
     STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
 
@@ -277,7 +273,7 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto VLVT = V * (make_diag(lambdas) * conjugate_transpose(V));
     STATIC_REQUIRE(all_equal(as_complex_matrix(A), VLVT));
 
-    constexpr auto rho = result.get_spectral_radius();
+    constexpr auto rho = result.spectral_radius();
     STATIC_REQUIRE(constexpr_absc(rho - expected(0)(0)) <= eps);
   }
 
@@ -287,16 +283,15 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto x3 = Vectord<3>{7.0, 8.0, 9.0};
     constexpr auto A = Matrixd<3, 3>{x1, x2, x3};
     constexpr auto result = EigenDecomposition(A);
-    constexpr auto converged = result.get_converged();
-    STATIC_REQUIRE(converged);
+    STATIC_REQUIRE(result.converged);
 
     constexpr auto expected = make_diag(
         Vectorcd<3>{std::complex(1.61168440e+01), std::complex(-1.11684397e+00),
                     std::complex(0.0)});
-    constexpr auto lambdas = result.get_eigenvalues();
+    constexpr auto lambdas = result.lambda;
     STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
 
-    constexpr auto rho = result.get_spectral_radius();
+    constexpr auto rho = result.spectral_radius();
     STATIC_REQUIRE(rho == lambdas(0));
   }
 
@@ -309,9 +304,8 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto A = Matrixcd<2, 2>{x1, x2};
 
     constexpr auto res = EigenDecomposition(A);
-    constexpr auto lambdas = res.get_eigenvalues();
-    constexpr auto converged = res.get_converged();
-    STATIC_REQUIRE(converged);
+    constexpr auto lambdas = res.lambda;
+    STATIC_REQUIRE(res.converged);
 
     constexpr auto d = std::complex<double>(3 + constexpr_sqrt(11.0));
     constexpr auto e = std::complex<double>(3 - constexpr_sqrt(11.0));
@@ -319,7 +313,7 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto result = make_diag(lambdas);
     STATIC_REQUIRE(all_equal(result, expected));
 
-    constexpr auto V = res.get_eigenvectors();
+    constexpr auto V = res.V;
     constexpr auto V1 = as_col_vector(V(0));
     constexpr auto V2 = as_col_vector(V(1));
     constexpr auto V1TV2 = conjugate_transpose(V1) * V2;
@@ -335,7 +329,7 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto VLVT = V * (result * conjugate_transpose(V));
     STATIC_REQUIRE(all_equal(A, VLVT));
 
-    constexpr auto rho = res.get_spectral_radius();
+    constexpr auto rho = res.spectral_radius();
     STATIC_REQUIRE(rho == lambdas(0));
   }
 }
@@ -348,9 +342,9 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto A = Matrixd<3, 2>{x1, x2, x3};
     constexpr auto result = SVD(A);
 
-    constexpr auto U = result.get_left_singular_vectors();
-    constexpr auto S = result.get_singular_values();
-    constexpr auto VT = result.get_right_singular_vectors();
+    constexpr auto U = result.U;
+    constexpr auto S = result.S;
+    constexpr auto VT = result.VT;
     STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<3, 3>>);
     STATIC_REQUIRE(std::same_as<decltype(S), const Matrixd<3, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
@@ -378,9 +372,9 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     };
     STATIC_REQUIRE(all_zeros(Z1));
     constexpr auto result = SVD(Z1);
-    constexpr auto U = result.get_left_singular_vectors();
-    constexpr auto S = result.get_singular_values();
-    constexpr auto VT = result.get_right_singular_vectors();
+    constexpr auto U = result.U;
+    constexpr auto S = result.S;
+    constexpr auto VT = result.VT;
     STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<2, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(S), const Matrixd<2, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);
@@ -413,9 +407,9 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto expected = make_diag(Vectord<2>{d, e});
 
     constexpr auto result = SVD(A);
-    constexpr auto U = result.get_left_singular_vectors();
-    constexpr auto S = result.get_singular_values();
-    constexpr auto VT = result.get_right_singular_vectors();
+    constexpr auto U = result.U;
+    constexpr auto S = result.S;
+    constexpr auto VT = result.VT;
     STATIC_REQUIRE(std::same_as<decltype(U), const Matrixcd<2, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(S), const Matrixd<2, 2>>);
     STATIC_REQUIRE(std::same_as<decltype(VT), const Matrixcd<2, 2>>);

@@ -12,7 +12,8 @@
 
 #pragma once
 
-#include "linalg_util.hpp"
+#include "eig_decomp.hpp"
+#include "linalg/linalg_util.hpp"
 
 namespace linalg {
 
@@ -112,14 +113,14 @@ constexpr auto matrix_exp(const Mat& A) {
   using Complex = std::complex<ScalarT>;
 
   constexpr auto N = mat_rows_v<Mat>;
-  static_assert(N >= 1);
+  static_assert(N >= 1, "Matrix exponential requires at least 1 row");
 
   const auto eig_decomp = EigenDecomposition(A);
-  if (!eig_decomp.get_converged()) return Matrix<Complex, N, N>{};
+  if (!eig_decomp.converged) return Matrix<Complex, N, N>{};
 
-  const auto V = eig_decomp.get_eigenvectors();
+  const auto V = eig_decomp.V;
   const auto V_inv = inverse(V);
-  const auto D = eig_decomp.get_eigenvalues();
+  const auto D = eig_decomp.lambda;
   const auto J = V_inv * (as_complex_matrix(A) * V);
 
   const auto p = make_group_permutation(D);

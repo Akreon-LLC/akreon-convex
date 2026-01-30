@@ -13,7 +13,7 @@
 #pragma once
 
 #include "convex_set.hpp"
-#include "linalg/symmetric_matrix.hpp"
+#include "linalg/operator/symmetric_matrix.hpp"
 
 namespace convex {
 
@@ -83,7 +83,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    */
   constexpr bool is_well_formed() const {
     linalg::SymmetricMatrix S(P);
-    return S.type == linalg::SymmetricMatrixType::PD;
+    return S.type == linalg::SymmetricOperatorType::PD;
   }
 
   /**
@@ -165,13 +165,13 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     linalg::Matrix<T, N + 1, N + 1> F;
     linalg::Vector<T, N + 1> g;
     const auto eig_decomp = linalg::EigenDecomposition(P);
-    const auto D = eig_decomp.get_eigenvalues();
+    const auto& D = eig_decomp.lambda;
     linalg::Matrix<T, N, N> D_sqrt;
     for (size_t i = 0; i < N; ++i)
       D_sqrt[i][i] = linalg::constexpr_sqrt(D(i).real());
 
     linalg::Matrix<T, N, N> VT;
-    const auto V = eig_decomp.get_eigenvectors();
+    const auto& V = eig_decomp.V;
     for (size_t i = 0; i < N; ++i)
       for (size_t j = 0; j < N; ++j) VT[j][i] = V(i)(j).real();
 

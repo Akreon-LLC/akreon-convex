@@ -10,10 +10,9 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
-#include "linalg/matrix_ops.hpp"
+#include "linalg/linalg_ops.hpp"
 
 namespace linalg {
 

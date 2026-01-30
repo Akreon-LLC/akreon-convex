@@ -11,10 +11,10 @@
 
 #pragma once
 
-#include "eig_decomp.hpp"
-#include "inner_product_space.hpp"
-#include "matrix_exp.hpp"
-#include "matrix_inverse.hpp"
-#include "qr.hpp"
-#include "svd.hpp"
-#include "symmetric_matrix.hpp"
+#include "operator/matrix_inverse.hpp"
+#include "operator/symmetric_matrix.hpp"
+#include "spectral/eig_decomp.hpp"
+#include "spectral/matrix_exp.hpp"
+#include "spectral/qr.hpp"
+#include "spectral/svd.hpp"
+#include "vector/inner_product_space.hpp"

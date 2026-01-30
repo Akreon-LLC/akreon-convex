@@ -15,7 +15,7 @@
 #include <optional>
 #include <tuple>
 
-#include "algebra/solver_traits.hpp"
+#include "config/solver_traits.hpp"
 #include "convex_traits.hpp"
 #include "convex_util.hpp"
 

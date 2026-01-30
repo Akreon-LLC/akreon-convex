@@ -11,9 +11,8 @@
 
 #pragma once
 
-#include "hessenberg.hpp"
-#include "householder.hpp"
-#include "linalg_util.hpp"
+#include "linalg/linalg_util.hpp"
+#include "linalg/vector/householder.hpp"
 
 namespace linalg {
 /**
@@ -58,26 +57,26 @@ class QR {
    *
    * @return orthonormal Q
    */
-  constexpr auto get_Q() const { return get_unitary_matrix(); }
+  constexpr auto Q() const { return get_unitary_matrix(); }
 
   /**
    * @brief basic get function for R matrix
    *
    * @return R
    */
-  constexpr auto get_R() const { return get_upper_right_triangular_matrix(H); }
+  constexpr auto R() const { return get_upper_right_triangular_matrix(H); }
 
   /**
    * @brief get rank of matrix
    *
    * @return rank
    */
-  constexpr auto get_rank(ScalarT tol = 1e-6) const {
-    const auto& R = get_R();
+  constexpr auto rank(ScalarT tol = 1e-6) const {
+    const auto LT = R();
     const size_t mn = std::min(Rows, Cols);
     size_t rank = 0;
     for (size_t i = 0; i < mn; ++i)
-      if (L2<Vector<T, 1>>()(Vector<T, 1>{R(i)(i)}) > tol) rank += 1;
+      if (L2<Vector<T, 1>>()(Vector<T, 1>{LT(i)(i)}) > tol) rank += 1;
     return rank;
   }
 
@@ -93,15 +92,15 @@ class QR {
   constexpr auto solve(const Vector<T, Rows>& b) const {
     Vector<T, Rows> c;
 
-    const auto Q = get_Q();
-    const auto R = get_R();
+    const auto U = Q();
+    const auto LT = R();
 
     if constexpr (ComplexLike<T>)
-      c = conjugate_transpose(Q) * b;
+      c = conjugate_transpose(U) * b;
     else
-      c = transpose(Q) * b;
+      c = transpose(U) * b;
 
-    return back_solve(R, c);
+    return back_solve(LT, c);
   }
 
  private:

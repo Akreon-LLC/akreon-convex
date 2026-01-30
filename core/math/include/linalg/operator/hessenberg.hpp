@@ -12,8 +12,7 @@
 
 #pragma once
 
-#include "householder.hpp"
-#include "matrix_ops.hpp"
+#include "linalg/vector/householder.hpp"
 
 namespace linalg {
 /**

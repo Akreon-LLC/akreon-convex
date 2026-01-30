@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "linalg_util.hpp"
-#include "matrix_traits.hpp"
+#include "linalg/linalg_util.hpp"
+#include "linalg/spectral/eig_decomp.hpp"
 #include "symmetric_operator.hpp"
 
 namespace linalg {
@@ -67,22 +67,24 @@ struct SymmetricMatrix : SymmetricOperator<Mat, SymmetricMatrix<Mat>> {
     // likewise if it is symmetric we can store it temporarily
     // as indefinite one
     if (!valid) {
-      this->type = SymmetricMatrixType::INV;
+      this->type = SymmetricOperatorType::INV;
       return;
     }
 
-    this->type = SymmetricMatrixType::IND;
-
-    // (dakre) store lower triangle
-    this->L = lower_triangle_to_vec(A);
+    // (dakre) factor A and store lower triangle
+    const auto qr = QR(A);
+    if constexpr (ComplexLike<T>)
+      this->L = lower_triangle_to_vec(conjugate_transpose(qr.R()));
+    else
+      this->L = lower_triangle_to_vec(transpose(qr.R()));
 
     // (2) Next calculate the eigenvalues of the matrix and check signs of the
     // eigenvalues by running count
     const auto eig_decomp = EigenDecomposition(A);
-    if (!eig_decomp.get_converged()) return;
+    if (!eig_decomp.converged) return;
 
     // (3) Compute definiteness of matrix
-    compute_definiteness(eig_decomp.get_eigenvalues(), tol);
+    compute_definiteness(eig_decomp.lambda, tol);
   }
 
   /**
@@ -113,15 +115,15 @@ struct SymmetricMatrix : SymmetricOperator<Mat, SymmetricMatrix<Mat>> {
     }
 
     if (nneg == 0 && nzero == 0)
-      this->type = SymmetricMatrixType::PD;
+      this->type = SymmetricOperatorType::PD;
     else if (nneg == 0 && nzero > 0)
-      this->type = SymmetricMatrixType::PSD;
+      this->type = SymmetricOperatorType::PSD;
     else if (npos == 0 && nzero == 0)
-      this->type = SymmetricMatrixType::ND;
+      this->type = SymmetricOperatorType::ND;
     else if (npos == 0 && nzero > 0)
-      this->type = SymmetricMatrixType::NSD;
+      this->type = SymmetricOperatorType::NSD;
     else
-      this->type = SymmetricMatrixType::IND;
+      this->type = SymmetricOperatorType::IND;
   }
 };
 

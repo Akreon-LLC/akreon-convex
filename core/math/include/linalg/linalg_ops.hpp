@@ -12,25 +12,10 @@
 
 #pragma once
 
-#include "vector.hpp"
+#include "operator/operator_traits.hpp"
+#include "vector/vector.hpp"
 
 namespace linalg {
-
-/**
- * @brief get n elements based on start to end indices
- *
- * @param vector of type T with N elements
- *
- * @return vector of type T with End - Start elements
- */
-template <size_t Start, size_t End, VectorLike Vec>
-  requires(End - Start < vec_size_v<Vec> && Start < vec_size_v<Vec>)
-constexpr auto get_elements(const Vec& x) {
-  using T = vec_type_t<Vec>;
-  Vector<T, End - Start> result;
-  for (size_t i = Start, idx = 0; i < End; ++i, ++idx) result[idx] = x(i);
-  return result;
-}
 
 /**
  * @brief add two vectors together to get a third
@@ -210,6 +195,125 @@ constexpr auto splice(const Vec& x) {
   Vector<T, N - idx> b;
   for (size_t j = 0; i < N; ++i, ++j) b[j] = x(i);
   return std::tuple(a, b);
+}
+
+/**
+ * @brief outer product between two matrices A & B
+ *
+ * A * B = C where C is a new matrix of Rows_of_A x Cols_of_B
+ *
+ * @param matrix A of type T Rows1 x Cols1 elements
+ * @param matrix B of type T Cols1 x Cols2 elements
+ *
+ * @return matrix
+ */
+template <MatrixLike MatA, MatrixLike MatB>
+  requires(MatMulCompatible<MatA, MatB>)
+constexpr auto outer_product(const MatA& A, const MatB& B) {
+  using T = mat_type_t<MatA>;
+  constexpr auto Rows = mat_rows_v<MatA>;
+  constexpr auto Cols = mat_cols_v<MatB>;
+  Matrix<T, Rows, Cols> result;
+  for (size_t i = 0; i < Rows; ++i)
+    for (size_t j = 0; j < Cols; ++j) result[i][j] = A(i)(0) * B(0)(j);
+  return result;
+}
+
+/**
+ * @brief transpose of a matrix
+ *
+ * A^T (rows and cols flipped from A)
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return A^T
+ */
+template <typename T, size_t Rows, size_t Cols>
+  requires(FieldLike<T>)
+constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
+  Matrix<T, Cols, Rows> result;
+  for (size_t i = 0; i < Rows; ++i)
+    for (size_t j = 0; j < Cols; ++j) result[j][i] = A(i)(j);
+  return result;
+}
+
+/**
+ * @brief trace of a matrix
+ *
+ * Sum of the diagonal elements of a matrix
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return sum
+ */
+template <SquareMatrixLike Mat>
+  requires(mat_rows_v<Mat> > 0)
+constexpr auto trace(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
+  T sum = 0;
+  for (size_t i = 0; i < Rows; ++i) sum += A(i)(i);
+  return sum;
+}
+
+/**
+ * @brief conjugate transpose of a matrix
+ *
+ * Like A^T, however the field is complex and the elements get conjugated
+ *
+ * @param matrix A of type T Rows x Cols elements
+ *
+ * @return A^*
+ */
+template <MatrixLike Mat>
+constexpr auto conjugate_transpose(const Mat& A)
+  requires(ComplexLike<mat_type_t<Mat>>)
+{
+  constexpr auto Rows = mat_rows_v<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
+  auto A_t = transpose(A);
+  for (size_t i = 0; i < Cols; ++i)
+    for (size_t j = 0; j < Rows; ++j) A_t[i][j] = std::conj(A_t[i][j]);
+  return A_t;
+}
+
+/**
+ * @brief operator overload for matrix multiplication
+ *
+ * @param matrix A of type T Rows x Cols elements
+ * @param matrix B of type T Cols x Rows elements
+ *
+ * @return A*B
+ */
+template <MatrixLike MatA, MatrixLike MatB>
+  requires(MatMulCompatible<MatA, MatB>)
+constexpr auto operator*(const MatA& A, const MatB& B) {
+  using T = mat_type_t<MatA>;
+  constexpr auto Rows = mat_rows_v<MatA>;
+  constexpr auto Cols = mat_cols_v<MatB>;
+  Matrix<T, Rows, Cols> result;
+  const auto B_t = transpose(B);
+  for (size_t i = 0; i < Rows; ++i)
+    for (size_t j = 0; j < Cols; ++j) result[i][j] = dot(A(i), B_t(j));
+  return result;
+}
+
+/**
+ * @brief operator overload for matrix multiplication between matrix and vector
+ *
+ * @param matrix A of type T Rows x Cols elements
+ * @param vector X of type T Cols elements
+ *
+ * @return A*X
+ */
+template <MatrixLike Mat, VectorLike Vec>
+  requires(MatVecCompatible<Mat, Vec>)
+constexpr auto operator*(const Mat& A, const Vec& X) {
+  using T = mat_type_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
+  Vector<T, Rows> result;
+  for (size_t i = 0; i < Rows; ++i) result[i] = dot(A(i), X);
+  return result;
 }
 
 /**
