@@ -172,6 +172,8 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 
     STATIC_REQUIRE(min(A) == 1.0);
     STATIC_REQUIRE(max(A) == 2.0);
+    STATIC_REQUIRE(arg_min(A) == 0);
+    STATIC_REQUIRE(arg_max(A) == 1);
 
     constexpr auto B_inv = inverse(B);
     constexpr auto B_B_inv = B * B_inv;
@@ -238,7 +240,6 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto BT = transpose(B);
     STATIC_REQUIRE(rows_equal_cols(BT, B));
 
-    // (dakre) TODO figure out cleaner way to build vectors & matrices
     constexpr auto G = Matrixd<1, 3>{Vectord<3>{1.0, 2.0, 3.0}};
     constexpr auto H =
         Matrixd<3, 1>{Vectord<1>{1.0}, Vectord<1>{2.0}, Vectord<1>{3.0}};
@@ -288,8 +289,8 @@ TEST_CASE("Householder vectors", "[householder]") {
   SECTION("Real householder vector") {
     constexpr Vector<double, 4> x{1.0, 2.0, 3.0, 4.0};
     constexpr auto h = HouseholderVector(x);
-    constexpr auto beta = h.get_beta();
-    constexpr auto v = h.get_v();
+    constexpr auto beta = h.beta;
+    constexpr auto v = h.v;
 
     constexpr auto I = make_identity<double, 4>();
     constexpr auto P =
@@ -309,8 +310,8 @@ TEST_CASE("Householder vectors", "[householder]") {
     constexpr Vector<std::complex<double>, 4> x{a, b, c, d};
 
     constexpr auto h = HouseholderVector(x);
-    constexpr auto beta = h.get_beta();
-    constexpr auto v = h.get_v();
+    constexpr auto beta = h.beta;
+    constexpr auto v = h.v;
 
     constexpr auto I = make_identity<std::complex<double>, 4>();
     constexpr auto P =
@@ -332,8 +333,8 @@ TEST_CASE("Householder vectors", "[householder]") {
     constexpr Vector<std::complex<double>, 2> x{a, b};
 
     constexpr auto h = HouseholderVector(x);
-    constexpr auto beta = h.get_beta();
-    constexpr auto v = h.get_v();
+    constexpr auto beta = h.beta;
+    constexpr auto v = h.v;
 
     constexpr auto I = make_identity<std::complex<double>, 2>();
     constexpr auto P =
@@ -350,13 +351,13 @@ TEST_CASE("Hessenberg matrices", "[hessenberg]") {
     constexpr auto A = Matrixd<3, 3>{a, b, c};
     constexpr auto H_mat = HessenbergMatrix(A);
     constexpr auto H = H_mat();
-    constexpr auto beta = H_mat.get_beta();
+    constexpr auto beta = H_mat.beta;
     STATIC_REQUIRE(constexpr_abs(beta(0)) > 0.0);
     STATIC_REQUIRE(constexpr_abs(beta(1)) == 0.0);
     STATIC_REQUIRE(constexpr_abs(beta(2)) == 0.0);
     STATIC_REQUIRE(H(2)(0) == 0.0);
 
-    constexpr auto U = H_mat.get_U();
+    constexpr auto U = H_mat.U();
     constexpr auto UTU = transpose(U) * U;
     STATIC_REQUIRE(all_equal(UTU, make_identity<double, 3>()));
 
@@ -364,7 +365,7 @@ TEST_CASE("Hessenberg matrices", "[hessenberg]") {
   }
 }
 
-TEST_CASE("Matrix types", "[matrix_types]") {
+TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
   SECTION("Positive Definite Matrices") {
     constexpr auto A =
         Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
@@ -375,7 +376,7 @@ TEST_CASE("Matrix types", "[matrix_types]") {
     STATIC_REQUIRE(A_smat(1, 0) == 1.0);
     STATIC_REQUIRE(A_smat(1, 1) == 2.0);
 
-    constexpr auto A2 = linalg::make_smat<2>(A_smat.svec);
+    constexpr auto A2 = linalg::make_smat<2>(A_smat.L);
     STATIC_REQUIRE(linalg::all_equal(A, A2));
 
     constexpr auto B =
@@ -400,7 +401,7 @@ TEST_CASE("Matrix types", "[matrix_types]") {
     STATIC_REQUIRE(I_smat(2, 0) == 0.0);
     STATIC_REQUIRE(I_smat(2, 2) == 1.0);
 
-    constexpr auto I2 = linalg::make_smat<3>(I_smat.svec);
+    constexpr auto I2 = linalg::make_smat<3>(I_smat.L);
     STATIC_REQUIRE(linalg::all_equal(I, I2));
 
     constexpr Matrix<double, 2, 2> C{Vectord<2>{1.0, 1.0},
@@ -414,28 +415,23 @@ TEST_CASE("Matrix types", "[matrix_types]") {
   }
 
   SECTION("Positive semidefinite Matrices") {
-    auto Z = Matrixd<2, 2>{};
-    auto Z_smat = SymmetricMatrix(Z);
-    REQUIRE(Z_smat.type != SymmetricMatrixType::PD);
-    REQUIRE(Z_smat.type == SymmetricMatrixType::PSD);
-    REQUIRE(Z_smat(0, 0) == 0.0);
-    REQUIRE(Z_smat(0, 1) == 0.0);
-    REQUIRE(Z_smat(1, 0) == 0.0);
-    REQUIRE(Z_smat(1, 1) == 0.0);
-
-    Z[0][0] = 1.0;
-    Z_smat = SymmetricMatrix(Z);
-    REQUIRE(Z_smat.type != SymmetricMatrixType::PD);
-    REQUIRE(Z_smat.type == SymmetricMatrixType::PSD);
-    REQUIRE(Z_smat(0, 0) == 1.0);
+    constexpr auto Z_mat = mat_traits<Matrixd<2, 2>>();
+    constexpr auto Z = Z_mat(1.0, 0.0, 0.0, 0.0);
+    constexpr auto Z_smat = SymmetricMatrix(Z);
+    STATIC_REQUIRE(Z_smat.type != SymmetricMatrixType::PD);
+    STATIC_REQUIRE(Z_smat.type == SymmetricMatrixType::PSD);
+    STATIC_REQUIRE(Z_smat(0, 0) == 1.0);
+    STATIC_REQUIRE(Z_smat(0, 1) == 0.0);
+    STATIC_REQUIRE(Z_smat(1, 0) == 0.0);
+    STATIC_REQUIRE(Z_smat(1, 1) == 0.0);
   }
 
   SECTION("Negative semidefinite Matrices") {
-    auto Z = Matrixd<2, 2>{};
-    Z[0][0] = -1.0;
-    auto Z_smat = SymmetricMatrix(Z);
-    REQUIRE(Z_smat.type == SymmetricMatrixType::NSD);
-    REQUIRE(Z_smat(0, 0) == -1.0);
+    constexpr auto Z_mat = mat_traits<Matrixd<2, 2>>();
+    constexpr auto Z = Z_mat(-1.0, 0.0, 0.0, 0.0);
+    constexpr auto Z_smat = SymmetricMatrix(Z);
+    STATIC_REQUIRE(Z_smat.type == SymmetricMatrixType::NSD);
+    STATIC_REQUIRE(Z_smat(0, 0) == -1.0);
   }
 
   SECTION("Negative definite Matrices") {
@@ -448,15 +444,15 @@ TEST_CASE("Matrix types", "[matrix_types]") {
   }
 
   SECTION("Indefinite matrix") {
-    auto I = -1.0 * make_identity<double, 3>();
-    I[0][1] = 2.0, I[1][0] = 2.0;
-    auto I_smat = SymmetricMatrix(I);
-    REQUIRE(I_smat.type == SymmetricMatrixType::IND);
-    REQUIRE(I_smat(0, 0) == -1.0);
-    REQUIRE(I_smat(0, 1) == 2.0);
-    REQUIRE(I_smat(1, 0) == 2.0);
-    REQUIRE(I_smat(1, 1) == -1.0);
-    REQUIRE(I_smat(2, 2) == -1.0);
+    constexpr auto I_mat = mat_traits<Matrixd<3, 3>>();
+    constexpr auto I = I_mat(-1.0, 2.0, 0.0, 2.0, -1.0, 0.0, 0.0, 0.0, -1.0);
+    constexpr auto I_smat = SymmetricMatrix(I);
+    STATIC_REQUIRE(I_smat.type == SymmetricMatrixType::IND);
+    STATIC_REQUIRE(I_smat(0, 0) == -1.0);
+    STATIC_REQUIRE(I_smat(0, 1) == 2.0);
+    STATIC_REQUIRE(I_smat(1, 0) == 2.0);
+    STATIC_REQUIRE(I_smat(1, 1) == -1.0);
+    STATIC_REQUIRE(I_smat(2, 2) == -1.0);
   }
 
   SECTION("Invalid matrix") {

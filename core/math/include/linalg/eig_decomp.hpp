@@ -114,7 +114,7 @@ class EigenDecomposition {
     auto H = H_mat();
 
     // 2. setup unitary basis for eigenvectors
-    auto U = H_mat.get_U();
+    auto U = H_mat.U();
 
     Vector<Complex, N> eigs;
 

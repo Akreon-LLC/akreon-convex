@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "matrix.hpp"
@@ -40,19 +39,9 @@ struct HouseholderVector {
     make_householder(x, std::integral_constant<size_t, N>{});
   }
 
-  /**
-   * @brief simple getter for beta scalar
-   *
-   * @return beta scalar
-   */
-  constexpr auto get_beta() const { return beta; }
-
-  /**
-   * @brief simple getter for v vector
-   *
-   * @return v vector of type T with N elements
-   */
-  constexpr auto get_v() const { return v; }
+  /** @brief Vector member variables */
+  Vector<T, N> v;         ///< householder vector
+  scalar_type_t<T> beta;  ///< scalar to form P
 
  private:
   /**
@@ -122,10 +111,6 @@ struct HouseholderVector {
     beta = scalar_type_t<T>(0);
     v[0] = T(1);
   }
-
-  /** @brief Vector member variables */
-  Vector<T, N> v;         ///< householder vector
-  scalar_type_t<T> beta;  ///< scalar to form P
 };
 
 }  // namespace linalg

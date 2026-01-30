@@ -37,6 +37,7 @@
 #include "functions/softplus.hpp"
 #include "functions/sqrt.hpp"
 #include "functions/square.hpp"
+#include "kkt_system.hpp"
 #include "sets/affine_subspace.hpp"
 #include "sets/convex_set.hpp"
 #include "sets/ellipsoid.hpp"

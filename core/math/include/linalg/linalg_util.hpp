@@ -196,4 +196,53 @@ constexpr auto min_norm(const MatQ& Q, const MatR& R, const Vec& b) {
   }
 }
 
+/**
+ * @brief make symmetric matrix
+ *
+ * @param symmetric vector (flattened)
+ *
+ * @return matrix
+ */
+template <size_t N, VectorLike Vec>
+  requires(vec_size_v<Vec> == N * (N + 1) / 2)
+constexpr auto make_smat(const Vec& L) {
+  using T = vec_type_t<Vec>;
+  Matrix<T, N, N> S;
+  for (size_t i = 0; i < N; ++i) {
+    for (size_t j = 0; j <= i; ++j) {
+      const auto idx = i * (i + 1) / 2 + j;
+      S[i][j] = L(idx);
+    }
+  }
+  const auto S_T = transpose(S);
+  Matrix<T, N, N> res;
+  for (size_t i = 0; i < N; ++i) {
+    for (size_t j = 0; j < N; ++j) {
+      if (i >= j)
+        res[i][j] = S(i)(j);
+      else
+        res[i][j] = S_T(i)(j);
+    }
+  }
+  return res;
+}
+
+/**
+ * @brief to lower triangular to vec
+ *
+ * @param matrix
+ *
+ * @return vec
+ */
+template <SquareMatrixLike Mat>
+constexpr auto lower_triangle_to_vec(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t K = N * (N + 1) / 2;
+  Vector<T, K> vec{};
+  for (size_t i = 0, k = 0; i < N; ++i)
+    for (size_t j = 0; j <= i; ++j, ++k) vec[k] = A(j)(i);
+  return vec;
+}
+
 }  // namespace linalg

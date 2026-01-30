@@ -10,12 +10,24 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "algebra/algebra_traits.hpp"
 
 namespace linalg {
+
+/// @brief simple enum to define symmetric matrix types
+/// INV = Invalid
+/// IND = Indefinite
+/// PSD = Positive Semidefinite
+/// PD = Positive Definite
+/// NSD = Negative Semidefinite
+/// ND = Negative Definite
+enum struct SymmetricMatrixType { INV = 0, IND, PSD, PD, NSD, ND };
+
+/// @brief forward declaration for symmetric operator
+template <SquareMatrixLike Mat, typename Derived>
+struct SymmetricOperator;
 
 /// @brief forward declaration for a matrix
 template <SquareMatrixLike Mat>

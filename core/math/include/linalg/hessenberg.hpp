@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "householder.hpp"
@@ -25,65 +24,26 @@ namespace linalg {
  */
 template <typename T, size_t N>
   requires(FieldLike<T> && N > 0)
-class HessenbergMatrix {
- public:
+struct HessenbergMatrix {
   /**
    * @brief CTOR
    *
-   * @param Matrix A of type T with N x N elements
-   */
-  constexpr HessenbergMatrix(const Matrix<T, N, N>& A) { make_hessenberg(A); }
-
-  /**
-   * @brief operator override to acquire H from HessenbergMatrix object
-   *
-   * @return Matrix of type T with N x N elements (upper right triangular)
-   */
-  constexpr auto operator()() const {
-    Matrix<T, N, N> res;
-    for (size_t i = 0; i < N; ++i) {
-      for (size_t j = 0; j < N; ++j) {
-        if (i >= 2 && j <= (i - 2)) continue;
-        res[i][j] = H(i)(j);
-      }
-    }
-    return res;
-  }
-
-  /**
-   * @brief simple getter for unitar matrix
-   *
-   * @return U of type T N x N
-   */
-  constexpr auto get_U() const { return get_unitary_matrix(); }
-
-  /**
-   * @brief get beta vector
-   *
-   * @return beta vector of type T with N elements
-   */
-  constexpr auto get_beta() const { return beta; }
-
- private:
-  /**
-   * @brief Householder reduction to hessenberg form
+   * Householder reduction to hessenberg form
    *
    * A \in R^nxn \to H = U_0^T A U_0 where H is upper Hessenberg and U_0 is
    * unitary
    *
-   * @param matrix A type T with N x N elements
-   *
-   * @return H (hessenberg matrix)
+   * @param Matrix A of type T with N x N elements
    */
-  constexpr void make_hessenberg(const Matrix<T, N, N>& A) {
+  constexpr HessenbergMatrix(const Matrix<T, N, N>& A) {
     H = A;
     constexpr_for<0, N - 2>([&]<size_t k>(std::integral_constant<size_t, k>) {
       const auto& H_block = get_n_rows<k + 1, N>(H);
       const auto& H_col = get_col(H_block, k);
       const auto h = HouseholderVector(H_col);
 
-      const auto& v = as_col_vector(h.get_v());
-      beta[k] = h.get_beta();
+      const auto& v = as_col_vector(h.v);
+      beta[k] = h.beta;
 
       if (beta[k] == scalar_type_t<T>(0)) return;
 
@@ -113,14 +73,32 @@ class HessenbergMatrix {
   }
 
   /**
-   * @brief get unitary matrix U from factored householder matrix
+   * @brief operator override to acquire H from HessenbergMatrix object
+   *
+   * @return Matrix of type T with N x N elements (upper right triangular)
+   */
+  constexpr auto operator()() const {
+    Matrix<T, N, N> res;
+    for (size_t i = 0; i < N; ++i) {
+      for (size_t j = 0; j < N; ++j) {
+        if (i >= 2 && j <= (i - 2)) continue;
+        res[i][j] = H(i)(j);
+      }
+    }
+    return res;
+  }
+
+  /**
+   * @brief simple getter for unitary matrix
+   *
+   * Get unitary matrix U from factored householder matrix
    *
    * To acquire U we simply apply reflections in the reverse order starting with
    * U = I => U^* A U = H
    *
-   * @return unitary matrix U
+   * @return U of type T N x N
    */
-  constexpr auto get_unitary_matrix() const {
+  constexpr auto U() const {
     auto U = make_identity<T, N>();
     constexpr_for<0, N - 2>([&]<size_t k>(std::integral_constant<size_t, k>) {
       const size_t j = N - k - 1;

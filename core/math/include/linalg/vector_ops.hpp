@@ -246,4 +246,42 @@ constexpr auto max(const Vec& x) {
   return mx;
 }
 
+/**
+ * @brief min element
+ *
+ * @param vector x
+ *
+ * @return min element
+ */
+template <VectorLike Vec>
+  requires(vec_size_v<Vec> > 0)
+constexpr size_t arg_min(const Vec& x) {
+  using T = vec_type_t<Vec>;
+  constexpr size_t N = vec_size_v<Vec>;
+  T mn = x(0);
+  size_t idx{0};
+  for (size_t i = 1; i < N; ++i)
+    if (x(i) < mn) mn = x(i), idx = i;
+  return idx;
+}
+
+/**
+ * @brief max element
+ *
+ * @param vector x
+ *
+ * @return max element
+ */
+template <VectorLike Vec>
+  requires(vec_size_v<Vec> > 0)
+constexpr size_t arg_max(const Vec& x) {
+  using T = vec_type_t<Vec>;
+  constexpr size_t N = vec_size_v<Vec>;
+  T mx = x(0);
+  size_t idx{0};
+  for (size_t i = 1; i < N; ++i)
+    if (x(i) > mx) mx = x(i), idx = i;
+  return idx;
+}
+
 }  // namespace linalg

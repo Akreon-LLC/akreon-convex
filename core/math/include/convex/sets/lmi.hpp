@@ -162,10 +162,10 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
     linalg::Matrix<T, K + 1, N + 1> F;
     for (size_t i = 0; i < N; ++i) {
       linalg::SymmetricMatrix S(A(i));
-      for (size_t j = 0; j < K; ++j) F[j][i] = T(-1) * S.svec(j);
+      for (size_t j = 0; j < K; ++j) F[j][i] = T(-1) * S.L(j);
     }
     linalg::SymmetricMatrix S(B);
-    F = linalg::set_block<0, K, N, N + 1>(F, linalg::as_col_vector(S.svec));
+    F = linalg::set_block<0, K, N, N + 1>(F, linalg::as_col_vector(S.L));
     F[K][N] = T(1);
     linalg::Vector<T, K + 1> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);

@@ -40,7 +40,8 @@ class QR {
   static constexpr size_t Rows = mat_rows_v<Mat>;
   static constexpr size_t Cols = mat_cols_v<Mat>;
 
-  static_assert(Rows >= Cols && Rows > 0);
+  static_assert(Rows >= Cols && Rows > 0,
+                "QR Factorization requires [square | overdetermined] system");
 
   /**
    * @brief CTOR
@@ -133,8 +134,8 @@ class QR {
       const auto& Q_jm_j = get_col(Q_jm, j);
 
       const auto& q = HouseholderVector(Q_jm_j);
-      beta[j] = q.get_beta();
-      const auto& v = as_col_vector(q.get_v());
+      beta[j] = q.beta;
+      const auto& v = as_col_vector(q.v);
 
       auto Q_jm_jn = get_n_cols<j, Cols>(Q_jm);
       if constexpr (ComplexLike<T>)

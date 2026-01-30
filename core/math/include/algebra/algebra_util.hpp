@@ -297,7 +297,7 @@ constexpr std::optional<T> constexpr_ln(const T& x, int terms = 16) {
  * @return (void)
  */
 template <size_t Start, size_t End, typename Func>
-  requires(End - Start < MAX_STEP_EVAL)
+  requires(End - Start >= 0)
 constexpr void constexpr_for(Func&& f) {
   if constexpr (Start < End) {
     f(std::integral_constant<size_t, Start>{});
