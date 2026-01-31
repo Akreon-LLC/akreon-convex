@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "linear_operator.hpp"
 #include "operator_traits.hpp"
 
 namespace linalg {
@@ -20,14 +21,18 @@ namespace linalg {
  * @brief Symmetric linear operator CRTP base
  */
 template <SquareMatrixLike Mat, typename Derived>
-struct SymmetricOperator {
-  /// @brief alias helpers for types
-  using T = mat_type_t<Mat>;
-  using ScalarT = scalar_type_t<T>;
-  using ComplexT = std::complex<ScalarT>;
+struct SymmetricOperator
+    : LinearOperator<Mat, SymmetricOperator<Mat, Derived>> {
+  /// @brief alias to extract base types
+  using OperatorBase = LinearOperator<Mat, SymmetricOperator<Mat, Derived>>;
+  using typename OperatorBase::ComplexT;
+  using typename OperatorBase::ScalarT;
+  using typename OperatorBase::T;
 
-  /// @brief helpers to get N and DIM from mat
-  static constexpr size_t N = mat_rows_v<Mat>;
+  /// @brief extract N from base
+  using OperatorBase::N;
+
+  /// @brief helpers to get DIM from mat
   static constexpr size_t DIM = (N * (N + 1)) / 2;
 
   /**
@@ -40,12 +45,12 @@ struct SymmetricOperator {
   }
 
   /**
-   * @brief overload for accessor (provide row col pair and get value)
+   * @brief get element at (i,j) index
    *
-   * @param size_t i = row index
-   * @param size_t j = col index
+   * @param row index
+   * @param col index
    *
-   * @return L element
+   * @return element
    */
   constexpr auto operator()(size_t i, size_t j) const { return L(index(i, j)); }
 
@@ -57,7 +62,7 @@ struct SymmetricOperator {
    *
    * @return index
    */
-  constexpr size_t index(size_t i, size_t j) const {
+  constexpr size_t index(const size_t& i, const size_t& j) const {
     assert(j < N && i < N);
     if (i >= j) return i * (i + 1) / 2 + j;
     return j * (j + 1) / 2 + i;
@@ -99,8 +104,8 @@ struct SymmetricOperator {
    *
    * @return vec x
    */
-  constexpr Vector<T, N> solve(const Vector<T, N>& /*b*/) const {
-    return Vector<T, N>{};
+  constexpr Vector<T, N> solve(const Vector<T, N>& b) const {
+    return forward_solve(L, b);
   }
 
   /**

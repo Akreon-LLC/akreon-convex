@@ -21,9 +21,13 @@ namespace linalg {
  * H is an upper right triangular matrix formed by successive Householder
  * reductions creating the similarity transform: H = U_0^T A U_0.
  */
-template <typename T, size_t N>
-  requires(FieldLike<T> && N > 0)
+template <SquareMatrixLike Mat>
 struct HessenbergMatrix {
+  /// @brief alias of type of matrix
+  using T = mat_type_t<Mat>;
+
+  /// @brief size of matrix
+  static constexpr size_t N = mat_rows_v<Mat>;
   /**
    * @brief CTOR
    *
@@ -34,7 +38,7 @@ struct HessenbergMatrix {
    *
    * @param Matrix A of type T with N x N elements
    */
-  constexpr HessenbergMatrix(const Matrix<T, N, N>& A) {
+  constexpr explicit HessenbergMatrix(const Mat& A) {
     H = A;
     constexpr_for<0, N - 2>([&]<size_t k>(std::integral_constant<size_t, k>) {
       const auto& H_block = get_n_rows<k + 1, N>(H);

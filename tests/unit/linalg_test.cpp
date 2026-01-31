@@ -371,37 +371,24 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
         Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
     constexpr auto A_smat = SymmetricMatrix(A);
     STATIC_REQUIRE(A_smat.type == SymmetricOperatorType::PD);
+    constexpr auto R = QR(A).R();
+    STATIC_REQUIRE(R(0)(0) == A_smat(0, 0));
+    STATIC_REQUIRE(0.0 == A_smat(1, 0));
+    STATIC_REQUIRE(R(1)(0) == A_smat(0, 1));
+    STATIC_REQUIRE(R(1)(1) == A_smat(1, 1));
 
-    for (size_t i = 0; i < 2; ++i)
-      for (size_t j = 0; j < 2; ++j) std::cout << A_smat(i, j) << " ";
-#if 0
-    constexpr auto x1 = A_smat.solve(Vectord<2>{});
-    STATIC_REQUIRE(x1 == Vectord<2>{});
-    constexpr auto x2 = A_smat.solve(Vectord<2>{1.0, 4.0});
-    std::cout << x2(0) << " " << x2(1) << std::endl;
-#endif
+    /// TODO - fix
+    // constexpr auto x1 = A_smat.solve(Vectord<2>{});
+    // STATIC_REQUIRE(x1 == Vectord<2>{});
 
     constexpr auto B =
         Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
     constexpr auto B_smat = SymmetricMatrix(B);
     STATIC_REQUIRE(B_smat.type == SymmetricOperatorType::PD);
-    // STATIC_REQUIRE(B_smat(0, 0) == 4.0);
-    // STATIC_REQUIRE(B_smat(0, 1) == -1.0);
-    // STATIC_REQUIRE(B_smat(1, 0) == -1.0);
-    // STATIC_REQUIRE(B_smat(1, 1) == 3.0);
 
     constexpr auto I = make_identity<double, 3>();
     constexpr auto I_smat = SymmetricMatrix(I);
     STATIC_REQUIRE(I_smat.type == SymmetricOperatorType::PD);
-    // STATIC_REQUIRE(I_smat(0, 0) == 1.0);
-    // STATIC_REQUIRE(I_smat(0, 1) == 0.0);
-    // STATIC_REQUIRE(I_smat(0, 2) == 0.0);
-    // STATIC_REQUIRE(I_smat(1, 0) == 0.0);
-    // STATIC_REQUIRE(I_smat(1, 1) == 1.0);
-    // STATIC_REQUIRE(I_smat(1, 2) == 0.0);
-    // STATIC_REQUIRE(I_smat(2, 0) == 0.0);
-    // STATIC_REQUIRE(I_smat(2, 0) == 0.0);
-    // STATIC_REQUIRE(I_smat(2, 2) == 1.0);
 
     constexpr auto I2 = linalg::make_smat<3>(I_smat.L);
     STATIC_REQUIRE(linalg::all_equal(I, I2));
@@ -410,10 +397,6 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
                                      Vectord<2>{1.0, 1.0}};
     constexpr auto C_smat = SymmetricMatrix(C);
     STATIC_REQUIRE(C_smat.type == SymmetricOperatorType::PSD);
-    // STATIC_REQUIRE(C_smat(0, 0) == 1.0);
-    // STATIC_REQUIRE(C_smat(0, 1) == 1.0);
-    // STATIC_REQUIRE(C_smat(1, 0) == 1.0);
-    // STATIC_REQUIRE(C_smat(1, 1) == 1.0);
   }
 
   SECTION("Positive semidefinite Matrices") {
@@ -422,10 +405,6 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
     constexpr auto Z_smat = SymmetricMatrix(Z);
     STATIC_REQUIRE(Z_smat.type != SymmetricOperatorType::PD);
     STATIC_REQUIRE(Z_smat.type == SymmetricOperatorType::PSD);
-    // STATIC_REQUIRE(Z_smat(0, 0) == 1.0);
-    // STATIC_REQUIRE(Z_smat(0, 1) == 0.0);
-    // STATIC_REQUIRE(Z_smat(1, 0) == 0.0);
-    // STATIC_REQUIRE(Z_smat(1, 1) == 0.0);
   }
 
   SECTION("Negative semidefinite Matrices") {
@@ -433,16 +412,12 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
     constexpr auto Z = Z_mat(-1.0, 0.0, 0.0, 0.0);
     constexpr auto Z_smat = SymmetricMatrix(Z);
     STATIC_REQUIRE(Z_smat.type == SymmetricOperatorType::NSD);
-    // STATIC_REQUIRE(Z_smat(0, 0) == -1.0);
   }
 
   SECTION("Negative definite Matrices") {
     constexpr auto I = -1.0 * make_identity<double, 3>();
     constexpr auto I_smat = SymmetricMatrix(I);
     STATIC_REQUIRE(I_smat.type == SymmetricOperatorType::ND);
-    // STATIC_REQUIRE(I_smat(0, 0) == -1.0);
-    // STATIC_REQUIRE(I_smat(1, 1) == -1.0);
-    // STATIC_REQUIRE(I_smat(2, 2) == -1.0);
   }
 
   SECTION("Indefinite matrix") {
@@ -450,11 +425,6 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
     constexpr auto I = I_mat(-1.0, 2.0, 0.0, 2.0, -1.0, 0.0, 0.0, 0.0, -1.0);
     constexpr auto I_smat = SymmetricMatrix(I);
     STATIC_REQUIRE(I_smat.type == SymmetricOperatorType::IND);
-    // STATIC_REQUIRE(I_smat(0, 0) == -1.0);
-    // STATIC_REQUIRE(I_smat(0, 1) == 2.0);
-    // STATIC_REQUIRE(I_smat(1, 0) == 2.0);
-    // STATIC_REQUIRE(I_smat(1, 1) == -1.0);
-    // STATIC_REQUIRE(I_smat(2, 2) == -1.0);
   }
 
   SECTION("Invalid matrix") {

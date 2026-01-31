@@ -25,6 +25,10 @@ namespace linalg {
 /// ND = Negative Definite
 enum struct SymmetricOperatorType { INV = 0, IND, PSD, PD, NSD, ND };
 
+/// @brief forward declaration for linear operator
+template <SquareMatrixLike Mat, typename Derived>
+struct LinearOperator;
+
 /// @brief forward declaration for symmetric operator
 template <SquareMatrixLike Mat, typename Derived>
 struct SymmetricOperator;
