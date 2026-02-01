@@ -90,18 +90,42 @@ struct KKTSystem : linalg::SymmetricOperator<Mat, KKTSystem<Mat>> {
       return status;
     };
 
+    /// (dakre) store L into symmetric vector separate from svec
+    L = lower_triangle_to_vec(A);
+
     /// (dakre) check if LDL^T completed
     if (!ldl_t(true)) {
       this->type = linalg::SymmetricOperatorType::INV;
       return;
     }
 
-    // (dakre) store lower triangle
-    this->L = lower_triangle_to_vec(A);
-
     // (dakre) KKT system is indefinite by nature
     this->type = linalg::SymmetricOperatorType::IND;
   }
+
+  /**
+   * @brief solve
+   *
+   * L^T x = b via foward solve
+   *
+   * @param vec b
+   *
+   * @return vec x
+   */
+  constexpr linalg::Vector<T, N> solve(const linalg::Vector<T, N>& b) const {
+    linalg::Vector<T, N> x;
+    for (size_t i = 0; i < N; ++i) {
+      T sum = 0;
+      for (size_t j = 0; j < i; ++j) sum += (L(this->index(i, j)) * x(j));
+
+      assert(L(this->index(i, i)) != T(0));
+      x(i) = (b(i) - sum) / L(this->index(i, i));
+    }
+    return x;
+  }
+
+  /** @brief member var */
+  linalg::Vector<T, DIM> L;  ///< L from LDL^T factorization
 };
 
 }  // namespace convex

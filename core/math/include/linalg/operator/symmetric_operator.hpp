@@ -40,7 +40,8 @@ struct SymmetricOperator
    *
    * @param Mat A
    */
-  constexpr explicit SymmetricOperator(const Mat& A, ScalarT tol = 1e-8) {
+  constexpr explicit SymmetricOperator(const Mat& A, ScalarT tol = 1e-8)
+      : svec(lower_triangle_to_vec(A)) {
     mutable_self().factor(A, tol);
   }
 
@@ -52,7 +53,9 @@ struct SymmetricOperator
    *
    * @return element
    */
-  constexpr auto operator()(size_t i, size_t j) const { return L(index(i, j)); }
+  constexpr auto operator()(const size_t& i, const size_t& j) const {
+    return svec(index(i, j));
+  }
 
   /**
    * @brief index from (row, col)
@@ -96,19 +99,6 @@ struct SymmetricOperator
   constexpr bool is_ind() const { return type == SymmetricOperatorType::IND; }
 
   /**
-   * @brief solve
-   *
-   * L^T x = b via foward solve
-   *
-   * @param vec b
-   *
-   * @return vec x
-   */
-  constexpr Vector<T, N> solve(const Vector<T, N>& b) const {
-    return forward_solve(L, b);
-  }
-
-  /**
    * @brief self
    *
    * @return derived object
@@ -124,8 +114,8 @@ struct SymmetricOperator
 
   /** @brief member variables */
   SymmetricOperatorType type;  //< SymmetricOperatorType value
-  Vector<T, DIM> L;  //< Data stored from input square matrix as flattened
-                     // n(n+1)/2 dim vector
+  Vector<T, DIM> svec;  //< Data stored from input square matrix as flattened
+                        // n(n+1)/2 dim vector
 };
 
 }  // namespace linalg

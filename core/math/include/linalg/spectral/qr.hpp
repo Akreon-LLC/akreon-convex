@@ -29,8 +29,7 @@ namespace linalg {
  * into A = L Q result
  */
 template <MatrixLike Mat>
-class QR {
- public:
+struct QR {
   // @brief alias for underlying type
   using T = mat_type_t<Mat>;
   using ScalarT = scalar_type_t<T>;
@@ -180,9 +179,34 @@ class QR {
     return U;
   }
 
+  /**
+   * @brief back solve linear systems of equations
+   *
+   * R x = rhs
+   *
+   * @param upper right triangular R matrix
+   * @param rhs vector to be solved
+   *
+   * @return solved x vector
+   */
+  constexpr auto back_solve(const Matrix<T, Rows, Cols>& R,
+                            const Vector<T, Rows>& rhs) const {
+    Vector<T, Cols> x;
+    constexpr auto mn = std::min(Rows, Cols);
+    for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
+      T sum = 0;
+      for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
+
+      assert(R(i)(i) != T(0));
+      x(i) = (rhs(i) - sum) / R(i)(i);
+    }
+    return x;
+  }
+
   /** @brief QR decomposition for matrix input A */
   Mat H;                 ///< orthonormal basis Q (slighty different than GS
                          ///< as its fully compact and can use straight up)
   Vector<T, Rows> beta;  ///< beta scalars
 };
+
 }  // namespace linalg

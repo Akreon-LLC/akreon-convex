@@ -380,15 +380,10 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
         Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
     constexpr auto A_smat = SymmetricMatrix(A);
     STATIC_REQUIRE(A_smat.type == SymmetricOperatorType::PD);
-    constexpr auto R = QR(A).R();
-    STATIC_REQUIRE(R(0)(0) == A_smat(0, 0));
-    STATIC_REQUIRE(0.0 == A_smat(1, 0));
-    STATIC_REQUIRE(R(1)(0) == A_smat(0, 1));
-    STATIC_REQUIRE(R(1)(1) == A_smat(1, 1));
-
-    /// TODO - fix
-    // constexpr auto x1 = A_smat.solve(Vectord<2>{});
-    // STATIC_REQUIRE(x1 == Vectord<2>{});
+    STATIC_REQUIRE(A(0)(0) == A_smat(0, 0));
+    STATIC_REQUIRE(A(0)(1) == A_smat(0, 1));
+    STATIC_REQUIRE(A(1)(0) == A_smat(1, 0));
+    STATIC_REQUIRE(A(1)(1) == A_smat(1, 1));
 
     constexpr auto B =
         Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
@@ -399,7 +394,7 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
     constexpr auto I_smat = SymmetricMatrix(I);
     STATIC_REQUIRE(I_smat.type == SymmetricOperatorType::PD);
 
-    constexpr auto I2 = linalg::make_smat<3>(I_smat.L);
+    constexpr auto I2 = linalg::make_smat<3>(I_smat.svec);
     STATIC_REQUIRE(linalg::all_equal(I, I2));
 
     constexpr Matrix<double, 2, 2> C{Vectord<2>{1.0, 1.0},

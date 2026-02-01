@@ -71,13 +71,6 @@ struct SymmetricMatrix : SymmetricOperator<Mat, SymmetricMatrix<Mat>> {
       return;
     }
 
-    // (dakre) factor A and store lower triangle
-    const auto qr = QR(A);
-    if constexpr (ComplexLike<T>)
-      this->L = lower_triangle_to_vec(conjugate_transpose(qr.R()));
-    else
-      this->L = lower_triangle_to_vec(transpose(qr.R()));
-
     // (2) Next calculate the eigenvalues of the matrix and check signs of the
     // eigenvalues by running count
     const auto eig_decomp = EigenDecomposition(A);

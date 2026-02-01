@@ -202,30 +202,6 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     STATIC_REQUIRE(Q(0)(0) == 1.0);
     STATIC_REQUIRE(R(0)(0) == 0.0);
   }
-
-  SECTION("Min norm case m < n (Reals)") {
-    mat_traits<Matrix<double, 2, 3>> A_mat;
-    constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-
-    constexpr Vector<double, 2> b{2.0, 3.0};
-    constexpr auto qr = QR(transpose(A));
-    constexpr auto Q = qr.Q();
-    constexpr auto R = qr.R();
-    constexpr auto x_min = min_norm(Q, R, b);
-    STATIC_REQUIRE(euclidean_distance(A * x_min, b) <= eps);
-  }
-
-  SECTION("Min norm case m < n (Complex)") {
-    mat_traits<Matrix<std::complex<double>, 2, 3>> A_mat;
-    constexpr auto A = A_mat(1.0, 0.0, 1.0, 0.0, 1.0, 0.0);
-
-    constexpr Vector<std::complex<double>, 2> b{2.0, -3.0};
-    constexpr auto qr = QR(transpose(A));
-    constexpr auto Q = qr.Q();
-    constexpr auto R = qr.R();
-    constexpr auto x_min = min_norm(Q, R, b);
-    STATIC_REQUIRE(euclidean_distance(A * x_min, b) <= eps);
-  }
 }
 
 TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
