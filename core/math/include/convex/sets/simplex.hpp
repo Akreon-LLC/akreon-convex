@@ -170,9 +170,9 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
                   "linear map's codomain in size");
 
     linalg::Matrix<T, N + 1, N + 1> F;
-    for (size_t i = 0; i < N; ++i) F[i][i] = T(1);
-    for (size_t i = 0; i < N; ++i) F[N][i] = T(-1);
-    F[N][N] = T(1);
+    for (size_t i = 0; i < N; ++i) F(i)(i) = T(1);
+    for (size_t i = 0; i < N; ++i) F(N)(i) = T(-1);
+    F(N)(N) = T(1);
     linalg::Vector<T, N + 1> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();

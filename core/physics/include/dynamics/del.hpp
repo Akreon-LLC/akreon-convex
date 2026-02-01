@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #include <functional>
 #include <tuple>
 
@@ -36,12 +35,12 @@ constexpr auto DLd(linalg::Matrix<ScalarT, DoF, 3> Q, const T_fn& T,
                    const V_fn& V, const ScalarT& h, ScalarT eps = 1e-8) {
   linalg::Vector<ScalarT, DoF> grad;
   for (size_t i = 0; i < DoF; ++i) {
-    Q[i][1] += eps;
+    Q(i)(1) += eps;
     const auto pos = Ld(get_col(Q, k), get_col(Q, k + 1), T, V, h);
-    Q[i][1] -= (2 * eps);
+    Q(i)(1) -= (2 * eps);
     const auto neg = Ld(get_col(Q, k), get_col(Q, k + 1), T, V, h);
-    Q[i][1] += eps;
-    grad[i] = (pos - neg) / (2 * eps);
+    Q(i)(1) += eps;
+    grad(i) = (pos - neg) / (2 * eps);
   }
   return grad;
 }
@@ -98,14 +97,14 @@ constexpr auto Solve(
                              size_t idx) -> linalg::Matrix<ScalarT, DoF, DoF> {
     linalg::Matrix<ScalarT, DoF, DoF> J;
     for (size_t j = 0; j < DoF; ++j) {
-      Q[j][idx] += eps;
+      Q(j)(idx) += eps;
       const auto pos = DEL(Q, U);
 
-      Q[j][idx] -= (2 * eps);
+      Q(j)(idx) -= (2 * eps);
       const auto neg = DEL(Q, U);
 
       const auto grad = (1 / (2 * eps)) * (pos - neg);
-      for (size_t k = 0; k < DoF; ++k) J[k][j] = grad(k);
+      for (size_t k = 0; k < DoF; ++k) J(k)(j) = grad(k);
     }
     return J;
   };
@@ -114,13 +113,13 @@ constexpr auto Solve(
                                    auto U) -> linalg::Matrix<ScalarT, DoF, Nu> {
     linalg::Matrix<ScalarT, DoF, Nu> J;
     for (size_t j = 0; j < Nu; ++j) {
-      U[j] += eps;
+      U(j) += eps;
       const auto pos = DEL(Q, U);
-      U[j] -= eps;
+      U(j) -= eps;
       const auto neg = DEL(Q, U);
 
       const auto grad = (1 / (2 * eps)) * (pos - neg);
-      for (size_t k = 0; k < DoF; ++k) J[k][j] = grad(k);
+      for (size_t k = 0; k < DoF; ++k) J(k)(j) = grad(k);
     }
     return J;
   };
@@ -145,7 +144,7 @@ constexpr auto Solve(
     linalg::Matrix<ScalarT, DoF, RHS_COLS> S;
     for (size_t i = 0; i < RHS_COLS; ++i) {
       const auto x_i = J_qr.solve(get_col(RHS, i));
-      for (size_t j = 0; j < DoF; ++j) S[j][i] = x_i(j);
+      for (size_t j = 0; j < DoF; ++j) S(j)(i) = x_i(j);
     }
 
     linalg::Matrix<ScalarT, 2 * DoF, 2 * DoF> A;
@@ -188,14 +187,14 @@ constexpr auto Solve(
     B = std::get<1>(ss);
 
     // Update Qkp1 column for next timestep
-    for (size_t j = 0; j < DoF; ++j) Q[j][2] += Q_delta(j);
+    for (size_t j = 0; j < DoF; ++j) Q(j)(2) += Q_delta(j);
 
     if (linalg::L2<linalg::Vector<ScalarT, DoF>>()(Q_delta) < tol) break;
   }
 
   for (size_t i = 0; i < DoF; ++i) {
-    Q[i][0] = Q(i)(1);
-    Q[i][1] = Q(i)(2);
+    Q(i)(0) = Q(i)(1);
+    Q(i)(1) = Q(i)(2);
   }
 
   return std::tuple{Q, A, B};

@@ -72,7 +72,7 @@ struct SVD {
     Vector<Real, Cols> lambdas;
     for (size_t i = 0; i < Cols; ++i) {
       assert(is_real(tmp_lambdas(i)));
-      lambdas[i] = tmp_lambdas(i).real();
+      lambdas(i) = tmp_lambdas(i).real();
     }
 
     // (dakre) these eigenvectors are projected onto the row space thus
@@ -81,7 +81,7 @@ struct SVD {
     const auto& V = result.V;
 
     for (size_t i = 0; i < Cols; ++i)
-      S[i][i] = constexpr_sqrt(std::max<Real>(0, lambdas(i)));
+      S(i)(i) = constexpr_sqrt(std::max<Real>(0, lambdas(i)));
 
     // 3. back-solve for U with VT & sigmas
     // \Sigma^{-1} A V = U
@@ -89,7 +89,7 @@ struct SVD {
 
     for (size_t i = 0; i < Cols; ++i) {
       const auto u_i = (1 / S(i)(i)) * as_complex_matrix(A) * get_col(V, i);
-      for (size_t j = 0; j < Rows; ++j) U[j][i] = u_i(j);
+      for (size_t j = 0; j < Rows; ++j) U(j)(i) = u_i(j);
     }
 
     VT = conjugate_transpose(V);
@@ -113,11 +113,11 @@ struct SVD {
     Matrix<Complex, Cols, Cols> VT_tmp;
     for (size_t i = 0; i < Cols; ++i) {
       const auto idx = P[i];
-      S_tmp[i][i] = S(idx)(idx);
+      S_tmp(i)(i) = S(idx)(idx);
 
-      for (size_t r = 0; r < Rows; ++r) U_tmp[r][i] = U(r)(idx);
+      for (size_t r = 0; r < Rows; ++r) U_tmp(r)(i) = U(r)(idx);
 
-      for (size_t c = 0; c < Cols; ++c) VT_tmp[i][c] = VT(idx)(c);
+      for (size_t c = 0; c < Cols; ++c) VT_tmp(i)(c) = VT(idx)(c);
     }
 
     // 3. store result

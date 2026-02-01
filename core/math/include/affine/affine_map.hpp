@@ -51,7 +51,7 @@ constexpr AffineMap<Mat> make_selector_map(const size_t& idx) {
     throw std::domain_error("Selected index >= number of cols");
   using T = linalg::mat_type_t<Mat>;
   Mat A;
-  A[0][idx] = T(1);
+  A(0)(idx) = T(1);
   return AffineMap<Mat>(A, linalg::Vector<T, 1>{});
 }
 

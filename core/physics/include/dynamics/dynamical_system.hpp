@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "math.hpp"
@@ -72,9 +71,9 @@ constexpr auto seed_Q(const linalg::Vector<ScalarT, DoF>& ic,
                       ScalarT perturbation = 1e-4) {
   linalg::Matrix<ScalarT, DoF, 3> Q;
   for (size_t i = 0; i < DoF; ++i) {
-    Q[i][0] = ic(i);
-    Q[i][1] = ic(i) + perturbation;
-    Q[i][2] = Q(i)(1) + (Q(i)(1) - Q(i)(0));
+    Q(i)(0) = ic(i);
+    Q(i)(1) = ic(i) + perturbation;
+    Q(i)(2) = Q(i)(1) + (Q(i)(1) - Q(i)(0));
   }
   return Q;
 }

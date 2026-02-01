@@ -42,14 +42,14 @@ template <typename T, size_t Rows, size_t Cols>
 auto make_A(std::mt19937& rng, std::uniform_real_distribution<T>& dist) {
   Matrix<T, Rows, Cols> A;
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) A[i][j] = dist(rng);
+    for (size_t j = 0; j < Cols; ++j) A(i)(j) = dist(rng);
   return A;
 }
 
 template <typename T, size_t N>
 auto make_vec(std::mt19937& rng, std::uniform_real_distribution<T>& dist) {
   Vector<T, N> b;
-  for (size_t i = 0; i < N; ++i) b[i] = dist(rng);
+  for (size_t i = 0; i < N; ++i) b(i) = dist(rng);
   return b;
 }
 

@@ -112,7 +112,7 @@ struct ConeBlockBuilder {
     if constexpr (ConeDom != 0) {
       F = linalg::set_block<0, ConeCodom, 0, ConeDom>(F,
                                                       cone_map.linear_part());
-      for (size_t i = 0; i < ConeCodom; ++i) g[i] = cone_map.translation()(i);
+      for (size_t i = 0; i < ConeCodom; ++i) g(i) = cone_map.translation()(i);
     }
 
     /// (1) fill bottom left from coord map
@@ -129,7 +129,7 @@ struct ConeBlockBuilder {
     }
 
     for (size_t i = 0; i < CoordCodom; ++i)
-      g[i + ConeCodom] = coord_map.translation()(i);
+      g(i + ConeCodom) = coord_map.translation()(i);
 
     const auto new_map = affine::AffineMap<decltype(F)>(F, g);
     return new_map;
@@ -156,7 +156,7 @@ struct ConeBlockBuilder {
     if (FullDom + idx >= FullDom)
       throw std::domain_error("Selecting aux var that is out of bounds");
 
-    sel[FullDom + idx] = lift_map.linear_part()(0)(0);
+    sel(FullDom + idx) = lift_map.linear_part()(0)(0);
     const auto sel_row = linalg::as_row_vector(sel);
     const auto new_coord_map =
         affine::AffineMap<decltype(sel_row)>(sel_row, bias);

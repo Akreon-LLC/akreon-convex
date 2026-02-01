@@ -36,7 +36,7 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    */
   constexpr Slack x0_impl() const {
     Slack s{};
-    for (size_t i = 0; i < M; ++i) s[i] = T(1);
+    for (size_t i = 0; i < M; ++i) s(i) = T(1);
     return s;
   }
 

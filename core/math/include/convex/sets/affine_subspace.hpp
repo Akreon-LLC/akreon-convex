@@ -151,7 +151,7 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
     F = linalg::set_block<0, M, 0, N>(F, composed_map.linear_part());
     F = linalg::set_block<0, M, N, N + 1>(
         F, linalg::as_col_vector(T(-1) * composed_map.translation()));
-    F[M][N] = T(1);
+    F(M)(N) = T(1);
 
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, M>>();

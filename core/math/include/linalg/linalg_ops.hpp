@@ -34,7 +34,7 @@ constexpr auto add(const Vec& A, const Vec& B) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
   Vector<T, N> C;
-  for (size_t i = 0; i < N; ++i) C[i] = A(i) + B(i);
+  for (size_t i = 0; i < N; ++i) C(i) = A(i) + B(i);
   return C;
 }
 
@@ -63,7 +63,7 @@ constexpr auto scalar_multiplication(const Alpha& alpha, const Vec& A) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
   Vector<T, N> C;
-  for (size_t i = 0; i < N; ++i) C[i] = alpha * A(i);
+  for (size_t i = 0; i < N; ++i) C(i) = alpha * A(i);
   return C;
 }
 
@@ -123,7 +123,7 @@ constexpr auto transpose(const Vec& x) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
   Matrix<T, N, 1> x_t;
-  for (size_t i = 0; i < N; ++i) x_t[i][0] = x(i);
+  for (size_t i = 0; i < N; ++i) x_t(i)(0) = x(i);
   return x_t;
 }
 
@@ -140,7 +140,7 @@ constexpr auto conjugate(const Vec& x) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
   Vector<T, N> result;
-  for (size_t i = 0; i < N; ++i) result[i] = std::conj(x(i));
+  for (size_t i = 0; i < N; ++i) result(i) = std::conj(x(i));
   return result;
 }
 
@@ -191,9 +191,9 @@ constexpr auto splice(const Vec& x) {
   constexpr auto N = vec_size_v<Vec>;
   Vector<T, idx> a;
   size_t i = 0;
-  for (; i < idx; ++i) a[i] = x(i);
+  for (; i < idx; ++i) a(i) = x(i);
   Vector<T, N - idx> b;
-  for (size_t j = 0; i < N; ++i, ++j) b[j] = x(i);
+  for (size_t j = 0; i < N; ++i, ++j) b(j) = x(i);
   return std::tuple(a, b);
 }
 
@@ -215,7 +215,7 @@ constexpr auto outer_product(const MatA& A, const MatB& B) {
   constexpr auto Cols = mat_cols_v<MatB>;
   Matrix<T, Rows, Cols> result;
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) result[i][j] = A(i)(0) * B(0)(j);
+    for (size_t j = 0; j < Cols; ++j) result(i)(j) = A(i)(0) * B(0)(j);
   return result;
 }
 
@@ -233,7 +233,7 @@ template <typename T, size_t Rows, size_t Cols>
 constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
   Matrix<T, Cols, Rows> result;
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) result[j][i] = A(i)(j);
+    for (size_t j = 0; j < Cols; ++j) result(j)(i) = A(i)(j);
   return result;
 }
 
@@ -273,7 +273,7 @@ constexpr auto conjugate_transpose(const Mat& A)
   constexpr auto Cols = mat_cols_v<Mat>;
   auto A_t = transpose(A);
   for (size_t i = 0; i < Cols; ++i)
-    for (size_t j = 0; j < Rows; ++j) A_t[i][j] = std::conj(A_t[i][j]);
+    for (size_t j = 0; j < Rows; ++j) A_t(i)(j) = std::conj(A_t(i)(j));
   return A_t;
 }
 
@@ -294,7 +294,7 @@ constexpr auto operator*(const MatA& A, const MatB& B) {
   Matrix<T, Rows, Cols> result;
   const auto B_t = transpose(B);
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) result[i][j] = dot(A(i), B_t(j));
+    for (size_t j = 0; j < Cols; ++j) result(i)(j) = dot(A(i), B_t(j));
   return result;
 }
 
@@ -312,7 +312,7 @@ constexpr auto operator*(const Mat& A, const Vec& X) {
   using T = mat_type_t<Mat>;
   constexpr auto Rows = mat_rows_v<Mat>;
   Vector<T, Rows> result;
-  for (size_t i = 0; i < Rows; ++i) result[i] = dot(A(i), X);
+  for (size_t i = 0; i < Rows; ++i) result(i) = dot(A(i), X);
   return result;
 }
 

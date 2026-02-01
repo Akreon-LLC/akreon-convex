@@ -42,9 +42,9 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
    */
   constexpr Slack x0_impl() const {
     Slack s{};
-    for (size_t i = 0; i < M / 3; ++i) s[i] = T(0);
-    for (size_t i = M / 3; i < 2 * M / 3; ++i) s[i] = T(1);
-    for (size_t i = 2 * M / 3; i < M; ++i) s[i] = T(2);
+    for (size_t i = 0; i < M / 3; ++i) s(i) = T(0);
+    for (size_t i = M / 3; i < 2 * M / 3; ++i) s(i) = T(1);
+    for (size_t i = 2 * M / 3; i < M; ++i) s(i) = T(2);
     return s;
   }
 

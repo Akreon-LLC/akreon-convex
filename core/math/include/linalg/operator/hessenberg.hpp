@@ -49,21 +49,21 @@ struct HessenbergMatrix : LinearOperator<Mat, HessenbergMatrix<Mat>> {
       const auto h = HouseholderVector(H_col);
 
       const auto& v = as_col_vector(h.v);
-      beta[k] = h.beta;
+      beta(k) = h.beta;
 
-      if (beta[k] == scalar_type_t<T>(0)) return;
+      if (beta(k) == scalar_type_t<T>(0)) return;
 
       // (P1...Pk-1)^T A (P1...Pk-1)
       auto H_block_kn = get_n_cols<k, N>(H_block);
       if constexpr (ComplexLike<T>)
         H_block_kn =
-            H_block_kn - (beta[k] * v * conjugate_transpose(v)) * H_block_kn;
+            H_block_kn - (beta(k) * v * conjugate_transpose(v)) * H_block_kn;
       else
-        H_block_kn = H_block_kn - (beta[k] * v * transpose(v)) * H_block_kn;
+        H_block_kn = H_block_kn - (beta(k) * v * transpose(v)) * H_block_kn;
 
       for (size_t i = k + 1, a = 0; i < N; ++i, ++a)
         for (size_t j = k, b = 0; j < N; ++j, ++b)
-          H_pack[i][j] = H_block_kn(a)(b);
+          H_pack(i)(j) = H_block_kn(a)(b);
 
       // (P1...Pk)^T A (P1...Pk) -- handling case when Pk is of order N - k
       auto H_zn_kn = get_block<0, N, k + 1, N>(H_pack);
@@ -74,9 +74,9 @@ struct HessenbergMatrix : LinearOperator<Mat, HessenbergMatrix<Mat>> {
 
       for (size_t i = 0, a = 0; i < N; ++i, ++a)
         for (size_t j = k + 1, b = 0; j < N; ++j, ++b)
-          H_pack[i][j] = H_zn_kn(a)(b);
+          H_pack(i)(j) = H_zn_kn(a)(b);
 
-      for (size_t j = k + 2, a = 1; j < N; ++j, ++a) H_pack[j][k] = v(a)(0);
+      for (size_t j = k + 2, a = 1; j < N; ++j, ++a) H_pack(j)(k) = v(a)(0);
     });
   }
 
@@ -90,7 +90,7 @@ struct HessenbergMatrix : LinearOperator<Mat, HessenbergMatrix<Mat>> {
     for (size_t i = 0; i < N; ++i) {
       for (size_t j = 0; j < N; ++j) {
         if (i >= 2 && j <= (i - 2)) continue;
-        res[i][j] = H_pack(i)(j);
+        res(i)(j) = H_pack(i)(j);
       }
     }
     return res;
@@ -111,8 +111,8 @@ struct HessenbergMatrix : LinearOperator<Mat, HessenbergMatrix<Mat>> {
     constexpr_for<0, N - 2>([&]<size_t k>(std::integral_constant<size_t, k>) {
       const size_t j = N - k - 1;
       Vector<T, j> v;
-      v[0] = T(1);
-      for (size_t i = k + 2, a = 1; i < N; ++i, ++a) v[a] = H_pack(i)(k);
+      v(0) = T(1);
+      for (size_t i = k + 2, a = 1; i < N; ++i, ++a) v(a) = H_pack(i)(k);
 
       const auto& v_col = as_col_vector(v);
 
@@ -124,7 +124,7 @@ struct HessenbergMatrix : LinearOperator<Mat, HessenbergMatrix<Mat>> {
         U_block = U_block - beta(k) * (U_block * (v_col * transpose(v_col)));
 
       for (size_t r = 0; r < N; ++r)
-        for (size_t c = k + 1, a = 0; c < N; ++c, ++a) U[r][c] = U_block(r)(a);
+        for (size_t c = k + 1, a = 0; c < N; ++c, ++a) U(r)(c) = U_block(r)(a);
     });
     return U;
   }

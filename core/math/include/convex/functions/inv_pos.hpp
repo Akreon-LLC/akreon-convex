@@ -203,13 +203,13 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
     linalg::Matrix<T, 3, Dom + 1> F;
     F = linalg::set_block<1, 2, 0, Dom>(F, child_coord.linear_part());
     linalg::Vector<T, 3> g;
-    g[0] = linalg::constexpr_sqrt(T(2));
-    g[1] = child_coord.translation()(0);
+    g(0) = linalg::constexpr_sqrt(T(2));
+    g(1) = child_coord.translation()(0);
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F[2][Dom] = T(1);
+      F(2)(Dom) = T(1);
     } else {
-      F[2][Dom] = T(-1);
+      F(2)(Dom) = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

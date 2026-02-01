@@ -204,20 +204,20 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
                   "mismatch between domain in the convex function");
 
     linalg::Matrix<T, N + 1, Dom + 1> F;
-    F[1][0] = child_coord.linear_part()(0)(0);
-    F[2][1] = child_coord.linear_part()(1)(1);
+    F(1)(0) = child_coord.linear_part()(0)(0);
+    F(2)(1) = child_coord.linear_part()(1)(1);
     linalg::Vector<T, N + 1> g;
-    g[1] = child_coord.translation()(0);
-    g[2] = child_coord.translation()(1);
+    g(1) = child_coord.translation()(0);
+    g(2) = child_coord.translation()(1);
 
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      F[0][Dom] = T(1) / linalg::constexpr_sqrt(T(2));
-      F[1][Dom] = T(-0.5);
-      F[2][Dom] = T(-0.5);
+      F(0)(Dom) = T(1) / linalg::constexpr_sqrt(T(2));
+      F(1)(Dom) = T(-0.5);
+      F(2)(Dom) = T(-0.5);
     } else {
-      F[0][Dom] = T(-1) / linalg::constexpr_sqrt(T(2));
-      F[1][Dom] = T(0.5);
-      F[2][Dom] = T(0.5);
+      F(0)(Dom) = T(-1) / linalg::constexpr_sqrt(T(2));
+      F(1)(Dom) = T(0.5);
+      F(2)(Dom) = T(0.5);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

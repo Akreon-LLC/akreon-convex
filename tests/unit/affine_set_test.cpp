@@ -91,19 +91,20 @@ TEST_CASE("Test affine set", "[affine_sets]") {
   }
 
   SECTION("Set affine set with 4x4 mat") {
-    auto H = make_zeros<double, 4, 4>();
-    H = set_block<0, 3, 0, 3>(H, I);
-    const auto map = AffineMap3d<double>(H);
+    constexpr auto H_mat = mat_traits<Matrixd<4, 4>>();
+    constexpr auto H = H_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                             1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    constexpr auto map = AffineMap3d<double>(H);
 
-    auto A = Matrix<double, 3, 3>{};
-    A[0][0] = 1.0, A[1][1] = 2.5, A[2][2] = 5.0;
-    auto x0 = Vector<double, 3>{0.1, 0.1, 0.1};
-    const auto set = ParametricAffineSet(A, x0);
+    constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
+    constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 2.5, 0.0, 0.0, 0.0, 5.0);
+    constexpr auto x0 = Vector<double, 3>{0.1, 0.1, 0.1};
+    constexpr auto set = ParametricAffineSet(A, x0);
 
-    const auto set_two = set.transform(map);
-    REQUIRE(set_two.is_well_formed());
-    REQUIRE(all_equal(set_two.basis(), set.basis()));
-    REQUIRE(all_equal(set_two.point(), set.point()));
+    constexpr const auto set_two = set.transform(map);
+    STATIC_REQUIRE(set_two.is_well_formed());
+    STATIC_REQUIRE(all_equal(set_two.basis(), set.basis()));
+    STATIC_REQUIRE(all_equal(set_two.point(), set.point()));
   }
 }
 

@@ -201,13 +201,13 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
     linalg::Matrix<T, 3, Dom + 1> F;
     linalg::Vector<T, 3> g;
     F = linalg::set_block<2, 3, 0, Dom>(F, child_coord.linear_part());
-    g[1] = T(1);
-    g[2] = child_coord.translation()(0);
+    g(1) = T(1);
+    g(2) = child_coord.translation()(0);
 
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      F[0][Dom] = T(1);
+      F(0)(Dom) = T(1);
     } else {
-      F[0][Dom] = T(-1);
+      F(0)(Dom) = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

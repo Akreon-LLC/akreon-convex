@@ -29,7 +29,7 @@ struct Vector;
 /// @brief alias for matrix definition
 template <typename T, size_t Rows, size_t Cols>
 using Matrix = Vector<Vector<T, Cols>, Rows>;
-//struct Matrix;
+// struct Matrix;
 
 /// @brief base type traits definition for vector
 template <class Vec>
@@ -46,14 +46,14 @@ struct vec_traits<Vector<T, N>> {
     static_assert(sizeof...(xs) == N);
     Vector<T, N> V;
     int i = 0;
-    auto set_elem = [&](const T& x) { V[i++] = x; };
+    auto set_elem = [&](const T& x) { V(i++) = x; };
     ((void)set_elem(std::forward<Ts>(xs)), ...);
     return V;
   }
 
   static constexpr auto fill(const T& x) {
     Vector<T, N> V;
-    for (size_t i = 0; i < N; ++i) V[i] = x;
+    for (size_t i = 0; i < N; ++i) V(i) = x;
     return V;
   }
 };
@@ -85,7 +85,7 @@ struct mat_traits<Matrix<T, Rows, Cols>> {
     auto set_elem = [&](const T& x) {
       const auto col = i % Cols;
       const auto row = i / Cols;
-      M[row][col] = x;
+      M(row)(col) = x;
       i++;
     };
     ((void)set_elem(std::forward<Ts>(xs)), ...);
@@ -95,7 +95,7 @@ struct mat_traits<Matrix<T, Rows, Cols>> {
   static constexpr auto fill(const T& x) {
     Matrix<T, Rows, Cols> M;
     for (size_t i = 0; i < Rows; ++i)
-      for (size_t j = 0; j < Cols; ++j) M[i][j] = x;
+      for (size_t j = 0; j < Cols; ++j) M(i)(j) = x;
     return M;
   }
 };

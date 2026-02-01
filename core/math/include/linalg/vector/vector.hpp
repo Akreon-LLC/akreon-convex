@@ -73,13 +73,13 @@ struct Vector {
   }
 
   /**
-   * @brief operator overload brackets (mutable)
+   * @brief operator overload parenthesis (const / immutable)
    *
    * @param index to acquire coordinates
    *
    * @return coordinates at index
    */
-  constexpr T& operator[](const size_t& idx) {
+  constexpr T& operator()(const size_t& idx) {
     assert(idx < N);
     return coordinates[idx];
   }

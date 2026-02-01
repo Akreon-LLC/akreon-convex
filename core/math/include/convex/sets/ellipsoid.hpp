@@ -168,18 +168,18 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     const auto& D = eig_decomp.lambda;
     linalg::Matrix<T, N, N> D_sqrt;
     for (size_t i = 0; i < N; ++i)
-      D_sqrt[i][i] = linalg::constexpr_sqrt(D(i).real());
+      D_sqrt(i)(i) = linalg::constexpr_sqrt(D(i).real());
 
     linalg::Matrix<T, N, N> VT;
     const auto& V = eig_decomp.V;
     for (size_t i = 0; i < N; ++i)
-      for (size_t j = 0; j < N; ++j) VT[j][i] = V(i)(j).real();
+      for (size_t j = 0; j < N; ++j) VT(j)(i) = V(i)(j).real();
 
     const auto w = D_sqrt * VT;
     F = linalg::set_block<0, N, 0, N>(F, w);
-    F[N][N] = T(1);
+    F(N)(N) = T(1);
     const auto wc = T(-1) * w * c;
-    for (size_t i = 0; i < N; ++i) g[i] = wc(i);
+    for (size_t i = 0; i < N; ++i) g(i) = wc(i);
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
     const auto cones = std::make_tuple(soc);

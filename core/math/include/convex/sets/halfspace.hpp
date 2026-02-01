@@ -161,8 +161,8 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
 
     linalg::Matrix<T, 2, N + 1> F;
     F = linalg::set_block<0, 1, 0, N>(F, T(-1) * linalg::as_row_vector(a));
-    F[0][N] = b;
-    F[1][N] = T(1);
+    F(0)(N) = b;
+    F(1)(N) = T(1);
     linalg::Vector<T, 2> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();

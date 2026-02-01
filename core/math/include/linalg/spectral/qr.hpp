@@ -133,19 +133,19 @@ class QR {
       const auto& Q_jm_j = get_col(Q_jm, j);
 
       const auto& q = HouseholderVector(Q_jm_j);
-      beta[j] = q.beta;
+      beta(j) = q.beta;
       const auto& v = as_col_vector(q.v);
 
       auto Q_jm_jn = get_n_cols<j, Cols>(Q_jm);
       if constexpr (ComplexLike<T>)
-        Q_jm_jn = Q_jm_jn - (beta[j] * v) * (conjugate_transpose(v) * Q_jm_jn);
+        Q_jm_jn = Q_jm_jn - (beta(j) * v) * (conjugate_transpose(v) * Q_jm_jn);
       else
-        Q_jm_jn = Q_jm_jn - (beta[j] * v) * (transpose(v) * Q_jm_jn);
+        Q_jm_jn = Q_jm_jn - (beta(j) * v) * (transpose(v) * Q_jm_jn);
 
       for (size_t k = j, a = 0; k < Rows; ++k, ++a)
-        for (size_t l = j, b = 0; l < Cols; ++l, ++b) H[k][l] = Q_jm_jn(a)(b);
+        for (size_t l = j, b = 0; l < Cols; ++l, ++b) H(k)(l) = Q_jm_jn(a)(b);
 
-      for (size_t k = j + 1, a = 1; k < Rows; ++k, ++a) H[k][j] = v(a)(0);
+      for (size_t k = j + 1, a = 1; k < Rows; ++k, ++a) H(k)(j) = v(a)(0);
     });
   }
 
@@ -162,8 +162,8 @@ class QR {
     constexpr_for<0, Cols>([&]<size_t jj>(std::integral_constant<size_t, jj>) {
       const size_t j = Cols - jj - 1;
       Vector<T, Rows - j> v;
-      v[0] = T(1);
-      for (size_t i = j + 1, a = 1; i < Rows; ++i, ++a) v[a] = H(i)(j);
+      v(0) = T(1);
+      for (size_t i = j + 1, a = 1; i < Rows; ++i, ++a) v(a) = H(i)(j);
 
       const auto& v_col = as_col_vector(v);
 
@@ -175,7 +175,7 @@ class QR {
         Q_block = Q_block - (beta(j) * v_col) * (transpose(v_col) * Q_block);
 
       for (size_t r = j, a = 0; r < Rows; ++r, ++a)
-        for (size_t c = 0; c < Rows; ++c) U[r][c] = Q_block(a)(c);
+        for (size_t c = 0; c < Rows; ++c) U(r)(c) = Q_block(a)(c);
     });
     return U;
   }

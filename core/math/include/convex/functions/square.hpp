@@ -217,13 +217,13 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
     linalg::Matrix<T, 3, Dom + 1> F;
     F = linalg::set_block<0, 1, 0, Dom>(F, child_coord.linear_part());
     linalg::Vector<T, 3> g;
-    g[0] = child_coord.translation()(0);
-    g[1] = T(0.5);
+    g(0) = child_coord.translation()(0);
+    g(1) = T(0.5);
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F[2][Dom] = T(1);
+      F(2)(Dom) = T(1);
     } else {
-      F[2][Dom] = T(-1);
+      F(2)(Dom) = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

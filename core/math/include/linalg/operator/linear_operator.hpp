@@ -53,7 +53,19 @@ struct LinearOperator {
    *
    * @return element
    */
-  constexpr auto operator()(const size_t& i, const size_t& j) const {
+  constexpr const T& operator()(const size_t& i, const size_t& j) const {
+    return self()(i, j);
+  }
+
+  /**
+   * @brief get element at (i,j) index
+   *
+   * @param row index
+   * @param col index
+   *
+   * @return element (mutable)
+   */
+  constexpr T& operator()(const size_t& i, const size_t& j) {
     return self()(i, j);
   }
 };

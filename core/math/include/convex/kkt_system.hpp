@@ -72,10 +72,10 @@ struct KKTSystem : linalg::SymmetricOperator<Mat, KKTSystem<Mat>> {
       if (j >= N) return status;
 
       linalg::Vector<T, j> v{};
-      for (size_t i = 0; i < j - 1; ++i) v[i] = A(j)(i) * A(i)(i);
+      for (size_t i = 0; i < j - 1; ++i) v(i) = A(j)(i) * A(i)(i);
 
       const auto A_row = linalg::get_block<j, j + 1, 0, j>(A);
-      A[j][j] = A[j][j] - (A_row * v)(0);
+      A(j)(j) = A(j)(j) - (A_row * v)(0);
 
       if (A(j)(j) < tol) {
         return false;

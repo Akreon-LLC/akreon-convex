@@ -198,12 +198,12 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
     linalg::Matrix<T, N + 1, Dom + 1> F;
     F = linalg::set_block<0, N, 0, Dom>(F, child_coord.linear_part());
     linalg::Vector<T, N + 1> g;
-    for (size_t i = 0; i < N; ++i) g[i] = child_coord.translation()(i);
+    for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F[N][Dom] = T(-1);
+      F(N)(Dom) = T(-1);
     } else {
-      F[N][Dom] = T(1);
+      F(N)(Dom) = T(1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

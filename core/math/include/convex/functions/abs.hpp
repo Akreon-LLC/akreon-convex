@@ -239,21 +239,21 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
     linalg::Matrix<T, 5, Dom + 2> F;
     F = linalg::set_block<0, 1, 0, Dom>(F, child_coord.linear_part());
     F = linalg::set_block<1, 2, 0, Dom>(F, T(-1) * child_coord.linear_part());
-    F[0][Dom] = T(1);
-    F[1][Dom] = T(1);
-    F[2][Dom] = T(-1);
-    F[3][Dom] = T(1);
+    F(0)(Dom) = T(1);
+    F(1)(Dom) = T(1);
+    F(2)(Dom) = T(-1);
+    F(3)(Dom) = T(1);
 
     linalg::Vector<T, 5> g;
-    g[0] = child_coord.translation()(0);
-    g[1] = T(-1) * child_coord.translation()(0);
+    g(0) = child_coord.translation()(0);
+    g(1) = T(-1) * child_coord.translation()(0);
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F[2][Dom + 1] = T(1);
-      F[4][Dom + 1] = T(1);
+      F(2)(Dom + 1) = T(1);
+      F(4)(Dom + 1) = T(1);
     } else {
-      F[2][Dom + 1] = T(-1);
-      F[4][Dom + 1] = T(-1);
+      F(2)(Dom + 1) = T(-1);
+      F(4)(Dom + 1) = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

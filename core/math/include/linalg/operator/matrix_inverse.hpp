@@ -37,7 +37,7 @@ constexpr auto inverse(const Mat& A) {
   const auto qr_A = QR(A);
   for (size_t i = 0; i < N; ++i) {
     const auto x = qr_A.solve(get_col(I, i));
-    for (size_t j = 0; j < N; ++j) res[j][i] = x(j);
+    for (size_t j = 0; j < N; ++j) res(j)(i) = x(j);
   }
   return res;
 }

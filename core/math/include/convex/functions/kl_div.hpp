@@ -219,7 +219,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
                   "Expecting child affine map to have square linear part");
     linalg::Matrix<T, 3 * N + 1, 3 * N + 1> F;
     linalg::Vector<T, 3 * N + 1> g;
-    for (size_t i = 0; i < N; ++i) g[2 * N + i] = child_coord.translation()(i);
+    for (size_t i = 0; i < N; ++i) g(2 * N + i) = child_coord.translation()(i);
 
     const auto I = linalg::make_identity<T, N>();
     if constexpr (Tag == CurvatureType::CONVEX)
@@ -229,8 +229,8 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
 
     F = linalg::set_block<N, 2 * N, 0, N>(F, I);
     F = linalg::set_block<2 * N, 3 * N, N, 2 * N>(F, child_coord.linear_part());
-    for (size_t i = 0; i < N; ++i) F[3 * N][2 * N + i] = T(-1);
-    F[3 * N][3 * N] = T(1);
+    for (size_t i = 0; i < N; ++i) F(3 * N)(2 * N + i) = T(-1);
+    F(3 * N)(3 * N) = T(1);
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =

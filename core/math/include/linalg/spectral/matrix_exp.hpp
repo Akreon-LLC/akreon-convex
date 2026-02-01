@@ -40,8 +40,8 @@ constexpr auto make_group_permutation(const Vec& D,
 
     for (size_t j = i; j < N; ++j) {
       if (!taken(j) && is_same(D(j), D(i), tol)) {
-        p[k++] = j;
-        taken[j] = true;
+        p(k++) = j;
+        taken(j) = true;
       }
     }
   }
@@ -59,7 +59,7 @@ constexpr auto make_group_permutation(const Vec& D,
 template <size_t N>
 constexpr auto invert_permutation(const Vector<size_t, N>& p) {
   Vector<size_t, N> p_inv;
-  for (size_t i = 0; i < N; ++i) p_inv[p(i)] = i;
+  for (size_t i = 0; i < N; ++i) p_inv(p(i)) = i;
   return p_inv;
 }
 
@@ -77,7 +77,7 @@ constexpr auto permute_ptjp(const Mat& J,
   constexpr size_t N = mat_rows_v<Mat>;
   Mat J_p;
   for (size_t i = 0; i < N; ++i)
-    for (size_t j = 0; j < N; ++j) J_p[i][j] = J(p(i))(p(j));
+    for (size_t j = 0; j < N; ++j) J_p(i)(j) = J(p(i))(p(j));
   return J_p;
 }
 
@@ -95,7 +95,7 @@ constexpr auto unpermute_papt(const Mat& A,
   constexpr size_t N = mat_rows_v<Mat>;
   Mat R;
   for (size_t i = 0; i < N; ++i)
-    for (size_t j = 0; j < N; ++j) R[p(i)][p(j)] = A(i)(j);
+    for (size_t j = 0; j < N; ++j) R(p(i))(p(j)) = A(i)(j);
   return R;
 }
 
@@ -139,7 +139,7 @@ constexpr auto matrix_exp(const Mat& A) {
 
     // (1) set exp(Jp) to exp(\lambda) if this is a unique eigenvalue
     if (chain_len == 1) {
-      exp_Jp[i][i] = exp_lambda;
+      exp_Jp(i)(i) = exp_lambda;
       i = j;
       continue;
     }
@@ -148,12 +148,12 @@ constexpr auto matrix_exp(const Mat& A) {
     Matrix<Complex, N, N> N_blk, E_blk;
     // 2.a set super diag to 1s on E block (E = I + N + N^2 / 2! + ...) up to
     // chain_len representing N^0 = I
-    for (size_t a = 0; a < chain_len; ++a) E_blk[i + a][i + a] = Complex(1);
+    for (size_t a = 0; a < chain_len; ++a) E_blk(i + a)(i + a) = Complex(1);
     // 2.b set N block (N = J_block - \lambda I) where C = \lambda I + N (7.6.5
     // Matrix Computations)
     for (size_t a = 0; a < chain_len; ++a)
       for (size_t b = a; b < chain_len; ++b)
-        N_blk[i + a][i + b] = Jp(i + a)(i + b) - (a == b ? eig : Complex(0));
+        N_blk(i + a)(i + b) = Jp(i + a)(i + b) - (a == b ? eig : Complex(0));
 
     // 2.c E represents N block to the chain_len power
     Matrix<Complex, N, N> P = N_blk;
@@ -162,20 +162,20 @@ constexpr auto matrix_exp(const Mat& A) {
       inv_factorial /= Complex(ScalarT(m));
       for (size_t a = 0; a < chain_len; ++a)
         for (size_t b = a; b < chain_len; ++b)
-          E_blk[i + a][i + b] += (P(i + a)(i + b) * inv_factorial);
+          E_blk(i + a)(i + b) += (P(i + a)(i + b) * inv_factorial);
       const auto upper = i + chain_len - 1;
 
       Matrix<Complex, N, N> N_sub_blk, P_sub_blk;
       for (size_t a = i; a < upper; ++a)
         for (size_t b = i; b < upper; ++b)
-          N_sub_blk[a][b] = N_blk(a)(b), P_sub_blk[a][b] = P(a)(b);
+          N_sub_blk(a)(b) = N_blk(a)(b), P_sub_blk(a)(b) = P(a)(b);
 
       P = P_sub_blk * N_sub_blk;
     }
 
     for (size_t a = 0; a < chain_len; ++a)
       for (size_t b = a; b < chain_len; ++b)
-        exp_Jp[i + a][i + b] = E_blk(i + a)(i + b) * exp_lambda;
+        exp_Jp(i + a)(i + b) = E_blk(i + a)(i + b) * exp_lambda;
 
     i = j;
   }

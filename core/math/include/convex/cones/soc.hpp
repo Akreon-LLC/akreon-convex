@@ -37,7 +37,7 @@ struct SecondOrderCone : public Cone<Slack, SecondOrderCone<Slack>> {
    */
   constexpr Slack x0_impl() const {
     Slack s{};
-    s[M - 1] = T(1);
+    s(M - 1) = T(1);
     return s;
   }
 

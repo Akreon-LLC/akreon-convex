@@ -34,9 +34,9 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
     linalg::Matrix<T, PrevCodom, NextDom> F;
     for (size_t i = 0; i < PrevCodom; ++i) {
       for (size_t j = 0; j < PrevDom; ++j)
-        F[i][j] = prev.linear_part()(i)(j) + next.linear_part()(i)(j);
+        F(i)(j) = prev.linear_part()(i)(j) + next.linear_part()(i)(j);
       for (size_t j = PrevDom; j < NextDom; ++j)
-        F[i][j] = next.linear_part()(i)(j);
+        F(i)(j) = next.linear_part()(i)(j);
     }
 
     return affine::AffineMap<decltype(F)>(F, prev.translation());

@@ -118,7 +118,7 @@ struct EigenDecomposition {
 
       // (dakre) iterate through the upper hessenberg to acquire eigenvalues
       if constexpr (ComplexLike<T>) {
-        for (size_t j = 0; j < N; ++j) eigs[j] = H(j)(j);
+        for (size_t j = 0; j < N; ++j) eigs(j) = H(j)(j);
       } else {
         // (dakre) Hessenberg forms Real Schur Decomposition on the
         // quasi-triangular matrix. Complex eigs come in pairs, and if c is zero
@@ -126,13 +126,13 @@ struct EigenDecomposition {
         for (size_t j = 0; j < N; ++j) {
           const Real& a = H(j)(j);
           if (j + 1 == N) {
-            eigs[j] = Complex(a, 0);
+            eigs(j) = Complex(a, 0);
             continue;
           }
           const Real& c = H(j + 1)(j);
           const Real& d = H(j + 1)(j + 1);
           if (constexpr_abs(c) < TOL * (constexpr_abs(c) + constexpr_abs(d))) {
-            eigs[j] = Complex(a, 0);
+            eigs(j) = Complex(a, 0);
             continue;
           }
 
@@ -145,11 +145,11 @@ struct EigenDecomposition {
           const auto D = mu * mu + b * c;
 
           if (D >= 0) {
-            eigs[j] = Complex(t / 2 + constexpr_sqrt(D), 0.0);
-            eigs[j + 1] = Complex(t / 2 - constexpr_sqrt(D), 0.0);
+            eigs(j) = Complex(t / 2 + constexpr_sqrt(D), 0.0);
+            eigs(j + 1) = Complex(t / 2 - constexpr_sqrt(D), 0.0);
           } else {
-            eigs[j] = Complex(t / 2, constexpr_sqrt(D));
-            eigs[j + 1] = Complex(t / 2, -1 * constexpr_sqrt(D));
+            eigs(j) = Complex(t / 2, constexpr_sqrt(D));
+            eigs(j + 1) = Complex(t / 2, -1 * constexpr_sqrt(D));
           }
 
           j++;
@@ -238,15 +238,15 @@ struct EigenDecomposition {
 
           // (1) map vec(s)... conjugate pairs onto A
           auto v = map_to_A(U, x);
-          for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
+          for (size_t j = 0; j < N; ++j) V(j)(i) = v(j);
 
           i--;
 
           v = map_to_A(U, conjugate(x));
-          for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
+          for (size_t j = 0; j < N; ++j) V(j)(i) = v(j);
 
           // (2) set eig to lambda
-          lambda[i] = eigs(i);
+          lambda(i) = eigs(i);
 
           used[i] = true;
         } else {
@@ -256,10 +256,10 @@ struct EigenDecomposition {
 
           // (1) map vec onto A
           auto v = map_to_A(U, x);
-          for (size_t j = 0; j < N; ++j) V[j][i] = v(j);
+          for (size_t j = 0; j < N; ++j) V(j)(i) = v(j);
 
           // (2) set eig to lambda
-          lambda[i] = eigs(i);
+          lambda(i) = eigs(i);
 
           used[i] = true;
         }
@@ -272,12 +272,12 @@ struct EigenDecomposition {
           Vector<Vector<Complex, N>, N> chain;
 
           // (1) seed and back solve for homogenous case (H - \lambda I) x = 0
-          seed_complex_block(H, i, chain[0]);
-          back_sub_1x1_block(H, i, chain[0]);
+          seed_complex_block(H, i, chain(0));
+          back_sub_1x1_block(H, i, chain(0));
 
           // (2) back solve for each (H - \lambda I) x_k = x_{k+1}
           for (int k = 1; k < chain_len; ++k)
-            back_sub_shifted_rhs(H, lambda(i), chain(k - 1), chain[k]);
+            back_sub_shifted_rhs(H, lambda(i), chain(k - 1), chain(k));
 
           // (3) map back to A... [i, i-1, ...]
           auto slots = indices_equal(eigs, eigs(i));
@@ -286,12 +286,12 @@ struct EigenDecomposition {
             const auto slot_idx = take_last_unused(slots);
             if (slot_idx < 0) break;
 
-            auto v = map_to_A(U, chain[k]);
+            auto v = map_to_A(U, chain(k));
 
-            for (size_t j = 0; j < N; ++j) V[j][slot_idx] = v(j);
+            for (size_t j = 0; j < N; ++j) V(j)(slot_idx) = v(j);
 
             // (4) set lambda from eig
-            lambda[slot_idx] = eigs(i);
+            lambda(slot_idx) = eigs(i);
           }
 
           // (3.b) map complex conjugate pair onto A... [i - chain_len, ...]
@@ -303,10 +303,10 @@ struct EigenDecomposition {
 
             auto vbar = map_to_A(U, conjugate(chain(k)));
 
-            for (size_t j = 0; j < N; ++j) V[j][slot_idx] = vbar(j);
+            for (size_t j = 0; j < N; ++j) V(j)(slot_idx) = vbar(j);
 
             // (4) set lambda from eig
-            lambda[slot_idx] = std::conj(eigs(i));
+            lambda(slot_idx) = std::conj(eigs(i));
           }
         } else {
           // (0) setup jordan chain with padded dim to defect to ensure valid
@@ -315,12 +315,12 @@ struct EigenDecomposition {
           Vector<Vector<Complex, N>, N> chain;
 
           // (1) seed and back solve for homogenous case (H - \lambda I) x = 0
-          seed_real_block(i, chain[0]);
-          back_sub_1x1_block(H, i, chain[0]);
+          seed_real_block(i, chain(0));
+          back_sub_1x1_block(H, i, chain(0));
 
           // (2) back solve for each (H - \lambda I) x_k = x_{k+1}
           for (int k = 1; k < chain_len; ++k)
-            back_sub_shifted_rhs(H, eigs(i), chain(k - 1), chain[k]);
+            back_sub_shifted_rhs(H, eigs(i), chain(k - 1), chain(k));
 
           // (3) map back to A
           auto slots = indices_equal(eigs, eigs(i));
@@ -329,12 +329,12 @@ struct EigenDecomposition {
             const auto slot_idx = take_last_unused(slots);
             if (slot_idx < 0) break;
 
-            auto v = map_to_A(U, chain[k]);
+            auto v = map_to_A(U, chain(k));
 
-            for (size_t j = 0; j < N; ++j) V[j][slot_idx] = v(j);
+            for (size_t j = 0; j < N; ++j) V(j)(slot_idx) = v(j);
 
             // (4) set lambda from eig
-            lambda[slot_idx] = eigs(i);
+            lambda(slot_idx) = eigs(i);
           }
         }
       }
@@ -361,9 +361,9 @@ struct EigenDecomposition {
 
       const auto denom = Complex(H(r)(r)) - lambda(idx);
       if (denom == Complex(0))
-        x[r] = Complex(0);
+        x(r) = Complex(0);
       else
-        x[r] = -sum / denom;
+        x(r) = -sum / denom;
     }
   }
 
@@ -386,9 +386,9 @@ struct EigenDecomposition {
       for (int c = r + 1; c < int(N); ++c) sum += H(r)(c) * x(c);
       const auto denom = Complex(H(r)(r)) - eig;
       if (denom == Complex(0))
-        x[r] = Complex(0);
+        x(r) = Complex(0);
       else
-        x[r] = (rhs(r) - sum) / denom;
+        x(r) = (rhs(r) - sum) / denom;
     }
   }
 
@@ -409,7 +409,7 @@ struct EigenDecomposition {
     const auto& d = H(idx)(idx);
 
     // seed eigenvector at position idx to kick of back substitution
-    const Complex la = lambda[idx] - Complex(a);
+    const Complex la = lambda(idx) - Complex(a);
     Complex z0, z1;
     if (L2<Vector<T, 1>>()(Vector<T, 1>{b}) >= L2<Vector<Complex, 1>>()(la)) {
       // Use [b; lambda - a]
@@ -417,7 +417,7 @@ struct EigenDecomposition {
       z1 = la;
     } else {
       // Use [lambda - d; c]
-      z0 = lambda[idx] - Complex(d);
+      z0 = lambda(idx) - Complex(d);
       z1 = Complex(c);
     }
     Real s = constexpr_sqrt(L2<Vector<Complex, 1>>()(z0) +
@@ -427,8 +427,8 @@ struct EigenDecomposition {
       z1 /= s;
     }
 
-    x[idx - 1] = z0;
-    x[idx] = z1;
+    x(idx - 1) = z0;
+    x(idx) = z1;
   }
 
   /**
@@ -439,8 +439,8 @@ struct EigenDecomposition {
    * @return (void)
    */
   constexpr void seed_real_block(const int& idx, Vector<Complex, N>& x) {
-    for (size_t i = 0; i < N; ++i) x[i] = Complex(0);
-    x[idx] = Complex(1);
+    for (size_t i = 0; i < N; ++i) x(i) = Complex(0);
+    x(idx) = Complex(1);
   }
 
   /**
@@ -457,7 +457,7 @@ struct EigenDecomposition {
     for (size_t j = 0; j < N; ++j) {
       Complex sum(0);
       for (size_t k = 0; k < N; ++k) sum += Complex(U(j)(k)) * x(k);
-      v[j] = sum;
+      v(j) = sum;
     }
 
     return normalize(v, L2<Vector<Complex, N>>());

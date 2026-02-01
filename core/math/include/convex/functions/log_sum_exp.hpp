@@ -224,15 +224,15 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
     const auto I = linalg::make_identity<T, Dom>();
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      for (size_t i = 0; i < N; ++i) F[i][N] = T(-1);
+      for (size_t i = 0; i < N; ++i) F(i)(N) = T(-1);
     } else {
-      for (size_t i = 0; i < N; ++i) F[i][N] = T(1);
+      for (size_t i = 0; i < N; ++i) F(i)(N) = T(1);
     }
     F = linalg::set_block<2 * N, 3 * N, N + 1, 2 * N + 1>(F, I);
-    for (size_t i = 0; i < N; ++i) F[3 * N][N + 1 + i] = T(-1);
-    for (size_t i = 0; i < N; ++i) g[i] = child_coord.translation()(i);
-    for (size_t i = N; i < 2 * N; ++i) g[i] = T(1);
-    g[3 * N] = T(1);
+    for (size_t i = 0; i < N; ++i) F(3 * N)(N + 1 + i) = T(-1);
+    for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
+    for (size_t i = N; i < 2 * N; ++i) g(i) = T(1);
+    g(3 * N) = T(1);
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =

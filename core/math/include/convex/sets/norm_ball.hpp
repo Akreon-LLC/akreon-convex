@@ -175,21 +175,21 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
     else if constexpr (Type == NormBallType::L1) {
       linalg::Matrix<T, 3 * N + 1, 2 * N> A;
       linalg::Vector<T, 3 * N + 1> b;
-      b[0] = r;
+      b(0) = r;
 
       const auto U_inv = linalg::inverse(U);
       const auto c_plus_U_inv_t = c + U_inv * t;
       for (size_t i = 1; i < 2 * N + 1; ++i) {
         const size_t idx = (i - 1) % N;
         if (i < N + 1)
-          b[i] = T(-1) * c_plus_U_inv_t(idx);
+          b(i) = T(-1) * c_plus_U_inv_t(idx);
         else
-          b[i] = c_plus_U_inv_t(idx);
+          b(i) = c_plus_U_inv_t(idx);
       }
 
       const auto I = linalg::make_identity<T, N>();
       // (i) first row assignment 1^T s <= r
-      for (size_t i = 0; i < N; ++i) A[0][N + i] = T(1);
+      for (size_t i = 0; i < N; ++i) A(0)(N + i) = T(1);
       // (ii) first block assignment -U^{-1} z - s <= 0
       A = linalg::set_block<1, N + 1, 0, N>(A, T(-1) * U_inv);
       A = linalg::set_block<1, N + 1, N, 2 * N>(A, T(-1) * I);
@@ -234,9 +234,9 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       for (size_t i = 0; i < 2 * N; ++i) {
         const auto idx = i % N;
         if (i < N)
-          b[i] = r + c_plus_U_inv_t(idx);
+          b(i) = r + c_plus_U_inv_t(idx);
         else
-          b[i] = r - c_plus_U_inv_t(idx);
+          b(i) = r - c_plus_U_inv_t(idx);
       }
 
       A = linalg::set_block<0, N, 0, N>(A, U_inv);
@@ -307,9 +307,9 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
     if constexpr (Type == NormBallType::L2) {
       linalg::Matrix<T, N + 1, N + 1> F;
       F = linalg::set_block<0, N, 0, N>(F, I);
-      F[N][N] = r;
+      F(N)(N) = r;
       linalg::Vector<T, N + 1> g;
-      for (size_t i = 0; i < N; ++i) g[i] = T(-1) * c(i);
+      for (size_t i = 0; i < N; ++i) g(i) = T(-1) * c(i);
       const auto map = affine::AffineMap<decltype(F)>(F, g);
       const auto soc = conic::SecondOrderCone<linalg::Vector<T, N>>();
       const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
@@ -323,11 +323,11 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       linalg::Matrix<T, 2 * N, N + 1> F;
       F = linalg::set_block<0, N, 0, N>(F, I);
       F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * I);
-      for (size_t i = 0; i < 2 * N; ++i) F[i][N] = r;
+      for (size_t i = 0; i < 2 * N; ++i) F(i)(N) = r;
 
       linalg::Vector<T, 2 * N> g;
-      for (size_t i = 0; i < N; ++i) g[i] = T(-1) * c(i);
-      for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g[i] = c(j);
+      for (size_t i = 0; i < N; ++i) g(i) = T(-1) * c(i);
+      for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g(i) = c(j);
       const auto map = affine::AffineMap<decltype(F)>(F, g);
       const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto cones = std::make_tuple(rplus, rplus);
@@ -342,11 +342,11 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * I);
       F = linalg::set_block<0, N, N, 2 * N>(F, I);
       F = linalg::set_block<N, 2 * N, N, 2 * N>(F, I);
-      for (size_t i = 0; i < N; ++i) F[2 * N][N + i] = T(-1);
-      F[2 * N][2 * N] = r;
+      for (size_t i = 0; i < N; ++i) F(2 * N)(N + i) = T(-1);
+      F(2 * N)(2 * N) = r;
       linalg::Vector<T, 2 * N + 1> g;
-      for (size_t i = 0; i < N; ++i) g[i] = T(-1) * c(i);
-      for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g[i] = c(j);
+      for (size_t i = 0; i < N; ++i) g(i) = T(-1) * c(i);
+      for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g(i) = c(j);
       const auto map = affine::AffineMap<decltype(F)>(F, g);
       const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();

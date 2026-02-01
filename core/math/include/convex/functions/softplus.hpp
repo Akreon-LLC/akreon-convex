@@ -219,23 +219,23 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
     linalg::Vector<T, 7> g;
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F[0][Dom] = T(-1);
-      F[3][Dom] = T(-1);
+      F(0)(Dom) = T(-1);
+      F(3)(Dom) = T(-1);
     } else {
-      F[0][Dom] = T(1);
-      F[3][Dom] = T(1);
+      F(0)(Dom) = T(1);
+      F(3)(Dom) = T(1);
     }
 
-    F[2][Dom + 1] = T(1);
+    F(2)(Dom + 1) = T(1);
     F = linalg::set_block<3, 4, 0, Dom>(F, child_coord.linear_part());
-    F[5][3] = T(1);
-    F[6][2] = T(-1);
-    F[6][3] = T(-1);
+    F(5)(3) = T(1);
+    F(6)(2) = T(-1);
+    F(6)(3) = T(-1);
 
-    g[1] = T(1);
-    g[3] = child_coord.translation()(0);
-    g[4] = T(1);
-    g[6] = T(1);
+    g(1) = T(1);
+    g(3) = child_coord.translation()(0);
+    g(4) = T(1);
+    g(6) = T(1);
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =

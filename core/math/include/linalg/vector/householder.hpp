@@ -67,7 +67,7 @@ struct HouseholderVector {
       if (x(0) != T(0)) alpha = x(0) / L2<Vector<T, 1>>()(Vector<T, 1>{x(0)});
 
       v = x;
-      v[0] += alpha * norm_x;
+      v(0) += alpha * norm_x;
       // (dakre) normalize v like reals otherwise hosueholder mat wont
       // orthogonalize correctly!!
       v = (scalar_type_t<T>(1) / L2<Vector<T, 1>>()(Vector<T, 1>{v(0)})) * v;
@@ -80,7 +80,7 @@ struct HouseholderVector {
       sigma = dot(x_shifted, x_shifted);
 
       v = x;
-      v[0] = 1;
+      v(0) = 1;
       if (sigma == 0 && x(0) >= T(0))
         beta = T(0);
       else if (sigma == 0 && x(0) < T(0))
@@ -88,9 +88,9 @@ struct HouseholderVector {
       else {
         const auto mu = constexpr_sqrt(x(0) * x(0) + sigma);
         if (x(0) <= T(0))
-          v[0] = x(0) - mu;
+          v(0) = x(0) - mu;
         else
-          v[0] = -sigma / (x(0) + mu);
+          v(0) = -sigma / (x(0) + mu);
         beta = 2 * (v(0) * v(0)) / (sigma + v(0) * v(0));
         v = (T(1) / v(0)) * v;
       }
@@ -109,7 +109,7 @@ struct HouseholderVector {
   constexpr void make_householder(const Vector<T, N>&,
                                   std::integral_constant<std::size_t, 1>) {
     beta = scalar_type_t<T>(0);
-    v[0] = T(1);
+    v(0) = T(1);
   }
 };
 

@@ -241,23 +241,23 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
     linalg::Matrix<T, 6, Dom + 2> F;
     linalg::Vector<T, 6> g;
     F = linalg::set_block<0, 1, 0, Dom>(F, child_coord.linear_part());
-    F[0][Dom] = T(1);
+    F(0)(Dom) = T(1);
     F = linalg::set_block<1, 2, 0, Dom>(F, T(-1) * child_coord.linear_part());
-    F[1][Dom] = T(1);
-    F[2][Dom] = T(1);
+    F(1)(Dom) = T(1);
+    F(2)(Dom) = T(1);
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F[4][Dom + 1] = T(1);
-      F[5][Dom + 1] = T(1);
+      F(4)(Dom + 1) = T(1);
+      F(5)(Dom + 1) = T(1);
     } else {
-      F[4][Dom + 1] = T(-1);
-      F[5][Dom + 1] = T(-1);
+      F(4)(Dom + 1) = T(-1);
+      F(5)(Dom + 1) = T(-1);
     }
-    F[5][Dom] = T(-1) * delta;
+    F(5)(Dom) = T(-1) * delta;
 
-    g[0] = child_coord.translation()(0);
-    g[1] = T(-1) * child_coord.translation()(0);
-    g[3] = T(1);
-    g[5] = delta * delta;
+    g(0) = child_coord.translation()(0);
+    g(1) = T(-1) * child_coord.translation()(0);
+    g(3) = T(1);
+    g(5) = delta * delta;
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =

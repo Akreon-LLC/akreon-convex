@@ -31,7 +31,7 @@ template <size_t Start, size_t End, VectorLike Vec>
 constexpr auto get_elements(const Vec& x) {
   using T = vec_type_t<Vec>;
   Vector<T, End - Start> result;
-  for (size_t i = Start, idx = 0; i < End; ++i, ++idx) result[idx] = x(i);
+  for (size_t i = Start, idx = 0; i < End; ++i, ++idx) result(idx) = x(i);
   return result;
 }
 
@@ -43,7 +43,7 @@ constexpr auto get_elements(const Vec& x) {
 template <typename T, size_t N>
 constexpr Matrix<T, N, N> make_identity() {
   Matrix<T, N, N> I;
-  for (size_t i = 0; i < N; ++i) I[i][i] = T(1);
+  for (size_t i = 0; i < N; ++i) I(i)(i) = T(1);
   return I;
 }
 
@@ -56,7 +56,7 @@ template <typename T, size_t Rows, size_t Cols>
 constexpr Matrix<T, Rows, Cols> make_zeros() {
   Matrix<T, Rows, Cols> Z;
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) Z[i][j] = T(0);
+    for (size_t j = 0; j < Cols; ++j) Z(i)(j) = T(0);
   return Z;
 }
 
@@ -72,7 +72,7 @@ constexpr auto as_col_vector(const Vec& X) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
   Matrix<T, N, 1> A;
-  for (size_t i = 0; i < N; ++i) A[i] = X(i);
+  for (size_t i = 0; i < N; ++i) A(i) = X(i);
   return A;
 }
 
@@ -88,7 +88,7 @@ constexpr auto as_row_vector(const Vec& X) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
   Matrix<T, 1, N> A;
-  for (size_t i = 0; i < N; ++i) A[0][i] = X(i);
+  for (size_t i = 0; i < N; ++i) A(0)(i) = X(i);
   return A;
 }
 
@@ -107,7 +107,7 @@ constexpr auto as_complex_matrix(const Mat& A) {
   Matrix<std::complex<scalar_type_t<T>>, Rows, Cols> result;
   if constexpr (RealLike<T>) {
     for (size_t i = 0; i < Rows; ++i)
-      for (size_t j = 0; j < Cols; ++j) result[i][j] = std::complex<T>(A(i)(j));
+      for (size_t j = 0; j < Cols; ++j) result(i)(j) = std::complex<T>(A(i)(j));
   } else {
     result = A;
   }
@@ -125,7 +125,7 @@ template <typename T, size_t N>
   requires(FieldLike<T>)
 constexpr auto as_vector(const Matrix<T, N, 1>& A) {
   Vector<T, N> res;
-  for (size_t i = 0; i < N; ++i) res[i] = A(i)(0);
+  for (size_t i = 0; i < N; ++i) res(i) = A(i)(0);
   return res;
 }
 
@@ -140,7 +140,7 @@ template <typename T, size_t N>
   requires(FieldLike<T>)
 constexpr auto as_vector(const Matrix<T, 1, N>& A) {
   Vector<T, N> res;
-  for (size_t i = 0; i < N; ++i) res[i] = A(0)(i);
+  for (size_t i = 0; i < N; ++i) res(i) = A(0)(i);
   return res;
 }
 
@@ -158,7 +158,7 @@ constexpr auto get_col(const Mat& A, const size_t& idx) {
   constexpr auto Rows = mat_rows_v<Mat>;
   assert(idx < mat_cols_v<Mat>);
   Vector<T, Rows> X;
-  for (size_t i = 0; i < Rows; ++i) X[i] = A(i)(idx);
+  for (size_t i = 0; i < Rows; ++i) X(i) = A(i)(idx);
   return X;
 }
 
@@ -190,7 +190,7 @@ constexpr auto get_diag(const Mat& A) {
   constexpr auto Cols = mat_cols_v<Mat>;
   constexpr size_t mn = std::min(Rows, Cols);
   Vector<T, mn> diag;
-  for (size_t i = 0; i < mn; ++i) diag[i] = A(i)(i);
+  for (size_t i = 0; i < mn; ++i) diag(i) = A(i)(i);
   return diag;
 }
 
@@ -205,7 +205,7 @@ template <typename T, size_t N>
   requires(FieldLike<T>)
 constexpr auto make_diag(const Vector<T, N>& X) {
   Matrix<T, N, N> diag;
-  for (size_t i = 0; i < N; ++i) diag[i][i] = X(i);
+  for (size_t i = 0; i < N; ++i) diag(i)(i) = X(i);
   return diag;
 }
 
@@ -224,7 +224,7 @@ constexpr auto get_n_rows(const Mat& A) {
   constexpr auto Cols = mat_cols_v<Mat>;
   Matrix<T, End - Start, Cols> result;
   for (size_t i = Start, idx = 0; i < End; ++i, ++idx)
-    result[idx] = get_row(A, i);
+    result(idx) = get_row(A, i);
   return result;
 }
 
@@ -243,7 +243,7 @@ constexpr auto get_n_cols(const Mat& A) {
   constexpr auto Rows = mat_rows_v<Mat>;
   Matrix<T, End - Start, Rows> result;
   for (size_t i = Start, idx = 0; i < End; ++i, ++idx)
-    result[idx] = get_col(A, i);
+    result(idx) = get_col(A, i);
   return transpose(result);
 }
 
@@ -263,7 +263,7 @@ constexpr auto get_block(const Mat& A) {
   Matrix<T, EndRow - StartRow, EndCol - StartCol> result;
   for (size_t i = StartRow, a = 0; i < EndRow; ++i, ++a)
     for (size_t j = StartCol, b = 0; j < EndCol; ++j, ++b)
-      result[a][b] = A(i)(j);
+      result(a)(b) = A(i)(j);
   return result;
 }
 
@@ -283,7 +283,7 @@ constexpr auto set_block(
     Mat A,
     const Matrix<mat_type_t<Mat>, EndRow - StartRow, EndCol - StartCol>& B) {
   for (size_t i = StartRow, a = 0; i < EndRow; ++i, ++a)
-    for (size_t j = StartCol, b = 0; j < EndCol; ++j, ++b) A[i][j] = B(a)(b);
+    for (size_t j = StartCol, b = 0; j < EndCol; ++j, ++b) A(i)(j) = B(a)(b);
   return A;
 }
 
@@ -300,7 +300,7 @@ constexpr auto get_upper_right_triangular_matrix(const Mat& A) {
   constexpr auto Cols = mat_cols_v<Mat>;
   Mat R;
   for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = i; j < Cols; ++j) R[i][j] = A(i)(j);
+    for (size_t j = i; j < Cols; ++j) R(i)(j) = A(i)(j);
   return R;
 }
 
@@ -317,7 +317,7 @@ constexpr auto get_lower_left_triangular_matrix(const Mat& A) {
   constexpr auto Cols = mat_cols_v<Mat>;
   Mat L;
   for (size_t i = 0; i < Cols; ++i)
-    for (size_t j = i; j < Rows; ++j) L[j][i] = A(j)(i);
+    for (size_t j = i; j < Rows; ++j) L(j)(i) = A(j)(i);
   return L;
 }
 
@@ -445,7 +445,7 @@ constexpr auto back_solve(const Operator& R, const Vec& rhs) {
     for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
 
     assert(R(i)(i) != T(0));
-    x[i] = (rhs(i) - sum) / R(i)(i);
+    x(i) = (rhs(i) - sum) / R(i)(i);
   }
   return x;
 }
@@ -479,7 +479,7 @@ constexpr auto forward_solve(const Operator& L, const Vec& rhs) {
     for (int j = 0; j < i; ++j) sum += (L(i)(j) * x(j));
 
     assert(L(i)(i) != T(0));
-    x[i] = (rhs(i) - sum) / L(i)(i);
+    x(i) = (rhs(i) - sum) / L(i)(i);
   }
   return x;
 }
@@ -522,7 +522,7 @@ constexpr auto make_smat(const Vec& L) {
   for (size_t i = 0; i < N; ++i) {
     for (size_t j = 0; j <= i; ++j) {
       const auto idx = i * (i + 1) / 2 + j;
-      S[i][j] = L(idx);
+      S(i)(j) = L(idx);
     }
   }
   const auto S_T = transpose(S);
@@ -530,9 +530,9 @@ constexpr auto make_smat(const Vec& L) {
   for (size_t i = 0; i < N; ++i) {
     for (size_t j = 0; j < N; ++j) {
       if (i >= j)
-        res[i][j] = S(i)(j);
+        res(i)(j) = S(i)(j);
       else
-        res[i][j] = S_T(i)(j);
+        res(i)(j) = S_T(i)(j);
     }
   }
   return res;
@@ -552,7 +552,7 @@ constexpr auto lower_triangle_to_vec(const Mat& A) {
   static constexpr size_t K = N * (N + 1) / 2;
   Vector<T, K> vec{};
   for (size_t i = 0, k = 0; i < N; ++i)
-    for (size_t j = 0; j <= i; ++j, ++k) vec[k] = A(j)(i);
+    for (size_t j = 0; j <= i; ++j, ++k) vec(k) = A(j)(i);
   return vec;
 }
 

@@ -203,12 +203,12 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
     F = linalg::set_block<0, N, 0, Dom>(F, T(-1) * child_coord.linear_part());
 
     linalg::Vector<T, N> g;
-    for (size_t i = 0; i < N; ++i) g[i] = T(-1) * child_coord.translation()(i);
+    for (size_t i = 0; i < N; ++i) g(i) = T(-1) * child_coord.translation()(i);
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      for (size_t i = 0; i < N; ++i) F[i][N] = T(1);
+      for (size_t i = 0; i < N; ++i) F(i)(N) = T(1);
     } else {
-      for (size_t i = 0; i < N; ++i) F[i][N] = T(-1);
+      for (size_t i = 0; i < N; ++i) F(i)(N) = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

@@ -77,7 +77,7 @@ struct Scale {
     auto S = linalg::make_identity<T, N>();
     int i = 0;
     auto set_elem = [&](const auto& s) {
-      S[i][i] *= s;
+      S(i)(i) *= s;
       i++;
     };
     ((void)set_elem(std::forward<Scalars>(scalars)), ...);
@@ -95,7 +95,7 @@ struct Shear {
                             const T& s) const {
     assert(i < N && j < N);
     auto H = linalg::make_identity<T, N>();
-    H[i][j] = s;
+    H(i)(j) = s;
     return H;
   }
 };

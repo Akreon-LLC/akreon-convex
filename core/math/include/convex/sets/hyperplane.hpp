@@ -139,8 +139,8 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
 
     linalg::Matrix<T, 2, N + 1> F;
     F = linalg::set_block<0, 1, 0, N>(F, linalg::as_row_vector(a));
-    F[0][N] = T(-1) * b;
-    F[1][N] = T(1);
+    F(0)(N) = T(-1) * b;
+    F(1)(N) = T(1);
     linalg::Vector<T, 2> g;
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, 1>>();

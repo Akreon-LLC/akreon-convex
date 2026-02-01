@@ -259,12 +259,12 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       F = linalg::set_block<0, N, 0, Dom>(F, child_coord.linear_part());
 
       linalg::Vector<T, N + 1> g;
-      for (size_t i = 0; i < N; ++i) g[i] = child_coord.translation()(i);
+      for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
 
       if constexpr (Tag == CurvatureType::CONCAVE) {
-        F[N][N] = T(-1);
+        F(N)(N) = T(-1);
       } else {
-        F[N][N] = T(1);
+        F(N)(N) = T(1);
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
@@ -284,14 +284,14 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
                                             T(-1) * child_coord.linear_part());
 
       linalg::Vector<T, 2 * N> g;
-      for (size_t i = 0; i < N; ++i) g[i] = child_coord.translation()(i);
+      for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
       for (size_t i = 0; i < N; ++i)
-        g[i + N] = T(-1) * child_coord.translation()(i);
+        g(i + N) = T(-1) * child_coord.translation()(i);
 
       if constexpr (Tag == CurvatureType::CONVEX) {
-        for (size_t i = 0; i < 2 * N; ++i) F[i][N] = T(1);
+        for (size_t i = 0; i < 2 * N; ++i) F(i)(N) = T(1);
       } else {
-        for (size_t i = 0; i < 2 * N; ++i) F[i][N] = T(-1);
+        for (size_t i = 0; i < 2 * N; ++i) F(i)(N) = T(-1);
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
@@ -312,17 +312,17 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
                                             T(-1) * child_coord.linear_part());
       F = linalg::set_block<0, N, N, 2 * N>(F, I);
       F = linalg::set_block<N, 2 * N, N, 2 * N>(F, I);
-      for (size_t i = 0; i < N; ++i) F[2 * N][N + i] = T(-1);
+      for (size_t i = 0; i < N; ++i) F(2 * N)(N + i) = T(-1);
 
       linalg::Vector<T, 2 * N + 1> g;
-      for (size_t i = 0; i < N; ++i) g[i] = child_coord.translation()(i);
+      for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
       for (size_t i = 0; i < N; ++i)
-        g[i + N] = T(-1) * child_coord.translation()(i);
+        g(i + N) = T(-1) * child_coord.translation()(i);
 
       if constexpr (Tag == CurvatureType::CONVEX) {
-        F[2 * N][2 * N] = T(1);
+        F(2 * N)(2 * N) = T(1);
       } else {
-        F[2 * N][2 * N] = T(-1);
+        F(2 * N)(2 * N) = T(-1);
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
