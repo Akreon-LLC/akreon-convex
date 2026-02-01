@@ -13,6 +13,7 @@
 #pragma once
 
 #include "linalg/vector/householder.hpp"
+#include "linear_operator.hpp"
 
 namespace linalg {
 /**
@@ -22,12 +23,14 @@ namespace linalg {
  * reductions creating the similarity transform: H = U_0^T A U_0.
  */
 template <SquareMatrixLike Mat>
-struct HessenbergMatrix {
-  /// @brief alias of type of matrix
-  using T = mat_type_t<Mat>;
+struct HessenbergMatrix : LinearOperator<Mat, HessenbergMatrix<Mat>> {
+  /// @brief alias from base class
+  using OperatorBase = LinearOperator<Mat, HessenbergMatrix<Mat>>;
+  using typename OperatorBase::T;
 
-  /// @brief size of matrix
-  static constexpr size_t N = mat_rows_v<Mat>;
+  /// @brief helper from base to get num rows
+  using OperatorBase::N;
+
   /**
    * @brief CTOR
    *
@@ -39,9 +42,9 @@ struct HessenbergMatrix {
    * @param Matrix A of type T with N x N elements
    */
   constexpr explicit HessenbergMatrix(const Mat& A) {
-    H = A;
+    H_pack = A;
     constexpr_for<0, N - 2>([&]<size_t k>(std::integral_constant<size_t, k>) {
-      const auto& H_block = get_n_rows<k + 1, N>(H);
+      const auto& H_block = get_n_rows<k + 1, N>(H_pack);
       const auto& H_col = get_col(H_block, k);
       const auto h = HouseholderVector(H_col);
 
@@ -59,19 +62,21 @@ struct HessenbergMatrix {
         H_block_kn = H_block_kn - (beta[k] * v * transpose(v)) * H_block_kn;
 
       for (size_t i = k + 1, a = 0; i < N; ++i, ++a)
-        for (size_t j = k, b = 0; j < N; ++j, ++b) H[i][j] = H_block_kn(a)(b);
+        for (size_t j = k, b = 0; j < N; ++j, ++b)
+          H_pack[i][j] = H_block_kn(a)(b);
 
       // (P1...Pk)^T A (P1...Pk) -- handling case when Pk is of order N - k
-      auto H_zn_kn = get_block<0, N, k + 1, N>(H);
+      auto H_zn_kn = get_block<0, N, k + 1, N>(H_pack);
       if constexpr (ComplexLike<T>)
         H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * conjugate_transpose(v));
       else
         H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * transpose(v));
 
       for (size_t i = 0, a = 0; i < N; ++i, ++a)
-        for (size_t j = k + 1, b = 0; j < N; ++j, ++b) H[i][j] = H_zn_kn(a)(b);
+        for (size_t j = k + 1, b = 0; j < N; ++j, ++b)
+          H_pack[i][j] = H_zn_kn(a)(b);
 
-      for (size_t j = k + 2, a = 1; j < N; ++j, ++a) H[j][k] = v(a)(0);
+      for (size_t j = k + 2, a = 1; j < N; ++j, ++a) H_pack[j][k] = v(a)(0);
     });
   }
 
@@ -80,12 +85,12 @@ struct HessenbergMatrix {
    *
    * @return Matrix of type T with N x N elements (upper right triangular)
    */
-  constexpr auto operator()() const {
-    Matrix<T, N, N> res;
+  constexpr auto H() const {
+    Matrix<T, N, N> res{};
     for (size_t i = 0; i < N; ++i) {
       for (size_t j = 0; j < N; ++j) {
         if (i >= 2 && j <= (i - 2)) continue;
-        res[i][j] = H(i)(j);
+        res[i][j] = H_pack(i)(j);
       }
     }
     return res;
@@ -107,7 +112,7 @@ struct HessenbergMatrix {
       const size_t j = N - k - 1;
       Vector<T, j> v;
       v[0] = T(1);
-      for (size_t i = k + 2, a = 1; i < N; ++i, ++a) v[a] = H(i)(k);
+      for (size_t i = k + 2, a = 1; i < N; ++i, ++a) v[a] = H_pack(i)(k);
 
       const auto& v_col = as_col_vector(v);
 
@@ -124,9 +129,24 @@ struct HessenbergMatrix {
     return U;
   }
 
+  /**
+   * @brief indexing into upper right H
+   *
+   * @param row index
+   * @param col index
+   *
+   * @return elem
+   */
+  constexpr auto operator()(const size_t& i, const size_t& j) const {
+    if (i >= 2 && j <= (i - 2)) return T(0);
+    return H_pack(i)(j);
+  }
+
   /** @brief Vector member variables */
-  Matrix<T, N, N> H;  ///< Hessenberg matrix
   Vector<T, N> beta;  ///< beta vector from householder reflections
+ private:
+  Matrix<T, N, N>
+      H_pack;  ///< Hessenberg matrix (packed w/ householder below diag)
 };
 
 }  // namespace linalg

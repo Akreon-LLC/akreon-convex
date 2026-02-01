@@ -350,12 +350,21 @@ TEST_CASE("Hessenberg matrices", "[hessenberg]") {
     constexpr auto c = Vectord<3>{7.0, 8.0, 9.0};
     constexpr auto A = Matrixd<3, 3>{a, b, c};
     constexpr auto H_mat = HessenbergMatrix(A);
-    constexpr auto H = H_mat();
+    constexpr auto H = H_mat.H();
     constexpr auto beta = H_mat.beta;
     STATIC_REQUIRE(constexpr_abs(beta(0)) > 0.0);
     STATIC_REQUIRE(constexpr_abs(beta(1)) == 0.0);
     STATIC_REQUIRE(constexpr_abs(beta(2)) == 0.0);
     STATIC_REQUIRE(H(2)(0) == 0.0);
+    STATIC_REQUIRE(H(0)(0) == H_mat(0, 0));
+    STATIC_REQUIRE(H(0)(1) == H_mat(0, 1));
+    STATIC_REQUIRE(H(0)(2) == H_mat(0, 2));
+    STATIC_REQUIRE(H(1)(0) == H_mat(1, 0));
+    STATIC_REQUIRE(H(1)(1) == H_mat(1, 1));
+    STATIC_REQUIRE(H(1)(2) == H_mat(1, 2));
+    STATIC_REQUIRE(H(0)(2) == H_mat(0, 2));
+    STATIC_REQUIRE(H(1)(2) == H_mat(1, 2));
+    STATIC_REQUIRE(H(2)(2) == H_mat(2, 2));
 
     constexpr auto U = H_mat.U();
     constexpr auto UTU = transpose(U) * U;

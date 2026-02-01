@@ -53,19 +53,9 @@ struct LinearOperator {
    *
    * @return element
    */
-  constexpr auto operator()(size_t i, size_t j) const {
+  constexpr auto operator()(const size_t& i, const size_t& j) const {
     return self()(i, j);
   }
-
-  /**
-   * @brief get element at (i,j) index
-   *
-   * @param row index
-   * @param col index
-   *
-   * @return element
-   */
-  constexpr auto operator()(size_t i, size_t j) { return self().index(i, j); }
 };
 
 }  // namespace linalg
