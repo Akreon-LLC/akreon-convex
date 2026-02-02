@@ -488,4 +488,42 @@ TEST_CASE("LDL^T Factorization") {
                                                5.146789}) < eps);
     STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
   }
+
+  SECTION("Banded SPD") {
+    constexpr auto A_mat = mat_traits<Matrixd<5, 5>>();
+    constexpr auto A = A_mat(2.0, -1.0, 0.0, 0.0, 0.0, -1.0, 2.0, -1.0, 0.0,
+                             0.0, 0.0, -1.0, 2.0, -1.0, 0.0, 0.0, 0.0, -1.0,
+                             2.0, -1.0, 0.0, 0.0, 0.0, -1.0, 2.0);
+    constexpr auto ldl = LDL(A);
+    STATIC_REQUIRE(ldl.is_valid());
+    STATIC_REQUIRE(ldl.is_psd());
+    STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
+  }
+
+  SECTION("Indefinite but okay") {
+    constexpr auto A_mat = mat_traits<Matrixd<4, 4>>();
+    constexpr auto A = A_mat(2.0, 0.4, -0.2, 0.1, 0.4, -0.92, -0.38, 0.21, -0.2,
+                             -0.38, 2.89, 0.91, 0.1, 0.21, 0.91, -1.8625);
+    constexpr auto ldl = LDL(A);
+    STATIC_REQUIRE(ldl.is_valid());
+    STATIC_REQUIRE(ldl.is_ind());
+    constexpr auto res = ldl.L() * (ldl.D() * transpose(ldl.L()));
+    /// (dakre) we can see no longer == but equals within tolerance
+    STATIC_REQUIRE(all_equal(A, res));
+  }
+
+  SECTION("Bad singular tiny pivot") {
+    constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
+    constexpr auto A = A_mat(1e-10, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, -1.0);
+    constexpr auto ldl = LDL(A);
+    STATIC_REQUIRE(!ldl.is_valid());
+  }
+
+  SECTION("Bad near singular") {
+    constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
+    constexpr auto A =
+        A_mat(1.0, 0.999999, 0.0, 0.999999, 0.999998, 0.0, 0.0, 0.0, 1.0);
+    constexpr auto ldl = LDL(A);
+    STATIC_REQUIRE(!ldl.is_valid());
+  }
 }
