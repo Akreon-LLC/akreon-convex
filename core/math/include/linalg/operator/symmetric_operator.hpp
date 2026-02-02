@@ -40,10 +40,8 @@ struct SymmetricOperator
    *
    * @param Mat A
    */
-  constexpr explicit SymmetricOperator(const Mat& A, ScalarT tol = 1e-8)
-      : svec(lower_triangle_to_vec(A)) {
-    mutable_self().factor(A, tol);
-  }
+  constexpr explicit SymmetricOperator(const Mat& A)
+      : svec(get_lower_triangle_with_diag(A)) {}
 
   /**
    * @brief get element at (i,j) index
@@ -99,11 +97,50 @@ struct SymmetricOperator
   constexpr bool is_ind() const { return type == SymmetricOperatorType::IND; }
 
   /**
-   * @brief self
+   * @brief is valid
    *
-   * @return derived object
+   * @return T/F
    */
-  constexpr Derived& mutable_self() { return static_cast<Derived&>(*this); }
+  constexpr bool is_valid() const { return type != SymmetricOperatorType::INV; }
+
+  /**
+   * @brief compute definiteness
+   *
+   * @param vec (diagonal of elements)
+   *
+   * @return void
+   */
+  template <typename DiagT>
+  constexpr void compute_definiteness(const Vector<DiagT, N>& diag,
+                                      const ScalarT& tol) {
+    size_t npos = 0, nneg = 0, nzero = 0;
+
+    auto classify_scalar = [&](const auto& d_real) {
+      if (d_real > tol)
+        ++npos;
+      else if (d_real < -tol)
+        ++nneg;
+      else
+        ++nzero;
+    };
+
+    if constexpr (is_complex_v<DiagT>) {
+      for (const auto& d : diag) classify_scalar(d.real());
+    } else {
+      for (const auto& d : diag) classify_scalar(d);
+    }
+
+    if (nneg == 0 && nzero == 0)
+      type = SymmetricOperatorType::PD;
+    else if (nneg == 0 && nzero > 0)
+      type = SymmetricOperatorType::PSD;
+    else if (npos == 0 && nzero == 0)
+      type = SymmetricOperatorType::ND;
+    else if (npos == 0 && nzero > 0)
+      type = SymmetricOperatorType::NSD;
+    else
+      type = SymmetricOperatorType::IND;
+  }
 
   /**
    * @brief self

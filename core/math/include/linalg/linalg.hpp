@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include "operator/ldl.hpp"
 #include "operator/matrix_inverse.hpp"
 #include "operator/symmetric_matrix.hpp"
 #include "spectral/eig_decomp.hpp"

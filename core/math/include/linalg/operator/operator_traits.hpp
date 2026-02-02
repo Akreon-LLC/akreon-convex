@@ -37,6 +37,24 @@ struct SymmetricOperator;
 template <SquareMatrixLike Mat>
 struct SymmetricMatrix;
 
+/// @brief forward declaration of hessenberg matrix
+template <SquareMatrixLike Mat>
+struct HessenbergMatrix;
+
+/// @brief forward declaration of LDL^T operator
+template <SquareMatrixLike Mat>
+struct LDL;
+
+/// @brief type traits definition for linear operator (subspace of Rn)
+template <SquareMatrixLike Mat, typename Derived>
+struct space_traits<LinearOperator<Mat, Derived>> {
+  using value_type = mat_type_t<Mat>;
+  using Point = Mat;
+
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t DIM = N * N;
+};
+
 /// @brief type traits definition for symmetric operator (subspace of Rn)
 template <SquareMatrixLike Mat, typename Derived>
 struct space_traits<SymmetricOperator<Mat, Derived>> {
@@ -57,9 +75,29 @@ struct space_traits<SymmetricMatrix<Mat>> {
   static constexpr size_t DIM = N * (N + 1) / 2;
 };
 
-/// @brief mat type traits definition for symmetric matrices
+/// @brief type traits definition for symmetric matrices (subspace of R^n)
 template <SquareMatrixLike Mat>
-struct mat_traits<SymmetricMatrix<Mat>> {
+struct space_traits<HessenbergMatrix<Mat>> {
+  using value_type = mat_type_t<Mat>;
+  using Point = Mat;
+
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t DIM = N * N;
+};
+
+/// @brief type traits definition for LDL (subspace of R^n)
+template <SquareMatrixLike Mat>
+struct space_traits<LDL<Mat>> {
+  using value_type = mat_type_t<Mat>;
+  using Point = Mat;
+
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t DIM = N * (N + 1) / 2;
+};
+
+/// @brief mat type traits definition for linear operator
+template <SquareMatrixLike Mat, typename Derived>
+struct mat_traits<LinearOperator<Mat, Derived>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t ROWS = mat_rows_v<Mat>;
   static constexpr size_t COLS = mat_cols_v<Mat>;
@@ -73,6 +111,46 @@ struct mat_traits<SymmetricOperator<Mat, Derived>> {
   static constexpr size_t COLS = mat_cols_v<Mat>;
 };
 
+/// @brief mat type traits definition for symmetric matrices
+template <SquareMatrixLike Mat>
+struct mat_traits<SymmetricMatrix<Mat>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t ROWS = mat_rows_v<Mat>;
+  static constexpr size_t COLS = mat_cols_v<Mat>;
+};
+
+/// @brief mat type traits definition for hessenberg matrices
+template <SquareMatrixLike Mat>
+struct mat_traits<HessenbergMatrix<Mat>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t ROWS = mat_rows_v<Mat>;
+  static constexpr size_t COLS = mat_cols_v<Mat>;
+};
+
+/// @brief mat type traits definition for LDL
+template <SquareMatrixLike Mat>
+struct mat_traits<LDL<Mat>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t ROWS = mat_rows_v<Mat>;
+  static constexpr size_t COLS = mat_cols_v<Mat>;
+};
+
+/// @brief vec type traits for symmetric operator
+template <SquareMatrixLike Mat, typename Derived>
+struct vec_traits<LinearOperator<Mat, Derived>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t SIZE = N * N;
+};
+
+/// @brief vec type traits for symmetric operator
+template <SquareMatrixLike Mat, typename Derived>
+struct vec_traits<SymmetricOperator<Mat, Derived>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t SIZE = N * (N + 1) / 2;
+};
+
 /// @brief vec type traits for symmetric matrices
 template <SquareMatrixLike Mat>
 struct vec_traits<SymmetricMatrix<Mat>> {
@@ -81,9 +159,17 @@ struct vec_traits<SymmetricMatrix<Mat>> {
   static constexpr size_t SIZE = N * (N + 1) / 2;
 };
 
-/// @brief vec type traits for symmetric operator
-template <SquareMatrixLike Mat, typename Derived>
-struct vec_traits<SymmetricOperator<Mat, Derived>> {
+/// @brief vec type traits for symmetric matrices
+template <SquareMatrixLike Mat>
+struct vec_traits<HessenbergMatrix<Mat>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t SIZE = N * N;
+};
+
+/// @brief vec type traits for LDL matrices
+template <SquareMatrixLike Mat>
+struct vec_traits<LDL<Mat>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t SIZE = N * (N + 1) / 2;

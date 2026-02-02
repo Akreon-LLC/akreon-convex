@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <iostream>
+
 #include "convex_traits.hpp"
 
 namespace convex {
@@ -52,8 +54,10 @@ struct KKTSystem : linalg::SymmetricOperator<Mat, KKTSystem<Mat>> {
    * @param A (mat)
    * @param tolerance
    */
-  constexpr explicit KKTSystem(const Mat& A, const ScalarT& tol)
-      : SymmetricBase(A, tol) {}
+  constexpr explicit KKTSystem(Mat A, ScalarT tol = 1e-8) : SymmetricBase(A) {
+    (void)tol;
+    //factor(A, tol);
+  }
 
   /**
    * @brief factor via LDL^T with tikhonov regularization
@@ -63,41 +67,26 @@ struct KKTSystem : linalg::SymmetricOperator<Mat, KKTSystem<Mat>> {
    *
    * @return void
    */
-  constexpr void factor(Mat A, const ScalarT& tol) {
+  constexpr void factor(const Mat& A, const ScalarT& tol) {
     /// (dakre) apply tikhonov regularization up front
     // A = A + tol * make_identity<T, N>();
 
-    /// (dakre) lambda function for computing LDL^T
-    auto ldl_t = [&]<size_t j = 1>(const bool& status) -> bool {
-      if (j >= N) return status;
-
-      linalg::Vector<T, j> v{};
-      for (size_t i = 0; i < j - 1; ++i) v(i) = A(j)(i) * A(i)(i);
-
-      const auto A_row = linalg::get_block<j, j + 1, 0, j>(A);
-      A(j)(j) = A(j)(j) - (A_row * v)(0);
-
-      if (A(j)(j) < tol) {
-        return false;
-      }
-
-      const auto A_col = linalg::get_block<j, N, j, j + 1>(A);
-      const auto A_blk = linalg::get_block<j, N, 0, j>(A);
-      const auto col_up =
-          A_col - (T(1) / A(j)(j)) * linalg::as_col_vector(A_blk * v);
-      A = linalg::set_block<j, N, j, j + 1>(A, col_up);
-
-      return status;
-    };
-
-    /// (dakre) store L into symmetric vector separate from svec
-    L = lower_triangle_to_vec(A);
+    /// (dakre) lambda function for computing LDL^T (in-place in A)
+    bool res = ldl_t(A, tol, true);
+#if 0
+    for (size_t i = 0; i < N; ++i) {
+      for (size_t j = 0; j < N; ++j) std::cout << A(i)(j) << " ";
+      std::cout << std::endl;
+    }
+#endif
 
     /// (dakre) check if LDL^T completed
-    if (!ldl_t(true)) {
+    if (res) {
       this->type = linalg::SymmetricOperatorType::INV;
       return;
     }
+
+    // L = lower_triangle_to_vec(A);
 
     // (dakre) KKT system is indefinite by nature
     this->type = linalg::SymmetricOperatorType::IND;

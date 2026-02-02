@@ -45,8 +45,11 @@ struct SymmetricMatrix : SymmetricOperator<Mat, SymmetricMatrix<Mat>> {
    * - Checks eigenvalue signs and sets type
    */
   constexpr explicit SymmetricMatrix(const Mat& A, ScalarT tol = 1e-8)
-      : SymmetricBase(A, tol) {}
+      : SymmetricBase(A) {
+    factor(A, tol);
+  }
 
+ private:
   /**
    * @brief QR factorization
    *
@@ -77,46 +80,7 @@ struct SymmetricMatrix : SymmetricOperator<Mat, SymmetricMatrix<Mat>> {
     if (!eig_decomp.converged) return;
 
     // (3) Compute definiteness of matrix
-    compute_definiteness(eig_decomp.lambda, tol);
-  }
-
-  /**
-   * @brief compute definiteness
-   *
-   * @param vec (diagonal of elements)
-   *
-   * @return void
-   */
-  template <typename DiagT>
-  constexpr void compute_definiteness(const Vector<DiagT, N>& diag,
-                                      const ScalarT& tol) {
-    size_t npos = 0, nneg = 0, nzero = 0;
-
-    auto classify_scalar = [&](const auto& d_real) {
-      if (d_real > tol)
-        ++npos;
-      else if (d_real < -tol)
-        ++nneg;
-      else
-        ++nzero;
-    };
-
-    if constexpr (is_complex_v<DiagT>) {
-      for (const auto& d : diag) classify_scalar(d.real());
-    } else {
-      for (const auto& d : diag) classify_scalar(d);
-    }
-
-    if (nneg == 0 && nzero == 0)
-      this->type = SymmetricOperatorType::PD;
-    else if (nneg == 0 && nzero > 0)
-      this->type = SymmetricOperatorType::PSD;
-    else if (npos == 0 && nzero == 0)
-      this->type = SymmetricOperatorType::ND;
-    else if (npos == 0 && nzero > 0)
-      this->type = SymmetricOperatorType::NSD;
-    else
-      this->type = SymmetricOperatorType::IND;
+    this->compute_definiteness(eig_decomp.lambda, tol);
   }
 };
 

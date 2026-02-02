@@ -438,3 +438,54 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
     STATIC_REQUIRE(A_smat.type == SymmetricOperatorType::INV);
   }
 }
+
+TEST_CASE("LDL^T Factorization") {
+  SECTION("Simple I") {
+    constexpr auto I = make_identity<double, 10>();
+    constexpr auto ldl = LDL(I);
+    STATIC_REQUIRE(ldl.is_valid());
+    STATIC_REQUIRE(ldl.is_psd());
+    STATIC_REQUIRE(get_diag(ldl.D()) == vec_traits<Vectord<10>>().fill(1.0));
+    STATIC_REQUIRE(ldl.L() == make_identity<double, 10>());
+  }
+
+  SECTION("Bad Zeros") {
+    constexpr auto Z = Matrixd<6, 6>{};
+    constexpr auto ldl = LDL(Z);
+    STATIC_REQUIRE(!ldl.is_valid());
+  }
+
+  SECTION("Indefinite Mat") {
+    constexpr auto A_mat = mat_traits<Matrixd<4, 4>>();
+    constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                             -1.0, 0.0, 0.0, 0.0, 0.0, -1.0);
+    constexpr auto ldl = LDL(A);
+    STATIC_REQUIRE(ldl.is_valid());
+    STATIC_REQUIRE(ldl.is_ind());
+    STATIC_REQUIRE(get_diag(ldl.D()) == Vectord<4>{1.0, 1.0, -1.0, -1.0});
+    STATIC_REQUIRE(ldl.L() == make_identity<double, 4>());
+  }
+
+  SECTION("2x2 SPD") {
+    constexpr auto A_mat = mat_traits<Matrixd<2, 2>>();
+    constexpr auto A = A_mat(4.0, 2.0, 2.0, 3.0);
+    constexpr auto ldl = LDL(A);
+    STATIC_REQUIRE(ldl.is_valid());
+    STATIC_REQUIRE(ldl.is_psd());
+    STATIC_REQUIRE(get_diag(ldl.D()) == Vectord<2>{4.0, 2.0});
+    STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
+  }
+
+  SECTION("4x4 SPD") {
+    constexpr auto A_mat = mat_traits<Matrixd<4, 4>>();
+    constexpr auto A = A_mat(6.0, 2.0, 1.0, 0.0, 2.0, 5.0, 2.0, 1.0, 1.0, 2.0,
+                             5.0, 2.0, 0.0, 1.0, 2.0, 6.0);
+    constexpr auto ldl = LDL(A);
+    STATIC_REQUIRE(ldl.is_valid());
+    STATIC_REQUIRE(ldl.is_psd());
+    STATIC_REQUIRE(L2<Vectord<4>>()(get_diag(ldl.D()) -
+                                    Vectord<4>{6.0, 4.3333333333, 4.1923076923,
+                                               5.146789}) < eps);
+    STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
+  }
+}

@@ -64,7 +64,7 @@ struct PositiveSemidefiniteCone
    */
   constexpr Slack x0_impl() const {
     const auto I = linalg::make_identity<T, N>();
-    return linalg::lower_triangle_to_vec(I);
+    return linalg::get_lower_triangle_with_diag(I);
   }
 
   /**

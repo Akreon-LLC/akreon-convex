@@ -67,6 +67,11 @@ if(BUILD_TESTING)
   target_link_libraries(cone_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(cone_test PRIVATE ../math/include)
 
+  add_executable(kkt_system_test unit/kkt_system_test.cpp)
+  add_test(NAME kkt_system_test COMMAND kkt_system_test)
+  target_link_libraries(kkt_system_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(kkt_system_test PRIVATE ../math/include)
+
   # Functional Tests
   add_executable(linalg_fuzz_test functional/linalg_fuzz_test.cpp)
   target_include_directories(linalg_fuzz_test PRIVATE ../math/include)
