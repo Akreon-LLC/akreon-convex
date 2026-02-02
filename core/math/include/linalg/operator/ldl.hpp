@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "kkt_traits.hpp"
 #include "linalg/linalg_util.hpp"
 #include "symmetric_operator.hpp"
 
@@ -59,6 +60,25 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
    * @return L mat
    */
   constexpr auto L() const { return make_unit_lower_triangle<Mat>(L_vec); }
+
+  /**
+   * @brief solve (forward solve)
+   *
+   * A x = b, A = LDL^T
+   * L ( D ( L^T x) ) = b
+   * L^T x = z
+   * D z = y
+   * L y = b
+   *
+   * @param vector b
+   *
+   * @return x
+   */
+  constexpr auto solve(const Vector<T, N>& b) const {
+    const auto y = forward_solve(b);
+    const auto z = diag_solve(y);
+    return back_solve(z);
+  }
 
  private:
   /**
@@ -122,6 +142,59 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
     D_vec = get_diag(A);
 
     this->compute_definiteness(D_vec, tol);
+  }
+
+  /**
+   * @brief forward solve
+   *
+   * L y = b
+   *
+   * @param vector b
+   *
+   * @return y
+   */
+  constexpr auto forward_solve(const Vector<T, N>& b) const {
+    Vector<T, N> y{};
+    const auto L_mat = L();
+    for (size_t i = 0; i < N; ++i) {
+      T sum(0);
+      for (size_t j = 0; j < i; ++j) sum += L_mat(i)(j) * y(j);
+      y(i) = b(i) - sum;
+    }
+    return y;
+  }
+
+  /**
+   * @brief diag solve
+   *
+   * @param vector y
+   *
+   * @return vector z
+   */
+  constexpr auto diag_solve(const Vector<T, N>& y) const {
+    assert(is_valid());
+
+    Vector<T, N> z{};
+    for (size_t i = 0; i < N; ++i) z(i) = y(i) / D_vec(i);
+
+    return z;
+  }
+
+  /**
+   * @brief back solve
+   *
+   * @param vector z
+   *
+   * @return vector x
+   */
+  constexpr auto back_solve(const Vector<T, N>& z) const {
+    Vector<T, N> x{};
+    for (size_t i = N; i > 0; --i) {
+      T sum(0);
+      for (size_t j = i + 1; j < N; ++j) sum += L(i)(j) * x(j);
+      x(i) = z(i) - sum;
+    }
+    return x;
   }
 
   /** @brief member variables */
