@@ -73,7 +73,7 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
     auto ldl_t = [&]<size_t j = 0>(this auto&& self,
                                    const bool& status) -> bool {
       /// (dakre) base case for recursion
-      if constexpr (j >= N)
+      if constexpr (j >= SymmetricBase::N)
         return status;
       else {
         /// (dakre) handle j = 0 iteration separately (don't have prior intertia
@@ -82,10 +82,10 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
         if constexpr (j == 0) {
           if (linalg::constexpr_abs(A(0)(0)) < tol) return false;
 
-          const auto A_col = linalg::get_block<next, N, 0, next>(A);
+          const auto A_col = linalg::get_block<next, SymmetricBase::N, 0, next>(A);
           const auto col_up = (T(1) / A(0)(0)) * A_col;
 
-          A = linalg::set_block<next, N, 0, next>(A, col_up);
+          A = linalg::set_block<next, SymmetricBase::N, 0, next>(A, col_up);
         } else {
           /// (dakre) nominal LDL^T algo denoted in Golub & Van Load p. 158
           linalg::Vector<T, j> v{};
@@ -96,14 +96,14 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
 
           if (linalg::constexpr_abs(A(j)(j)) < tol) return false;
 
-          if constexpr (next < N) {
-            const auto A_col = linalg::get_block<next, N, j, next>(A);
-            const auto A_blk = linalg::get_block<next, N, 0, j>(A);
+          if constexpr (next < SymmetricBase::N) {
+            const auto A_col = linalg::get_block<next, SymmetricBase::N, j, next>(A);
+            const auto A_blk = linalg::get_block<next, SymmetricBase::N, 0, j>(A);
 
             const auto col_up =
                 T(1) / A(j)(j) * (A_col - linalg::as_col_vector(A_blk * v));
 
-            A = linalg::set_block<next, N, j, next>(A, col_up);
+            A = linalg::set_block<next, SymmetricBase::N, j, next>(A, col_up);
           }
         }
         return self.template operator()<next>(status);
