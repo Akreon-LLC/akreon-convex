@@ -60,7 +60,7 @@ struct kkt_traits<Hessian, Equality> {
   constexpr auto make(const Hessian& H, const Equality& A) const {
     Mat kkt;
     kkt = set_block<0, HRows, 0, HRows>(kkt, H);
-    kkt = set_block<0, ECols, 0, ERows>(kkt, transpose(A));
+    kkt = set_block<0, ECols, HRows, N>(kkt, transpose(A));
     kkt = set_block<HRows, N, 0, ECols>(kkt, A);
     return kkt;
   }
