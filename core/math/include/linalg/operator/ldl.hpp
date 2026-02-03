@@ -75,9 +75,10 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
    * @return x
    */
   constexpr auto solve(const Vector<T, N>& b) const {
-    const auto y = forward_solve(b);
+    const auto L_mat = L();
+    const auto y = forward_solve(L_mat, b);
     const auto z = diag_solve(y);
-    return back_solve(z);
+    return back_solve(transpose(L_mat), z);
   }
 
  private:
@@ -149,13 +150,13 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
    *
    * L y = b
    *
+   * @param matrix L
    * @param vector b
    *
    * @return y
    */
-  constexpr auto forward_solve(const Vector<T, N>& b) const {
+  constexpr auto forward_solve(const Mat& L_mat, const Vector<T, N>& b) const {
     Vector<T, N> y{};
-    const auto L_mat = L();
     for (size_t i = 0; i < N; ++i) {
       T sum(0);
       for (size_t j = 0; j < i; ++j) sum += L_mat(i)(j) * y(j);
@@ -183,15 +184,17 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   /**
    * @brief back solve
    *
+   * @param matrix L
    * @param vector z
    *
    * @return vector x
    */
-  constexpr auto back_solve(const Vector<T, N>& z) const {
+  constexpr auto back_solve(const Mat& L_mat, const Vector<T, N>& z) const {
     Vector<T, N> x{};
-    for (size_t i = N; i > 0; --i) {
+    for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
       T sum(0);
-      for (size_t j = i + 1; j < N; ++j) sum += L(i)(j) * x(j);
+      for (int j = i + 1; j < static_cast<int>(N); ++j)
+        sum += L_mat(i)(j) * x(j);
       x(i) = z(i) - sum;
     }
     return x;

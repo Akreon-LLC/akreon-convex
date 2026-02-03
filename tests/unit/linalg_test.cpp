@@ -464,6 +464,11 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(ldl.is_ind());
     STATIC_REQUIRE(get_diag(ldl.D()) == Vectord<4>{1.0, 1.0, -1.0, -1.0});
     STATIC_REQUIRE(ldl.L() == make_identity<double, 4>());
+
+    constexpr auto b = Vectord<4>{1.0, 1.0, 1.0, 1.0};
+    constexpr auto x = ldl.solve(b);
+    constexpr auto y = A * x;
+    STATIC_REQUIRE(y == b);
   }
 
   SECTION("2x2 SPD") {
@@ -474,6 +479,11 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(ldl.is_psd());
     STATIC_REQUIRE(get_diag(ldl.D()) == Vectord<2>{4.0, 2.0});
     STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
+
+    constexpr auto b = Vectord<2>{1.0, 2.0};
+    constexpr auto x = ldl.solve(b);
+    constexpr auto y = A * x;
+    STATIC_REQUIRE(y == b);
   }
 
   SECTION("4x4 SPD") {
@@ -487,6 +497,11 @@ TEST_CASE("LDL^T Factorization") {
                                     Vectord<4>{6.0, 4.3333333333, 4.1923076923,
                                                5.146789}) < eps);
     STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
+
+    constexpr auto b = Vectord<4>{1.0, 2.0, 3.0, 4.0};
+    constexpr auto x = ldl.solve(b);
+    constexpr auto y = A * x;
+    STATIC_REQUIRE(y == b);
   }
 
   SECTION("Banded SPD") {
@@ -498,6 +513,11 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(ldl.is_valid());
     STATIC_REQUIRE(ldl.is_psd());
     STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
+
+    constexpr auto b = Vectord<5>{1.0, 2.0, 3.0, 4.0, 5.0};
+    constexpr auto x = ldl.solve(b);
+    constexpr auto y = A * x;
+    STATIC_REQUIRE(L2<Vectord<5>>()(y - b) < eps);
   }
 
   SECTION("Indefinite but okay") {
@@ -510,6 +530,11 @@ TEST_CASE("LDL^T Factorization") {
     constexpr auto res = ldl.L() * (ldl.D() * transpose(ldl.L()));
     /// (dakre) we can see no longer == but equals within tolerance
     STATIC_REQUIRE(all_equal(A, res));
+
+    constexpr auto b = Vectord<4>{-1.0, -2.0, -3.0, -4.0};
+    constexpr auto x = ldl.solve(b);
+    constexpr auto y = A * x;
+    STATIC_REQUIRE(L2<Vectord<4>>()(y - b) < eps);
   }
 
   SECTION("Bad singular tiny pivot") {
