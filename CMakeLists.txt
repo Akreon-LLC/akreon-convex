@@ -25,5 +25,4 @@ endif()
 
 include(FetchContent)
 
-add_subdirectory(ui)
 add_subdirectory(tests)
