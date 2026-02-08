@@ -13,7 +13,7 @@
 #pragma once
 
 #include "atom.hpp"
-#include "cone_util.hpp"
+#include "cone_block.hpp"
 #include "cones/exp_cone.hpp"
 #include "cones/power_cone.hpp"
 #include "cones/psd_cone.hpp"

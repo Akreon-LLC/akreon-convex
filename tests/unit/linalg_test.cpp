@@ -349,7 +349,7 @@ TEST_CASE("Hessenberg matrices", "[hessenberg]") {
     constexpr auto b = Vectord<3>{4.0, 5.0, 6.0};
     constexpr auto c = Vectord<3>{7.0, 8.0, 9.0};
     constexpr auto A = Matrixd<3, 3>{a, b, c};
-    constexpr auto H_mat = HessenbergMatrix(A);
+    constexpr auto H_mat = Hessenberg(A);
     constexpr auto H = H_mat.H();
     constexpr auto beta = H_mat.beta;
     STATIC_REQUIRE(constexpr_abs(beta(0)) > 0.0);

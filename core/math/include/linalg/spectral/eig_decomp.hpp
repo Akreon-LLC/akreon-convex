@@ -94,7 +94,7 @@ struct EigenDecomposition {
    */
   constexpr void solve_qr(const Mat& A) {
     // 1. calculate hessenberg matrix
-    const auto H_mat = HessenbergMatrix(A);
+    const auto H_mat = Hessenberg(A);
     auto H = H_mat.H();
 
     // 2. setup unitary basis for eigenvectors

@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "linear_operator.hpp"
+#include "endomorphism.hpp"
 #include "operator_traits.hpp"
 
 namespace linalg {
@@ -21,10 +21,9 @@ namespace linalg {
  * @brief Symmetric linear operator CRTP base
  */
 template <SquareMatrixLike Mat, typename Derived>
-struct SymmetricOperator
-    : LinearOperator<Mat, SymmetricOperator<Mat, Derived>> {
+struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
   /// @brief alias to extract base types
-  using OperatorBase = LinearOperator<Mat, SymmetricOperator<Mat, Derived>>;
+  using OperatorBase = Endomorphism<Mat, SymmetricOperator<Mat, Derived>>;
   using typename OperatorBase::ComplexT;
   using typename OperatorBase::ScalarT;
   using typename OperatorBase::T;

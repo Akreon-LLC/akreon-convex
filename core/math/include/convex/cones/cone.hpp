@@ -31,14 +31,20 @@ struct Cone {
   /**
    * @brief default interior point (initial slack in cone space)
    *
-   * x0 \in S^0(P) or (s,y) \in S^0(D)
-   *
-   * @param start index
-   * @param end index
+   * x0 \in S^0(P)
    *
    * @return vector
    */
   constexpr Slack x0() const { return self().x0_impl(); }
+
+  /**
+   * @brief default interior point (initial slack in dual cone)
+   *
+   * s0 \in S^0(D)
+   *
+   * @return vector
+   */
+  constexpr Slack s0() const { return self().s0_impl(); }
 
   /**
    * @brief in the interior of k
@@ -49,7 +55,42 @@ struct Cone {
    *
    * @return bool
    */
-  constexpr bool in_K(const Slack& x) const { return self().in_K_impl(x); }
+  constexpr bool in_cone(const Slack& x) const {
+    return self().in_cone_impl(x);
+  }
+
+  /**
+   * @brief hessian
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return H
+   */
+  constexpr auto H(const Slack& x, const Slack& s) const {
+    return self().H_impl(x, s);
+  }
+
+  /**
+   * @brief hessian inverse
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return H
+   */
+  constexpr auto H_inv(const Slack& x, const Slack& s) const {
+    return self().H_inv_impl(x, s);
+  }
+
+  /**
+   * @brief gradient \nabla F(x) -> cotangent dual space of covectors
+   *
+   * @param x \in K
+   *
+   * @return covector
+   */
+  constexpr auto grad(const Slack& x) const { return self().grad_impl(x); }
 
   /**
    * @brief fraction to boundary dK

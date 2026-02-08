@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include "kkt_traits.hpp"
 #include "linalg/linalg_util.hpp"
 #include "symmetric_operator.hpp"
 

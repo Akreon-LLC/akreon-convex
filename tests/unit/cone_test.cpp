@@ -27,46 +27,46 @@ TEST_CASE("Test cone formations", "[cone_test]") {
   SECTION("Test exp cone") {
     using Slack = Vectord<3>;
     constexpr ExpCone<Slack> exp_cone;
-    STATIC_REQUIRE(exp_cone.in_K(exp_cone.x0()));
+    STATIC_REQUIRE(exp_cone.in_cone(exp_cone.x0()));
 
     constexpr ExpCone<Vectord<9>> exp_cone9;
-    STATIC_REQUIRE(exp_cone9.in_K(exp_cone9.x0()));
+    STATIC_REQUIRE(exp_cone9.in_cone(exp_cone9.x0()));
   }
 
   SECTION("Test power cone") {
     using Slack = Vectord<4>;
     constexpr vec_traits<Vectord<3>> vec_t;
     constexpr PowerCone<Slack> pcone(vec_t.fill(1.0 / 3.0));
-    STATIC_REQUIRE(pcone.in_K(pcone.x0()));
+    STATIC_REQUIRE(pcone.in_cone(pcone.x0()));
   }
 
   SECTION("Test psd cone") {
     using Slack = Vectord<36>;
     constexpr PositiveSemidefiniteCone<Slack, 8> psd;
-    STATIC_REQUIRE(psd.in_K(psd.x0()));
+    STATIC_REQUIRE(psd.in_cone(psd.x0()));
   }
 
   SECTION("Test rplus cone") {
     using Slack = Vectord<12>;
     constexpr NonnegOrthantCone<Slack> rplus;
-    STATIC_REQUIRE(rplus.in_K(rplus.x0()));
+    STATIC_REQUIRE(rplus.in_cone(rplus.x0()));
   }
 
   SECTION("Test rsoc") {
     using Slack = Vectord<3>;
     constexpr RotatedSecondOrderCone<Slack> rsoc;
-    STATIC_REQUIRE(rsoc.in_K(rsoc.x0()));
+    STATIC_REQUIRE(rsoc.in_cone(rsoc.x0()));
   }
 
   SECTION("Test soc") {
     using Slack = Vectord<10>;
     constexpr SecondOrderCone<Slack> soc;
-    STATIC_REQUIRE(soc.in_K(soc.x0()));
+    STATIC_REQUIRE(soc.in_cone(soc.x0()));
   }
 
   SECTION("Test zoc") {
     using Slack = Vectord<5>;
     constexpr ZeroOrderCone<Slack> zoc;
-    STATIC_REQUIRE(!zoc.in_K(zoc.x0()));
+    STATIC_REQUIRE(!zoc.in_cone(zoc.x0()));
   }
 }

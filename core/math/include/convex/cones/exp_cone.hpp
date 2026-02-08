@@ -55,7 +55,7 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>> {
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& x) const {
+  constexpr bool in_cone_impl(const Slack& x) const {
     for (size_t i = 0; i < M / 3; ++i) {
       const auto u = x(i);
       const auto v = x(M / 3 + i);

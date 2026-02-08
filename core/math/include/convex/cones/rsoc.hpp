@@ -47,7 +47,7 @@ struct RotatedSecondOrderCone
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& x) const {
+  constexpr bool in_cone_impl(const Slack& x) const {
     return x(0) * x(0) < T(2) * x(1) * x(2);
   }
 

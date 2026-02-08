@@ -43,7 +43,7 @@ struct ZeroOrderCone : public Cone<Slack, ZeroOrderCone<Slack>> {
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& /*x*/) const {
+  constexpr bool in_cone_impl(const Slack& /*x*/) const {
     /// (dakre) always empty \equiv null set!
     return false;
   }

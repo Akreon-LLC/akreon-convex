@@ -48,7 +48,7 @@ struct SecondOrderCone : public Cone<Slack, SecondOrderCone<Slack>> {
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& x) const {
+  constexpr bool in_cone_impl(const Slack& x) const {
     T res{};
     for (size_t i = 0; i < M - 1; ++i) res += x(i) * x(i);
     res = linalg::constexpr_sqrt(res);

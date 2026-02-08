@@ -58,7 +58,7 @@ struct PowerCone : public Cone<Slack, PowerCone<Slack>> {
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& x) const {
+  constexpr bool in_cone_impl(const Slack& x) const {
     if (T(x(M - 1)) == T(0)) {
       for (size_t i = 0; i < M - 1; ++i)
         if (x(i) < T(0)) return false;

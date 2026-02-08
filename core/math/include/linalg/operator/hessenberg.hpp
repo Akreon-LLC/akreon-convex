@@ -12,8 +12,8 @@
 
 #pragma once
 
+#include "endomorphism.hpp"
 #include "linalg/vector/householder.hpp"
-#include "linear_operator.hpp"
 
 namespace linalg {
 /**
@@ -23,9 +23,9 @@ namespace linalg {
  * reductions creating the similarity transform: H = U_0^T A U_0.
  */
 template <SquareMatrixLike Mat>
-struct HessenbergMatrix : LinearOperator<Mat, HessenbergMatrix<Mat>> {
+struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
   /// @brief alias from base class
-  using OperatorBase = LinearOperator<Mat, HessenbergMatrix<Mat>>;
+  using OperatorBase = Endomorphism<Mat, Hessenberg<Mat>>;
   using typename OperatorBase::T;
 
   /// @brief helper from base to get num rows
@@ -41,7 +41,7 @@ struct HessenbergMatrix : LinearOperator<Mat, HessenbergMatrix<Mat>> {
    *
    * @param Matrix A of type T with N x N elements
    */
-  constexpr explicit HessenbergMatrix(const Mat& A) {
+  constexpr explicit Hessenberg(const Mat& A) {
     H_pack = A;
     constexpr_for<0, N - 2>([&]<size_t k>(std::integral_constant<size_t, k>) {
       const auto& H_block = get_n_rows<k + 1, N>(H_pack);
@@ -81,7 +81,7 @@ struct HessenbergMatrix : LinearOperator<Mat, HessenbergMatrix<Mat>> {
   }
 
   /**
-   * @brief operator override to acquire H from HessenbergMatrix object
+   * @brief operator override to acquire H from Hessenberg object
    *
    * @return Matrix of type T with N x N elements (upper right triangular)
    */

@@ -32,7 +32,7 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
   /**
    * @brief default interior point
    *
-   * @return vector
+   * @return x0
    */
   constexpr Slack x0_impl() const {
     Slack s{};
@@ -41,13 +41,20 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
   }
 
   /**
+   * @brief default dual point
+   *
+   * @return s0
+   */
+  constexpr Slack s0_impl() const { return x0_impl(); }
+
+  /**
    * @brief in interior of K
    *
    * @param slack vector
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& x) const {
+  constexpr bool in_cone_impl(const Slack& x) const {
     for (size_t i = 0; i < M; ++i)
       if (x(i) <= T(0)) return false;
     return true;
@@ -70,6 +77,59 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
     T mn = std::numeric_limits<T>::max();
     for (size_t i = 0; i < M; ++i) mn = x(i) / p(i) < mn ? x(i) / p(i) : mn;
     return mn == std::numeric_limits<T>::max() ? std::nullopt : mn;
+  }
+
+  /**
+   * @brief hessian
+   *
+   * F''(w) -> pushforward operator that maps primal / tangent dir to change in
+   * gradient at scaling point w... acts as forward sensitivity & curvature
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return H
+   */
+  constexpr auto H_impl(const Slack& x, const Slack& s) const {
+    linalg::Matrix<T, M, M> H{};
+    for (size_t i = 0; i < M; ++i) H(i)(i) = s(i) / x(i);
+    return H;
+  }
+
+  /**
+   * @brief hessian inverse
+   *
+   * F''(w)^{-1} -> pullback operator that maps vectors in the gradient space
+   * back to primal / tangent dirs... acts as metric induced lifting
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return H
+   */
+  constexpr auto H_inv_impl(const Slack& x, const Slack& s) const {
+    linalg::Matrix<T, M, M> H{};
+    for (size_t i = 0; i < M; ++i) H(i)(i) = x(i) / s(i);
+    return H;
+  }
+
+  /**
+   * @brief gradient
+   *
+   * \nabla F(x) -> maps point in primal space to cotangent / dual space of
+   * vectors (i.e., covectors)
+   *
+   * TODO - refactor linear operator to be general mapping then specalize
+   * endomorphism for square matrices
+   *
+   * @param x \in K
+   *
+   * @return grad
+   */
+  constexpr auto grad_impl(const Slack& x) const {
+    Slack grad{};
+    for (size_t i = 0; i < M; ++i) grad(i) = T(-1) / x(i);
+    return grad;
   }
 };
 

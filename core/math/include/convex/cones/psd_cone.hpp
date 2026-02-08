@@ -74,7 +74,7 @@ struct PositiveSemidefiniteCone
    *
    * @return bool
    */
-  constexpr bool in_K_impl(const Slack& x) const {
+  constexpr bool in_cone_impl(const Slack& x) const {
     const auto X = linalg::make_smat<N, Slack>(x);
     const auto SymMat = linalg::SymmetricMatrix(X);
     return SymMat.is_psd();

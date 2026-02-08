@@ -17,10 +17,10 @@
 namespace linalg {
 
 /**
- * @brief Linear operator CRTP base
+ * @brief Endomorphism operator CRTP base
  */
 template <SquareMatrixLike Mat, typename Derived>
-struct LinearOperator {
+struct Endomorphism {
   /// @brief alias helpers for types
   using T = mat_type_t<Mat>;
   using ScalarT = scalar_type_t<T>;
@@ -28,22 +28,6 @@ struct LinearOperator {
 
   /// @brief helper to extract N
   static constexpr size_t N = mat_rows_v<Mat>;
-
-  /**
-   * @brief self
-   *
-   * @return object
-   */
-  constexpr Derived& self() { return static_cast<Derived&>(*this); }
-
-  /**
-   * @brief self
-   *
-   * @return const object
-   */
-  constexpr const Derived& self() const {
-    return static_cast<const Derived&>(*this);
-  }
 
   /**
    * @brief get element at (i,j) index
@@ -67,6 +51,22 @@ struct LinearOperator {
    */
   constexpr T& operator()(const size_t& i, const size_t& j) {
     return self()(i, j);
+  }
+
+  /**
+   * @brief self
+   *
+   * @return object
+   */
+  constexpr Derived& self() { return static_cast<Derived&>(*this); }
+
+  /**
+   * @brief self
+   *
+   * @return const object
+   */
+  constexpr const Derived& self() const {
+    return static_cast<const Derived&>(*this);
   }
 };
 

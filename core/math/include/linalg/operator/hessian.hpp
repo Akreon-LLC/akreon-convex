@@ -1,0 +1,128 @@
+/*
+ * Copyright © 2025 Akreon LLC. All rights reserved.
+ *
+ * Proprietary and Confidential.
+ * This source code is the property of Akreon LLC and constitutes a trade secret
+ * protected by U.S. and international law.
+ *
+ * Unauthorized copying, modification, distribution, or disclosure of this file,
+ * via any medium, is strictly prohibited without express written permission
+ * from Akreon LLC.
+ */
+
+#pragma once
+
+#include "linalg/linalg_util.hpp"
+
+namespace linalg {
+
+/**
+ * @brief Hessian as a linear operator
+ *
+ * pushforward
+ * H: A(X) -> B, acts as a push-forward operator mapping primal / tangent
+ * vectors onto a change of gradient (i.e., F''(w)x -> s)
+ *
+ * pullback
+ * H^{-1}: B(x) -> A, (i.e., F''(w)^{-1} s -> x) acts as a pull-back operator
+ * mapping gradient space vectors back to tangent / primal direction
+ */
+template <SquareMatrixLike Mat,
+          DifferentialType Type = DifferentialType::PUSHFORWARD>
+struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
+  /// @brief alias from base class
+  using OperatorBase = Endomorphism<Mat, Hessian<Mat, Type>>;
+  using typename OperatorBase::T;
+
+  /// @brief helper from base to get num rows
+  using OperatorBase::N;
+
+  /// @brief alias to bring in vec
+  using Vec = linalg::Vector<T, N>;
+
+  /**
+   * @brief CTOR
+   *
+   * @param A \in R^{n x n}
+   */
+  constexpr explicit Hessian(const Mat& A) : H(A) {}
+
+  /**
+   * @brief tikhonov regularization
+   *
+   * TODO - make adaptive
+   * (1) card(diag) < thresh
+   * (2) 10% above normalized diag = delta
+   * (3) apply delta
+   *
+   * @param delta
+   *
+   * @return Hessian regularized
+   */
+  constexpr auto regularize(const T& delta) const {
+    for (size_t i = 0; i < N; ++i) H(i)(i) += delta;
+    return Hessian(H);
+  }
+
+  /**
+   * @brief get element at (i,j)
+   *
+   * @return element
+   */
+  constexpr auto operator()(const size_t& i, const size_t& j) const {
+    return H(i, j);
+  }
+
+  /**
+   * @brief apply
+   *
+   * H : A(X) -> B
+   * H^{-1} : B(X) -> A
+   *
+   * @param Mat X
+   *
+   * @return B or A pending on diffeomorphism
+   */
+  template <MatrixLike MatX>
+    requires(N == mat_rows_v<MatX>)
+  constexpr auto apply(const MatX& X) const {
+    return H * X;
+  }
+
+  /**
+   * @brief apply
+   *
+   * H : A(x) -> b
+   * H^{-1} : A^{-1}(b) = x
+   *
+   * @param Vec x
+   *
+   * @return b or x pending on diffeomorphism
+   */
+  constexpr auto apply(const Vec& x) const { return H * x; }
+
+  /**
+   * @brief apply
+   *
+   * H : H(a) = aH (same for inv)
+   *
+   * @param a scalar
+   *
+   * @return scaled operator
+   */
+  constexpr auto apply(const T& a) const { return a * H; }
+
+  /**
+   * @brief is pullback
+   *
+   * @return T/F
+   */
+  constexpr bool is_pullback() const {
+    return Type == DifferentialType::PULLBACK;
+  }
+
+  /** @brief member variables */
+  Mat H;  ///< hessian mat
+};
+
+}  // namespace linalg
