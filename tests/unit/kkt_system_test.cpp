@@ -54,6 +54,7 @@ TEST_CASE("Test Basic KKT System", "[kkt_system]") {
 }
 
 TEST_CASE("Test Near Singular KKT", "[kkt_system]") {
+  constexpr double reg = 1e-8;
   SECTION("Near singular KKT") {
     /// (dakre) near singular -> bad pivot
     constexpr auto H_mat = mat_traits<Matrixd<2, 2>>();
@@ -65,7 +66,7 @@ TEST_CASE("Test Near Singular KKT", "[kkt_system]") {
     STATIC_REQUIRE(!ldl.is_valid());
 
     /// (dakre) applying tikhonov regularization to get factorization & solution
-    constexpr auto KKT_reg = KKT_builder.regularize(KKT, 1e-8, -1e-8);
+    constexpr auto KKT_reg = KKT_builder.regularize(KKT, reg, -1 * reg);
     constexpr auto ldl_reg = LDL(KKT_reg);
     STATIC_REQUIRE(ldl_reg.is_valid());
     STATIC_REQUIRE(ldl_reg.is_ind());
@@ -77,5 +78,18 @@ TEST_CASE("Test Near Singular KKT", "[kkt_system]") {
     constexpr auto x = ldl_reg.solve(b);
     constexpr auto y = KKT_reg * x;
     STATIC_REQUIRE(L2<decltype(b)>()(y - b) < eps);
+
+    /// (dakre) TODO test schur w/ regularization and test result... adaptive &
+    /// apriori or like form Hessian with H (check diag < tol -> regularize then
+    /// we can take inverse safely to be used in schur)... current ATM its after
+    /// the fact which is kind of pointless in this usecase
+#if 0
+    constexpr auto H_inv = inverse(H);
+    constexpr Hessian<decltype(H_inv), DifferentialType::PULLBACK> Hes(H_inv);
+    constexpr auto Hes_reg = Hes.regularize(reg);
+    constexpr auto x2 = KKT_builder.solve_schur(Hes_reg, A, b);
+    constexpr auto y2 = KKT * x2;
+    STATIC_REQUIRE(L2<decltype(b)>()(y2 - b) < eps);
+#endif
   }
 }

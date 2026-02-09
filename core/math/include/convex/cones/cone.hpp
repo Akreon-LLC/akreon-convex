@@ -16,6 +16,7 @@
 #include <optional>
 
 #include "convex/cone_traits.hpp"
+#include "linalg/operator/hessian.hpp"
 
 namespace conic {
 
@@ -91,6 +92,18 @@ struct Cone {
    * @return covector
    */
   constexpr auto grad(const Slack& x) const { return self().grad_impl(x); }
+
+  /**
+   * @brief functional proximity \gamma_F(x,s)
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return scalar measure
+   */
+  constexpr auto functional_proximity(const Slack& x, const Slack& s) const {
+    return self().functional_proximity_impl(x, s);
+  }
 
   /**
    * @brief fraction to boundary dK

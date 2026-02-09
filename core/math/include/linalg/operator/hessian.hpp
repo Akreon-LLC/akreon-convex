@@ -60,8 +60,9 @@ struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
    * @return Hessian regularized
    */
   constexpr auto regularize(const T& delta) const {
-    for (size_t i = 0; i < N; ++i) H(i)(i) += delta;
-    return Hessian(H);
+    auto H_reg = H;
+    for (size_t i = 0; i < N; ++i) H_reg(i)(i) += delta;
+    return Hessian(H_reg);
   }
 
   /**
@@ -70,7 +71,7 @@ struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
    * @return element
    */
   constexpr auto operator()(const size_t& i, const size_t& j) const {
-    return H(i, j);
+    return H(i)(j);
   }
 
   /**

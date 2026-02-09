@@ -76,7 +76,8 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
       const Slack& x, const linalg::Vector<T, M>& p) const {
     T mn = std::numeric_limits<T>::max();
     for (size_t i = 0; i < M; ++i) mn = x(i) / p(i) < mn ? x(i) / p(i) : mn;
-    return mn == std::numeric_limits<T>::max() ? std::nullopt : mn;
+    return mn == std::numeric_limits<T>::max() ? std::nullopt
+                                               : std::make_optional(mn);
   }
 
   /**
@@ -93,7 +94,7 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
   constexpr auto H_impl(const Slack& x, const Slack& s) const {
     linalg::Matrix<T, M, M> H{};
     for (size_t i = 0; i < M; ++i) H(i)(i) = s(i) / x(i);
-    return H;
+    return linalg::Hessian(H);
   }
 
   /**
@@ -108,9 +109,10 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    * @return H
    */
   constexpr auto H_inv_impl(const Slack& x, const Slack& s) const {
-    linalg::Matrix<T, M, M> H{};
-    for (size_t i = 0; i < M; ++i) H(i)(i) = x(i) / s(i);
-    return H;
+    linalg::Matrix<T, M, M> H_inv{};
+    for (size_t i = 0; i < M; ++i) H_inv(i)(i) = x(i) / s(i);
+    return linalg::Hessian<decltype(H_inv), linalg::DifferentialType::PULLBACK>(
+        H_inv);
   }
 
   /**
@@ -118,9 +120,6 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    *
    * \nabla F(x) -> maps point in primal space to cotangent / dual space of
    * vectors (i.e., covectors)
-   *
-   * TODO - refactor linear operator to be general mapping then specalize
-   * endomorphism for square matrices
    *
    * @param x \in K
    *
@@ -130,6 +129,22 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
     Slack grad{};
     for (size_t i = 0; i < M; ++i) grad(i) = T(-1) / x(i);
     return grad;
+  }
+
+  /**
+   * @brief functional proximity
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return functional proximity measure
+   */
+  constexpr auto functional_proximity_impl(const Slack& x,
+                                           const Slack& s) const {
+    T gamma_F{0};
+    for (size_t i = 0; i < M; ++i) gamma_F -= linalg::constexpr_ln(x(i) * s(i)).value();
+    gamma_F += M * linalg::constexpr_ln(linalg::dot(x, s)).value();
+    return gamma_F;
   }
 };
 
