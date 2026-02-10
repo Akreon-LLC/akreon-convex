@@ -48,24 +48,6 @@ struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
   constexpr explicit Hessian(const Mat& A) : H(A) {}
 
   /**
-   * @brief tikhonov regularization
-   *
-   * TODO - make adaptive
-   * (1) card(diag) < thresh
-   * (2) 10% above normalized diag = delta
-   * (3) apply delta
-   *
-   * @param delta
-   *
-   * @return Hessian regularized
-   */
-  constexpr auto regularize(const T& delta) const {
-    auto H_reg = H;
-    for (size_t i = 0; i < N; ++i) H_reg(i)(i) += delta;
-    return Hessian(H_reg);
-  }
-
-  /**
    * @brief get element at (i,j)
    *
    * @return element

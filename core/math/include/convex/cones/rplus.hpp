@@ -142,7 +142,8 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
   constexpr auto functional_proximity_impl(const Slack& x,
                                            const Slack& s) const {
     T gamma_F{0};
-    for (size_t i = 0; i < M; ++i) gamma_F -= linalg::constexpr_ln(x(i) * s(i)).value();
+    for (size_t i = 0; i < M; ++i)
+      gamma_F -= linalg::constexpr_ln(x(i) * s(i)).value();
     gamma_F += M * linalg::constexpr_ln(linalg::dot(x, s)).value();
     return gamma_F;
   }

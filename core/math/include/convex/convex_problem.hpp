@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "convex/convex_util.hpp"
+#include "convex_util.hpp"
 
 namespace convex {
 
@@ -58,7 +58,7 @@ constexpr auto make_problem(const Var& x) {
 }
 
 /**
- * @brief ConvexProblem 
+ * @brief ConvexProblem
  *
  * min  c^T z
  * s.t. F z + g \in K

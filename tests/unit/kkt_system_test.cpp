@@ -51,6 +51,17 @@ TEST_CASE("Test Basic KKT System", "[kkt_system]") {
     constexpr auto y = KKT * x;
     STATIC_REQUIRE(L2<decltype(b)>()(y - b) < eps);
   }
+
+#if 0
+  SECTION("Augmented KKT -> Schur") {
+    constexpr auto H_inv = inverse(H);
+    constexpr Hessian<decltype(H_inv), DifferentialType::PULLBACK> Hes(H_inv);
+    constexpr auto A_aug = make_augmented_equality(A);
+    constexpr auto x = KKT_builder.solve_schur(Hes, A_aug, b);
+    constexpr auto y = KKT * x;
+    STATIC_REQUIRE(L2<decltype(b)>()(y - b) < eps);
+  }
+#endif
 }
 
 TEST_CASE("Test Near Singular KKT", "[kkt_system]") {
