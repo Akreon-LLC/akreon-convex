@@ -140,31 +140,6 @@ struct AugmentedKKT {
   }
 
   /**
-   * @brief tikhonov regularization
-   *
-   * TODO - IPM aware (use w-norm instead of max)
-   *
-   * @param Schur or KKT mat
-   *
-   * @return regularized
-   */
-  template <MatrixLike MatIn>
-  constexpr auto regularize(MatIn S) const {
-    auto d = get_diag(S);
-    const auto mx = max(d);
-    d = (T(1) / mx) * d;
-    size_t cnt{0};
-    std::for_each(d.begin(), d.end(), [&](const auto& elem) {
-      cnt += constexpr_abs(elem) < SolverTraits<T>::tol;
-    });
-    static constexpr size_t MatRows = mat_rows_v<MatIn>;
-    if (cnt > 0)
-      for (size_t i = 0; i < MatRows; ++i)
-        S(i)(i) += cnt * SolverTraits<T>::tol;
-    return S;
-  }
-
-  /**
    * @brief H block
    *
    * @param KKT mat
@@ -184,6 +159,36 @@ struct AugmentedKKT {
    */
   constexpr auto A_block(const KKT& kkt) const {
     return get_block<M + N, KKT_ROWS, 0, M + N>(kkt);
+  }
+
+ private:
+  /**
+   * @brief tikhonov regularization
+   *
+   * TODO - IPM aware (use w-norm instead of max)
+   *
+   * @param Schur or KKT mat
+   *
+   * @return regularized
+   */
+  template <MatrixLike MatIn>
+  constexpr auto regularize(MatIn S) const {
+    auto d = get_diag(S);
+    const auto mx = max(d);
+    d = (T(1) / mx) * d;
+    size_t cnt{0};
+    std::for_each(d.begin(), d.end(), [&](const auto& elem) {
+      cnt += constexpr_abs(elem) < SolverTraits<T>::tol;
+    });
+    static constexpr size_t MatRows = mat_rows_v<MatIn>;
+    if (cnt > 0)
+      for (size_t i = 0; i < MatRows; ++i) {
+        if (i >= KKT_ROWS)
+          S(i)(i) -= cnt * SolverTraits<T>::tol;
+        else
+          S(i)(i) += cnt * SolverTraits<T>::tol;
+      }
+    return S;
   }
 };
 
