@@ -539,7 +539,7 @@ TEST_CASE("LDL^T Factorization") {
 
   SECTION("Bad singular tiny pivot") {
     constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
-    constexpr auto A = A_mat(1e-10, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, -1.0);
+    constexpr auto A = A_mat(1e-12, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, -1.0);
     constexpr auto ldl = LDL(A);
     STATIC_REQUIRE(!ldl.is_valid());
   }

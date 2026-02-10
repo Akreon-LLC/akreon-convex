@@ -38,13 +38,10 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
    * @brief CTOR
    *
    * @param Matrix A
-   * @param Scalar tolerance
    *
    * @param matrix A
    */
-  constexpr explicit LDL(const Mat& A, ScalarT tol = 1e-8) : SymmetricBase(A) {
-    factor(A, tol);
-  }
+  constexpr explicit LDL(const Mat& A) : SymmetricBase(A) { factor(A); }
 
   /**
    * @brief D
@@ -85,11 +82,10 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
    * @brief LDL^T of a square matrix
    *
    * @param Matrix A
-   * @param Scalar tolerance
    *
    * @return void
    */
-  constexpr void factor(Mat A, const ScalarT& tol) {
+  constexpr void factor(Mat A) {
     auto ldl_t = [&]<size_t j = 0>(this auto&& self,
                                    const bool& status) -> bool {
       /// (dakre) base case for recursion
@@ -100,7 +96,8 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
         /// build up, only need to scale first col by first diag elem)
         constexpr size_t next = j + 1;
         if constexpr (j == 0) {
-          if (linalg::constexpr_abs(A(0)(0)) < tol) return false;
+          if (linalg::constexpr_abs(A(0)(0)) < SolverTraits<T>::tol)
+            return false;
 
           const auto A_col =
               linalg::get_block<next, SymmetricBase::N, 0, next>(A);
@@ -115,7 +112,8 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
           const auto A_row = linalg::get_block<j, next, 0, j>(A);
           A(j)(j) = A(j)(j) - (A_row * v)(0);
 
-          if (linalg::constexpr_abs(A(j)(j)) < tol) return false;
+          if (linalg::constexpr_abs(A(j)(j)) < SolverTraits<T>::tol)
+            return false;
 
           if constexpr (next < SymmetricBase::N) {
             const auto A_col =
@@ -141,7 +139,7 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
     L_vec = get_lower_triangle(A);
     D_vec = get_diag(A);
 
-    this->compute_definiteness(D_vec, tol);
+    this->compute_definiteness(D_vec, SolverTraits<T>::tol);
   }
 
   /**

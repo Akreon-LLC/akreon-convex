@@ -16,10 +16,10 @@
 
 namespace linalg {
 
-/// @brief forward declaration KKTBuilder
+/// @brief forward declaration AugmentedKKT
 template <linalg::SquareMatrixLike HessianMat, linalg::MatrixLike EqualityMat>
   requires(std::same_as<mat_type_t<HessianMat>, mat_type_t<EqualityMat>>)
-struct KKTBuilder;
+struct AugmentedKKT;
 
 /// @brief simple enum to define symmetric matrix types
 /// INV = Invalid

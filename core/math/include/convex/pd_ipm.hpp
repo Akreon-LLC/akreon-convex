@@ -13,7 +13,7 @@
 #pragma once
 
 #include "convex_problem.hpp"
-#include "linalg/operator/kkt_builder.hpp"
+#include "linalg/operator/augmented_kkt.hpp"
 
 namespace convex {
 

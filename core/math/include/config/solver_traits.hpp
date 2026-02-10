@@ -31,7 +31,7 @@ struct SolverTraits<float> {
 template <>
 struct SolverTraits<double> {
   static constexpr size_t steps = 64;
-  static constexpr float tol = 1e-10;
+  static constexpr double tol = 1e-10;
 };
 
 enum struct SolverResult {
