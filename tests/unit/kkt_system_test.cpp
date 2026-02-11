@@ -47,7 +47,9 @@ TEST_CASE("Test Basic KKT System", "[kkt_system]") {
 
   SECTION("Augmented KKT -> Schur") {
     constexpr auto Hes = Hessian<decltype(H)>(H);
-    constexpr auto x = KKT_builder.solve_schur(Hes, A, b);
+    constexpr auto S = KKT_builder.make_schur(Hes, A);
+    constexpr auto ldl = LDL(S);
+    constexpr auto x = KKT_builder.solve_schur(ldl, Hes, A, b);
     constexpr auto y = KKT * x;
     STATIC_REQUIRE(L2<decltype(b)>()(y - b) < eps);
   }

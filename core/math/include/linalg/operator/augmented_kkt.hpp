@@ -107,6 +107,7 @@ struct AugmentedKKT {
    *               [ -F I   0    ]
    * \tilde{S} = F^T H_x F... augmented schur block
    *
+   * @param factored S Schur Matrix (LDL / LL / etc...)
    * @param H_x Hessian Operator
    * @param F cone block slice
    * @param rhs Vector (complementary residual + dual residual)
@@ -117,6 +118,7 @@ struct AugmentedKKT {
    * @return \Delta
    */
   constexpr auto solve_schur(
+      const LDL<Schur>& ldl,
       const Hessian<HessianMat, DifferentialType::PUSHFORWARD>& H_x,
       const EqualityMat& F, const Vector<T, N + 2 * M>& rhs) const {
     const auto split_one = splice<N>(rhs);
@@ -125,8 +127,6 @@ struct AugmentedKKT {
     const auto rc = std::get<0>(split_two);
     const auto rd = std::get<1>(split_two);
 
-    const auto S = make_schur(H_x, F);
-    const auto ldl = LDL(S);
     const auto FT = transpose(F);
     const auto pz = ldl.solve(FT * rc - FT * (H_x.apply(rd)) + rp);
     const auto qy = rc - H_x.apply(F * pz + rd);

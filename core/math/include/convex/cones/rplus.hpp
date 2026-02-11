@@ -147,6 +147,18 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
     gamma_F += M * linalg::constexpr_ln(linalg::dot(x, s)).value();
     return gamma_F;
   }
+
+  /**
+   * @brief duality gap (normalized)
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return \mu(x,s)
+   */
+  constexpr T mu_impl(const Slack& x, const Slack& s) const {
+    return linalg::dot(x, s) / static_cast<T>(M);
+  }
 };
 
 }  // namespace conic

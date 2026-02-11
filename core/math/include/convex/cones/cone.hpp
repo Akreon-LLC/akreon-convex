@@ -125,6 +125,18 @@ struct Cone {
   }
 
   /**
+   * @brief duality gap (normalized)
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return \mu(x,s)
+   */
+  constexpr T mu(const Slack& x, const Slack& s) const {
+    return self().mu_impl(x, s);
+  }
+
+  /**
    * @brief self function which returns a const ref to the derived object
    *
    * @return const reference to the derived object
