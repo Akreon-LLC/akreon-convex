@@ -67,8 +67,10 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    * sup{alpha | x - alpha p \in K} = 1 / sigma_x(p)
    * alpha = min. x_i / p_i
    *
-   * @param x \in K
-   * @param p \in E (delta dir)
+   * (similar for dual)
+   *
+   * @param x \in K or K^*
+   * @param p \in E or E^* (delta dir)
    *
    * @return \alpha_max
    */

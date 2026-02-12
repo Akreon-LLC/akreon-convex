@@ -138,6 +138,26 @@ inline constexpr size_t cone_dim_t =
 template <affine::AffineMapLike Map, typename... Cs>
 struct ConeBlock;
 
+/// @brief cone block traits
+template <typename ConeBlock>
+struct cone_block_traits;
+
+/// @brief cone clobk type traits
+template <affine::AffineMapLike Map, typename... Cs>
+struct cone_block_traits<ConeBlock<Map, Cs...>> {
+  using FMap = Map;
+  static constexpr size_t NumCones = sizeof...(Cs);
+};
+
+/// @brief alias for extracting F map from cone block
+template <typename CB>
+using cone_block_map_t = typename cone_traits<linalg::remove_cvref_t<CB>>::FMap;
+
+/// @brief helper to extract number of cones from cone block
+template <typename CB>
+inline constexpr size_t cone_block_num_cones_v =
+    cone_traits<linalg::remove_cvref_t<CB>>::NumCones;
+
 /// @brief concept for cone block like used in canonical form
 template <class Cblk>
 concept ConeBlockLike = requires(const Cblk& cblk) {

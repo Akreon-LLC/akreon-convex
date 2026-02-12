@@ -34,8 +34,9 @@ struct SolverTraits<double> {
   static constexpr double tol = 1e-10;
 };
 
-enum struct SolverResult {
+enum struct SolverResult : uint8_t {
   OPTIMAL = 0,
+  INVALID,
   INFEASIBLE,
   UNBOUNDED,
   INFEASIBLE_OR_UNBOUNDED,
