@@ -102,7 +102,7 @@ struct AugmentedKKT {
   /**
    * @brief solve augmented schur
    *
-   * \tilde{KKT} = [ 0  0   -F^T ] [ pz; px; qy ] = [ rp; rc; rd ]
+   * \tilde{KKT} = [ 0  0   -F^T ] [ pz; px; qy ] = [ rd; rc; rp ]
    *               [ 0  H_x I    ]
    *               [ -F I   0    ]
    * \tilde{S} = F^T H_x F... augmented schur block
@@ -122,15 +122,15 @@ struct AugmentedKKT {
       const Hessian<HessianMat, DifferentialType::PUSHFORWARD>& H_x,
       const EqualityMat& F, const Vector<T, N + 2 * M>& rhs) const {
     const auto split_one = splice<N>(rhs);
-    const auto rp = std::get<0>(split_one);
+    const auto rd = std::get<0>(split_one);
     const auto split_two = splice<M>(std::get<1>(split_one));
     const auto rc = std::get<0>(split_two);
-    const auto rd = std::get<1>(split_two);
+    const auto rp = std::get<1>(split_two);
 
     const auto FT = transpose(F);
-    const auto pz = ldl.solve(FT * rc - FT * (H_x.apply(rd)) + rp);
-    const auto qy = rc - H_x.apply(F * pz + rd);
-    const auto px = F * pz + rd;
+    const auto pz = ldl.solve(FT * rc - FT * (H_x.apply(rp)) + rd);
+    const auto qy = rc - H_x.apply(F * pz + rp);
+    const auto px = F * pz + rp;
 
     Vector<T, N + 2 * M> delta{};
     for (size_t i = 0; i < N; ++i) delta(i) = pz(i);
