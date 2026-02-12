@@ -55,7 +55,7 @@ struct PrimalDualIPM {
   using T = linalg::space_type_t<DecVar>;
   static constexpr size_t N = linalg::space_dim_v<DecVar>;
   static constexpr size_t M = linalg::mat_rows_v<
-      affine::mat_type_t<conic::cone_block_map_t<builder_cb_t<Builder>>>>;
+      linalg::mat_type_t<conic::cone_block_map_t<builder_cb_t<Builder>>>>;
   static constexpr size_t NumCones =
       conic::cone_block_num_cones_v<builder_cb_t<Builder>>;
   using Schur = linalg::Matrix<T, N, N>;
@@ -75,14 +75,16 @@ struct PrimalDualIPM {
   constexpr auto solve(
       const ConvexProblem<Builder, StageType::PROBLEM_SET>& prob) const {
     if (!prob.validate())
-      return PrimalDualResult<DecVar, ConeVar, SolverResult::INVALID>{};
+      return PrimalDualResult<linalg::SolverResult::INVALID, Var, ConeVar>{};
+
+    linalg::Vector<T, M> x{}, s{}, px_pred{}, px_corr{}, py_pred{}, py_corr{};
+    Var z{}, pz_rhs_pred{}, pz_rhs_corr{}, pz_pred{}, pz_corr{};
+
+    Schur S{};
 
     const auto F = prob.constraint_map().linear_part();
     const auto K = prob.constraint_cones();
 
-    linalg::Vector<T, M> x{}, s{}, px_pred{}, px_corr{}, py_pred{}, py_corr{};
-    Var z{}, pz_rhs_pred{}, pz_rhs_corr{}, pz_pred{}, pz_corr{};
-    Schur S{};
     /**
      * @brief process cones for predictor corrector method
      *
@@ -99,7 +101,7 @@ struct PrimalDualIPM {
             return false;
           else {
             const auto Ki = std::get<idx>(K);
-            using Slack = cone_slack_t<decltype(Ki)>;
+            using Slack = conic::cone_slack_t<decltype(Ki)>;
             constexpr size_t KiRows = linalg::vec_size_v<Slack>;
             constexpr size_t End = Start + KiRows;
 
@@ -119,7 +121,7 @@ struct PrimalDualIPM {
             const auto Hes = Ki.H(xk, sk);
 
             const auto F_blk = get_block<Start, Start + KiRows, 0, N>(F);
-            const AugmentedKKT<decltype(Hes.H), decltype(F_blk)> kkt;
+            const linalg::AugmentedKKT<decltype(Hes.H), decltype(F_blk)> kkt;
             const auto Si = kkt.make_schur(Hes, F_blk);
             S += Si;
 
@@ -127,9 +129,11 @@ struct PrimalDualIPM {
             const auto rc_pred = sk;
             const auto rc_corr = sk + Ki.mu(xk, sk) * Ki.grad(xk);
 
-            pz_rhs_pred += FT* rc_pred pz_rhs_corr += FT * rc_corr;
+            pz_rhs_pred += FT * rc_pred;
+            pz_rhs_corr += FT * rc_corr;
 
-            const auto factored = self<idx + 1, Start + KiRows>();
+            const auto factored =
+                self.template operator()<idx + 1, Start + KiRows>();
 
             if (!factored) {
               const auto ldl = LDL(S);
@@ -160,7 +164,7 @@ struct PrimalDualIPM {
         return alpha;
       else {
         const auto Ki = std::get<idx>(K);
-        using Slack = cone_slack_t<decltype(Ki)>;
+        using Slack = conic::cone_slack_t<decltype(Ki)>;
         constexpr size_t KiRows = linalg::vec_size_v<Slack>;
         constexpr size_t End = Start + KiRows;
 
@@ -183,7 +187,7 @@ struct PrimalDualIPM {
           skb = sk - alpha * pyk;
         }
 
-        return self<idx + 1, Start + KiRows>(alpha, px, py);
+        return self.template operator()<idx + 1, Start + KiRows>(alpha, px, py);
       }
     };
 
@@ -204,9 +208,10 @@ struct PrimalDualIPM {
       x = x - alpha * px;
       s = s - alpha * py;
       z = z - alpha * pz;
-    } while (linalg::dot(x, s) > SolverTraits<T>::tol);
+    } while (linalg::dot(x, s) > linalg::SolverTraits<T>::tol);
 
-    return PrimalDualResult<linalg::SolverResult::OPTIMAL>(z, x, s)
+    return PrimalDualResult<linalg::SolverResult::OPTIMAL, decltype(z),
+                            decltype(x)>(z, x, s);
   }
 };
 
