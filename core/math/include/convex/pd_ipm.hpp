@@ -20,13 +20,15 @@ namespace convex {
 /**
  * @brief PrimalDualResult
  */
-template <linalg::SolverResult Result, linalg::VectorLike DecVar,
-          linalg::VectorLike ConeVar>
+template <linalg::VectorLike DecVar, linalg::VectorLike ConeVar>
 struct PrimalDualResult {
   /**
    * @brief CTOR
+   *
+   * @param result SolverTraits result
    */
-  constexpr explicit PrimalDualResult() {}
+  constexpr explicit PrimalDualResult(const linalg::SolverResult& res_in)
+      : result(res_in) {}
 
   /**
    * @brief CTOR
@@ -35,27 +37,30 @@ struct PrimalDualResult {
    * @param x primal var
    * @param s dual var
    */
-  constexpr explicit PrimalDualResult(const DecVar& z_in, const ConeVar& x_in,
+  constexpr explicit PrimalDualResult(const linalg::SolverResult& res_in,
+                                      const DecVar& z_in, const ConeVar& x_in,
                                       const ConeVar& s_in)
-      : z(z_in), x(x_in), s(s_in) {}
+      : result(res_in), z(z_in), x(x_in), s(s_in) {}
 
   /** @brief member vars */
-  DecVar z;   ///< decision var \in Rn / E
-  ConeVar x;  ///< primal cone var \in K
-  ConeVar s;  ///< dual cone var \in K^*
+  linalg::SolverResult result;  ///< result (solver)
+  DecVar z;                     ///< decision var \in Rn / E
+  ConeVar x;                    ///< primal cone var \in K
+  ConeVar s;                    ///< dual cone var \in K^*
 };
 
 /**
  * @brief Primal Dual Interior Point Method Solver
  */
-template <BuilderLike Builder>
+template <ProblemLike Problem>
 struct PrimalDualIPM {
   /// @brief alias and helpers to get types & sizes
+  using Builder = prob_builder_t<Problem>;
   using DecVar = builder_dom_t<Builder>;
   using T = linalg::space_type_t<DecVar>;
   static constexpr size_t N = linalg::space_dim_v<DecVar>;
   static constexpr size_t M = linalg::mat_rows_v<
-      linalg::mat_type_t<conic::cone_block_map_t<builder_cb_t<Builder>>>>;
+      affine::affine_mat_t<conic::cone_block_map_t<builder_cb_t<Builder>>>>;
   static constexpr size_t NumCones =
       conic::cone_block_num_cones_v<builder_cb_t<Builder>>;
   using Schur = linalg::Matrix<T, N, N>;
@@ -75,7 +80,7 @@ struct PrimalDualIPM {
   constexpr auto solve(
       const ConvexProblem<Builder, StageType::PROBLEM_SET>& prob) const {
     if (!prob.validate())
-      return PrimalDualResult<linalg::SolverResult::INVALID, Var, ConeVar>{};
+      return PrimalDualResult<Var, ConeVar>(linalg::SolverResult::INVALID);
 
     linalg::Vector<T, M> x{}, s{}, px_pred{}, px_corr{}, py_pred{}, py_corr{};
     Var z{}, pz_rhs_pred{}, pz_rhs_corr{}, pz_pred{}, pz_corr{};
@@ -121,8 +126,12 @@ struct PrimalDualIPM {
       else {
         const auto Ki = std::get<idx>(K);
         using Slack = conic::cone_slack_t<decltype(Ki)>;
+
         constexpr size_t KiRows = linalg::vec_size_v<Slack>;
         constexpr size_t End = Start + KiRows;
+
+        if (conic::is_zoc_v<decltype(Ki)>)
+          return self.template operator()<idx + 1, Start + KiRows>(rd, rp);
 
         if constexpr (Start == 0) {
           const auto x0 = Ki.x0();
@@ -155,15 +164,15 @@ struct PrimalDualIPM {
             self.template operator()<idx + 1, Start + KiRows>(rd, rp);
 
         if (!factored) {
-          const auto ldl = LDL(S);
+          const auto ldl = linalg::LDL(S);
           pz_pred = ldl.solve(pz_rhs_pred);
           pz_corr = ldl.solve(pz_rhs_corr);
         }
 
-        const auto py_pred_tmp = Hes.apply(F * pz_pred + rd) - rc_pred;
-        const auto py_corr_tmp = Hes.apply(F * pz_corr + rd) - rc_corr;
-        const auto px_pred_tmp = F * pz_pred + rd;
-        const auto px_corr_tmp = F * pz_corr + rd;
+        const auto py_pred_tmp = Hes.apply(F_blk * pz_pred + rd) - rc_pred;
+        const auto py_corr_tmp = Hes.apply(F_blk * pz_corr + rd) - rc_corr;
+        const auto px_pred_tmp = F_blk * pz_pred + rd;
+        const auto px_corr_tmp = F_blk * pz_corr + rd;
 
         for (size_t i = Start, j = 0; i < End; ++i, ++j) {
           px_pred(i) = px_pred_tmp(j);
@@ -186,6 +195,10 @@ struct PrimalDualIPM {
         using Slack = conic::cone_slack_t<decltype(Ki)>;
         constexpr size_t KiRows = linalg::vec_size_v<Slack>;
         constexpr size_t End = Start + KiRows;
+
+        if (conic::is_zoc_v<decltype(Ki)>)
+          return self.template operator()<idx + 1, Start + KiRows>(alpha, px,
+                                                                   py);
 
         using ConePoint = linalg::Vector<T, End - Start>;
         ConePoint xk{}, sk{}, pxk{}, pyk{};
@@ -231,8 +244,7 @@ struct PrimalDualIPM {
       z = z - alpha * pz;
     } while (linalg::dot(x, s) > linalg::SolverTraits<T>::tol);
 
-    return PrimalDualResult<linalg::SolverResult::OPTIMAL, decltype(z),
-                            decltype(x)>(z, x, s);
+    return PrimalDualResult(linalg::SolverResult::OPTIMAL, z, x, s);
   }
 };
 

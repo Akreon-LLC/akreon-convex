@@ -72,6 +72,11 @@ if(BUILD_TESTING)
   target_link_libraries(kkt_system_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(kkt_system_test PRIVATE ../math/include)
 
+  add_executable(pd_ipm_test unit/pd_ipm_test.cpp)
+  add_test(NAME pd_ipm_test COMMAND pd_ipm_test)
+  target_link_libraries(pd_ipm_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(pd_ipm_test PRIVATE ../math/include)
+
   # Functional Tests
   add_executable(linalg_fuzz_test functional/linalg_fuzz_test.cpp)
   target_include_directories(linalg_fuzz_test PRIVATE ../math/include)

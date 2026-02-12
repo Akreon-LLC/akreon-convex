@@ -190,7 +190,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(set.contains(Vectord<3>{}));
     STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));
     // TODO - revist
-    //STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
+    // STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
@@ -245,11 +245,11 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     constexpr auto cone_block1 =
         res.template canonicalize<AtomType::CAP>(builder).cb;
     STATIC_REQUIRE(mat_cols_v<decltype(cone_block1.map.linear_part())> == 5);
-    STATIC_REQUIRE(mat_rows_v<decltype(cone_block1.map.linear_part())> == 8);
+    STATIC_REQUIRE(mat_rows_v<decltype(cone_block1.map.linear_part())> == 6);
 
     constexpr auto cones1 = cone_block1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
-    STATIC_REQUIRE(sz1 == 8);
+    STATIC_REQUIRE(sz1 == 4);
     STATIC_REQUIRE(cone_block1.validate());
   }
 }
@@ -278,16 +278,17 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     constexpr auto cone_block =
         poly.template canonicalize<AtomType::SET>(builder).cb;
 
-    constexpr mat_traits<Matrix<double, 2, 4>> P_mat;
-    constexpr auto P = P_mat(-1.0, 0.0, 0.0, b(0), 0.0, 0.0, 0.0, 1.0);
+    constexpr mat_traits<Matrix<double, 8, 4>> P_mat;
+    constexpr auto P =
+        P_mat(-1.0, 0.0, 0.0, b(0), 1.0, 0.0, 0.0, b(1), 0.0, -1.0, 0.0, b(2),
+              0.0, 1.0, 0.0, b(3), 0.0, 0.0, -1.0, b(4), 0.0, 0.0, 1.0, b(5),
+              -1.0, -1.0, 0.0, b(6), 0.0, 0.0, 0.0, 1.0);
 
-    constexpr auto F_slice =
-        linalg::get_block<0, 2, 0, 4>(cone_block.map.linear_part());
-    STATIC_REQUIRE(linalg::all_equal(F_slice, P));
+    STATIC_REQUIRE(linalg::all_equal(cone_block.map.linear_part(), P));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 14);
+    STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
   }
 }

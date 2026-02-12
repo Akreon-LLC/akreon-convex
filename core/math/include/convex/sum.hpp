@@ -18,6 +18,14 @@
 
 namespace convex {
 
+/**
+ * @brief update selector
+ *
+ * @param previous map
+ * @param next map
+ *
+ * @return new map
+ */
 template <affine::AffineMapLike PrevMap, affine::AffineMapLike NextMap>
 constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
   using PrevMatT = affine::affine_mat_t<PrevMap>;
@@ -45,6 +53,15 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
   }
 }
 
+/**
+ * @brief tuple fold sum
+ *
+ * @param children atoms
+ * @param builder
+ * @param canonicalize fn
+ *
+ * @return (selector, builder)
+ */
 template <size_t idx = 0, typename Children, typename Builder, typename Fn,
           affine::AffineMapLike Map>
 constexpr auto tuple_fold_sum(Children&& children, Builder&& builder, Fn&& fn,
@@ -63,8 +80,12 @@ constexpr auto tuple_fold_sum(Children&& children, Builder&& builder, Fn&& fn,
   }
 }
 
+/**
+ * @brief sum atom
+ */
 template <typename Meta, typename... Cs>
 struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
+  /// @brief base type alias
   using BaseT = Atom<Meta, Sum<Meta, Cs...>, Cs...>;
   using typename BaseT::Domain;
   using typename BaseT::PointT;
@@ -75,13 +96,29 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
 
   using MatT = linalg::Matrix<T, 1, 1>;
 
+  /**
+   * @brief CTOR
+   *
+   * @param children param pack
+   */
   constexpr explicit Sum(const Cs&... cs)
       : BaseT(std::forward_as_tuple(cs...)), map(affine::make_map_id<MatT>()) {}
 
+  /**
+   * @brief CTOR
+   *
+   * @param map
+   * @param tuple of children
+   */
   constexpr explicit Sum(const affine::AffineMap<MatT>& map_in,
                          const std::tuple<Cs...>& cs)
       : BaseT(cs), map(map_in) {}
 
+  /**
+   * @brief multiply
+   *
+   * @return new sum
+   */
   template <T Scalar>
   constexpr auto mul() const {
     affine::AffineMap<MatT> new_map(Scalar * map.linear_part(),
@@ -89,12 +126,26 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
     return Sum<Meta, Cs...>(new_map, this->children);
   }
 
+  /**
+   * @brief add
+   *
+   * @param beta scalar
+   *
+   * @return new sum
+   */
   constexpr auto add(const T& beta) const {
     affine::AffineMap<MatT> new_map(map.linear_part(),
                                     beta + map.translation());
     return Sum<Meta, Cs...>(new_map, this->children);
   }
 
+  /**
+   * @brief canonicalize
+   *
+   * @param builder
+   *
+   * @return cone block builder
+   */
   template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     static_assert(Type != AtomType::SET, "Minkowski sum is not yet supported");
@@ -118,49 +169,6 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
 
   /** @brief member var */
   affine::AffineMap<MatT> map;
-};
-
-template <size_t idx = 0, typename Children, typename Builder, typename Fn>
-constexpr auto tuple_fold_cap(Children&& children, Builder&& builder, Fn&& fn) {
-  constexpr size_t N = std::tuple_size_v<std::remove_reference_t<Children>>;
-  if constexpr (idx == N)
-    return std::forward<Builder>(builder);
-  else {
-    auto&& child = std::get<idx>(std::forward<Children>(children));
-    auto new_builder =
-        std::forward<Fn>(fn)(child, std::forward<Builder>(builder));
-    return tuple_fold_cap<idx + 1>(std::forward<Children>(children),
-                                   std::move(new_builder),
-                                   std::forward<Fn>(fn));
-  }
-}
-
-template <typename Meta, typename... Cs>
-struct Intersection : Atom<Meta, Intersection<Meta, Cs...>, Cs...> {
-  using BaseT = Atom<Meta, Intersection<Meta, Cs...>, Cs...>;
-  using typename BaseT::Domain;
-  using typename BaseT::PointT;
-
-  constexpr explicit Intersection(const Cs... cs)
-      : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
-
-  template <AtomType Type, BuilderLike Builder>
-  constexpr auto canonicalize_impl(const Builder& builder) const {
-    static_assert(Type == AtomType::SET || Type == AtomType::CAP,
-                  "Intersection is only supported on convex sets");
-    auto canonicalize_child = [&](const auto& child, const auto& builder_in) {
-      return child.template canonicalize<AtomType::CAP>(builder_in);
-    };
-    return tuple_fold_cap(this->children, builder, canonicalize_child);
-  }
-
-  constexpr bool contains(const PointT& x) const {
-    bool rv = true;
-    auto eval_child = [&](const auto& child) { rv &= child.contains(x); };
-    std::apply([&](const auto&... child) { (eval_child(child), ...); },
-               this->children);
-    return rv;
-  }
 };
 
 }  // namespace convex

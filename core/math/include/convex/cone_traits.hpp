@@ -59,7 +59,7 @@ struct cone_traits;
 
 /// @brief cone traits derived for zoc
 template <linalg::VectorLike Vec>
-struct cone_traits<ZeroOrderCone<Vec>> {
+struct cone_traits<ZeroOrderCone<Vec>> : std::true_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
@@ -67,7 +67,7 @@ struct cone_traits<ZeroOrderCone<Vec>> {
 
 /// @brief cone traits derived for rplus
 template <linalg::VectorLike Vec>
-struct cone_traits<NonnegOrthantCone<Vec>> {
+struct cone_traits<NonnegOrthantCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
@@ -75,7 +75,7 @@ struct cone_traits<NonnegOrthantCone<Vec>> {
 
 /// @brief cone traits derived for soc
 template <linalg::VectorLike Vec>
-struct cone_traits<SecondOrderCone<Vec>> {
+struct cone_traits<SecondOrderCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
@@ -83,7 +83,7 @@ struct cone_traits<SecondOrderCone<Vec>> {
 
 /// @brief cone traits derived for psd
 template <linalg::VectorLike Vec, size_t Dim>
-struct cone_traits<PositiveSemidefiniteCone<Vec, Dim>> {
+struct cone_traits<PositiveSemidefiniteCone<Vec, Dim>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
@@ -91,7 +91,7 @@ struct cone_traits<PositiveSemidefiniteCone<Vec, Dim>> {
 
 /// @brief cone traits derived for exp
 template <linalg::VectorLike Vec>
-struct cone_traits<ExpCone<Vec>> {
+struct cone_traits<ExpCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
@@ -99,7 +99,7 @@ struct cone_traits<ExpCone<Vec>> {
 
 /// @brief cone traits derived for power cone
 template <linalg::VectorLike Vec>
-struct cone_traits<PowerCone<Vec>> {
+struct cone_traits<PowerCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
@@ -107,15 +107,7 @@ struct cone_traits<PowerCone<Vec>> {
 
 /// @brief cone traits derived for rsoc
 template <linalg::VectorLike Vec>
-struct cone_traits<RotatedSecondOrderCone<Vec>> {
-  using SlackT = Vec;
-  using T = linalg::vec_type_t<Vec>;
-  static constexpr size_t N = linalg::vec_size_v<Vec>;
-};
-
-/// @brief cone traits derived for log det cone
-template <linalg::VectorLike Vec>
-struct cone_traits<LogDetCone<Vec>> {
+struct cone_traits<RotatedSecondOrderCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
@@ -134,6 +126,10 @@ template <class Cone>
 inline constexpr size_t cone_dim_t =
     cone_traits<linalg::remove_cvref_t<Cone>>::N;
 
+/// @brief helper for checking if its zero order cone
+template <class Cone>
+inline constexpr bool is_zoc_v = cone_traits<linalg::remove_cvref_t<Cone>>{};
+
 /// @brief cone block forward decl
 template <affine::AffineMapLike Map, typename... Cs>
 struct ConeBlock;
@@ -151,12 +147,13 @@ struct cone_block_traits<ConeBlock<Map, Cs...>> {
 
 /// @brief alias for extracting F map from cone block
 template <typename CB>
-using cone_block_map_t = typename cone_traits<linalg::remove_cvref_t<CB>>::FMap;
+using cone_block_map_t =
+    typename cone_block_traits<linalg::remove_cvref_t<CB>>::FMap;
 
 /// @brief helper to extract number of cones from cone block
 template <typename CB>
 inline constexpr size_t cone_block_num_cones_v =
-    cone_traits<linalg::remove_cvref_t<CB>>::NumCones;
+    cone_block_traits<linalg::remove_cvref_t<CB>>::NumCones;
 
 /// @brief concept for cone block like used in canonical form
 template <class Cblk>

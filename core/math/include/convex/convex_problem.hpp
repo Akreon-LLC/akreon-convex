@@ -23,9 +23,11 @@ enum struct StageType : uint8_t { INIT = 0, IN_PROGRESS, PROBLEM_SET };
 template <BuilderLike Builder, StageType Stage>
 class ConvexProblem;
 
+/// @brief problem type traits
 template <typename Prob>
 struct prob_traits;
 
+/// @brief problem type traits
 template <BuilderLike Builder, StageType Stage>
 struct prob_traits<ConvexProblem<Builder, Stage>> {
   using BuilderT = Builder;
@@ -41,6 +43,14 @@ using prob_builder_t =
 template <typename Prob>
 inline constexpr bool is_problem_set_v =
     prob_traits<linalg::remove_cvref_t<Prob>>::StageV == StageType::PROBLEM_SET;
+
+/// @brief ProblemLike Concept
+template <typename Problem>
+concept ProblemLike = requires(const Problem& prob) {
+  { prob.linear_objective() };
+  { prob.constraint_map() };
+  { prob.constraint_cones() };
+};
 
 /**
  * @brief make problem

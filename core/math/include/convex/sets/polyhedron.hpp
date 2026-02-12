@@ -143,15 +143,15 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    * C = { x | A x <= b, Cx = d }
    * K = { (x, t) | A x <= b t, Cx = d t, t >= 0 }
    *
-   * let z = C x - d t = 0... z in zoc
-   * let w = A x - b t <= 0... w in rneg
-   * t in rplus
+   * -Ax >= -b... b t - Ax >= 0 in rplus
+   *  t... in rplus
    *
-   * [ A -b ] [ x; t ] <= 0
+   * [ -A b ] [ x; t ] >= 0
    * [ 0  1 ]
    *
-   * [ C -d ] [ x; t ] = 0
-   * [ 0  1 ]
+   * -a0^T x0 + bt >= 0
+   * ...
+   * t >= 0
    *
    * @return cone block
    */
@@ -169,52 +169,21 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    std::tuple<> empty;
-    static constexpr size_t Codom = 2 * M;
-    static constexpr size_t Dom = N + 1;
-    linalg::Matrix<T, Codom, Dom> F;
-    linalg::Vector<T, Codom> g;
-    conic::ConeBlock cb(affine::AffineMap(F, g), empty);
+    linalg::Matrix<T, M + 1, N + 1> F;
+    F = linalg::set_block<0, M, 0, N>(F, T(-1) * A);
+    for (size_t i = 0; i < M; ++i) F(i)(N) = b(i);
+    F(M)(N) = T(1);
 
-    const auto new_cb = canonicalize_halfspaces<0>(builder, cb);
-    const auto map = new_cb.map;
-    const auto cones = new_cb.cones;
+    linalg::Vector<T, M + 1> g;
+    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, M>>();
+    const auto rplus_t = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    const auto cones = std::make_tuple(rplus, rplus_t);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
     return new_builder.template make<Type>(this->idx, this->lift_map, cones);
-  }
-
-  /**
-   * @brief canonicalize halfspace
-   *
-   * @param cone_block
-   *
-   * @return halfspaces
-   */
-  template <size_t i, BuilderLike Builder, affine::AffineMapLike Map,
-            typename... Cs>
-  constexpr auto canonicalize_halfspaces(
-      const Builder& builder,
-      const conic::ConeBlock<Map, Cs...>& cone_block) const {
-    if constexpr (i >= M)
-      return cone_block;
-    else {
-      const auto halfspace =
-          Halfspace<HalfspaceMeta<Space>, Child, HalfspaceType::LH>(
-              A(i), b(i), std::get<0>(this->children));
-      const auto cb =
-          halfspace.template canonicalize<AtomType::SET>(builder).cb;
-      auto F = cone_block.map.linear_part();
-      const auto g = cone_block.map.translation();
-      static constexpr size_t j = 2 * i;
-      F = linalg::set_block<j, j + 2, 0, N + 1>(F, cb.map.linear_part());
-      const auto map = affine::AffineMap<decltype(F)>(F, g);
-      const auto cones = std::tuple_cat(cone_block.cones, cb.cones);
-      return canonicalize_halfspaces<i + 1>(builder,
-                                            conic::ConeBlock(map, cones));
-    }
   }
 
   /** @brief member variables in the polyhedron */
