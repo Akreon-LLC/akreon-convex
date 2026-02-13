@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <iostream>
+
 #include "convex_problem.hpp"
 #include "linalg/operator/augmented_kkt.hpp"
 
@@ -71,8 +73,7 @@ struct PrimalDualIPM {
    *
    * @return result
    */
-  constexpr auto solve(
-      const ConvexProblem<Builder, StageType::PROBLEM_SET>& prob) const {
+  auto solve(const ConvexProblem<Builder, StageType::PROBLEM_SET>& prob) const {
     const auto c = linalg::as_vector(prob.linear_objective());
     const auto g = prob.constraint_map().translation();
     const auto F = prob.constraint_map().linear_part();
@@ -136,12 +137,6 @@ struct PrimalDualIPM {
         if (conic::is_zoc_v<decltype(Ki)>)
           return self.template operator()<idx + 1, Start + KiRows>(rd, rp);
 
-        if constexpr (Start == 0) {
-          const auto x0 = Ki.x0(), s0 = Ki.s0();
-          for (size_t i = Start, j = 0; i < End; ++i, ++j)
-            x(i) = x0(j), s(i) = s0(j);
-        }
-
         using ConePoint = linalg::Vector<T, End - Start>;
         ConePoint xk{}, sk{}, rpk{};
 
@@ -159,20 +154,22 @@ struct PrimalDualIPM {
         const auto rc_pred = sk;
         const auto rc_corr = sk + Ki.mu(xk, sk) * Ki.grad(xk);
 
-        pz_rhs_pred = pz_rhs_pred + (FT * rc_pred - FT * Hes.apply(rpk) + rd);
-        pz_rhs_corr = pz_rhs_corr + (FT * rc_corr - FT * Hes.apply(rpk) + rd);
+        pz_rhs_pred = pz_rhs_pred + (FT * rc_pred - FT * Hes.apply(rpk));
+        pz_rhs_corr = pz_rhs_corr + (FT * rc_corr - FT * Hes.apply(rpk));
 
         const auto factored =
             self.template operator()<idx + 1, Start + KiRows>(rd, rp);
 
         if (!factored) {
+          pz_rhs_pred = pz_rhs_pred - rd;
+          pz_rhs_corr = pz_rhs_corr - rd;
           const auto ldl = linalg::LDL(S);
           pz_pred = ldl.solve(pz_rhs_pred);
           pz_corr = ldl.solve(pz_rhs_corr);
         }
 
-        const auto px_pred_tmp = F_blk * pz_pred + rpk;
-        const auto px_corr_tmp = F_blk * pz_corr + rpk;
+        const auto px_pred_tmp = rpk - F_blk * pz_pred;
+        const auto px_corr_tmp = rpk - F_blk * pz_corr;
         const auto py_pred_tmp = Hes.apply(px_pred_tmp) - rc_pred;
         const auto py_corr_tmp = Hes.apply(px_corr_tmp) - rc_corr;
 
@@ -211,24 +208,72 @@ struct PrimalDualIPM {
         const auto alpha_x = Ki.alpha_max(xk, pxk);
         const auto alpha_s = Ki.alpha_max(sk, pyk);
 
-        alpha = std::min(alpha, std::min(alpha_x, alpha_s));
+        constexpr T eta = T(0.99);
+        alpha = std::min(alpha, eta * std::min(alpha_x, alpha_s));
+        alpha = std::min(alpha, T(1.0));
 
-        auto xkb = xk - alpha * pxk;
-        auto skb = sk - alpha * pyk;
-        while (Ki.functional_proximity(xkb, skb) <= Beta) {
+#if 0
+        for (size_t i = 0; i < linalg::SolverTraits<T>::steps; ++i) {
+          auto xkb = xk - alpha * pxk;
+          auto skb = sk - alpha * pyk;
+
+          if (Ki.functional_proximity(xkb, skb) <= Beta) break;
+
           alpha *= T(0.5);
-          xkb = xk - alpha * pxk;
-          skb = sk - alpha * pyk;
+          if (alpha < linalg::SolverTraits<T>::tol) break;
         }
+#endif
 
         return self.template operator()<idx + 1, Start + KiRows>(alpha, px, py);
       }
     };
 
+    auto seed_problem =
+        [&]<size_t idx = 0, size_t Start = 0>(this auto&& self) {
+          if constexpr (idx >= NumCones)
+            return;
+          else {
+            const auto Ki = std::get<idx>(K);
+            using Slack = conic::cone_slack_t<decltype(Ki)>;
+
+            constexpr size_t KiRows = linalg::vec_size_v<Slack>;
+            constexpr size_t End = Start + KiRows;
+
+            if (conic::is_zoc_v<decltype(Ki)>)
+              return self.template operator()<idx + 1, Start + KiRows>();
+
+            const auto x0 = Ki.x0(), s0 = Ki.s0();
+            for (size_t i = Start, j = 0; i < End; ++i, ++j)
+              x(i) = x0(j), s(i) = s0(j);
+
+            self.template operator()<idx + 1, Start + KiRows>();
+          }
+        };
+
+    seed_problem();
+
+    ConeVar rp{};
+    Var rd{};
+    T rc{};
+    int i = 0;
     do {
+      if (linalg::SolverTraits<T>::steps == i)
+        return PrimalDualResult(linalg::SolverResult::INFEASIBLE_OR_UNBOUNDED,
+                                z, x, s);
+
+      S = Schur{};
+      pz_rhs_pred = Var{};
+      pz_rhs_corr = Var{};
+      px_pred = ConeVar{};
+      px_corr = ConeVar{};
+      py_pred = ConeVar{};
+      py_corr = ConeVar{};
+      pz_pred = Var{};
+      pz_corr = Var{};
+
       /// (dakre) apply predictor correct for all cones
-      const auto rd = (transpose(F) * s) + c;
-      const auto rp = (F * z) - x - g;
+      rd = (transpose(F) * s) + c;
+      rp = (F * z) - x - g;
       pred_corr_method(rd, rp);
 
       /// (dakre) linear combination between predictor & corrector dirs to form
@@ -239,12 +284,19 @@ struct PrimalDualIPM {
 
       /// (dakre) backtrack alpha
       const auto alpha = backtrack(T(1), px, py);
+      std::cout << alpha << std::endl;
 
       /// (dakre) take newton step scaled by alpha
       x = x - alpha * px;
       s = s - alpha * py;
       z = z - alpha * pz;
-    } while (linalg::dot(x, s) > linalg::SolverTraits<T>::tol);
+
+      rc = linalg::dot(x, s);
+
+      i += 1;
+    } while (rc > linalg::SolverTraits<T>::tol ||
+             linalg::L2<decltype(rp)>()(rp) > linalg::SolverTraits<T>::tol ||
+             linalg::L2<decltype(rd)>()(rd) > linalg::SolverTraits<T>::tol);
 
     return PrimalDualResult(linalg::SolverResult::OPTIMAL, z, x, s);
   }

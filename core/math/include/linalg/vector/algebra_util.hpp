@@ -265,7 +265,7 @@ constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
 /**
  * @brief natural log
  *
- * [old] less numerically friendly
+ * [old 1] less numerically friendly
  * Taylor series expansion for 1 + t, t = 0
  * log(1 + t) = t - t^2 / 2 + t^3 / 3 - ... =
  * \sum_{k=1}^{\infty}(-1)^{k+1}\frac{t^k}{k}
@@ -273,19 +273,42 @@ constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
  * Restricting x \in R_++, and let t = x - 1... log(1 + x - 1) = log(x)
  * log(x) \approx (x - 1) - (x - 1)^2 / 2 + (x - 1)^3 - ...
  *
- * [new] use atanh
+ * [old 2] use atanh
  * log(x) \approx 2 * atan(y) where y = (x - 1) / (x + 1)
+ *
+ * [new] range reduce x = m * 2^e where m in [0.5, 2]
+ * \forall x > 0 we have x = m 2^e, m \in [0.5, 1] and e \in Z
+ * ln(x) = ln(m) + e ln(2)
+ * ** the above makes this much more numerically stable
+ *
+ * - perform atan(y) as before
+ * - sum 2a with e*ln(2)
  *
  * @return real number
  */
 template <RealLike T>
-constexpr std::optional<T> constexpr_ln(const T& x, int terms = 16) {
-  if (x <= T(0)) return std::nullopt;
+constexpr std::optional<T> constexpr_ln(const T& x_in, int terms = 16) {
+  if (!(x_in > T(0))) return std::nullopt;
+
+  T x = x_in;
+  int e = 0;
+
+  for (int i = 0; i < 64 && x > T(2); ++i) {
+    x *= T(0.5);
+    ++e;
+  }
+  for (int i = 0; i < 64 && x < T(0.5); ++i) {
+    x *= T(2);
+    --e;
+  }
 
   const T y = (x - T(1)) / (x + T(1));
-  const auto res = constexpr_atanh(y, terms);
-  if (!res.has_value()) return std::nullopt;
-  return T(2) * res.value();
+  const auto a = constexpr_atanh(y, terms);
+  if (!a) return std::nullopt;
+
+  constexpr T ln2 = T(0.693147180559945309417232121458176568L);
+
+  return T(2) * (*a) + T(e) * ln2;
 }
 
 /*

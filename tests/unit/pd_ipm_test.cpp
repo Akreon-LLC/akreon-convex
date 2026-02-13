@@ -40,13 +40,27 @@ TEST_CASE("Simple LPs", "[pd_ipm_test]") {
     constexpr auto prob_min = prob_constr.minimize(x(0).value());
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
     constexpr auto F = prob_min.constraint_map().linear_part();
-    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 6);
-    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 3);
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
+
+    constexpr auto F_mat = mat_traits<Matrixd<5, 2>>();
+    constexpr auto F_exp =
+        F_mat(1.0, 0.0, 0.0, 1.0, -1.0, -1.0, -2.0, -1.0, 1.0, -2.0);
+    STATIC_REQUIRE(all_equal(F_exp, F));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(g == Vectord<5>{0.0, 0.0, 4.0, 5.0, 2.0});
+
     constexpr auto c = prob_min.linear_objective();
-    STATIC_REQUIRE(c == Vectord<3>{1.0, 0.0, 0.0});
-    // constexpr PrimalDualIPM<decltype(prob_min)> solver;
-    // constexpr auto res = solver.solve(prob_min);
+    STATIC_REQUIRE(c == Vectord<2>{1.0, 0.0});
+
+    PrimalDualIPM<decltype(prob_min)> solver;
+    auto res = solver.solve(prob_min);
+    for (size_t i = 0; i < 5; ++i)
+      std::cout << "i = " << i << " z = " << res.z(i) << " x = " << res.x(i)
+                << " s = " << res.s(i) << std::endl;
+    // STATIC_REQUIRE(res.result == linalg::SolverResult::OPTIMAL);
   }
 }

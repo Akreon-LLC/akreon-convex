@@ -90,6 +90,13 @@ class AffineMap {
   /**
    * @brief CTOR
    *
+   * @param matrix M x N
+   */
+  constexpr explicit AffineMap(const Mat& U_in) : U(U_in) {}
+
+  /**
+   * @brief CTOR
+   *
    * @param matrix of type T M x N elements
    * @param vector of type T M elements
    */

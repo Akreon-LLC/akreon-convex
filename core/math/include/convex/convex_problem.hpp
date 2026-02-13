@@ -234,12 +234,13 @@ class ConvexProblem {
           "convex function, or index of var instead of raw type");
     } else if constexpr (is_index_type_v<Atom>) {
       const auto cb = builder.cb;
-      auto c = builder.coord_map.linear_part();
+      // auto c = builder.coord_map.linear_part();
+      static constexpr size_t AugN =
+          linalg::mat_cols_v<decltype(builder.coord_map.linear_part())>;
+      linalg::Matrix<T, 1, AugN> c{};
       auto b = builder.coord_map.translation()(0) + atom.map.translation()(0);
       static constexpr size_t N = linalg::space_dim_v<builder_dom_t<Builder>>;
-      static constexpr size_t AugN = linalg::mat_cols_v<decltype(c)>;
       for (size_t i = 0; i < N; ++i) c(0)(i) = atom.map.linear_part()(0)(i);
-      for (size_t i = N; i < AugN; ++i) c(0)(i) = T(0);
       const affine::AffineMap<decltype(c)> new_map(c, b);
       const auto new_builder =
           ConeBlockBuilder<builder_dom_t<Builder>, decltype(new_map),

@@ -121,7 +121,8 @@ struct ConeBlockBuilder {
     F = linalg::set_block<ConeCodom, FullCodom, 0, N>(F, dec_spanning_blk);
 
     /// (2) fill bottom right with new aux vars from latest cone
-    if constexpr (Type != AtomType::VAR) {
+    if constexpr (Type != AtomType::VAR && CoordAux > 0) {
+      static_assert(CoordAuxEndCol > CoordAuxStartCol);
       const auto coord_aux_blk =
           linalg::get_block<0, CoordCodom, N, CoordDom>(A);
       F = linalg::set_block<ConeCodom, FullCodom, CoordAuxStartCol,

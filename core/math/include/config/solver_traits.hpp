@@ -37,12 +37,7 @@ struct SolverTraits<double> {
 enum struct SolverResult : uint8_t {
   OPTIMAL = 0,
   INVALID,
-  INFEASIBLE,
-  UNBOUNDED,
-  INFEASIBLE_OR_UNBOUNDED,
-  OPTIMAL_INACCURATE,
-  INFEASIBLE_INACCURATE,
-  UNBOUNDED_INACCURATE
+  INFEASIBLE_OR_UNBOUNDED
 };
 
 }  // namespace linalg

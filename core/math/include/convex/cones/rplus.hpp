@@ -77,12 +77,14 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    */
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {
-    T mn = std::numeric_limits<T>::max();
+    T a = std::numeric_limits<T>::max();
     for (size_t i = 0; i < M; ++i) {
-      if (linalg::constexpr_abs(p(i)) < eps) continue;
-      mn = x(i) / p(i) < mn ? x(i) / p(i) : mn;
+      if (p(i) > T(0)) {
+        const T cand = x(i) / p(i);
+        a = (cand < a) ? cand : a;
+      }
     }
-    return mn;
+    return a;
   }
 
   /**

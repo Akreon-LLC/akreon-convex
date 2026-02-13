@@ -140,6 +140,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    *
    * Apply P^{-1}(C) -> K and map K to cone block
    *
+   * [old] homogeneous t embedding removed
    * C = { x | A x <= b, Cx = d }
    * K = { (x, t) | A x <= b t, Cx = d t, t >= 0 }
    *
@@ -169,21 +170,14 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, M + 1, N + 1> F;
-    F = linalg::set_block<0, M, 0, N>(F, T(-1) * A);
-    for (size_t i = 0; i < M; ++i) F(i)(N) = b(i);
-    F(M)(N) = T(1);
-
-    linalg::Vector<T, M + 1> g;
-    const auto map = affine::AffineMap<decltype(F)>(F, g);
+    const auto map = affine::AffineMap<decltype(A)>(T(-1) * A, b);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, M>>();
-    const auto rplus_t = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    const auto cones = std::make_tuple(rplus, rplus_t);
+    const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
+    return new_builder.template make<Type>(cones);
   }
 
   /** @brief member variables in the polyhedron */
