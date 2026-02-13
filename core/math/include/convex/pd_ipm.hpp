@@ -20,7 +20,7 @@ namespace convex {
 /**
  * @brief PrimalDualResult
  */
-template <linalg::VectorLike DecVar, linalg::VectorLike ConeVar>
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar>
 struct PrimalDualResult {
   /**
    * @brief CTOR
@@ -38,13 +38,13 @@ struct PrimalDualResult {
    * @param s dual var
    */
   constexpr explicit PrimalDualResult(const linalg::SolverResult& res_in,
-                                      const DecVar& z_in, const ConeVar& x_in,
+                                      const Var& z_in, const ConeVar& x_in,
                                       const ConeVar& s_in)
       : result(res_in), z(z_in), x(x_in), s(s_in) {}
 
   /** @brief member vars */
   linalg::SolverResult result;  ///< result (solver)
-  DecVar z;                     ///< decision var \in Rn / E
+  Var z;                        ///< decision var \in Rn + aux lifts
   ConeVar x;                    ///< primal cone var \in K
   ConeVar s;                    ///< dual cone var \in K^*
 };
@@ -58,14 +58,8 @@ struct PrimalDualIPM {
   using Builder = prob_builder_t<Problem>;
   using DecVar = builder_dom_t<Builder>;
   using T = linalg::space_type_t<DecVar>;
-  static constexpr size_t N = linalg::space_dim_v<DecVar>;
-  static constexpr size_t M = linalg::mat_rows_v<
-      affine::affine_mat_t<conic::cone_block_map_t<builder_cb_t<Builder>>>>;
   static constexpr size_t NumCones =
       conic::cone_block_num_cones_v<builder_cb_t<Builder>>;
-  using Schur = linalg::Matrix<T, N, N>;
-  using Var = linalg::Vector<T, N>;
-  using ConeVar = linalg::Vector<T, M>;
 
   /// @brief static constexpr for neighborhood size Beta < 1 - ln2
   static constexpr T Beta{0.1};
@@ -79,18 +73,27 @@ struct PrimalDualIPM {
    */
   constexpr auto solve(
       const ConvexProblem<Builder, StageType::PROBLEM_SET>& prob) const {
-    if (!prob.validate())
-      return PrimalDualResult<Var, ConeVar>(linalg::SolverResult::INVALID);
-
-    linalg::Vector<T, M> x{}, s{}, px_pred{}, px_corr{}, py_pred{}, py_corr{};
-    Var z{}, pz_rhs_pred{}, pz_rhs_corr{}, pz_pred{}, pz_corr{};
-
-    Schur S{};
-
-    const auto c = prob.linear_objective();
+    const auto c = linalg::as_vector(prob.linear_objective());
     const auto g = prob.constraint_map().translation();
     const auto F = prob.constraint_map().linear_part();
     const auto K = prob.constraint_cones();
+
+    static constexpr size_t M = linalg::mat_rows_v<decltype(F)>;
+    static constexpr size_t N = linalg::mat_cols_v<decltype(F)>;
+    static_assert(N == linalg::mat_cols_v<decltype(F)>,
+                  "Expected decision var dim != N");
+
+    using Schur = linalg::Matrix<T, N, N>;
+    using Var = linalg::Vector<T, N>;
+    using ConeVar = linalg::Vector<T, M>;
+
+    if (!prob.validate())
+      return PrimalDualResult<Var, ConeVar>(linalg::SolverResult::INVALID);
+
+    ConeVar x{}, s{}, px_pred{}, px_corr{}, py_pred{}, py_corr{};
+    Var z{}, pz_rhs_pred{}, pz_rhs_corr{}, pz_pred{}, pz_corr{};
+
+    Schur S{};
 
     /**
      * @brief process cones for predictor corrector method
@@ -119,8 +122,8 @@ struct PrimalDualIPM {
      * (4) for each cone solve qy = -py & px
      */
     auto pred_corr_method = [&]<size_t idx = 0, size_t Start = 0>(
-                                this auto&& self, const auto& rd,
-                                const auto& rp) {
+                                this auto&& self, const Var& rd,
+                                const ConeVar& rp) {
       if constexpr (idx >= NumCones)
         return false;
       else {
@@ -134,31 +137,30 @@ struct PrimalDualIPM {
           return self.template operator()<idx + 1, Start + KiRows>(rd, rp);
 
         if constexpr (Start == 0) {
-          const auto x0 = Ki.x0();
-          for (size_t i = Start, j = 0; i < End; ++i, ++j) x(i) = x0(j);
-          const auto s0 = Ki.s0();
-          for (size_t i = Start, j = 0; i < End; ++i, ++j) s(i) = x0(j);
+          const auto x0 = Ki.x0(), s0 = Ki.s0();
+          for (size_t i = Start, j = 0; i < End; ++i, ++j)
+            x(i) = x0(j), s(i) = s0(j);
         }
 
         using ConePoint = linalg::Vector<T, End - Start>;
-        ConePoint xk{}, sk{};
+        ConePoint xk{}, sk{}, rpk{};
 
         for (size_t i = Start, j = 0; i < End; ++i, ++j)
-          xk(j) = x(i), sk(j) = s(i);
+          xk(j) = x(i), sk(j) = s(i), rpk(j) = rp(i);
 
         const auto Hes = Ki.H(xk, sk);
 
         const auto F_blk = get_block<Start, Start + KiRows, 0, N>(F);
         const linalg::AugmentedKKT<decltype(Hes.H), decltype(F_blk)> kkt;
         const auto Si = kkt.make_schur(Hes, F_blk);
-        S += Si;
+        S = S + Si;
 
         const auto FT = linalg::transpose(F_blk);
         const auto rc_pred = sk;
         const auto rc_corr = sk + Ki.mu(xk, sk) * Ki.grad(xk);
 
-        pz_rhs_pred += (FT * rc_pred - FT * (Hes.apply(rp) + rd));
-        pz_rhs_corr += (FT * rc_corr - FT * (Hes.apply(rp) + rd));
+        pz_rhs_pred = pz_rhs_pred + (FT * rc_pred - FT * Hes.apply(rpk) + rd);
+        pz_rhs_corr = pz_rhs_corr + (FT * rc_corr - FT * Hes.apply(rpk) + rd);
 
         const auto factored =
             self.template operator()<idx + 1, Start + KiRows>(rd, rp);
@@ -169,10 +171,10 @@ struct PrimalDualIPM {
           pz_corr = ldl.solve(pz_rhs_corr);
         }
 
-        const auto py_pred_tmp = Hes.apply(F_blk * pz_pred + rd) - rc_pred;
-        const auto py_corr_tmp = Hes.apply(F_blk * pz_corr + rd) - rc_corr;
-        const auto px_pred_tmp = F_blk * pz_pred + rd;
-        const auto px_corr_tmp = F_blk * pz_corr + rd;
+        const auto px_pred_tmp = F_blk * pz_pred + rpk;
+        const auto px_corr_tmp = F_blk * pz_corr + rpk;
+        const auto py_pred_tmp = Hes.apply(px_pred_tmp) - rc_pred;
+        const auto py_corr_tmp = Hes.apply(px_corr_tmp) - rc_corr;
 
         for (size_t i = Start, j = 0; i < End; ++i, ++j) {
           px_pred(i) = px_pred_tmp(j);
@@ -186,8 +188,8 @@ struct PrimalDualIPM {
     };
 
     auto backtrack = [&]<size_t idx = 0, size_t Start = 0>(
-                         this auto&& self, T alpha, const Var& px,
-                         const Var& py) {
+                         this auto&& self, T alpha, const ConeVar& px,
+                         const ConeVar& py) {
       if constexpr (idx >= NumCones)
         return alpha;
       else {
@@ -206,8 +208,8 @@ struct PrimalDualIPM {
         for (size_t i = Start, j = 0; i < End; ++i, ++j)
           xk(j) = x(i), sk(j) = s(i), pxk(j) = px(i), pyk(j) = py(i);
 
-        const T alpha_x = Ki.alpha_max(xk, pxk);
-        const T alpha_s = Ki.alpha_max(sk, pyk);
+        const auto alpha_x = Ki.alpha_max(xk, pxk);
+        const auto alpha_s = Ki.alpha_max(sk, pyk);
 
         alpha = std::min(alpha, std::min(alpha_x, alpha_s));
 
@@ -225,8 +227,8 @@ struct PrimalDualIPM {
 
     do {
       /// (dakre) apply predictor correct for all cones
-      const auto rd = transpose(F) * s + c;
-      const auto rp = F * z - x - g;
+      const auto rd = (transpose(F) * s) + c;
+      const auto rp = (F * z) - x - g;
       pred_corr_method(rd, rp);
 
       /// (dakre) linear combination between predictor & corrector dirs to form

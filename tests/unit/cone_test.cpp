@@ -74,7 +74,7 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
 
     constexpr vec_traits<Slack> vec;
     constexpr auto p = vec.fill(2.0);
-    STATIC_REQUIRE(rplus.alpha_max(rplus.x0(), p).value() == 0.5);
+    STATIC_REQUIRE(rplus.alpha_max(rplus.x0(), p) == 0.5);
 
     constexpr auto H = rplus.H(rplus.x0(), rplus.s0());
     STATIC_REQUIRE(all_equal(H.H, make_identity<double, 12>()));

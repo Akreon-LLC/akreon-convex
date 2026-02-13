@@ -56,6 +56,7 @@ struct AugmentedKKT {
   static constexpr size_t M = mat_rows_v<EqualityMat>;
   static constexpr size_t N = mat_cols_v<EqualityMat>;
   static constexpr size_t KKT_ROWS = 2 * M + N;
+  static constexpr T eps = 1e-10;
 
   /// @brief alias for mat and schur matrices
   using KKT = linalg::Matrix<T, KKT_ROWS, KKT_ROWS>;
@@ -174,19 +175,18 @@ struct AugmentedKKT {
   template <MatrixLike MatIn>
   constexpr auto regularize(MatIn S) const {
     auto d = get_diag(S);
-    const auto mx = max(d);
+    const auto mx = std::max(max(d), eps);
     d = (T(1) / mx) * d;
     size_t cnt{0};
-    std::for_each(d.begin(), d.end(), [&](const auto& elem) {
-      cnt += constexpr_abs(elem) < SolverTraits<T>::tol;
-    });
+    std::for_each(d.begin(), d.end(),
+                  [&](const auto& elem) { cnt += constexpr_abs(elem) < eps; });
     static constexpr size_t MatRows = mat_rows_v<MatIn>;
     if (cnt > 0)
       for (size_t i = 0; i < MatRows; ++i) {
         if (i >= KKT_ROWS)
-          S(i)(i) -= cnt * SolverTraits<T>::tol;
+          S(i)(i) -= cnt * eps;
         else
-          S(i)(i) += cnt * SolverTraits<T>::tol;
+          S(i)(i) += cnt * eps;
       }
     return S;
   }

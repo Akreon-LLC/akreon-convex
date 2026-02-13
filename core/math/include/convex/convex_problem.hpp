@@ -110,7 +110,7 @@ class ConvexProblem {
       static_assert(false, "Atom is not a set type");
     else {
       const auto new_builder =
-          atom.template canonicalize<AtomType::CAP>(builder);
+          atom.template canonicalize<AtomType::SET>(builder);
       return ConvexProblem<decltype(new_builder), StageType::IN_PROGRESS>(
           new_builder);
     }
@@ -232,6 +232,20 @@ class ConvexProblem {
           false,
           "Attempting to minimize over a var type, please use affine op, "
           "convex function, or index of var instead of raw type");
+    } else if constexpr (is_index_type_v<Atom>) {
+      const auto cb = builder.cb;
+      auto c = builder.coord_map.linear_part();
+      auto b = builder.coord_map.translation()(0) + atom.map.translation()(0);
+      static constexpr size_t N = linalg::space_dim_v<builder_dom_t<Builder>>;
+      static constexpr size_t AugN = linalg::mat_cols_v<decltype(c)>;
+      for (size_t i = 0; i < N; ++i) c(0)(i) = atom.map.linear_part()(0)(i);
+      for (size_t i = N; i < AugN; ++i) c(0)(i) = T(0);
+      const affine::AffineMap<decltype(c)> new_map(c, b);
+      const auto new_builder =
+          ConeBlockBuilder<builder_dom_t<Builder>, decltype(new_map),
+                           decltype(cb)>(new_map, cb);
+      return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
+          new_builder);
     } else {
       static constexpr CurvatureType Tag = meta_curv_v<atom_meta_t<Atom>>;
       if constexpr (Tag == CurvatureType::CONCAVE) {

@@ -26,6 +26,7 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
   using ConeBase = Cone<Slack, NonnegOrthantCone<Slack>>;
 
   /// @brief helpers to get T and M
+  using ConeBase::eps;
   using ConeBase::M;
   using typename ConeBase::T;
 
@@ -74,12 +75,14 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    *
    * @return \alpha_max
    */
-  constexpr std::optional<T> alpha_max_impl(
-      const Slack& x, const linalg::Vector<T, M>& p) const {
+  constexpr T alpha_max_impl(const Slack& x,
+                             const linalg::Vector<T, M>& p) const {
     T mn = std::numeric_limits<T>::max();
-    for (size_t i = 0; i < M; ++i) mn = x(i) / p(i) < mn ? x(i) / p(i) : mn;
-    return mn == std::numeric_limits<T>::max() ? std::nullopt
-                                               : std::make_optional(mn);
+    for (size_t i = 0; i < M; ++i) {
+      if (linalg::constexpr_abs(p(i)) < eps) continue;
+      mn = x(i) / p(i) < mn ? x(i) / p(i) : mn;
+    }
+    return mn;
   }
 
   /**
@@ -95,10 +98,12 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    */
   constexpr auto H_impl(const Slack& x, const Slack& s) const {
     linalg::Matrix<T, M, M> H{};
-    for (size_t i = 0; i < M; ++i) H(i)(i) = s(i) / x(i);
+    for (size_t i = 0; i < M; ++i) {
+      const auto val = linalg::constexpr_abs(x(i)) < eps ? eps : x(i);
+      H(i)(i) = s(i) / val;
+    }
     return linalg::Hessian(H);
   }
-
   /**
    * @brief hessian inverse
    *
@@ -112,7 +117,10 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    */
   constexpr auto H_inv_impl(const Slack& x, const Slack& s) const {
     linalg::Matrix<T, M, M> H_inv{};
-    for (size_t i = 0; i < M; ++i) H_inv(i)(i) = x(i) / s(i);
+    for (size_t i = 0; i < M; ++i) {
+      const auto val = linalg::constexpr_abs(s(i)) < eps ? eps : s(i);
+      H_inv(i)(i) = x(i) / val;
+    }
     return linalg::Hessian<decltype(H_inv), linalg::DifferentialType::PULLBACK>(
         H_inv);
   }
@@ -129,7 +137,10 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    */
   constexpr auto grad_impl(const Slack& x) const {
     Slack grad{};
-    for (size_t i = 0; i < M; ++i) grad(i) = T(-1) / x(i);
+    for (size_t i = 0; i < M; ++i) {
+      const auto val = linalg::constexpr_abs(x(i)) < eps ? eps : x(i);
+      grad(i) = T(-1) / val;
+    }
     return grad;
   }
 
@@ -144,9 +155,14 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
   constexpr auto functional_proximity_impl(const Slack& x,
                                            const Slack& s) const {
     T gamma_F{0};
-    for (size_t i = 0; i < M; ++i)
-      gamma_F -= linalg::constexpr_ln(x(i) * s(i)).value();
-    gamma_F += M * linalg::constexpr_ln(linalg::dot(x, s)).value();
+    for (size_t i = 0; i < M; ++i) {
+      const auto val = x(i) * s(i) < eps ? eps : x(i) * s(i);
+      gamma_F -= linalg::constexpr_ln(val).value();
+    }
+
+    const auto xs = linalg::dot(x, s);
+    const auto val = xs < eps ? eps : xs;
+    gamma_F += M * linalg::constexpr_ln(val).value();
     return gamma_F;
   }
 

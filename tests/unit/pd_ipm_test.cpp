@@ -36,14 +36,17 @@ TEST_CASE("Simple LPs", "[pd_ipm_test]") {
     constexpr Polyhedron<PolyhedronMeta<Space, Codom>, decltype(x)> poly(A, b,
                                                                          x);
     constexpr auto prob_constr = prob_init.in_set(poly);
-
     // TODO - add dot / weighted sum operator & sum squares / etc...
     constexpr auto prob_min = prob_constr.minimize(x(0).value());
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
         std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
-    // TODO - FIXME
-    //constexpr PrimalDualIPM<decltype(prob_min)> solver;
-    //constexpr auto res = solver.solve(prob_min);
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 6);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 3);
+    constexpr auto c = prob_min.linear_objective();
+    STATIC_REQUIRE(c == Vectord<3>{1.0, 0.0, 0.0});
+    // constexpr PrimalDualIPM<decltype(prob_min)> solver;
+    // constexpr auto res = solver.solve(prob_min);
   }
 }

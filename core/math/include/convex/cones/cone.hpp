@@ -29,6 +29,9 @@ struct Cone {
   /// @brief helpers to get M slack size
   static constexpr size_t M = linalg::vec_size_v<Slack>;
 
+  /// @brief eps constant
+  static constexpr T eps = 1e-8;
+
   /**
    * @brief default interior point (initial slack in cone space)
    *
@@ -119,8 +122,7 @@ struct Cone {
    *
    * @return \alpha_max
    */
-  constexpr std::optional<T> alpha_max(const Slack& x,
-                                       const linalg::Vector<T, M>& p) const {
+  constexpr T alpha_max(const Slack& x, const linalg::Vector<T, M>& p) const {
     return self().alpha_max_impl(x, p);
   }
 
