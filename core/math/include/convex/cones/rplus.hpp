@@ -164,7 +164,7 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
 
     const auto xs = linalg::dot(x, s);
     const auto val = xs < eps ? eps : xs;
-    gamma_F += M * linalg::constexpr_ln(val).value();
+    gamma_F += T(M) * linalg::constexpr_ln(val / T(M)).value();
     return gamma_F;
   }
 

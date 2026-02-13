@@ -64,7 +64,8 @@ struct PrimalDualIPM {
       conic::cone_block_num_cones_v<builder_cb_t<Builder>>;
 
   /// @brief static constexpr for neighborhood size Beta < 1 - ln2
-  static constexpr T Beta{0.1};
+  static constexpr T Beta{0.3};
+  static constexpr T Delta{0.7};
 
   /**
    * @brief solve
@@ -212,17 +213,15 @@ struct PrimalDualIPM {
         alpha = std::min(alpha, eta * std::min(alpha_x, alpha_s));
         alpha = std::min(alpha, T(1.0));
 
-#if 0
         for (size_t i = 0; i < linalg::SolverTraits<T>::steps; ++i) {
           auto xkb = xk - alpha * pxk;
           auto skb = sk - alpha * pyk;
 
-          if (Ki.functional_proximity(xkb, skb) <= Beta) break;
+          if (Ki.functional_proximity(xkb, skb) <= Beta + Delta) break;
 
           alpha *= T(0.5);
           if (alpha < linalg::SolverTraits<T>::tol) break;
         }
-#endif
 
         return self.template operator()<idx + 1, Start + KiRows>(alpha, px, py);
       }

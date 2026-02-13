@@ -10,7 +10,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Werror)
 endif()
 
-add_compile_options(-ffunction-sections -fdata-sections -fvisibility=hidden -fno-rtti -flto -Oz -fconstexpr-steps=100000000)
+add_compile_options(-ffunction-sections -fdata-sections -fvisibility=hidden -fno-rtti -flto -Oz)
+# for increased solver -fconstexpr-steps=100000000
 # add -fno-exceptions to lib TU
 
 option(BUILD_TESTING "Build testing code" ON)
