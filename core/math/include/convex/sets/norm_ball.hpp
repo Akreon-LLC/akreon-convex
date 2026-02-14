@@ -265,7 +265,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    * [ 0 r ]
    * ||y||_2 <= r t... scaled second order cone
    * ----
-   * [ I ; 0 ] [ x; t ] + [ -c; r ] -> (y, r)... ||y||<= r
+   * [ I ; 0 ] [ x ] + [ -c; r ] -> (y, r)... ||y||<= r
    *
    * Linf
    * K = { (y, t) | ||y|| <= r t, t >= 0 }
@@ -275,6 +275,8 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    *
    * [ I  r ] [ x; t ] + [ -c; c ]
    * [ -I r ]
+   * ---
+   * [ I ; -I ] [ x ] + [ -c + r1; c + r1 ]
    *
    * L1
    * K = { (y, t) | ||y|| <= r t, t >= 0 }
@@ -322,14 +324,13 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
                            decltype(child_cb)>(map, child_cb);
       return new_builder.template make<AType>(cones);
     } else if constexpr (Type == NormBallType::Linf) {
-      linalg::Matrix<T, 2 * N, N + 1> F;
+      linalg::Matrix<T, 2 * N, N> F;
       F = linalg::set_block<0, N, 0, N>(F, I);
       F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * I);
-      for (size_t i = 0; i < 2 * N; ++i) F(i)(N) = r;
 
       linalg::Vector<T, 2 * N> g;
-      for (size_t i = 0; i < N; ++i) g(i) = T(-1) * c(i);
-      for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g(i) = c(j);
+      for (size_t i = 0; i < N; ++i) g(i) = T(-1) * c(i) + r;
+      for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g(i) = c(j) + r;
       const auto map = affine::AffineMap<decltype(F)>(F, g);
       const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto cones = std::make_tuple(rplus, rplus);
@@ -337,7 +338,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto new_builder =
           ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                            decltype(child_cb)>(map, child_cb);
-      return new_builder.template make<AType>(this->idx, this->lift_map, cones);
+      return new_builder.template make<AType>(cones);
     } else {
       linalg::Matrix<T, 2 * N + 1, 2 * N + 1> F;
       F = linalg::set_block<0, N, 0, N>(F, I);

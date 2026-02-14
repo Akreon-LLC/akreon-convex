@@ -400,12 +400,12 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(!res.contains(Vectorf<3>{}));
     STATIC_REQUIRE(ball.contains(Vectorf<3>{c(0) + 1.f, c(1), c(2)}));
 
-    constexpr mat_traits<Matrix<float, 6, 4>> F_mat;
-    constexpr auto F =
-        F_mat(1.f, 0.f, 0.f, r, 0.f, 1.f, 0.f, r, 0.f, 0.f, 1.f, r, -1.f, 0.f,
-              0.f, r, 0.f, -1.f, 0.f, r, 0.f, 0.f, -1.f, r);
-    constexpr linalg::Vector<float, 6> g{-1 * c(0), -1 * c(1), -1 * c(2),
-                                         c(0),      c(1),      c(2)};
+    constexpr mat_traits<Matrix<float, 6, 3>> F_mat;
+    constexpr auto F = F_mat(1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 1.f, -1.f,
+                             0.f, 0.f, 0.f, -1.f, 0.f, 0.f, 0.f, -1.f);
+    constexpr linalg::Vector<float, 6> g{-1 * c(0) + r, -1 * c(1) + r,
+                                         -1 * c(2) + r, c(0) + r,
+                                         c(1) + r,      c(2) + r};
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
