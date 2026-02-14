@@ -131,6 +131,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    *
    * E = { x | (x - c)^T P (x - c) <= 1, P \in S^n_+ }
    *
+   * [old] homogenzed t deprecated
    * Eigen decomposition: P = V D V^T
    * (x - c)^T V D V^T (x - c) <= 1
    * let u = V^T (x - c), u^T = (x-c)^T V
@@ -145,6 +146,11 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    *
    * [ D^{1/2} V^T 0 ] [ x; t ] + [ -D^{1/2} V^T c ; 0 ]
    * [ 0           1 ]
+   * ----
+   * { (x, u, 1) | u^T(x) D u(x) <= 1 }
+   * 1 - u^T(x) D u(x) \in rplus
+   * so... K_soc = { (x,1) | ||D^{1/2} V^T (x - c) ||_2 <= 1 }
+   * [ D^{1/2} V^T 0 ] [ x; 1 ] + [ -D^{1/2} V^T c ; 1 ] -> (x,t) in SOC
    *
    * @return cone block
    */
@@ -177,9 +183,9 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
 
     const auto w = D_sqrt * VT;
     F = linalg::set_block<0, N, 0, N>(F, w);
-    F(N)(N) = T(1);
     const auto wc = T(-1) * w * c;
     for (size_t i = 0; i < N; ++i) g(i) = wc(i);
+    g(N) = T(1);
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
     const auto cones = std::make_tuple(soc);
@@ -187,7 +193,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
+    return new_builder.template make<Type>(cones);
   }
 
   /** @brief member variables in the ellipsoid */
