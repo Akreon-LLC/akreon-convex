@@ -168,7 +168,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, N + 1, N + 1> F;
+    linalg::Matrix<T, N + 1, N> F;
     linalg::Vector<T, N + 1> g;
     const auto eig_decomp = linalg::EigenDecomposition(P);
     const auto& D = eig_decomp.lambda;

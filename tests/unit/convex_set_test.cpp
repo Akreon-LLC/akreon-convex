@@ -65,8 +65,8 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
         ellipsoid.template canonicalize<AtomType::SET>(builder).cb;
-    constexpr auto F_mat = mat_traits<Matrixd<3, 3>>();
-    constexpr auto F = F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+    constexpr auto F_mat = mat_traits<Matrixd<3, 2>>();
+    constexpr auto F = F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     STATIC_REQUIRE(
         cone_block.map ==
         affine::AffineMap(F, Vectord<3>{-1.0 * c(0), -1.0 * c(1), 1.0}));
@@ -318,9 +318,9 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
         ball.transform(AffineMap<Matrix<float, 2, 2>>(A, Vectorf<2>{}));
     STATIC_REQUIRE(res == ellipse);
 
-    constexpr mat_traits<Matrix<float, 3, 3>> F_mat;
-    constexpr auto F = F_mat(1.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, r);
-    constexpr linalg::Vector<float, 3> g{-1 * c(0), -1 * c(1), 0.f};
+    constexpr mat_traits<Matrix<float, 3, 2>> F_mat;
+    constexpr auto F = F_mat(1.f, 0.f, 0.f, 1.f, 0.f, 0.f);
+    constexpr linalg::Vector<float, 3> g{-1 * c(0), -1 * c(1), r};
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
@@ -329,7 +329,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 2);
+    STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
   }
 

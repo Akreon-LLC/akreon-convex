@@ -398,9 +398,9 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
     constexpr auto new_builder =
         intersection.template canonicalize<AtomType::CAP>(builder);
     constexpr auto canon_cb = new_builder.cb;
-    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 3);
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 2);
     STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 5);
-    STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 4);
+    STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 3);
   }
 }
 
@@ -487,8 +487,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     constexpr auto prob3 = prob2.minimize(norm);
     STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
     STATIC_REQUIRE(prob3.validate());
-    STATIC_REQUIRE(prob3.linear_objective() ==
-                   Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0});
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<4>{0.0, 0.0, 0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
                    4);
 
@@ -497,7 +496,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
         11);
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
-        5);
+        4);
   }
 
   SECTION("Sum square min. prob") {
