@@ -229,6 +229,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
    * [ A  I    0 ] [ x; u; t ] + [ b; -b; 0 ]
    * [ -A I    0 ]
    * [ 0 -1^T -1 ]
+   * [ 0  I    0 ]
    *
    * @param cone map builder
    * @param coord map
@@ -305,7 +306,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
 
       return new_builder.template make<Type>(idx, lift_map, cones);
     } else {
-      linalg::Matrix<T, 2 * N + 1, 2 * Dom + 1> F;
+      linalg::Matrix<T, 3 * N + 1, 2 * Dom + 1> F;
       const auto I = linalg::make_identity<T, N>();
       F = linalg::set_block<0, N, 0, N>(F, child_coord.linear_part());
       F = linalg::set_block<N, 2 * N, 0, N>(F,
@@ -313,8 +314,9 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       F = linalg::set_block<0, N, N, 2 * N>(F, I);
       F = linalg::set_block<N, 2 * N, N, 2 * N>(F, I);
       for (size_t i = 0; i < N; ++i) F(2 * N)(N + i) = T(-1);
+      F = linalg::set_block<2 * N + 1, 3 * N + 1, N, 2 * N>(F, I);
 
-      linalg::Vector<T, 2 * N + 1> g;
+      linalg::Vector<T, 3 * N + 1> g;
       for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
       for (size_t i = 0; i < N; ++i)
         g(i + N) = T(-1) * child_coord.translation()(i);
@@ -333,7 +335,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
 
       const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-      const auto cones = std::make_tuple(rplus1, rplus1, rplus2);
+      const auto cones = std::make_tuple(rplus1, rplus1, rplus2, rplus1);
 
       return new_builder.template make<Type>(idx, lift_map, cones);
     }

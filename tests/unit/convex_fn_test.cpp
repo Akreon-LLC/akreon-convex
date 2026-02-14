@@ -443,10 +443,11 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     STATIC_REQUIRE(norm.eval(Vectord<2>{}).value() <= eps);
     STATIC_REQUIRE(norm.eval(Vectord<2>{1.0, 2.0}).value() == 3.0);
 
-    constexpr mat_traits<Matrix<double, 5, 5>> F_mat;
+    constexpr mat_traits<Matrix<double, 7, 5>> F_mat;
     constexpr auto F =
         F_mat(1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0,
-              0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, 1.0);
+              0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, 1.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder = norm.canonicalize<AtomType::FN>(builder);
@@ -456,11 +457,11 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
     constexpr linalg::Vector<double, 5> coord{0.0, 0.0, 0.0, 0.0, 1.0};
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
 
-    STATIC_REQUIRE(canon_cb.map == affine::AffineMap(F, Vectord<5>{}));
+    STATIC_REQUIRE(canon_cb.map == affine::AffineMap(F, Vectord<7>{}));
 
     constexpr auto cones = canon_cb.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 3);
+    STATIC_REQUIRE(sz == 4);
     STATIC_REQUIRE(canon_cb.validate());
 
     constexpr auto norm_concave = norm.mul<-1.0>().add(0.0);
@@ -468,18 +469,19 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
 
     constexpr auto F1 =
         F_mat(1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0,
-              0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0);
+              0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 
     constexpr auto builder1 = norm_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
 
-    STATIC_REQUIRE(canon_cb1.map == affine::AffineMap(F1, Vectord<5>{}));
+    STATIC_REQUIRE(canon_cb1.map == affine::AffineMap(F1, Vectord<7>{}));
 
     constexpr auto cones1 = canon_cb1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
-    STATIC_REQUIRE(sz1 == 3);
+    STATIC_REQUIRE(sz1 == 4);
     STATIC_REQUIRE(canon_cb1.validate());
   }
 }
