@@ -210,7 +210,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
 TEST_CASE("Test Simplex", "[convex_sets]") {
   SECTION("Test Simplex", "[{ x | x >= 0, sum_i x_i = 1}]") {
     using Space = Matrixd<1, 3>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<NonnegVarMeta<Space>>();
     constexpr Simplex<SimplexMeta<Space>, decltype(x)> simplex(x);
     STATIC_REQUIRE(simplex.is_well_formed());
     STATIC_REQUIRE(simplex == simplex);
@@ -221,15 +221,17 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
         simplex.template canonicalize<AtomType::SET>(builder).cb;
-    constexpr mat_traits<Matrix<double, 4, 4>> A_mat;
-    constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-                             1.0, 0.0, -1.0, -1.0, -1.0, 1.0);
+    constexpr mat_traits<Matrix<double, 1, 3>> A_mat;
+    constexpr auto A = A_mat(-1.0, -1.0, -1.0);
 
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<4>{}));
+    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<1>{1.0}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 2);
+    /// (dakre) TODO note nonneg var not canonicalized here (add_var explicitly
+    /// adds cone block) which doesnt occur in this test... possible fix when
+    /// refactoring full cone block builder
+    STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
 
     constexpr auto I = make_identity<double, 3>();

@@ -18,7 +18,7 @@ namespace convex {
 
 /// @brief alias for domain on hyperplane
 template <linalg::RnSpace Space>
-using SimplexDom = ConvexDomain<Space, SignType::FREE>;
+using SimplexDom = ConvexDomain<Space, SignType::NONNEG>;
 
 /// @brief alias for codomain on hyperplane
 template <linalg::RnSpace Space>
@@ -145,6 +145,7 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
   /**
    * @brief canonicalize impl
    *
+   * [old] homogenized t is removed
    * Apply P^{-1}(C) -> K
    * C = { x | x_i >= 0 \forall i, sum(x_i) <= 1 }
    * K = { (x,t) | x_i >= 0 \forall i, 1^T x <= t, t >= 0 }
@@ -154,6 +155,10 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
    *
    * [ I    0 ] [ x; t ]
    * [ -1^T 1 ]
+   *
+   * ---
+   * x \in rplus pre-req in domain of simplex
+   * 0 <= 1 - sum(x_i) \in rplus
    */
   template <AtomType Type, BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
@@ -169,20 +174,17 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, N + 1, N + 1> F;
-    for (size_t i = 0; i < N; ++i) F(i)(i) = T(1);
-    for (size_t i = 0; i < N; ++i) F(N)(i) = T(-1);
-    F(N)(N) = T(1);
-    linalg::Vector<T, N + 1> g;
+    linalg::Matrix<T, 1, N> F;
+    for (size_t i = 0; i < N; ++i) F(0)(i) = T(-1);
+    linalg::Vector<T, 1> g{T(1)};
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
-    const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    const auto cones = std::make_tuple(rplus1, rplus2);
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
+    return new_builder.template make<Type>(cones);
   }
 };
 
