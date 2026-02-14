@@ -39,11 +39,11 @@ TEST_CASE("Test affine subspace", "[convex_sets]") {
         affine_set.template canonicalize<AtomType::SET>(builder);
     constexpr auto cone_block = new_builder.cb;
 
-    constexpr auto A = make_identity<double, 4>();
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<4>{}));
+    constexpr auto A = make_identity<double, 3>();
+    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<3>{}));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 2);
+    STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
   }
 }

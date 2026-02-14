@@ -460,12 +460,12 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     constexpr auto prob3 = prob2.minimize(var(1).value());
     STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
     STATIC_REQUIRE(prob3.validate());
-    STATIC_REQUIRE(prob3.linear_objective() == Vectord<4>{0.0, 1.0, 0.0, 0.0});
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{0.0, 1.0, 0.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
-                   2);
-    STATIC_REQUIRE(all_equal(make_identity<double, 4>(),
+                   1);
+    STATIC_REQUIRE(all_equal(make_identity<double, 3>(),
                              prob3.constraint_map().linear_part()));
-    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<4>{});
+    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<3>{});
   }
 
   SECTION("Intersection of sets min. Linf prob") {

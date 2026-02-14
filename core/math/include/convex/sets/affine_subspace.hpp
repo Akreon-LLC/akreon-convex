@@ -124,6 +124,7 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    *
    * Apply P^{-1}(C) -> K and map K to cone block
    *
+   * [old] deprecating homogeneous t
    * [ A -b ] [ x; t ] = 0
    * [ 0  1 ]
    *
@@ -145,23 +146,20 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, M + 1, N + 1> F;
-    linalg::Vector<T, M + 1> g;
+    linalg::Matrix<T, M, N> F;
+    linalg::Vector<T, M> g;
     const auto composed_map = affine::AffineMap<Mat>(A, b).compose(child_coord);
     F = linalg::set_block<0, M, 0, N>(F, composed_map.linear_part());
-    F = linalg::set_block<0, M, N, N + 1>(
-        F, linalg::as_col_vector(T(-1) * composed_map.translation()));
-    F(M)(N) = T(1);
+    for (size_t i = 0; i < M; ++i) g(i) = T(-1) * composed_map.translation()(i);
 
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, M>>();
-    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    const auto cones = std::make_tuple(zoc, rplus);
-    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
+    const auto cones = std::make_tuple(zoc);
+    return new_builder.template make<Type>(cones);
   }
 
   /** @brief data members for affine subspace */
