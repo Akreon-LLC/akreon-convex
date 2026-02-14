@@ -188,22 +188,23 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     STATIC_REQUIRE(!set.contains(Vectord<3>{1.0, 2.0, 3.0}));
     STATIC_REQUIRE(set.contains(Vectord<3>{}));
     STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));
-    // TODO - revist
+    // TODO - revist / refactor LMI
     // STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
         set.template canonicalize<AtomType::SET>(builder).cb;
 
-    constexpr mat_traits<Matrix<double, 7, 4>> F_mat;
-    constexpr auto F = F_mat(-1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0,
-                             -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, -1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 0.0, 1.0);
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, Vectord<7>{}));
+    constexpr mat_traits<Matrix<double, 6, 3>> F_mat;
+    constexpr auto F = F_mat(-1.0, -1.0, -1.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0,
+                             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0);
+    STATIC_REQUIRE(
+        cone_block.map ==
+        affine::AffineMap(F, Vectord<6>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 2);
+    STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
   }
 }

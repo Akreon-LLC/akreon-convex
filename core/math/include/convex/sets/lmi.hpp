@@ -129,6 +129,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
    *
    * Apply P^{-1}(C) -> K and map K to cone block
    *
+   * [old] deprecating homogenized t
    * C = { X in S^n_+ | A(x) <= B }
    * K = { (X, t) | A(x) <= B t }... linear operator-> { (x, t) | B t - sum(x_i
    * A_i) >= 0, t >= 0 }
@@ -159,25 +160,23 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
                   "linear map's codomain in size");
 
     static constexpr size_t K = N * (N + 1) / 2;
-    linalg::Matrix<T, K + 1, N + 1> F;
+    linalg::Matrix<T, K, N> F;
     for (size_t i = 0; i < N; ++i) {
       linalg::SymmetricMatrix S(A(i));
       for (size_t j = 0; j < K; ++j) F(j)(i) = T(-1) * S.svec(j);
     }
     linalg::SymmetricMatrix S(B);
-    F = linalg::set_block<0, K, N, N + 1>(F, linalg::as_col_vector(S.svec));
-    F(K)(N) = T(1);
-    linalg::Vector<T, K + 1> g;
+    linalg::Vector<T, K> g{};
+    for (size_t i = 0; i < K; ++i) g(i) = S.svec(i);
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto psd_cone =
         conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, N>();
-    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    const auto cones = std::make_tuple(psd_cone, rplus);
+    const auto cones = std::make_tuple(psd_cone);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
+    return new_builder.template make<Type>(cones);
   }
 
   /** @brief member vars for LMI */
