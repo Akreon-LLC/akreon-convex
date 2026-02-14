@@ -128,14 +128,14 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
         halfspace.template canonicalize<AtomType::SET>(builder).cb;
-    constexpr mat_traits<Matrix<double, 2, 3>> A_mat;
-    constexpr auto A = A_mat(-1 * point(0), -1 * point(1), b, 0.0, 0.0, 1.0);
+    constexpr mat_traits<Matrix<double, 1, 2>> A_mat;
+    constexpr auto A = A_mat(-1 * point(0), -1 * point(1));
 
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<2>{}));
+    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<1>{b}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 2);
+    STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
   }
 
@@ -165,15 +165,14 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
         halfspace.template canonicalize<AtomType::SET>(builder).cb;
-    constexpr mat_traits<Matrix<double, 2, 4>> A_mat;
-    constexpr auto A = A_mat(-1 * point(0), -1 * point(1), -1 * point(2), b,
-                             0.0, 0.0, 0.0, 1.0);
+    constexpr mat_traits<Matrix<double, 1, 3>> A_mat;
+    constexpr auto A = A_mat(-1 * point(0), -1 * point(1), -1 * point(2));
 
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<2>{}));
+    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<1>{b}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 2);
+    STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(cone_block.validate());
   }
 }
