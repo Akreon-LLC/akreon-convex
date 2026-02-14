@@ -113,6 +113,7 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * Apply P^{-1}(C) -> K and map K to cone block
    *
+   * [old] deprecating homogenized t
    * H = { x | a^T x = b }
    * P^{-1}(H) = { (x,t) | a^T x = b t, t >= 0 }
    *
@@ -137,20 +138,17 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, 2, N + 1> F;
+    linalg::Matrix<T, 1, N> F;
     F = linalg::set_block<0, 1, 0, N>(F, linalg::as_row_vector(a));
-    F(0)(N) = T(-1) * b;
-    F(1)(N) = T(1);
-    linalg::Vector<T, 2> g;
+    linalg::Vector<T, 1> g{T(-1) * b};
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, 1>>();
-    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    const auto cones = std::make_tuple(zoc, rplus);
+    const auto cones = std::make_tuple(zoc);
 
     const auto new_builder =
         ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    return new_builder.template make<Type>(this->idx, this->lift_map, cones);
+    return new_builder.template make<Type>(cones);
   }
 
   /** @brief member var in hyperplane */
