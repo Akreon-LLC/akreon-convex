@@ -358,16 +358,18 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(res.contains(Vectord<8>{c(0) + 0.3, c(1) - 0.2, c(2) + 0.1,
                                            c(3) - 0.1, 0.3, 0.2, 0.1, 0.1}));
 
-    constexpr mat_traits<Matrix<double, 9, 9>> F_mat;
+    constexpr mat_traits<Matrix<double, 13, 8>> F_mat;
     constexpr auto F = F_mat(
-        1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0.,
-        0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0.,
-        -1., 0., 0., 0., 1., 0., 0., 0., 0., 0., -1., 0., 0., 0., 1., 0., 0.,
-        0., 0., 0., -1., 0., 0., 0., 1., 0., 0., 0., 0., 0., -1., 0., 0., 0.,
-        1., 0., 0., 0., 0., 0., -1., -1., -1., -1., r);
+        1., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 0.,
+        1., 0., 0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 1., -1., 0., 0., 0.,
+        1., 0., 0., 0., 0., -1., 0., 0., 0., 1., 0., 0., 0., 0., -1., 0., 0.,
+        0., 1., 0., 0., 0., 0., -1., 0., 0., 0., 1., 0., 0., 0., 0., -1., -1.,
+        -1., -1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1., 0.,
+        0., 0., 0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 1.);
 
-    constexpr linalg::Vector<double, 9> g{
-        -1 * c(0), -1 * c(1), -1 * c(2), -1 * c(3), c(0), c(1), c(2), c(3), 0.};
+    constexpr linalg::Vector<double, 13> g{
+        -1 * c(0), -1 * c(1), -1 * c(2), -1 * c(3), c(0), c(1), c(2),
+        c(3),      r,         0.,        0.,        0.,   0.};
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
@@ -376,7 +378,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(F, g));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 3);
+    STATIC_REQUIRE(sz == 4);
     STATIC_REQUIRE(cone_block.validate());
   }
 

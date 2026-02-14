@@ -293,6 +293,11 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    * [ I  I    0 ] [ x; u; t ] + [ -c; c; 0]
    * [ -I I    0 ]
    * [ 0  -1^T r ]
+   * ---
+   * [  I  I   ] [ x; u ] + [ -c; c; r; 0 ]
+   * [ -I  I   ]
+   * [ 0  -1^T ]
+   * [ 0   I   ]
    */
   template <AtomType AType, BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
@@ -340,25 +345,26 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
                            decltype(child_cb)>(map, child_cb);
       return new_builder.template make<AType>(cones);
     } else {
-      linalg::Matrix<T, 2 * N + 1, 2 * N + 1> F;
+      linalg::Matrix<T, 3 * N + 1, 2 * N> F;
       F = linalg::set_block<0, N, 0, N>(F, I);
       F = linalg::set_block<N, 2 * N, 0, N>(F, T(-1) * I);
       F = linalg::set_block<0, N, N, 2 * N>(F, I);
       F = linalg::set_block<N, 2 * N, N, 2 * N>(F, I);
       for (size_t i = 0; i < N; ++i) F(2 * N)(N + i) = T(-1);
-      F(2 * N)(2 * N) = r;
-      linalg::Vector<T, 2 * N + 1> g;
+      F = linalg::set_block<2 * N + 1, 3 * N + 1, N, 2 * N>(F, I);
+      linalg::Vector<T, 3 * N + 1> g;
       for (size_t i = 0; i < N; ++i) g(i) = T(-1) * c(i);
       for (size_t i = N, j = 0; i < 2 * N; ++i, ++j) g(i) = c(j);
+      g(2 * N) = r;
       const auto map = affine::AffineMap<decltype(F)>(F, g);
       const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-      const auto cones = std::make_tuple(rplus1, rplus1, rplus2);
+      const auto cones = std::make_tuple(rplus1, rplus1, rplus2, rplus1);
 
       const auto new_builder =
           ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
                            decltype(child_cb)>(map, child_cb);
-      return new_builder.template make<AType>(this->idx, this->lift_map, cones);
+      return new_builder.template make<AType>(cones);
     }
   }
 

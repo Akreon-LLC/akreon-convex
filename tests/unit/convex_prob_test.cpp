@@ -436,17 +436,19 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
     STATIC_REQUIRE(prob3.validate());
     STATIC_REQUIRE(prob3.linear_objective() ==
-                   Vectord<7>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+                   Vectord<6>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
-                   3);
+                   4);
 
-    constexpr mat_traits<Matrix<double, 7, 7>> F_mat;
+    constexpr mat_traits<Matrix<double, 10, 6>> F_mat;
     constexpr auto F =
-        F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-              0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0,
-              0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0,
-              0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, r);
-    constexpr linalg::Vector<double, 7> g{};
+        F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    constexpr linalg::Vector<double, 10> g{0.0, 0.0, 0.0, 0.0, 0.0,
+                                           0.0, r,   0.0, 0.0, 0.0};
     STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
     STATIC_REQUIRE(prob3.constraint_map().translation() == g);
   }
