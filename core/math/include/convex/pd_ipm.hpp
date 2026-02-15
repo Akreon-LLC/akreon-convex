@@ -15,7 +15,7 @@
 #include <iostream>
 
 #include "convex_problem.hpp"
-#include "linalg/operator/augmented_kkt.hpp"
+#include "linalg/operator/schur_kkt.hpp"
 
 namespace convex {
 
@@ -147,8 +147,8 @@ struct PrimalDualIPM {
         const auto Hes = Ki.H(xk, sk);
 
         const auto F_blk = get_block<Start, Start + KiRows, 0, N>(F);
-        const linalg::AugmentedKKT<decltype(Hes.H), decltype(F_blk)> kkt;
-        const auto Si = kkt.make_schur(Hes, F_blk);
+        const linalg::SchurKKT<decltype(Hes.H), decltype(F_blk)> kkt;
+        const auto Si = kkt.make(Hes, F_blk);
         S = S + Si;
 
         const auto FT = linalg::transpose(F_blk);

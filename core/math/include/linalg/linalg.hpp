@@ -11,9 +11,9 @@
 
 #pragma once
 
-#include "operator/augmented_kkt.hpp"
 #include "operator/ldl.hpp"
 #include "operator/matrix_inverse.hpp"
+#include "operator/schur_kkt.hpp"
 #include "operator/symmetric_matrix.hpp"
 #include "spectral/eig_decomp.hpp"
 #include "spectral/matrix_exp.hpp"

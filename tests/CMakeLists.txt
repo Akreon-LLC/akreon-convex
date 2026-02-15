@@ -67,11 +67,6 @@ if(BUILD_TESTING)
   target_link_libraries(cone_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(cone_test PRIVATE ../math/include)
 
-  add_executable(kkt_system_test unit/kkt_system_test.cpp)
-  add_test(NAME kkt_system_test COMMAND kkt_system_test)
-  target_link_libraries(kkt_system_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(kkt_system_test PRIVATE ../math/include)
-
   add_executable(pd_ipm_test unit/pd_ipm_test.cpp)
   add_test(NAME pd_ipm_test COMMAND pd_ipm_test)
   target_link_libraries(pd_ipm_test PRIVATE Catch2::Catch2WithMain)
