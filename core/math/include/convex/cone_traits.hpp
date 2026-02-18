@@ -17,8 +17,11 @@
 
 namespace conic {
 
+/// @brief cone type
+enum struct ConeType : uint8_t { SYMMETRIC = 0, NONSYMMETRIC };
+
 /// @brief cone base class
-template <linalg::VectorLike Vec, typename Derived>
+template <linalg::VectorLike Vec, typename Derived, ConeType Type>
 struct Cone;
 
 /// @brief forward decl for zero order cone
@@ -62,6 +65,7 @@ template <linalg::VectorLike Vec>
 struct cone_traits<ZeroOrderCone<Vec>> : std::true_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
+  static constexpr ConeType CT = ConeType::SYMMETRIC;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -70,6 +74,7 @@ template <linalg::VectorLike Vec>
 struct cone_traits<NonnegOrthantCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
+  static constexpr ConeType CT = ConeType::SYMMETRIC;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -78,6 +83,7 @@ template <linalg::VectorLike Vec>
 struct cone_traits<SecondOrderCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
+  static constexpr ConeType CT = ConeType::SYMMETRIC;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -86,6 +92,7 @@ template <linalg::VectorLike Vec, size_t Dim>
 struct cone_traits<PositiveSemidefiniteCone<Vec, Dim>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
+  static constexpr ConeType CT = ConeType::SYMMETRIC;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -94,6 +101,7 @@ template <linalg::VectorLike Vec>
 struct cone_traits<ExpCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
+  static constexpr ConeType CT = ConeType::NONSYMMETRIC;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -102,6 +110,7 @@ template <linalg::VectorLike Vec>
 struct cone_traits<PowerCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
+  static constexpr ConeType CT = ConeType::NONSYMMETRIC;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -110,6 +119,7 @@ template <linalg::VectorLike Vec>
 struct cone_traits<RotatedSecondOrderCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
+  static constexpr ConeType CT = ConeType::SYMMETRIC;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -120,6 +130,11 @@ using cone_scalar_t = typename cone_traits<linalg::remove_cvref_t<Cone>>::T;
 /// @brief alias for slack type in cone
 template <class Cone>
 using cone_slack_t = typename cone_traits<linalg::remove_cvref_t<Cone>>::SlackT;
+
+/// @brief helper to see if cone is symmetric
+template <class Cone>
+inline constexpr bool is_cone_symmetric_v =
+    cone_traits<linalg::remove_cvref_t<Cone>>::CT == ConeType::SYMMETRIC;
 
 /// @brief helper to get N from cone
 template <class Cone>

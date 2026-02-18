@@ -21,9 +21,10 @@ namespace conic {
  * K_zoc = { x | x == 0 }
  */
 template <linalg::VectorLike Slack>
-struct ZeroOrderCone : public Cone<Slack, ZeroOrderCone<Slack>> {
+struct ZeroOrderCone
+    : public Cone<Slack, ZeroOrderCone<Slack>, ConeType::SYMMETRIC> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Slack, ZeroOrderCone<Slack>>;
+  using ConeBase = Cone<Slack, ZeroOrderCone<Slack>, ConeType::SYMMETRIC>;
 
   /// @brief helpers to get T and M
   using ConeBase::M;

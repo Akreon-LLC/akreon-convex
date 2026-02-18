@@ -46,9 +46,11 @@ struct LogDet {
  */
 template <linalg::VectorLike Slack, size_t N>
 struct PositiveSemidefiniteCone
-    : public Cone<Slack, PositiveSemidefiniteCone<Slack, N>> {
+    : public Cone<Slack, PositiveSemidefiniteCone<Slack, N>,
+                  ConeType::SYMMETRIC> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Slack, PositiveSemidefiniteCone<Slack, N>>;
+  using ConeBase =
+      Cone<Slack, PositiveSemidefiniteCone<Slack, N>, ConeType::SYMMETRIC>;
 
   /// @brief helpers to get T and M
   using ConeBase::M;

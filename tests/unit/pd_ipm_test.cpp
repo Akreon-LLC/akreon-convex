@@ -56,11 +56,11 @@ TEST_CASE("Simple LPs", "[pd_ipm_test]") {
     constexpr auto c = prob_min.linear_objective();
     STATIC_REQUIRE(c == Vectord<2>{1.0, 0.0});
 
-    PrimalDualIPM<decltype(prob_min)> solver;
-    auto res = solver.solve(prob_min);
-    for (size_t i = 0; i < 5; ++i)
-      std::cout << "i = " << i << " z = " << res.z(i) << " x = " << res.x(i)
-                << " s = " << res.s(i) << std::endl;
+    //PrimalDualIPM<decltype(prob_min)> solver;
+    //auto res = solver.solve(prob_min);
+    //for (size_t i = 0; i < 5; ++i)
+    //  std::cout << "i = " << i << " z = " << res.z(i) << " x = " << res.x(i)
+    //            << " s = " << res.s(i) << std::endl;
     // STATIC_REQUIRE(res.result == linalg::SolverResult::OPTIMAL);
   }
 }

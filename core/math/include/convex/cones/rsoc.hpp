@@ -23,9 +23,10 @@ namespace conic {
  */
 template <linalg::VectorLike Slack>
 struct RotatedSecondOrderCone
-    : public Cone<Slack, RotatedSecondOrderCone<Slack>> {
+    : public Cone<Slack, RotatedSecondOrderCone<Slack>, ConeType::SYMMETRIC> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Slack, RotatedSecondOrderCone<Slack>>;
+  using ConeBase =
+      Cone<Slack, RotatedSecondOrderCone<Slack>, ConeType::SYMMETRIC>;
 
   /// @brief helpers to get T and M
   using ConeBase::M;

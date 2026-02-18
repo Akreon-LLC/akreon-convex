@@ -84,13 +84,8 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
     STATIC_REQUIRE(all_equal(H_inv.H, make_identity<double, 12>()));
     STATIC_REQUIRE(H_inv(0, 0) == 1.0);
 
-    constexpr auto grad = rplus.grad(rplus.x0());
-    STATIC_REQUIRE(grad == vec.fill(-1.0));
-
-    /// (dakre) TODO FIXME
-#if 0
-    constexpr auto gamma_F = rplus.functional_proximity(rplus.x0(), rplus.s0());
-    STATIC_REQUIRE(gamma_F == 12.0 * constexpr_ln(12.0).value());
-#endif
+    constexpr auto e = vec.fill(1.0);
+    STATIC_REQUIRE(rplus.e() == e);
+    STATIC_REQUIRE(rplus.circ(rplus.x0(), rplus.s0()) == e);
   }
 }

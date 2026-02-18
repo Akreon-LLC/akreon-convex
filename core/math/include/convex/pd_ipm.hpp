@@ -213,6 +213,7 @@ struct PrimalDualIPM {
         alpha = std::min(alpha, eta * std::min(alpha_x, alpha_s));
         alpha = std::min(alpha, T(1.0));
 
+#if 0
         for (size_t i = 0; i < linalg::SolverTraits<T>::steps; ++i) {
           auto xkb = xk - alpha * pxk;
           auto skb = sk - alpha * pyk;
@@ -222,6 +223,7 @@ struct PrimalDualIPM {
           alpha *= T(0.5);
           if (alpha < linalg::SolverTraits<T>::tol) break;
         }
+#endif
 
         return self.template operator()<idx + 1, Start + KiRows>(alpha, px, py);
       }

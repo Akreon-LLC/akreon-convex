@@ -21,7 +21,7 @@
 namespace conic {
 
 /// @brief cone base class
-template <linalg::VectorLike Slack, typename Derived>
+template <linalg::VectorLike Slack, typename Derived, ConeType CType>
 struct Cone {
   /// @brief alias for mat type
   using T = linalg::vec_type_t<Slack>;
@@ -31,6 +31,9 @@ struct Cone {
 
   /// @brief eps constant
   static constexpr T eps = 1e-8;
+
+  /// @brief HessianMat
+  using HessianMat = linalg::Matrix<T, M, M>;
 
   /**
    * @brief default interior point (initial slack in cone space)
@@ -88,27 +91,6 @@ struct Cone {
   }
 
   /**
-   * @brief gradient \nabla F(x) -> cotangent dual space of covectors
-   *
-   * @param x \in K
-   *
-   * @return covector
-   */
-  constexpr auto grad(const Slack& x) const { return self().grad_impl(x); }
-
-  /**
-   * @brief functional proximity \gamma_F(x,s)
-   *
-   * @param x \in K
-   * @param s \in K^*
-   *
-   * @return scalar measure
-   */
-  constexpr auto functional_proximity(const Slack& x, const Slack& s) const {
-    return self().functional_proximity_impl(x, s);
-  }
-
-  /**
    * @brief fraction to boundary dK
    *
    * \sigma_x(p) = \frac{1}{\sup{\alpha | x - \alpha p \in K }}
@@ -136,6 +118,33 @@ struct Cone {
    */
   constexpr T mu(const Slack& x, const Slack& s) const {
     return self().mu_impl(x, s);
+  }
+
+  /**
+   * @brief circ (jordan product / map)
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return x \circ s
+   */
+  constexpr auto circ(const Slack& x, const Slack& s) const {
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
+    return self().circ_impl(x, s);
+  }
+
+  /**
+   * @brief e (jordan identity)
+   *
+   * x \circ e = x
+   *
+   * @return e
+   */
+  constexpr auto e() const {
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
+    return self().e_impl();
   }
 
   /**

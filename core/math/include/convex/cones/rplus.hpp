@@ -21,13 +21,15 @@ namespace conic {
  * R^n_+ = set of all nonneg R
  */
 template <linalg::VectorLike Slack>
-struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
+struct NonnegOrthantCone
+    : public Cone<Slack, NonnegOrthantCone<Slack>, ConeType::SYMMETRIC> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Slack, NonnegOrthantCone<Slack>>;
+  using ConeBase = Cone<Slack, NonnegOrthantCone<Slack>, ConeType::SYMMETRIC>;
 
   /// @brief helpers to get T and M
   using ConeBase::eps;
   using ConeBase::M;
+  using typename ConeBase::HessianMat;
   using typename ConeBase::T;
 
   /**
@@ -99,7 +101,7 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    * @return H
    */
   constexpr auto H_impl(const Slack& x, const Slack& s) const {
-    linalg::Matrix<T, M, M> H{};
+    HessianMat H{};
     for (size_t i = 0; i < M; ++i) {
       const auto val = linalg::constexpr_abs(x(i)) < eps ? eps : x(i);
       H(i)(i) = s(i) / val;
@@ -118,54 +120,13 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    * @return H
    */
   constexpr auto H_inv_impl(const Slack& x, const Slack& s) const {
-    linalg::Matrix<T, M, M> H_inv{};
+    HessianMat H_inv{};
     for (size_t i = 0; i < M; ++i) {
       const auto val = linalg::constexpr_abs(s(i)) < eps ? eps : s(i);
       H_inv(i)(i) = x(i) / val;
     }
-    return linalg::Hessian<decltype(H_inv), linalg::DifferentialType::PULLBACK>(
+    return linalg::Hessian<HessianMat, linalg::DifferentialType::PULLBACK>(
         H_inv);
-  }
-
-  /**
-   * @brief gradient
-   *
-   * \nabla F(x) -> maps point in primal space to cotangent / dual space of
-   * vectors (i.e., covectors)
-   *
-   * @param x \in K
-   *
-   * @return grad
-   */
-  constexpr auto grad_impl(const Slack& x) const {
-    Slack grad{};
-    for (size_t i = 0; i < M; ++i) {
-      const auto val = linalg::constexpr_abs(x(i)) < eps ? eps : x(i);
-      grad(i) = T(-1) / val;
-    }
-    return grad;
-  }
-
-  /**
-   * @brief functional proximity
-   *
-   * @param x \in K
-   * @param s \in K^*
-   *
-   * @return functional proximity measure
-   */
-  constexpr auto functional_proximity_impl(const Slack& x,
-                                           const Slack& s) const {
-    T gamma_F{0};
-    for (size_t i = 0; i < M; ++i) {
-      const auto val = x(i) * s(i) < eps ? eps : x(i) * s(i);
-      gamma_F -= linalg::constexpr_ln(val).value();
-    }
-
-    const auto xs = linalg::dot(x, s);
-    const auto val = xs < eps ? eps : xs;
-    gamma_F += T(M) * linalg::constexpr_ln(val / T(M)).value();
-    return gamma_F;
   }
 
   /**
@@ -178,6 +139,34 @@ struct NonnegOrthantCone : public Cone<Slack, NonnegOrthantCone<Slack>> {
    */
   constexpr T mu_impl(const Slack& x, const Slack& s) const {
     return linalg::dot(x, s) / static_cast<T>(M);
+  }
+
+  /**
+   * @brief circ (jordan map/product)
+   *
+   * x \circ s = x_i s_i (componentwise mul)
+   *
+   * @param x \in K
+   * @param s \in K^*
+   *
+   * @return x \circ s (vector)
+   */
+  constexpr auto circ_impl(const Slack& x, const Slack& s) const {
+    Slack res{};
+    for (size_t i = 0; i < M; ++i) res(i) = x(i) * s(i);
+    return res;
+  }
+
+  /**
+   * @brief e (jordan identity)
+   *
+   * e = (1,1,...1)
+   *
+   * @return e (vector)
+   */
+  constexpr auto e_impl() const {
+    linalg::vec_traits<Slack> vec{};
+    return vec.fill(T(1));
   }
 };
 

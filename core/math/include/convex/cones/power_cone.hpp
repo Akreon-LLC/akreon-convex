@@ -22,9 +22,10 @@ namespace conic {
  * } a \in Q (set of rational numbers)
  */
 template <linalg::VectorLike Slack>
-struct PowerCone : public Cone<Slack, PowerCone<Slack>> {
+struct PowerCone
+    : public Cone<Slack, PowerCone<Slack>, ConeType::NONSYMMETRIC> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Slack, PowerCone<Slack>>;
+  using ConeBase = Cone<Slack, PowerCone<Slack>, ConeType::NONSYMMETRIC>;
 
   /// @brief helpers to get T and M
   using ConeBase::M;
