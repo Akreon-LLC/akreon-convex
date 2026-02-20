@@ -47,14 +47,10 @@ function(akreon_configure_target target_name)
     target_compile_definitions(${target_name} PRIVATE AKREON_USE_NOSYS=0)
   endif()
 
-  if(CMAKE_SYSTEM_NAME STREQUAL "Generic")
-    if(AKREON_USE_NOSYS)
-      target_link_options(${target_name} PRIVATE --specs=nosys.specs)
-    else()
-      message(STATUS
-              "AKREON_USE_NOSYS=OFF: '${target_name}' expects user/application "
-              "syscall retarget implementations (_write, _read, _sbrk, etc).")
-    endif()
+  if(CMAKE_SYSTEM_NAME STREQUAL "Generic" AND NOT AKREON_USE_NOSYS)
+    message(STATUS
+            "AKREON_USE_NOSYS=OFF: '${target_name}' expects user/application "
+            "syscall retarget implementations (_write, _read, _sbrk, etc).")
   endif()
 endfunction()
 

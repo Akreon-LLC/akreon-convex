@@ -33,32 +33,51 @@
       }
     },
     {
-      "name": "stm32-baremetal-nosys",
-      "displayName": "STM32 Baremetal Nosys",
-      "description": "STM32 cross-compile with nosys syscall stubs",
+      "name": "arm-stm32-base",
+      "hidden": true,
       "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/out/build/stm32-baremetal-nosys",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm-none-eabi-stm32.cmake",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/toolchains/arm-none-eabi-stm32.cmake",
+        "CMAKE_BUILD_TYPE": "Release",
         "BUILD_UNIT_TESTS": "OFF",
         "BUILD_FUNCTIONAL_TESTS": "ON",
-        "AKREON_PLATFORM": "baremetal",
-        "AKREON_USE_NOSYS": "ON"
+        "AKREON_THUMB": "ON",
+        "AKREON_OPT_LEVEL": "-Os",
+        "AKREON_USE_LTO": "ON",
+        "AKREON_USE_NOSYS": "ON",
+        "AKREON_PLATFORM": "baremetal"
       }
     },
     {
-      "name": "stm32-freertos",
-      "displayName": "STM32 FreeRTOS Style",
-      "description": "STM32 cross-compile expecting app-provided syscall retargets",
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/out/build/stm32-freertos",
+      "name": "crazyflie",
+      "displayName": "Crazyflie STM32F405",
+      "description": "Crazyflie 2.x family (STM32F405 / Cortex-M4F)",
+      "inherits": "arm-stm32-base",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/toolchains/arm-none-eabi-stm32.cmake",
-        "BUILD_UNIT_TESTS": "OFF",
-        "BUILD_FUNCTIONAL_TESTS": "ON",
-        "AKREON_PLATFORM": "freertos",
-        "AKREON_USE_NOSYS": "OFF"
+        "AKREON_CPU": "cortex-m4",
+        "AKREON_FPU": "fpv4-sp-d16",
+        "AKREON_FLOAT_ABI": "hard",
+        "AKREON_DEVICE_DEFS": "STM32F405xx"
       }
+    },
+    {
+      "name": "pixhawk",
+      "displayName": "Pixhawk STM32F7",
+      "description": "Pixhawk/Cube class default (STM32F7 / Cortex-M7F), configurable to H7 later",
+      "inherits": "arm-stm32-base",
+      "cacheVariables": {
+        "AKREON_CPU": "cortex-m7",
+        "AKREON_FPU": "fpv5-d16",
+        "AKREON_FLOAT_ABI": "hard",
+        "AKREON_DEVICE_DEFS": "STM32F7xx"
+      }
+    },
+    {
+      "name": "cubeorange",
+      "displayName": "CubeOrange Alias",
+      "description": "Convenience alias preset (currently identical to pixhawk)",
+      "inherits": "pixhawk"
     }
   ],
   "buildPresets": [
@@ -71,12 +90,16 @@
       "configurePreset": "host-functional-only"
     },
     {
-      "name": "stm32-baremetal-nosys",
-      "configurePreset": "stm32-baremetal-nosys"
+      "name": "crazyflie",
+      "configurePreset": "crazyflie"
     },
     {
-      "name": "stm32-freertos",
-      "configurePreset": "stm32-freertos"
+      "name": "pixhawk",
+      "configurePreset": "pixhawk"
+    },
+    {
+      "name": "cubeorange",
+      "configurePreset": "cubeorange"
     }
   ]
 }
