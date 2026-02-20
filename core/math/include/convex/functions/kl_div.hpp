@@ -65,9 +65,11 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
       : ConvexBase(child_in),
         p(p_in),
         lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
-    std::for_each(p.begin(), p.end(), [&](const auto& x) {
-      if (x < T(0)) throw std::domain_error("P vector contains negative value");
-    });
+    for (const auto& x : p) {
+      assert(x < T(0) &&
+             "KLDivergence expects each fixed p entry to satisfy x < 0");
+      (void)x;
+    }
   }
 
   /**
@@ -81,9 +83,11 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
       const PointT& p_in, const Child& child_in,
       const affine::AffineMap<LiftedVarMat<T>>& map_in)
       : ConvexBase(child_in), p(p_in), lift_map(map_in) {
-    std::for_each(p.begin(), p.end(), [&](const auto& x) {
-      if (x < T(0)) throw std::domain_error("P vector contains negative value");
-    });
+    for (const auto& x : p) {
+      assert(x < T(0) &&
+             "KLDivergence expects each fixed p entry to satisfy x < 0");
+      (void)x;
+    }
   }
 
   /**

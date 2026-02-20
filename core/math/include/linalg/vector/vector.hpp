@@ -68,7 +68,7 @@ struct Vector {
    * @return coordinates at index
    */
   constexpr const T& operator()(const size_t& idx) const {
-    assert(idx < N);
+    assert(idx < N && "Vector const access index out of bounds");
     return coordinates[idx];
   }
 
@@ -80,7 +80,7 @@ struct Vector {
    * @return coordinates at index
    */
   constexpr T& operator()(const size_t& idx) {
-    assert(idx < N);
+    assert(idx < N && "Vector mutable access index out of bounds");
     return coordinates[idx];
   }
 

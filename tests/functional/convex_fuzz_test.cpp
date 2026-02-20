@@ -10,15 +10,7 @@
  * from Akreon LLC.
  */
 
-#include <assert.h>
-
-#include <algorithm>
-#include <iostream>
-#include <random>
-
 #include "math.hpp"
-
-#define TRIALS 10000
 
 using namespace linalg;
 using namespace convex;
@@ -33,7 +25,5 @@ int main() {
   constexpr auto norm =
       Norm<NormMeta<Dom, Codom>, decltype(var), L2<Vectord<N>>>(var);
   constexpr auto prob2 = prob.minimize(norm);
-  assert(prob2.validate());
-  std::cout << prob2.linear_objective()(0)(0) << std::endl;
-  return 0;
+  return prob2.validate();
 }

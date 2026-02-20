@@ -118,17 +118,15 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
       : BaseT(std::make_tuple(child_in)),
         map(affine::make_selector_map<SelMatT>(idx_in)),
         idx(idx_in) {
-    if (!is_var_type_v<Child>)
-      throw std::domain_error(
-          "Scalar view child must be the decision variable");
+    assert(is_var_type_v<Child> &&
+           "ScalarView child must be the decision variable type");
   }
 
   constexpr explicit ScalarView(const size_t& idx_in, const Child& child_in,
                                 const affine::AffineMap<SelMatT>& map_in)
       : BaseT(std::make_tuple(child_in)), map(map_in), idx(idx_in) {
-    if (!is_var_type_v<Child>)
-      throw std::domain_error(
-          "Scalar view child must be the decision variable");
+    assert(is_var_type_v<Child> &&
+           "ScalarView child must be the decision variable type");
   }
 
   constexpr auto mul(const T& alpha) const {
@@ -233,7 +231,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
         const auto eps = linalg::SolverTraits<T>::TOL;
         for (size_t i = 0; i < N; ++i) g(i) = T(-1) * eps;
       } else {
-        throw std::domain_error("Unknown sign in variable");
+        assert(false && "Unsupported sign type in Variable::add_var_block");
       }
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
 

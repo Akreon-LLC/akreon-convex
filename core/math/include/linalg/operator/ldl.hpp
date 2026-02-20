@@ -170,7 +170,8 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
    * @return vector z
    */
   constexpr auto diag_solve(const Vector<T, N>& y) const {
-    assert(is_valid());
+    assert(is_valid() &&
+           "LDL::diag_solve requires a valid factorization (non-singular)");
 
     Vector<T, N> z{};
     for (size_t i = 0; i < N; ++i) z(i) = y(i) / D_vec(i);

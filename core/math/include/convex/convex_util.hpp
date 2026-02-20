@@ -154,8 +154,9 @@ struct ConeBlockBuilder {
 
     linalg::Vector<T, FullDom> sel{};
     linalg::Vector<T, 1> bias{lift_map.translation()(0)};
-    if (FullDom + idx >= FullDom)
-      throw std::domain_error("Selecting aux var that is out of bounds");
+
+    assert(FullDom + idx >= FullDom &&
+           "Aux variable selector index underflow/overflow in ConeBlockBuilder::make");
 
     sel(FullDom + idx) = lift_map.linear_part()(0)(0);
     const auto sel_row = linalg::as_row_vector(sel);

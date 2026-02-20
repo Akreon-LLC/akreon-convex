@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <cassert>
+
 #include "convex_traits.hpp"
 #include "convex_util.hpp"
 
@@ -47,17 +49,15 @@ struct Atom {
   constexpr void validate_fn_domain(const auto& child) const {
     using ChildCodom = meta_codom_t<atom_meta_t<decltype(child)>>;
     using ParentDom = meta_dom_t<Meta>;
-    if constexpr (dom_size_v<ParentDom> != dom_size_v<ChildCodom>) {
-      throw std::domain_error(
-          "Mismatch in size between parent domain and child codomain");
-    }
+    static_assert(dom_size_v<ParentDom> == dom_size_v<ChildCodom>,
+                  "Mismatch in size between parent domain and child codomain");
+
     const CurvatureType& child_curv = meta_curv_v<atom_meta_t<decltype(child)>>;
     const CurvatureType parent_curv = meta_curv_v<Meta>;
-    if (self().monotonicity() == MonotonicityType::UNKNOWN &&
-        child_curv != CurvatureType::AFFINE)
-      throw std::domain_error(
-          "Function's monotonicity is unknown and child curvature is "
-          "non-affine");
+
+    assert((self().monotonicity() != MonotonicityType::UNKNOWN ||
+            child_curv == CurvatureType::AFFINE) &&
+           "Function with unknown monotonicity requires affine child");
 
     if (child_curv == CurvatureType::AFFINE ||
         parent_curv == CurvatureType::AFFINE)
@@ -79,7 +79,20 @@ struct Atom {
         return;
     }
 
-    throw std::domain_error("Functions composition fails DCP compliance");
+    const bool dcp_composition_valid =
+        (parent_curv == CurvatureType::CONVEX &&
+         ((self().monotonicity() == MonotonicityType::NONDEC &&
+           child_curv == CurvatureType::CONVEX) ||
+          (self().monotonicity() == MonotonicityType::NONINC &&
+           child_curv == CurvatureType::CONCAVE))) ||
+        (parent_curv == CurvatureType::CONCAVE &&
+         ((self().monotonicity() == MonotonicityType::NONDEC &&
+           child_curv == CurvatureType::CONCAVE) ||
+          (self().monotonicity() == MonotonicityType::NONINC &&
+           child_curv == CurvatureType::CONVEX)));
+    assert(dcp_composition_valid &&
+           "Function composition fails DCP compliance");
+    (void)dcp_composition_valid;
   }
 
   constexpr void validate_domain() const {
@@ -90,8 +103,8 @@ struct Atom {
       }
 
       if constexpr (is_set_type_v<decltype(self())>) {
-        if (!is_var_type_v<decltype(child)>)
-          throw std::domain_error("Set expects child to be a variable type");
+        static_assert(is_var_type_v<decltype(child)>,
+                      "Set expects child to be a variable type");
       }
 
       const SignType& dom_sign =
@@ -101,66 +114,63 @@ struct Atom {
             dom_sign_v<meta_codom_t<atom_meta_t<decltype(child)>>>;
         switch (dom_sign) {
           case SignType::POS: {
-            if (child_sign != SignType::POS)
-              throw std::domain_error("Parent expects positive child codomain");
+            assert(child_sign == SignType::POS &&
+                   "Parent positive domain expects positive child codomain");
             break;
           }
           case SignType::NONNEG: {
-            if (child_sign != SignType::POS && child_sign != SignType::NONNEG)
-              throw std::domain_error(
-                  "Parent expects non-negative child codomain");
+            assert((child_sign == SignType::POS ||
+                    child_sign == SignType::NONNEG) &&
+                   "Parent non-negative domain expects positive/non-negative child codomain");
             break;
           }
           case SignType::NEG: {
-            if (child_sign != SignType::NEG)
-              throw std::domain_error("Parent expects negative child codomain");
+            assert(child_sign == SignType::NEG &&
+                   "Parent negative domain expects negative child codomain");
             break;
           }
           case SignType::NONPOS: {
-            if (child_sign != SignType::NONPOS && child_sign != SignType::NEG)
-              throw std::domain_error(
-                  "Parent expects non-positive child codomain");
+            assert((child_sign == SignType::NONPOS ||
+                    child_sign == SignType::NEG) &&
+                   "Parent non-positive domain expects non-positive/negative child codomain");
             break;
           }
           case SignType::PD: {
-            if (child_sign != SignType::PD)
-              throw std::domain_error(
-                  "Parent expects positive definite child codomain");
+            assert(child_sign == SignType::PD &&
+                   "Parent PD domain expects PD child codomain");
             break;
           }
           case SignType::PSD: {
-            if (child_sign != SignType::PSD && child_sign != SignType::PD)
-              throw std::domain_error(
-                  "Parent expects positive semi-definite child codomain");
+            assert((child_sign == SignType::PSD || child_sign == SignType::PD) &&
+                   "Parent PSD domain expects PSD/PD child codomain");
             break;
           }
           case SignType::ND: {
-            if (child_sign != SignType::ND)
-              throw std::domain_error(
-                  "Parent expects negative definite child codomain");
+            assert(child_sign == SignType::ND &&
+                   "Parent ND domain expects ND child codomain");
             break;
           }
           case SignType::NSD: {
-            if (child_sign != SignType::NSD && child_sign != SignType::ND)
-              throw std::domain_error(
-                  "Parent expects negative semi-definite child codomain");
+            assert((child_sign == SignType::NSD || child_sign == SignType::ND) &&
+                   "Parent NSD domain expects NSD/ND child codomain");
             break;
           }
           case SignType::FREE:
           default:
             break;
         }
+        (void)child_sign;
       }
 
       if constexpr (is_cap_type_v<decltype(self())>) {
-        if (!is_set_type_v<decltype(child)>)
-          throw std::domain_error("Intersection operating on non-convex set");
+        assert(is_set_type_v<decltype(child)> &&
+               "Intersection expects each child to be a set");
       }
 
       if constexpr (is_add_type_v<decltype(self())>) {
         /// (dakre) TODO add in minkowski sum
-        if (is_set_type_v<decltype(child)>)
-          throw std::domain_error("Minkowski sum is currently not supported");
+        assert(!is_set_type_v<decltype(child)> &&
+               "Minkowski sum is not supported for set children");
       }
 
       const CurvatureType& child_curv =
@@ -180,8 +190,14 @@ struct Atom {
                  num_convex == 0) {
         // no-op - valid dcp
       } else {
-        throw std::domain_error(
-            "Not dcp valid to sum convex with concave atoms");
+        const bool dcp_sum_valid =
+            ((num_convex == N || num_convex + num_affine == N) &&
+             num_concave == 0) ||
+            ((num_concave == N || num_concave + num_affine == N) &&
+             num_convex == 0);
+        assert(dcp_sum_valid &&
+               "Not dcp valid to sum convex with concave atoms");
+        (void)dcp_sum_valid;
       }
     }
   }

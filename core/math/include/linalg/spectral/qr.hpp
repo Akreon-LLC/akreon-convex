@@ -197,7 +197,8 @@ struct QR {
       T sum = 0;
       for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
 
-      assert(R(i)(i) != T(0));
+      assert(R(i)(i) != T(0) &&
+             "QR back_solve requires non-zero diagonal in R");
       x(i) = (rhs(i) - sum) / R(i)(i);
     }
     return x;

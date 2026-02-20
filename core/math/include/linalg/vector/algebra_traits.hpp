@@ -43,7 +43,8 @@ struct vec_traits<Vector<T, N>> {
 
   template <typename... Ts>
   static constexpr auto operator()(Ts&&... xs) {
-    static_assert(sizeof...(xs) == N);
+    static_assert(sizeof...(xs) == N,
+                  "vec_traits::operator() requires exactly N coordinates");
     Vector<T, N> V;
     int i = 0;
     auto set_elem = [&](const T& x) { V(i++) = x; };
@@ -79,7 +80,8 @@ struct mat_traits<Matrix<T, Rows, Cols>> {
 
   template <typename... Ts>
   static constexpr auto operator()(Ts&&... xs) {
-    static_assert(sizeof...(xs) == Rows * Cols);
+    static_assert(sizeof...(xs) == Rows * Cols,
+                  "mat_traits::operator() requires Rows*Cols coordinates");
     Matrix<T, Rows, Cols> M;
     int i = 0;
     auto set_elem = [&](const T& x) {

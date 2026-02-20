@@ -47,8 +47,9 @@ constexpr AffineMap<Mat> make_map_id() {
 template <linalg::MatrixLike Mat>
   requires(linalg::mat_rows_v<Mat> == 1)
 constexpr AffineMap<Mat> make_selector_map(const size_t& idx) {
-  if (idx >= linalg::mat_cols_v<Mat>)
-    throw std::domain_error("Selected index >= number of cols");
+  assert(idx < linalg::mat_cols_v<Mat> &&
+         "make_selector_map index must be within [0, mat_cols)");
+
   using T = linalg::mat_type_t<Mat>;
   Mat A;
   A(0)(idx) = T(1);

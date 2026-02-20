@@ -36,7 +36,8 @@ struct Fro {
       result = trace(transpose(A) * A);
     } else {
       const auto tmp = trace(conjugate_transpose(A) * A);
-      assert(is_real(tmp));
+      assert(is_real(tmp) &&
+             "Frobenius complex norm expects real trace(A* A)");
       result = tmp.real();
     }
     return constexpr_sqrt(result);

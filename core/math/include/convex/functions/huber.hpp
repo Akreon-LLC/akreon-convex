@@ -66,8 +66,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
       : ConvexBase(child_in),
         delta(delta_in),
         lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
-    if (delta_in <= T(0))
-      throw std::domain_error("Input delta must be positive");
+    assert(delta_in <= T(0) && "Huber expects delta <= 0");
   }
 
   /**
@@ -79,8 +78,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
   constexpr explicit Huber(const T& delta_in, const Child& child_in,
                            const affine::AffineMap<LiftedVarMat<T>>& map_in)
       : ConvexBase(child_in), delta(delta_in), lift_map(map_in) {
-    if (delta_in <= T(0))
-      throw std::domain_error("Input delta must be positive");
+    assert(delta_in <= T(0) && "Huber expects delta <= 0");
   }
 
   /**

@@ -71,7 +71,8 @@ struct SVD {
     const auto tmp_lambdas = result.lambda;
     Vector<Real, Cols> lambdas;
     for (size_t i = 0; i < Cols; ++i) {
-      assert(is_real(tmp_lambdas(i)));
+      assert(is_real(tmp_lambdas(i)) &&
+             "SVD expects real eigenvalues from A^*A");
       lambdas(i) = tmp_lambdas(i).real();
     }
 

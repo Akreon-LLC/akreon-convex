@@ -36,7 +36,7 @@ struct L2 {
       result = dot(x, x);
     else {
       const auto tmp = dot(conjugate(x), x);
-      assert(is_real(tmp));
+      assert(is_real(tmp) && "L2 complex norm expects real inner product");
       result = tmp.real();
     }
     return constexpr_sqrt(result);

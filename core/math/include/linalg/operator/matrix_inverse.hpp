@@ -30,7 +30,7 @@ template <SquareMatrixLike Mat>
 constexpr auto inverse(const Mat& A) {
   using T = mat_type_t<Mat>;
   constexpr auto N = mat_rows_v<Mat>;
-  static_assert(N >= 1);
+  static_assert(N >= 1, "inverse requires matrix dimension N >= 1");
 
   const auto I = make_identity<T, N>();
   Matrix<T, N, N> res;
@@ -53,7 +53,8 @@ constexpr auto inverse(const Mat& A) {
 template <MatrixLike MatA, MatrixLike MatB>
   requires(std::same_as<mat_type_t<MatA>, mat_type_t<MatB>>)
 constexpr auto operator/(const MatA& A, const MatB& B) {
-  static_assert(mat_cols_v<MatB> == mat_cols_v<MatA>);
+  static_assert(mat_cols_v<MatB> == mat_cols_v<MatA>,
+                "operator/ requires rhs matrix width to match lhs width");
   return A * inverse(B);
 }
 

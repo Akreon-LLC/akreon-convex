@@ -52,8 +52,8 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
    * @return T/F
    */
   constexpr void validate_domain_impl() const {
-    if (!self().is_well_formed_impl())
-      throw std::domain_error("Convex set is not well formed");
+    assert(self().is_well_formed_impl() &&
+           "ConvexSet::validate_domain_impl expects set it to be good");
   }
 
   /**
