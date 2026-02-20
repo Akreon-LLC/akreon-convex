@@ -96,7 +96,7 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
         /// build up, only need to scale first col by first diag elem)
         constexpr size_t next = j + 1;
         if constexpr (j == 0) {
-          if (linalg::constexpr_abs(A(0)(0)) < SolverTraits<T>::tol)
+          if (linalg::constexpr_abs(A(0)(0)) < SolverTraits<T>::TOL)
             return false;
 
           const auto A_col =
@@ -112,7 +112,7 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
           const auto A_row = linalg::get_block<j, next, 0, j>(A);
           A(j)(j) = A(j)(j) - (A_row * v)(0);
 
-          if (linalg::constexpr_abs(A(j)(j)) < SolverTraits<T>::tol)
+          if (linalg::constexpr_abs(A(j)(j)) < SolverTraits<T>::TOL)
             return false;
 
           if constexpr (next < SymmetricBase::N) {
@@ -139,7 +139,7 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
     L_vec = get_lower_triangle(A);
     D_vec = get_diag(A);
 
-    this->compute_definiteness(D_vec, SolverTraits<T>::tol);
+    this->compute_definiteness(D_vec, SolverTraits<T>::TOL);
   }
 
   /**

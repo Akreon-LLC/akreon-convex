@@ -234,7 +234,6 @@ class ConvexProblem {
           "convex function, or index of var instead of raw type");
     } else if constexpr (is_index_type_v<Atom>) {
       const auto cb = builder.cb;
-      // auto c = builder.coord_map.linear_part();
       static constexpr size_t AugN =
           linalg::mat_cols_v<decltype(builder.coord_map.linear_part())>;
       linalg::Matrix<T, 1, AugN> c{};

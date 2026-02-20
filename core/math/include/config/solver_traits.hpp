@@ -17,26 +17,32 @@
 namespace linalg {
 
 template <typename T>
-struct SolverTraits {
-  static constexpr size_t steps = 0;
-  static constexpr T tol = T(0);
-};
+struct SolverTraits {};
 
 template <>
 struct SolverTraits<float> {
-  static constexpr size_t steps = 16;
-  static constexpr float tol = 1e-8;
+  static constexpr size_t STEPS = 32;
+  static constexpr float TOL = 1e-8;
+  static constexpr double PRIMAL_FEASIBLE = 1e-5;
+  static constexpr double DUAL_FEASIBLE = 1e-5;
+  static constexpr double DUALITY_GAP = 1e-4;
 };
 
 template <>
 struct SolverTraits<double> {
-  static constexpr size_t steps = 64;
-  static constexpr double tol = 1e-10;
+  static constexpr size_t STEPS = 64;
+  static constexpr float TOL = 1e-8;
+  static constexpr double PRIMAL_FEASIBLE = 1e-5;
+  static constexpr double DUAL_FEASIBLE = 1e-5;
+  static constexpr double DUALITY_GAP = 1e-4;
 };
 
 enum struct SolverResult : uint8_t {
-  OPTIMAL = 0,
-  INVALID,
+  INVALID = 0,
+  OPTIMAL,
+  PRIMAL_FEASIBLE,
+  DUAL_FEASIBLE,
+  PRIMAL_DUAL_FEASIBLE,
   INFEASIBLE_OR_UNBOUNDED
 };
 

@@ -109,16 +109,13 @@ struct Cone {
   }
 
   /**
-   * @brief duality gap (normalized)
+   * @brief barrier parameter
    *
-   * @param x \in K
-   * @param s \in K^*
+   * For jordan algebra it is associated with the dimension of the cone
    *
-   * @return \mu(x,s)
+   * @return nu
    */
-  constexpr T mu(const Slack& x, const Slack& s) const {
-    return self().mu_impl(x, s);
-  }
+  constexpr T nu() const { return self().nu_impl(); }
 
   /**
    * @brief circ (jordan product / map)

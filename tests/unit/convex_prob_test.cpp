@@ -181,7 +181,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
   }
 
   SECTION("Var -> cones") {
-    constexpr auto cone_eps = -1.0 * SolverTraits<double>::tol;
+    constexpr auto cone_eps = -1.0 * SolverTraits<double>::TOL;
 
     using Space = Matrixd<1, 5>;
     constexpr auto x = Variable<FreeVarMeta<Space>>();
@@ -628,7 +628,7 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
         2);
 
     constexpr mat_traits<Matrix<double, 4, 2>> F_mat;
-    constexpr auto solver_eps = linalg::SolverTraits<double>::tol;
+    constexpr auto solver_eps = linalg::SolverTraits<double>::TOL;
     constexpr auto F = F_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
     STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(), F));
     STATIC_REQUIRE(prob2.constraint_map().translation() ==
@@ -666,7 +666,7 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
         4);
 
     constexpr mat_traits<Matrix<double, 8, 4>> F_mat;
-    constexpr auto solver_eps = linalg::SolverTraits<double>::tol;
+    constexpr auto solver_eps = linalg::SolverTraits<double>::TOL;
     constexpr auto F =
         F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
               0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
@@ -701,7 +701,7 @@ TEST_CASE("Simple feasibility test", "[convex_problem]") {
     constexpr mat_traits<Matrix<double, 5, 2>> F_mat;
     constexpr auto F = F_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
-    constexpr auto solver_eps = linalg::SolverTraits<double>::tol;
+    constexpr auto solver_eps = linalg::SolverTraits<double>::TOL;
     constexpr auto g = Vectord<5>{-1 * solver_eps, 0.0, 1.0, 0.0, 1.0};
     STATIC_REQUIRE(prob3.constraint_map().translation() == g);
 

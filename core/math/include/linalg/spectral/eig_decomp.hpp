@@ -31,8 +31,6 @@ struct EigenDecomposition {
   using Real = scalar_type_t<T>;
   using Complex = std::conditional_t<ComplexLike<T>, T, std::complex<Real>>;
 
-  static constexpr size_t STEPS = SolverTraits<Real>().steps;
-  static constexpr Real TOL = SolverTraits<Real>().tol;
   static constexpr size_t N = mat_rows_v<Mat>;
 
   /**
@@ -105,7 +103,7 @@ struct EigenDecomposition {
     // 3. the practical QR iteration on H -- form quasi triangular matrix in
     // real schur form and extract eigenvalues depending on real / complex form
     // of 2x2 or 1x1 schur blocks
-    for (size_t i = 0; i < STEPS; ++i) {
+    for (size_t i = 0; i < SolverTraits<Real>::STEPS; ++i) {
       const auto qr = QR(H);
       const auto Q = qr.Q();
       const auto R = qr.R();
@@ -131,7 +129,8 @@ struct EigenDecomposition {
           }
           const Real& c = H(j + 1)(j);
           const Real& d = H(j + 1)(j + 1);
-          if (constexpr_abs(c) < TOL * (constexpr_abs(c) + constexpr_abs(d))) {
+          if (constexpr_abs(c) <
+              SolverTraits<Real>::TOL * (constexpr_abs(c) + constexpr_abs(d))) {
             eigs(j) = Complex(a, 0);
             continue;
           }
@@ -167,7 +166,7 @@ struct EigenDecomposition {
           }
         }
 
-        if (res < TOL * TOL) {
+        if (res < SolverTraits<Real>::TOL * SolverTraits<Real>::TOL) {
           converged = true;
           break;
         }
@@ -216,10 +215,10 @@ struct EigenDecomposition {
       // - Defect = # of extra generalized evecs to span the space the Jordan
       // block lies in
       int AM = 0;
-      std::for_each(eigs.begin(), eigs.end(),
-                    [&i, &eigs, &AM](const auto& val) {
-                      AM += constexpr_absc(eigs(i) - val) < TOL;
-                    });
+      std::for_each(
+          eigs.begin(), eigs.end(), [&i, &eigs, &AM](const auto& val) {
+            AM += constexpr_absc(eigs(i) - val) < SolverTraits<Real>::TOL;
+          });
       int GM = 0, defect = 0;
       if (AM > 1) {
         const auto I = make_identity<Complex, N>();

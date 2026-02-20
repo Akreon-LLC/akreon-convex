@@ -226,11 +226,11 @@ struct Variable : Atom<Meta, Variable<Meta>> {
       } else if constexpr (SignType::NONPOS == sign || SignType::NSD == sign) {
         F = T(-1) * F;
       } else if constexpr (SignType::POS == sign || SignType::PD == sign) {
-        const auto eps = linalg::SolverTraits<T>::tol;
+        const auto eps = linalg::SolverTraits<T>::TOL;
         for (size_t i = 0; i < N; ++i) g(i) = T(-1) * eps;
       } else if constexpr (SignType::NEG == sign || SignType::ND == sign) {
         F = T(-1) * F;
-        const auto eps = linalg::SolverTraits<T>::tol;
+        const auto eps = linalg::SolverTraits<T>::TOL;
         for (size_t i = 0; i < N; ++i) g(i) = T(-1) * eps;
       } else {
         throw std::domain_error("Unknown sign in variable");

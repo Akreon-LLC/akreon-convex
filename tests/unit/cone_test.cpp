@@ -74,7 +74,8 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
 
     constexpr vec_traits<Slack> vec;
     constexpr auto p = vec.fill(2.0);
-    STATIC_REQUIRE(rplus.alpha_max(rplus.x0(), p) == 0.5);
+    STATIC_REQUIRE(
+        linalg::constexpr_abs(rplus.alpha_max(rplus.x0(), p) - 0.99) < eps);
 
     constexpr auto H = rplus.H(rplus.x0(), rplus.s0());
     STATIC_REQUIRE(all_equal(H.H, make_identity<double, 12>()));
@@ -87,5 +88,6 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
     constexpr auto e = vec.fill(1.0);
     STATIC_REQUIRE(rplus.e() == e);
     STATIC_REQUIRE(rplus.circ(rplus.x0(), rplus.s0()) == e);
+    STATIC_REQUIRE(rplus.nu() == 12.0);
   }
 }

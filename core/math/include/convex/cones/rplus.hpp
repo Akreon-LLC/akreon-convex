@@ -66,9 +66,9 @@ struct NonnegOrthantCone
   /**
    * @brief fraction to boundary dK
    *
-   * sigma_x = \frac{1}{sup{alpha | x - alpha p \in K}}
-   * sup{alpha | x - alpha p \in K} = 1 / sigma_x(p)
-   * alpha = min. x_i / p_i
+   * sigma_x = \frac{1}{sup{alpha | x + alpha p \in K}}
+   * sup{alpha | x + alpha p \in K} = -1 / sigma_x(p)
+   * alpha = min. -x_i / p_i
    *
    * (similar for dual)
    *
@@ -79,14 +79,15 @@ struct NonnegOrthantCone
    */
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {
-    T a = std::numeric_limits<T>::max();
+    const T eta{0.99};
+    T a{1};
     for (size_t i = 0; i < M; ++i) {
-      if (p(i) > T(0)) {
-        const T cand = x(i) / p(i);
+      if (p(i) < T(0)) {
+        const T cand = -x(i) / p(i);
         a = (cand < a) ? cand : a;
       }
     }
-    return a;
+    return std::min(T(1), eta * a);
   }
 
   /**
@@ -111,7 +112,7 @@ struct NonnegOrthantCone
   /**
    * @brief hessian inverse
    *
-   * F''(w)^{-1} -> pullback operator that maps vectors in the gradient space
+   *    F''(w)^{-1} -> pullback operator that maps vectors in the gradient space
    * back to primal / tangent dirs... acts as metric induced lifting
    *
    * @param x \in K
@@ -130,16 +131,11 @@ struct NonnegOrthantCone
   }
 
   /**
-   * @brief duality gap (normalized)
+   * @brief barrier parameter
    *
-   * @param x \in K
-   * @param s \in K^*
-   *
-   * @return \mu(x,s)
+   * @return nu
    */
-  constexpr T mu_impl(const Slack& x, const Slack& s) const {
-    return linalg::dot(x, s) / static_cast<T>(M);
-  }
+  constexpr T nu_impl() const { return static_cast<T>(M); }
 
   /**
    * @brief circ (jordan map/product)
