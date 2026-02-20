@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "config/assert.hpp"
+
 #include <cassert>
 
 #include "convex_traits.hpp"
@@ -55,7 +57,7 @@ struct Atom {
     const CurvatureType& child_curv = meta_curv_v<atom_meta_t<decltype(child)>>;
     const CurvatureType parent_curv = meta_curv_v<Meta>;
 
-    assert((self().monotonicity() != MonotonicityType::UNKNOWN ||
+    AK_ASSERT((self().monotonicity() != MonotonicityType::UNKNOWN ||
             child_curv == CurvatureType::AFFINE) &&
            "Function with unknown monotonicity requires affine child");
 
@@ -90,7 +92,7 @@ struct Atom {
            child_curv == CurvatureType::CONCAVE) ||
           (self().monotonicity() == MonotonicityType::NONINC &&
            child_curv == CurvatureType::CONVEX)));
-    assert(dcp_composition_valid &&
+    AK_ASSERT(dcp_composition_valid &&
            "Function composition fails DCP compliance");
     (void)dcp_composition_valid;
   }
@@ -114,44 +116,44 @@ struct Atom {
             dom_sign_v<meta_codom_t<atom_meta_t<decltype(child)>>>;
         switch (dom_sign) {
           case SignType::POS: {
-            assert(child_sign == SignType::POS &&
+            AK_ASSERT(child_sign == SignType::POS &&
                    "Parent positive domain expects positive child codomain");
             break;
           }
           case SignType::NONNEG: {
-            assert((child_sign == SignType::POS ||
+            AK_ASSERT((child_sign == SignType::POS ||
                     child_sign == SignType::NONNEG) &&
                    "Parent non-negative domain expects positive/non-negative child codomain");
             break;
           }
           case SignType::NEG: {
-            assert(child_sign == SignType::NEG &&
+            AK_ASSERT(child_sign == SignType::NEG &&
                    "Parent negative domain expects negative child codomain");
             break;
           }
           case SignType::NONPOS: {
-            assert((child_sign == SignType::NONPOS ||
+            AK_ASSERT((child_sign == SignType::NONPOS ||
                     child_sign == SignType::NEG) &&
                    "Parent non-positive domain expects non-positive/negative child codomain");
             break;
           }
           case SignType::PD: {
-            assert(child_sign == SignType::PD &&
+            AK_ASSERT(child_sign == SignType::PD &&
                    "Parent PD domain expects PD child codomain");
             break;
           }
           case SignType::PSD: {
-            assert((child_sign == SignType::PSD || child_sign == SignType::PD) &&
+            AK_ASSERT((child_sign == SignType::PSD || child_sign == SignType::PD) &&
                    "Parent PSD domain expects PSD/PD child codomain");
             break;
           }
           case SignType::ND: {
-            assert(child_sign == SignType::ND &&
+            AK_ASSERT(child_sign == SignType::ND &&
                    "Parent ND domain expects ND child codomain");
             break;
           }
           case SignType::NSD: {
-            assert((child_sign == SignType::NSD || child_sign == SignType::ND) &&
+            AK_ASSERT((child_sign == SignType::NSD || child_sign == SignType::ND) &&
                    "Parent NSD domain expects NSD/ND child codomain");
             break;
           }
@@ -163,13 +165,13 @@ struct Atom {
       }
 
       if constexpr (is_cap_type_v<decltype(self())>) {
-        assert(is_set_type_v<decltype(child)> &&
+        AK_ASSERT(is_set_type_v<decltype(child)> &&
                "Intersection expects each child to be a set");
       }
 
       if constexpr (is_add_type_v<decltype(self())>) {
         /// (dakre) TODO add in minkowski sum
-        assert(!is_set_type_v<decltype(child)> &&
+        AK_ASSERT(!is_set_type_v<decltype(child)> &&
                "Minkowski sum is not supported for set children");
       }
 
@@ -195,7 +197,7 @@ struct Atom {
              num_concave == 0) ||
             ((num_concave == N || num_concave + num_affine == N) &&
              num_convex == 0);
-        assert(dcp_sum_valid &&
+        AK_ASSERT(dcp_sum_valid &&
                "Not dcp valid to sum convex with concave atoms");
         (void)dcp_sum_valid;
       }

@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "config/assert.hpp"
+
 #include "affine/affine_map.hpp"
 #include "convex/cone_traits.hpp"
 #include "convex/convex_traits.hpp"
@@ -155,7 +157,7 @@ struct ConeBlockBuilder {
     linalg::Vector<T, FullDom> sel{};
     linalg::Vector<T, 1> bias{lift_map.translation()(0)};
 
-    assert(FullDom + idx >= FullDom &&
+    AK_ASSERT(FullDom + idx >= FullDom &&
            "Aux variable selector index underflow/overflow in ConeBlockBuilder::make");
 
     sel(FullDom + idx) = lift_map.linear_part()(0)(0);

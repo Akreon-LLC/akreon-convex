@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "config/assert.hpp"
+
 #include "convex/convex_traits.hpp"
 #include "convex/convex_util.hpp"
 
@@ -66,7 +68,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
         p(p_in),
         lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
     for (const auto& x : p) {
-      assert(x < T(0) &&
+      AK_ASSERT(x < T(0) &&
              "KLDivergence expects each fixed p entry to satisfy x < 0");
       (void)x;
     }
@@ -84,7 +86,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
       const affine::AffineMap<LiftedVarMat<T>>& map_in)
       : ConvexBase(child_in), p(p_in), lift_map(map_in) {
     for (const auto& x : p) {
-      assert(x < T(0) &&
+      AK_ASSERT(x < T(0) &&
              "KLDivergence expects each fixed p entry to satisfy x < 0");
       (void)x;
     }

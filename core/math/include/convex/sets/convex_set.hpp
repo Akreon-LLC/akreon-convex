@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "config/assert.hpp"
+
 #include "affine/affine_map.hpp"
 #include "convex/cone_traits.hpp"
 #include "convex/convex_traits.hpp"
@@ -52,7 +54,7 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
    * @return T/F
    */
   constexpr void validate_domain_impl() const {
-    assert(self().is_well_formed_impl() &&
+    AK_ASSERT(self().is_well_formed_impl() &&
            "ConvexSet::validate_domain_impl expects set it to be good");
   }
 

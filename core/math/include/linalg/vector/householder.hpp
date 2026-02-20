@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "config/assert.hpp"
+
 #include "linalg/linalg_ops.hpp"
 #include "linalg/linalg_util.hpp"
 #include "linalg/norms/vector_norms.hpp"
@@ -72,7 +74,7 @@ struct HouseholderVector {
       // orthogonalize correctly!!
       v = (scalar_type_t<T>(1) / L2<Vector<T, 1>>()(Vector<T, 1>{v(0)})) * v;
       const auto vv = dot(conjugate(v), v);
-      assert(is_real(vv) &&
+      AK_ASSERT(is_real(vv) &&
              "Householder complex branch expects real dot(conj(v), v)");
       beta = scalar_type_t<T>(2) / vv.real();
     } else {

@@ -29,8 +29,9 @@ set(COMMON_FLAGS "${MCPU_FLAGS} ${MFPU_FLAGS} ${MTHUMB_FLAG} -ffunction-sections
 set(CMAKE_C_FLAGS_INIT   "${COMMON_FLAGS}")
 set(CMAKE_CXX_FLAGS_INIT "${COMMON_FLAGS} -fno-exceptions -fno-rtti")
 
-# Linker flags: newlib-nano + nosys stubs + gc-sections
-set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,--gc-sections --specs=nano.specs --specs=nosys.specs")
+# Linker flags: newlib-nano + gc-sections.
+# nosys/syscall behavior is configured at project level via AKREON_USE_NOSYS.
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,--gc-sections --specs=nano.specs")
 
 # Device macro (for HAL/CMSIS)
 add_compile_definitions(STM32F407xx)

@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "config/assert.hpp"
+
 #include "config/solver_traits.hpp"
 #include "norms/matrix_norms.hpp"
 #include "norms/vector_norms.hpp"
@@ -156,7 +158,7 @@ template <MatrixLike Mat>
 constexpr auto get_col(const Mat& A, const size_t& idx) {
   using T = mat_type_t<Mat>;
   constexpr auto Rows = mat_rows_v<Mat>;
-  assert(idx < mat_cols_v<Mat> && "get_col index out of bounds");
+  AK_ASSERT(idx < mat_cols_v<Mat> && "get_col index out of bounds");
   Vector<T, Rows> X;
   for (size_t i = 0; i < Rows; ++i) X(i) = A(i)(idx);
   return X;
@@ -172,7 +174,7 @@ constexpr auto get_col(const Mat& A, const size_t& idx) {
  */
 template <MatrixLike Mat>
 constexpr auto get_row(const Mat& A, const size_t& idx) {
-  assert(idx < mat_rows_v<Mat> && "get_row index out of bounds");
+  AK_ASSERT(idx < mat_rows_v<Mat> && "get_row index out of bounds");
   return A(idx);
 }
 
@@ -332,7 +334,7 @@ constexpr auto get_lower_left_triangular_matrix(const Mat& A) {
 template <VectorLike Vec, typename Norm>
 constexpr auto normalize(const Vec& X, const Norm& norm) {
   const auto norm_val = norm(X);
-  assert(norm_val > 0 && "normalize requires strictly positive norm");
+  AK_ASSERT(norm_val > 0 && "normalize requires strictly positive norm");
   return (1 / norm_val) * X;
 }
 

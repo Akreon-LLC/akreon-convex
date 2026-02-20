@@ -12,8 +12,6 @@
 
 #pragma once
 
-#include <assert.h>
-
 #include "hessian.hpp"
 #include "linalg/vector/algebra_traits.hpp"
 

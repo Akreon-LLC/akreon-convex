@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "config/assert.hpp"
+
 #include "linalg/linalg_util.hpp"
 #include "symmetric_operator.hpp"
 
@@ -170,7 +172,7 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
    * @return vector z
    */
   constexpr auto diag_solve(const Vector<T, N>& y) const {
-    assert(is_valid() &&
+    AK_ASSERT(is_valid() &&
            "LDL::diag_solve requires a valid factorization (non-singular)");
 
     Vector<T, N> z{};

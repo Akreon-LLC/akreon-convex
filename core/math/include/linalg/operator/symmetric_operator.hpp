@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "config/assert.hpp"
+
 #include "endomorphism.hpp"
 #include "operator_traits.hpp"
 
@@ -63,7 +65,7 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
    * @return index
    */
   constexpr size_t index(const size_t& i, const size_t& j) const {
-    assert((j < N && i < N) &&
+    AK_ASSERT((j < N && i < N) &&
            "SymmetricOperator index expects row/col inside [0, N)");
     if (i >= j) return i * (i + 1) / 2 + j;
     return j * (j + 1) / 2 + i;

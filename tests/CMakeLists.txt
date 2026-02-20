@@ -10,6 +10,7 @@ set(UNIT_COMPILE_OPTS
   -fno-rtti
   -flto
   -Oz
+  -DAKREON_DEBUG
 )
 set(FUNC_COMPILE_OPTS
   -ffunction-sections
@@ -21,9 +22,10 @@ set(FUNC_COMPILE_OPTS
   -fno-unwind-tables
   -fno-asynchronous-unwind-tables
   -Oz
+  -DAKREON_DEBUG
 )
 
-if(BUILD_TESTING)
+if(BUILD_UNIT_TESTS)
   FetchContent_Declare(
     Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
@@ -41,7 +43,7 @@ if(BUILD_TESTING)
   add_test(NAME linalg_test COMMAND linalg_test)
   target_link_libraries(linalg_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(linalg_test PRIVATE ../math/include)
-  target_compile_options(linalg_test PRIVATE ${UNIT_COMPILE_OPTS})
+  target_compile_options(linalg_test PRIVATE ${UNIT_COMPILE_OPTS} )
 
   add_executable(linear_systems_test unit/linear_systems_test.cpp)
   add_test(NAME linear_systems_test COMMAND linear_systems_test)
@@ -102,8 +104,9 @@ if(BUILD_TESTING)
   target_link_libraries(pd_ipm_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(pd_ipm_test PRIVATE ../math/include)
   target_compile_options(pd_ipm_test PRIVATE ${UNIT_COMPILE_OPTS})
+endif()
 
-  # Functional Tests
+if(BUILD_FUNCTIONAL_TESTS)
   add_executable(linalg_fuzz_test functional/linalg_fuzz_test.cpp)
   target_include_directories(linalg_fuzz_test PRIVATE ../math/include)
   target_compile_options(linalg_fuzz_test PRIVATE ${UNIT_COMPILE_OPTS})
@@ -112,3 +115,25 @@ if(BUILD_TESTING)
   target_include_directories(convex_fuzz_test PRIVATE ../math/include)
   target_compile_options(convex_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
 endif()
+
+set(AKREON_TEST_TARGETS
+  linalg_test
+  linear_systems_test
+  one_dof_pendulum_test
+  two_dof_pendulum_test
+  one_dof_smd_test
+  affine_set_test
+  convex_set_test
+  convex_fn_test
+  convex_prob_test
+  cone_test
+  pd_ipm_test
+  linalg_fuzz_test
+  convex_fuzz_test
+)
+
+foreach(_ak_target IN LISTS AKREON_TEST_TARGETS)
+  if(TARGET ${_ak_target})
+    akreon_configure_target(${_ak_target})
+  endif()
+endforeach()

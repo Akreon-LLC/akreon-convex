@@ -11,7 +11,7 @@
  */
 
 #include <algorithm>
-#include <iostream>
+#include <cstdio>
 #include <random>
 
 #include "math.hpp"
@@ -22,20 +22,27 @@
 
 using namespace linalg;
 
+template <typename T>
+void print_scalar(const T& x) {
+  if constexpr (is_complex_v<T>)
+    std::printf("(%g, %g) ", static_cast<double>(x.real()),
+                static_cast<double>(x.imag()));
+  else
+    std::printf("%g ", static_cast<double>(x));
+}
+
 template <typename T, size_t Rows, size_t Cols>
 void print_mat(const Matrix<T, Rows, Cols>& A) {
   for (const auto& row : A) {
-    for (const auto& pt : row) {
-      std::cout << pt << " ";
-    }
-    std::cout << std::endl;
+    for (const auto& pt : row) print_scalar(pt);
+    std::printf("\n");
   }
 }
 
 template <typename T, size_t N>
 void print_vec(const Vector<T, N>& b) {
-  for (const auto& x : b) std::cout << x << " ";
-  std::cout << std::endl;
+  for (const auto& x : b) print_scalar(x);
+  std::printf("\n");
 }
 
 template <typename T, size_t Rows, size_t Cols>
@@ -55,7 +62,7 @@ auto make_vec(std::mt19937& rng, std::uniform_real_distribution<T>& dist) {
 
 template <typename T, size_t Rows, size_t Cols>
   requires(FieldLike<T> && !is_complex_v<T>)
-void fuzz_test(const scalar_type_t<T>& tol) {
+bool fuzz_test(const scalar_type_t<T>& tol) {
   std::mt19937 rng(42);
   std::uniform_real_distribution<T> dist(-10.0, 10.0);
   for (size_t i = 0; i < TRIALS; ++i) {
@@ -68,21 +75,22 @@ void fuzz_test(const scalar_type_t<T>& tol) {
     static_assert(std::same_as<decltype(R), const Matrix<T, Rows, Cols>>);
     const auto A_prime = Q * R;
     if (!all_equal(A_prime, A, tol)) {
-      std::cerr << "QR test case failed for tolerance " << tol << std::endl;
-      std::cerr << "Matrix rank " << r << std::endl;
+      std::fprintf(stderr, "QR test case failed for tolerance %g\n",
+                   static_cast<double>(tol));
+      std::fprintf(stderr, "Matrix rank %zu\n", r);
       print_mat(A_prime);
       print_mat(A);
-      throw std::runtime_error("A_prime != A");
+      return false;
     }
 
     if constexpr (Rows == Cols) {
       const auto eig_decomp = EigenDecomposition(A);
       if (!eig_decomp.converged) {
-        std::cerr << "A" << std::endl;
+        std::fprintf(stderr, "A\n");
         print_mat(A);
-        std::cerr << "Eigen values" << std::endl;
+        std::fprintf(stderr, "Eigen values\n");
         print_vec(eig_decomp.lambda);
-        throw std::runtime_error("eig decomp failed to find solution");
+        return false;
       }
     }
 
@@ -98,15 +106,15 @@ void fuzz_test(const scalar_type_t<T>& tol) {
 
     if (!svd.converged &&
         all_equal(as_complex_matrix(A), U * (as_complex_matrix(S) * VT))) {
-      std::cerr << "A" << std::endl;
+      std::fprintf(stderr, "A\n");
       print_mat(A);
-      std::cerr << "Singular values" << std::endl;
+      std::fprintf(stderr, "Singular values\n");
       print_mat(S);
-      std::cerr << "U" << std::endl;
+      std::fprintf(stderr, "U\n");
       print_mat(U);
-      std::cerr << "VT" << std::endl;
+      std::fprintf(stderr, "VT\n");
       print_mat(VT);
-      throw std::runtime_error("svd failed to find solution");
+      return false;
     }
 
     T min_sv = 1000, max_sv = 0;
@@ -125,42 +133,61 @@ void fuzz_test(const scalar_type_t<T>& tol) {
     const auto lsq_fit = A * x_tilde;
     const auto residual = euclidean_distance(lsq_fit, b);
     if (residual > tol) {
-      std::cerr << "LSQ test case failed for tolerance " << tol << std::endl;
-      std::cerr << "Residual " << residual << std::endl;
-      std::cerr << "Matrix rank " << r << std::endl;
-      std::cerr << "Matrix condition number " << k << std::endl;
+      std::fprintf(stderr, "LSQ test case failed for tolerance %g\n",
+                   static_cast<double>(tol));
+      std::fprintf(stderr, "Residual %g\n", static_cast<double>(residual));
+      std::fprintf(stderr, "Matrix rank %zu\n", r);
+      std::fprintf(stderr, "Matrix condition number %g\n",
+                   static_cast<double>(k));
       print_mat(A);
-      std::cerr << "Vector b" << std::endl;
+      std::fprintf(stderr, "Vector b\n");
       print_vec(b);
-      std::cerr << "Vector lsq fit" << std::endl;
+      std::fprintf(stderr, "Vector lsq fit\n");
       print_vec(lsq_fit);
-      throw std::runtime_error("lsq_fit != b");
+      return false;
     }
   }
+
+  return true;
 }
 
 int main() {
-  try {
-    constexpr_for<2, N_ROWS>([&]<size_t i>(std::integral_constant<size_t, i>) {
-      std::cout << "Starting double symmetric test for " << i << std::endl;
-      fuzz_test<double, i, i>(1e-10);
+  bool ok = true;
+  constexpr_for<2, N_ROWS>([&]<size_t i>(std::integral_constant<size_t, i>) {
+    if (!ok) return;
+    std::printf("Starting double symmetric test for %zu\n", i);
+    if (!fuzz_test<double, i, i>(1e-10)) {
+      std::fprintf(stderr, "double symmetric fuzz test failed for size %zu\n",
+                   i);
+      ok = false;
+      return;
+    }
 
-      std::cout << "Starting float symmetric test for " << i << std::endl;
-      fuzz_test<float, i, i>(1e-3);
-    });
-    constexpr_for<3, N_ROWS>([&]<size_t i>(std::integral_constant<size_t, i>) {
-      std::cout << "Starting double tall skinny test " << i << " rows by 2 cols"
-                << std::endl;
-      fuzz_test<double, i, 2>(1e-10);
+    std::printf("Starting float symmetric test for %zu\n", i);
+    if (!fuzz_test<float, i, i>(1e-3)) {
+      std::fprintf(stderr, "float symmetric fuzz test failed for size %zu\n",
+                   i);
+      ok = false;
+    }
+  });
 
-      std::cout << "Starting float tall skinny test " << i << " rows by 2 cols"
-                << std::endl;
-      fuzz_test<float, i, 2>(1e-3);
-    });
-  } catch (std::exception& e) {
-    std::cerr << e.what() << std::endl;
-    return -1;
-  }
+  constexpr_for<3, N_ROWS>([&]<size_t i>(std::integral_constant<size_t, i>) {
+    if (!ok) return;
+    std::printf("Starting double tall skinny test %zu rows by 2 cols\n", i);
+    if (!fuzz_test<double, i, 2>(1e-10)) {
+      std::fprintf(stderr,
+                   "double tall skinny fuzz test failed for size %zux2\n", i);
+      ok = false;
+      return;
+    }
 
-  return 0;
+    std::printf("Starting float tall skinny test %zu rows by 2 cols\n", i);
+    if (!fuzz_test<float, i, 2>(1e-3)) {
+      std::fprintf(stderr, "float tall skinny fuzz test failed for size %zux2\n",
+                   i);
+      ok = false;
+    }
+  });
+
+  return ok ? 0 : -1;
 }
