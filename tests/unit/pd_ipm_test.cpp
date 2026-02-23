@@ -94,4 +94,37 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
                    res.num_iter < SolverTraits<double>::STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].flags == 0x7);
   }
+
+  SECTION("Min sum(x.split())") {
+    static constexpr auto x_tup = x.split();
+    constexpr auto x_sum =
+        Sum<SumMeta<Space, Matrixd<1, 1>>, decltype(std::get<0>(x_tup)),
+            decltype(std::get<1>(x_tup))>(std::get<0>(x_tup),
+                                          std::get<1>(x_tup));
+
+    constexpr auto prob_min = prob_constr.minimize(x_sum);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
+
+    STATIC_REQUIRE(all_equal(F_exp, F));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(g == g_exp);
+
+    constexpr auto c = prob_min.linear_objective();
+    STATIC_REQUIRE(c == Vectord<2>{1.0, 1.0});
+
+    const PrimalDualIPM solver(prob_min);
+    const auto res = solver.res;
+    const auto trace = solver.trace;
+
+    char buf[16384];
+    trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
+
+    std::cout << buf << std::endl;
+  }
 }
