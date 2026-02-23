@@ -16,9 +16,15 @@
 
 namespace linalg {
 
+/**
+ * @brief SolverTraits
+ */
 template <typename T>
 struct SolverTraits {};
 
+/**
+ * @brief SolverTraits
+ */
 template <>
 struct SolverTraits<float> {
   static constexpr size_t STEPS = 32;
@@ -28,6 +34,9 @@ struct SolverTraits<float> {
   static constexpr double DUALITY_GAP = 1e-4;
 };
 
+/**
+ * @brief SolverTraits
+ */
 template <>
 struct SolverTraits<double> {
   static constexpr size_t STEPS = 64;
@@ -37,6 +46,9 @@ struct SolverTraits<double> {
   static constexpr double DUALITY_GAP = 1e-4;
 };
 
+/**
+ * @brief SolverResult
+ */
 enum struct SolverResult : uint8_t {
   INVALID = 0,
   OPTIMAL,

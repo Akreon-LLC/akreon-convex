@@ -12,8 +12,6 @@
 
 #pragma once
 
-#include <iostream>
-
 #include "convex_problem.hpp"
 #include "linalg/operator/schur_kkt.hpp"
 
@@ -50,6 +48,34 @@ struct PrimalDualResult {
   Var z{};                     ///< decision var \in Rn + aux lifts
   ConeVar x{};                 ///< primal cone var \in K
   ConeVar y{};                 ///< dual cone var \in K^*
+  size_t num_iter{};           ///< total number of iter
+};
+
+/**
+ * @brief IterState
+ */
+template <linalg::FieldLike T>
+struct IterState {
+  T mu{};       ///< normalized duality gap
+  T mu_aff{};   ///< duality gap of affine-scaling step
+  T sigma{};    ///< mehrotra centering correction
+  T mu_tgt{};   ///< mehrotra mu target for centering
+  T alpha_x{};  ///< max step to dK size
+  T alpha_y{};  ///< max step to dK^* size
+  T rd_norm{};  ///< dual norm residual size
+  T rp_norm{};  ///< primal norm residual size
+  T pz_norm{};  ///< newton step in z \in R^n size
+  T px_norm{};  ///< newton step in x \in K size
+  T py_norm{};  /// <newton step in y \in K^* size
+
+  /**
+   * @flags
+   *
+   * first bit : primal feasible
+   * second bit : dual feasible
+   * third bit : dual gap minimized
+   */
+  uint8_t flags{};  ///< status of iter
 };
 
 /**
@@ -80,9 +106,10 @@ struct PredictorCorrector {
    * @return pz_rhs (ignore on return)
    */
   template <size_t idx = 0, size_t Start = 0>
-  Var predictor(Var&& pz_rhs, const auto& K, const auto& S_inv, const Mat& F,
-                const ConeVar& rp, const Var& rd, const ConeVar& x,
-                const ConeVar& y, Var& pz, ConeVar& px, ConeVar& py) const {
+  constexpr Var predictor(Var&& pz_rhs, const auto& K, const auto& S_inv,
+                          const Mat& F, const ConeVar& rp, const Var& rd,
+                          const ConeVar& x, const ConeVar& y, Var& pz,
+                          ConeVar& px, ConeVar& py) const {
     if constexpr (idx >= NumCones)
       return pz_rhs;
     else {
@@ -152,11 +179,11 @@ struct PredictorCorrector {
    * @return pz_rhs (ignore on return)
    */
   template <size_t idx = 0, size_t Start = 0>
-  Var corrector(Var&& pz_rhs, const T& mu_tgt, const ConeVar& x_pred,
-                const ConeVar& y_pred, const auto& K, const auto& S_inv,
-                const Mat& F, const ConeVar& rp, const Var& rd,
-                const ConeVar& x, const ConeVar& y, Var& pz, ConeVar& px,
-                ConeVar& py) const {
+  constexpr Var corrector(Var&& pz_rhs, const T& mu_tgt, const ConeVar& x_pred,
+                          const ConeVar& y_pred, const auto& K,
+                          const auto& S_inv, const Mat& F, const ConeVar& rp,
+                          const Var& rd, const ConeVar& x, const ConeVar& y,
+                          Var& pz, ConeVar& px, ConeVar& py) const {
     if constexpr (idx >= NumCones)
       return pz_rhs;
     else {
@@ -216,13 +243,43 @@ struct PredictorCorrector {
  */
 template <ProblemLike Problem>
 struct PrimalDualIPM {
-  /// @brief alias and helpers to get types & sizes
+  /// @brief alias and helpers to get types
   using Builder = prob_builder_t<Problem>;
   using DecVar = builder_dom_t<Builder>;
+  using CB = builder_cb_t<Builder>;
+  using FMap = conic::cone_block_map_t<CB>;
+  using FMat = affine::affine_mat_t<FMap>;
   using T = linalg::space_type_t<DecVar>;
+
+  /// @brief helpers for size of cones & F mat
   static constexpr size_t NumCones =
       conic::cone_block_num_cones_v<builder_cb_t<Builder>>;
+  static constexpr size_t M = linalg::mat_rows_v<FMat>;
+  static constexpr size_t N = linalg::mat_cols_v<FMat>;
 
+  /// @brief useful types for PD-IPM
+  using Schur = linalg::Matrix<T, N, N>;
+  using Var = linalg::Vector<T, N>;
+  using ConeVar = linalg::Vector<T, M>;
+
+  static_assert(is_problem_set_v<Problem>,
+                "Problem is not set therefore cannot be solved");
+
+  /**
+   * @CTOR
+   *
+   * @param prob : ConvexProblem
+   */
+  constexpr explicit PrimalDualIPM(const Problem& prob) { solve(prob); }
+
+  /** @brief member vars */
+  PrimalDualResult<Var, ConeVar> res;  ///< PD-IPM result
+#ifdef AKREON_DEBUG
+  std::array<IterState<T>, linalg::SolverTraits<T>::STEPS>
+      trace;  ///< debug iteration trace
+#endif
+
+ private:
   /**
    * @brief solve
    *
@@ -230,41 +287,13 @@ struct PrimalDualIPM {
    *
    * @return result
    */
-  auto solve(const ConvexProblem<Builder, StageType::PROBLEM_SET>& prob) const {
+  constexpr void solve(const Problem& prob) {
     const auto c = linalg::as_vector(prob.linear_objective());
     const auto g = prob.constraint_map().translation();
     const auto F = prob.constraint_map().linear_part();
     const auto K = prob.constraint_cones();
 
-    static constexpr size_t M = linalg::mat_rows_v<decltype(F)>;
-    static constexpr size_t N = linalg::mat_cols_v<decltype(F)>;
-    static_assert(N == linalg::mat_cols_v<decltype(F)>,
-                  "Expected decision var dim != N");
-
-    using Schur = linalg::Matrix<T, N, N>;
-    using Var = linalg::Vector<T, N>;
-    using ConeVar = linalg::Vector<T, M>;
-
-    std::cout << "c: ";
-    std::for_each(c.begin(), c.end(),
-                  [&](const auto& elem) { std::cout << elem << " "; });
-    std::cout << std::endl;
-
-    std::cout << "F: ";
-    for (size_t i = 0; i < M; ++i) {
-      for (size_t j = 0; j < N; ++j) {
-        std::cout << F(i)(j) << " ";
-      }
-      std::cout << std::endl;
-    }
-
-    std::cout << "g: ";
-    std::for_each(g.begin(), g.end(),
-                  [&](const auto& elem) { std::cout << elem << " "; });
-    std::cout << std::endl;
-
-    PrimalDualResult<Var, ConeVar> res;
-    if (!prob.validate()) return res;
+    if (!prob.validate()) return;
 
     auto dual_residual = [&F, &c](const auto& y) {
       return linalg::transpose(F) * y - c;
@@ -296,16 +325,15 @@ struct PrimalDualIPM {
     auto& rp = res.rp;
     auto& rd = res.rd;
     auto& tag = res.tag;
+    auto& i = res.num_iter;
 
     PredictorCorrector<NumCones, decltype(F), Var, ConeVar> pc;
 
     seed_cone_vars(K, x, y);
 
-    for (size_t i = 0; i < linalg::SolverTraits<T>::STEPS &&
-                       tag != linalg::SolverResult::OPTIMAL;
+    for (i = 0; i < linalg::SolverTraits<T>::STEPS &&
+                tag != linalg::SolverResult::OPTIMAL;
          ++i) {
-      std::cout << "iter " << i;
-
       ConeVar px_pred{}, px_corr{}, py_pred{}, py_corr{};
       Var pz_pred{}, pz_corr{};
 
@@ -313,7 +341,6 @@ struct PrimalDualIPM {
       const auto params = accumulate_params(Schur{}, T(0), F, K, x, y);
       const auto S = std::get<0>(params);
       const auto nu = std::get<1>(params);
-      std::cout << ": nu " << nu;
 
       const auto ldl = linalg::LDL(S);
 
@@ -321,27 +348,19 @@ struct PrimalDualIPM {
       rd = dual_residual(y);
       rp = primal_residual(z, x);
 
-      std::cout << ", ||rd|| " << linalg::L2<decltype(rd)>()(rd);
-      std::cout << ", ||rp|| " << linalg::L2<decltype(rp)>()(rp);
-
       /// (dakre) 3 - predictor step
       pc.predictor(Var{}, K, ldl, F, rp, rd, x, y, pz_pred, px_pred, py_pred);
 
       /// (dakre) 4 - mehrotra centering
       auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px_pred, py_pred);
       auto alpha = std::min(std::get<0>(alpha_xy), std::get<1>(alpha_xy));
-      std::cout << ", alpha_x " << std::get<0>(alpha_xy);
-      std::cout << ", alpha_y " << std::get<1>(alpha_xy);
       const auto x_aff = x + std::get<0>(alpha_xy) * px_pred;
       const auto y_aff = y + std::get<1>(alpha_xy) * py_pred;
       const auto mu_aff = mu(x_aff, y_aff, nu);
-      std::cout << " mu_aff " << mu_aff;
       auto sigma = linalg::constexpr_pow(mu_aff / mu(x, y, nu), 3);
       sigma = std::max(T(0), std::min(T(1.0), sigma));
 
-      std::cout << ", sigma " << sigma;
       const auto mu_tgt = sigma * mu(x, y, nu);
-      std::cout << ", mu_tgt " << mu_tgt;
 
       /// (dakre) 5 - corrector step
       pc.corrector(Var{}, mu_tgt, x_aff, y_aff, K, ldl, F, rp, rd, x, y,
@@ -356,50 +375,45 @@ struct PrimalDualIPM {
       /// (dakre) 7 - alpha max
       alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
       alpha = std::min(std::get<0>(alpha_xy), std::get<1>(alpha_xy));
-      std::cout << ", alpha " << alpha;
 
       /// (dakre) 8 - take newton step scaled by alpha
       x = x + alpha * px;
       y = y + alpha * py;
       z = z + alpha * pz;
 
-      /// (dakre) 9 - compute residual again after update
+      /// (dakre) 9 - compute residuals + mu again
       rd = dual_residual(y);
       rp = primal_residual(z, x);
-
-      std::cout << ", ||rd|| " << linalg::L2<decltype(rd)>()(rd);
-      std::cout << ", ||rp|| " << linalg::L2<decltype(rp)>()(rp);
-      std::cout << ", mu(x,y,nu) " << mu(x, y, nu) << std::endl;
-
-      bool dual_feas = linalg::L2<decltype(rd)>()(rd) <=
-                       linalg::SolverTraits<T>::DUAL_FEASIBLE;
-      bool primal_feas = linalg::L2<decltype(rp)>()(rp) <=
-                         linalg::SolverTraits<T>::PRIMAL_FEASIBLE;
       res.mu = mu(x, y, nu);
-      bool gap_min = res.mu <= linalg::SolverTraits<T>::DUALITY_GAP;
+
+      const auto rd_norm = linalg::L2<decltype(rd)>()(rd);
+      const auto rp_norm = linalg::L2<decltype(rp)>()(rp);
+
+      const bool dual_feas = rd_norm <= linalg::SolverTraits<T>::DUAL_FEASIBLE;
+      const bool primal_feas =
+          rp_norm <= linalg::SolverTraits<T>::PRIMAL_FEASIBLE;
+      const bool gap_min = res.mu <= linalg::SolverTraits<T>::DUALITY_GAP;
+
+#ifdef AKREON_DEBUG
+      trace[i].mu = res.mu;
+      trace[i].mu_aff = mu_aff;
+      trace[i].sigma = sigma;
+      trace[i].mu_tgt = mu_tgt;
+      trace[i].alpha_x = std::get<0>(alpha_xy);
+      trace[i].alpha_y = std::get<1>(alpha_xy);
+      trace[i].rd_norm = rd_norm;
+      trace[i].rp_norm = rp_norm;
+      trace[i].pz_norm = linalg::L2<decltype(pz)>()(pz);
+      trace[i].px_norm = linalg::L2<decltype(px)>()(px);
+      trace[i].py_norm = linalg::L2<decltype(py)>()(py);
+      trace[i].flags |= primal_feas ? (1 << 0) : 0;
+      trace[i].flags |= dual_feas ? (1 << 1) : 0;
+      trace[i].flags |= gap_min ? (1 << 2) : 0;
+#endif
 
       tag = get_tag(primal_feas, dual_feas, gap_min);
     }
-
-    std::cout << "z ";
-    std::for_each(res.z.begin(), res.z.end(),
-                  [&](const auto& elem) { std::cout << elem << " "; });
-    std::cout << std::endl;
-
-    std::cout << "x ";
-    std::for_each(res.x.begin(), res.x.end(),
-                  [&](const auto& elem) { std::cout << elem << " "; });
-    std::cout << std::endl;
-
-    std::cout << "y ";
-    std::for_each(res.y.begin(), res.y.end(),
-                  [&](const auto& elem) { std::cout << elem << " "; });
-    std::cout << std::endl;
-
-    return res;
   }
-
- private:
   /**
    * @brief accumulate params (Schur & nu)
    *
@@ -418,9 +432,8 @@ struct PrimalDualIPM {
    *
    * @return (S, nu)
    */
-  template <size_t idx = 0, size_t Start = 0, linalg::MatrixLike Schur,
-            linalg::MatrixLike Mat, linalg::VectorLike ConeVar>
-  constexpr auto accumulate_params(Schur&& S, T&& nu, const Mat& F,
+  template <size_t idx = 0, size_t Start = 0>
+  constexpr auto accumulate_params(Schur&& S, T&& nu, const FMat& F,
                                    const auto& K, const ConeVar& x,
                                    const ConeVar& y) const {
     if constexpr (idx >= NumCones)
@@ -429,7 +442,6 @@ struct PrimalDualIPM {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
 
-      constexpr size_t N = linalg::mat_cols_v<decltype(F)>;
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;
       constexpr size_t End = Start + KiRows;
 
@@ -469,7 +481,7 @@ struct PrimalDualIPM {
    *
    * @return (void)
    */
-  template <size_t idx = 0, size_t Start = 0, linalg::VectorLike ConeVar>
+  template <size_t idx = 0, size_t Start = 0>
   constexpr void seed_cone_vars(const auto& K, ConeVar& x, ConeVar& y) const {
     if constexpr (idx >= NumCones)
       return;
@@ -506,7 +518,7 @@ struct PrimalDualIPM {
    *
    * @return \alpha_max
    */
-  template <size_t idx = 0, size_t Start = 0, linalg::VectorLike ConeVar>
+  template <size_t idx = 0, size_t Start = 0>
   constexpr auto alpha_max(T&& alpha_x, T&& alpha_y, const auto& K,
                            const ConeVar& x, const ConeVar& y,
                            const ConeVar& px, const ConeVar& py) const {
