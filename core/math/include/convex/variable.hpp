@@ -15,10 +15,10 @@
 #include <optional>
 #include <tuple>
 
+#include "cone_block_builder.hpp"
 #include "config/assert.hpp"
 #include "config/solver_traits.hpp"
 #include "convex_traits.hpp"
-#include "cone_block_builder.hpp"
 
 namespace convex {
 
@@ -181,7 +181,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto cb = builder.cb;
     return conic::ConeBlockBuilder<conic::builder_dom_t<Builder>, decltype(map),
-                            decltype(cb)>(map, cb);
+                                   decltype(cb)>(map, cb);
   }
 
   /** @brief member var */
@@ -291,7 +291,21 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     return conic::ConeBlockBuilder<conic::builder_dom_t<Builder>, decltype(map),
-                            decltype(builder.cb)>(map, builder.cb);
+                                   decltype(builder.cb)>(map, builder.cb);
+  }
+
+  /**
+   * @brief split
+   *
+   * x -> (x(0), x(1), ...) tuple
+   *
+   * @return tuple(ScalarViews...)
+   */
+  constexpr auto split() const {
+    auto form_tup = [this]<size_t... Is>(std::index_sequence<Is...>) {
+      return std::make_tuple(((*this)(Is).value())...);
+    };
+    return form_tup(std::make_index_sequence<N>{});
   }
 
   /**
@@ -336,7 +350,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
 
       const auto new_builder =
           conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                           decltype(coord_map_up), decltype(child_cb)>(
+                                  decltype(coord_map_up), decltype(child_cb)>(
               coord_map_up, child_cb);
       if constexpr (!is_sdp) {
         const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();

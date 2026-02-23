@@ -32,6 +32,6 @@ This document is operational guidance, not legal advice. Engage qualified
 counsel for jurisdiction-specific enforceability and deal terms.
 
 ## Templates to review with counsel
-1. NDA template: `legal/templates/NDA.md`
-2. Evaluation order form: `legal/templates/Evaluation-Order-Form.md`
-3. Contributor agreement: `legal/Contributor-Agreement.md`
+1. NDA template: `tools/legal/templates/NDA.md`
+2. Evaluation order form: `tools/legal/templates/Evaluation-Order-Form.md`
+3. Contributor agreement: `tools/legal/Contributor-Agreement.md`

@@ -4,9 +4,9 @@
 - Proprietary license: `LICENSE`
 - IP protection playbook: `LEGAL.md`
 - Contribution policy: `CONTRIBUTING.md`
-- NDA template: `legal/templates/NDA.md`
-- Evaluation order form template: `legal/templates/Evaluation-Order-Form.md`
-- Contributor agreement template: `legal/Contributor-Agreement.md`
+- NDA template: `tools/legal/templates/NDA.md`
+- Evaluation order form template: `tools/legal/templates/Evaluation-Order-Form.md`
+- Contributor agreement template: `tools/legal/Contributor-Agreement.md`
 
 ## Build
 Cross toolchain file:

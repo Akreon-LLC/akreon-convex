@@ -23,20 +23,25 @@ using namespace affine;
 using namespace conic;
 using namespace unit_test;
 
-TEST_CASE("Simple LPs", "[pd_ipm_test]") {
-  SECTION("Minimal LP 2 vars") {
-    using Space = Matrixd<1, 2>;
-    using Codom = Matrixd<1, 3>;
-    constexpr auto x = Variable<NonnegVarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
+TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
+  using Space = Matrixd<1, 2>;
+  using Codom = Matrixd<1, 3>;
+  constexpr auto x = Variable<NonnegVarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
 
-    constexpr auto A_mat = mat_traits<Matrixd<3, 2>>();
-    constexpr auto A = A_mat(1.0, 1.0, 2.0, 1.0, -1.0, 2.0);
-    constexpr auto b = Vectord<3>{4.0, 5.0, 2.0};
-    constexpr Polyhedron<PolyhedronMeta<Space, Codom>, decltype(x)> poly(A, b,
-                                                                         x);
-    constexpr auto prob_constr = prob_init.in_set(poly);
-    // TODO - add dot / weighted sum operator & sum squares / etc...
+  constexpr auto A_mat = mat_traits<Matrixd<3, 2>>();
+  constexpr auto A = A_mat(1.0, 1.0, 2.0, 1.0, -1.0, 2.0);
+  constexpr auto b = Vectord<3>{4.0, 5.0, 2.0};
+  constexpr Polyhedron<PolyhedronMeta<Space, Codom>, decltype(x)> poly(A, b, x);
+  constexpr auto prob_constr = prob_init.in_set(poly);
+
+  constexpr auto F_mat = mat_traits<Matrixd<5, 2>>();
+  constexpr auto F_exp =
+      F_mat(1.0, 0.0, 0.0, 1.0, -1.0, -1.0, -2.0, -1.0, 1.0, -2.0);
+
+  constexpr auto g_exp = Vectord<5>{0.0, 0.0, 4.0, 5.0, 2.0};
+
+  SECTION("Min x0") {
     constexpr auto prob_min = prob_constr.minimize(x(0).value());
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
@@ -45,13 +50,10 @@ TEST_CASE("Simple LPs", "[pd_ipm_test]") {
     STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
 
-    constexpr auto F_mat = mat_traits<Matrixd<5, 2>>();
-    constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 1.0, -1.0, -1.0, -2.0, -1.0, 1.0, -2.0);
     STATIC_REQUIRE(all_equal(F_exp, F));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(g == Vectord<5>{0.0, 0.0, 4.0, 5.0, 2.0});
+    STATIC_REQUIRE(g == g_exp);
 
     constexpr auto c = prob_min.linear_objective();
     STATIC_REQUIRE(c == Vectord<2>{1.0, 0.0});
@@ -60,6 +62,33 @@ TEST_CASE("Simple LPs", "[pd_ipm_test]") {
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(constexpr_abs(res.z(0)) < SolverTraits<double>::DUALITY_GAP);
+    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(res.num_iter > 0 &&
+                   res.num_iter < SolverTraits<double>::STEPS);
+    STATIC_REQUIRE(trace[res.num_iter - 1].flags == 0x7);
+  }
+
+  SECTION("Min x1") {
+    constexpr auto prob_min = prob_constr.minimize(x(1).value());
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
+
+    STATIC_REQUIRE(all_equal(F_exp, F));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(g == g_exp);
+
+    constexpr auto c = prob_min.linear_objective();
+    STATIC_REQUIRE(c == Vectord<2>{0.0, 1.0});
+
+    constexpr PrimalDualIPM solver(prob_min);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+    STATIC_REQUIRE(constexpr_abs(res.z(1)) < SolverTraits<double>::DUALITY_GAP);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 &&
                    res.num_iter < SolverTraits<double>::STEPS);

@@ -270,6 +270,54 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(all_equal(F, builder3.cb.map.linear_part()));
     STATIC_REQUIRE(builder3.cb.map.translation() == Vectord<4>{});
   }
+
+  SECTION("Split var") {
+    using Space = Matrixd<1, 3>;
+    using Scalar = Matrixd<1, 1>;
+    using Pair = Matrixd<1, 2>;
+    constexpr auto x = Variable<NonnegVarMeta<Space>>();
+    constexpr auto x_tup = x.split();
+    STATIC_REQUIRE(std::tuple_size<decltype(x_tup)>::value == 3);
+
+    constexpr auto x0 = std::get<0>(x_tup);
+    constexpr auto x1 = std::get<1>(x_tup);
+    constexpr auto x2 = std::get<2>(x_tup);
+
+    constexpr auto sel = mat_traits<Space>();
+    STATIC_REQUIRE(all_equal(x0.map.linear_part(), sel(1.0, 0.0, 0.0)));
+    STATIC_REQUIRE(all_equal(x1.map.linear_part(), sel(0.0, 1.0, 0.0)));
+    STATIC_REQUIRE(all_equal(x2.map.linear_part(), sel(0.0, 0.0, 1.0)));
+    STATIC_REQUIRE(x0.map.translation() == Vectord<1>{0.0});
+    STATIC_REQUIRE(x1.map.translation() == Vectord<1>{0.0});
+    STATIC_REQUIRE(x2.map.translation() == Vectord<1>{0.0});
+
+    constexpr auto abs_x0 = Abs<AbsMeta<Scalar>, decltype(x0)>(x0);
+    constexpr auto abs_x1 = Abs<AbsMeta<Scalar>, decltype(x1)>(x1);
+    constexpr auto abs_x2 = Abs<AbsMeta<Scalar>, decltype(x2)>(x2);
+    constexpr auto sum01 =
+        Sum<SumMeta<Pair, Scalar>, decltype(abs_x0), decltype(abs_x1)>(abs_x0,
+                                                                        abs_x1);
+    constexpr auto sum012 =
+        Sum<SumMeta<Pair, Scalar>, decltype(sum01), decltype(abs_x2)>(sum01,
+                                                                       abs_x2);
+
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto new_builder =
+        sum012.template canonicalize<AtomType::ADD>(builder);
+
+    constexpr auto canon_map = new_builder.coord_map;
+    constexpr linalg::Vector<double, 9> coord{0.0, 0.0, 0.0, 0.0, 1.0,
+                                              0.0, 1.0, 0.0, 1.0};
+    STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
+    STATIC_REQUIRE(canon_map.translation() == Vectord<1>{0.0});
+
+    constexpr auto canon_cb = new_builder.cb;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 15);
+    STATIC_REQUIRE(canon_cb.validate());
+    STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 15);
+    STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 9);
+    STATIC_REQUIRE(vec_size_v<decltype(canon_cb.map.translation())> == 15);
+  }
 }
 
 TEST_CASE("Simple function ops", "[convex_ops]") {
