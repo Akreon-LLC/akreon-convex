@@ -156,7 +156,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  template <AtomType Type, BuilderLike Builder>
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
@@ -175,7 +175,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
     const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
-        ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
     return new_builder.template make<Type>(cones);
   }

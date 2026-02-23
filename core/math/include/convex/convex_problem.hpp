@@ -12,45 +12,9 @@
 
 #pragma once
 
-#include "convex_util.hpp"
+#include "cone_block_builder.hpp"
 
 namespace convex {
-
-/// @brief StageType for forming convex problem
-enum struct StageType : uint8_t { INIT = 0, IN_PROGRESS, PROBLEM_SET };
-
-/// @brief forward declaration of convex problem
-template <BuilderLike Builder, StageType Stage>
-class ConvexProblem;
-
-/// @brief problem type traits
-template <typename Prob>
-struct prob_traits;
-
-/// @brief problem type traits
-template <BuilderLike Builder, StageType Stage>
-struct prob_traits<ConvexProblem<Builder, Stage>> {
-  using BuilderT = Builder;
-  static constexpr StageType StageV = Stage;
-};
-
-/// @brief builder type from prob
-template <typename Prob>
-using prob_builder_t =
-    typename prob_traits<linalg::remove_cvref_t<Prob>>::BuilderT;
-
-/// @brief stage type from prob
-template <typename Prob>
-inline constexpr bool is_problem_set_v =
-    prob_traits<linalg::remove_cvref_t<Prob>>::StageV == StageType::PROBLEM_SET;
-
-/// @brief ProblemLike Concept
-template <typename Problem>
-concept ProblemLike = requires(const Problem& prob) {
-  { prob.linear_objective() };
-  { prob.constraint_map() };
-  { prob.constraint_cones() };
-};
 
 /**
  * @brief make problem
@@ -62,7 +26,7 @@ concept ProblemLike = requires(const Problem& prob) {
 template <AtomLike Var>
 constexpr auto make_problem(const Var& x) {
   using Space = dom_space_t<meta_dom_t<atom_meta_t<Var>>>;
-  const auto builder = create_empty_cblk_builder<Space>();
+  const auto builder = conic::create_empty_cblk_builder<Space>();
   const auto new_builder = x.template add_var_block<AtomType::VAR>(builder);
   return ConvexProblem<decltype(new_builder), StageType::INIT>(new_builder);
 }
@@ -81,11 +45,11 @@ constexpr auto make_problem(const Var& x) {
  * The objective c pushed forward through linear functional c_x when x is
  * feasible: c^T z = <c_x, x> s.t. { x | \exists z, F z + g = x }
  */
-template <BuilderLike Builder, StageType Stage>
+template <conic::BuilderLike Builder, StageType Stage>
 class ConvexProblem {
  public:
   /// @brief alias for scalar type
-  using T = linalg::space_type_t<builder_dom_t<Builder>>;
+  using T = linalg::space_type_t<conic::builder_dom_t<Builder>>;
 
   /**
    * @brief CTOR
@@ -238,11 +202,11 @@ class ConvexProblem {
           linalg::mat_cols_v<decltype(builder.coord_map.linear_part())>;
       linalg::Matrix<T, 1, AugN> c{};
       auto b = builder.coord_map.translation()(0) + atom.map.translation()(0);
-      static constexpr size_t N = linalg::space_dim_v<builder_dom_t<Builder>>;
+      static constexpr size_t N = linalg::space_dim_v<conic::builder_dom_t<Builder>>;
       for (size_t i = 0; i < N; ++i) c(0)(i) = atom.map.linear_part()(0)(i);
       const affine::AffineMap<decltype(c)> new_map(c, b);
       const auto new_builder =
-          ConeBlockBuilder<builder_dom_t<Builder>, decltype(new_map),
+          conic::ConeBlockBuilder<conic::builder_dom_t<Builder>, decltype(new_map),
                            decltype(cb)>(new_map, cb);
       return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
           new_builder);

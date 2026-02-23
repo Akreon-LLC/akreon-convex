@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "cone_traits.hpp"
 #include "convex_traits.hpp"
 
 namespace convex {
@@ -74,7 +75,7 @@ struct Intersection : Atom<Meta, Intersection<Meta, Cs...>, Cs...> {
    *
    * @return new builder
    */
-  template <AtomType Type, BuilderLike Builder>
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     static_assert(Type == AtomType::SET || Type == AtomType::CAP,
                   "Intersection is only supported on convex sets");

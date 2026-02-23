@@ -1,5 +1,13 @@
 # akreon_sdk
 
+## Legal
+- Proprietary license: `LICENSE`
+- IP protection playbook: `LEGAL.md`
+- Contribution policy: `CONTRIBUTING.md`
+- NDA template: `legal/templates/NDA.md`
+- Evaluation order form template: `legal/templates/Evaluation-Order-Form.md`
+- Contributor agreement template: `legal/Contributor-Agreement.md`
+
 ## Build
 Cross toolchain file:
 - `toolchains/arm-none-eabi-stm32.cmake`

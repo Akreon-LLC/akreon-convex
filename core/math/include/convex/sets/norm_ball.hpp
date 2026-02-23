@@ -299,7 +299,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    * [ 0  -1^T ]
    * [ 0   I   ]
    */
-  template <AtomType AType, BuilderLike Builder>
+  template <AtomType AType, conic::BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
@@ -325,7 +325,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto cones = std::make_tuple(soc);
 
       const auto new_builder =
-          ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
                            decltype(child_cb)>(map, child_cb);
       return new_builder.template make<AType>(cones);
     } else if constexpr (Type == NormBallType::Linf) {
@@ -341,7 +341,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto cones = std::make_tuple(rplus, rplus);
 
       const auto new_builder =
-          ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
                            decltype(child_cb)>(map, child_cb);
       return new_builder.template make<AType>(cones);
     } else {
@@ -362,7 +362,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto cones = std::make_tuple(rplus1, rplus1, rplus2, rplus1);
 
       const auto new_builder =
-          ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
                            decltype(child_cb)>(map, child_cb);
       return new_builder.template make<AType>(cones);
     }

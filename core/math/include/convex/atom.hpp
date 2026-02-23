@@ -17,7 +17,7 @@
 #include <cassert>
 
 #include "convex_traits.hpp"
-#include "convex_util.hpp"
+#include "cone_block_builder.hpp"
 
 namespace convex {
 
@@ -204,7 +204,7 @@ struct Atom {
     }
   }
 
-  template <AtomType Type, BuilderLike Builder>
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
     return self().template canonicalize_impl<Type>(builder);
   }

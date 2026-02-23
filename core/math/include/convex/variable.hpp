@@ -12,14 +12,13 @@
 
 #pragma once
 
-#include "config/assert.hpp"
-
 #include <optional>
 #include <tuple>
 
+#include "config/assert.hpp"
 #include "config/solver_traits.hpp"
 #include "convex_traits.hpp"
-#include "convex_util.hpp"
+#include "cone_block_builder.hpp"
 
 namespace convex {
 
@@ -107,6 +106,7 @@ using NDVarMeta =
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
+  /// @brief extract aliases from types above useful for this class
   using BaseT = Atom<Meta, ScalarView<Meta, Child>, Child>;
   using typename BaseT::Domain;
   using typename BaseT::T;
@@ -116,47 +116,87 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   using SelMatT = linalg::Matrix<T, 1, N>;
   using TransT = linalg::Vector<T, 1>;
 
+  /**
+   * @brief CTOR
+   *
+   * @param index
+   * @param child (var)
+   */
   constexpr explicit ScalarView(const size_t& idx_in, const Child& child_in)
       : BaseT(std::make_tuple(child_in)),
         map(affine::make_selector_map<SelMatT>(idx_in)),
         idx(idx_in) {
     AK_ASSERT(is_var_type_v<Child> &&
-           "ScalarView child must be the decision variable type");
+              "ScalarView child must be the decision variable type");
   }
 
+  /**
+   * @brief CTOR
+   *
+   * @param index
+   * @param child (var)
+   * @param selector map (linear map onto index)
+   */
   constexpr explicit ScalarView(const size_t& idx_in, const Child& child_in,
                                 const affine::AffineMap<SelMatT>& map_in)
       : BaseT(std::make_tuple(child_in)), map(map_in), idx(idx_in) {
     AK_ASSERT(is_var_type_v<Child> &&
-           "ScalarView child must be the decision variable type");
+              "ScalarView child must be the decision variable type");
   }
 
+  /**
+   * @brief mul (scalar)
+   *
+   * @param alpha (scalar that scales var)
+   *
+   * @return new var (updated map)
+   */
   constexpr auto mul(const T& alpha) const {
     affine::AffineMap<SelMatT> new_map(alpha * map.linear_part(),
                                        map.translation());
     return ScalarView(idx, std::get<0>(this->children), new_map);
   }
 
+  /**
+   * @brief add (scalar)
+   *
+   * @param beta (scalar)
+   *
+   * @return new var (updated map)
+   */
   constexpr auto add(const T& beta) const {
     affine::AffineMap<SelMatT> new_map(map.linear_part(),
                                        TransT{beta} + map.translation());
     return ScalarView(idx, std::get<0>(this->children), new_map);
   }
 
-  template <AtomType Type, BuilderLike Builder>
+  /**
+   * @brief canonicalize
+   *
+   * @param builder (cone block builder)
+   *
+   * @return new cone block builder
+   */
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto cb = builder.cb;
-    return ConeBlockBuilder<builder_dom_t<Builder>, decltype(map),
+    return conic::ConeBlockBuilder<conic::builder_dom_t<Builder>, decltype(map),
                             decltype(cb)>(map, cb);
   }
 
-  affine::AffineMap<SelMatT> map;
-  size_t idx;
+  /** @brief member var */
+  affine::AffineMap<SelMatT> map;  ///< selector map of scalar view onto var
+  size_t idx;                      ///< index of orig var
 };
 
-/// @brief variable definition
+/**
+ * @brief variable atom
+ *
+ * Holds the decision var \in R^n
+ */
 template <typename Meta>
 struct Variable : Atom<Meta, Variable<Meta>> {
+  /// @brief extract aliases from types above useful for this class
   using BaseT = Atom<Meta, Variable<Meta>>;
   using BaseT::DomSign;
   using BaseT::N;
@@ -166,16 +206,32 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   using LinearMatT = linalg::Matrix<T, N, N>;
   using TransT = linalg::Vector<T, N>;
 
-  constexpr explicit Variable()
-      : BaseT(), map(affine::make_map_id<LinearMatT>()) {}
-
-  constexpr explicit Variable(const affine::AffineMap<LinearMatT>& map_in)
-      : BaseT(), map(map_in) {}
-
   using ScalarDom = ConvexDomain<linalg::Matrix<T, 1, 1>, DomSign>;
   using ScalarMeta =
       ConvexAtomMeta<ScalarDom, ScalarDom, CurvatureType::AFFINE>;
   using ScalarViewT = ScalarView<ScalarMeta, Variable<Meta>>;
+
+  /**
+   * @brief CTOR (default)
+   */
+  constexpr explicit Variable()
+      : BaseT(), map(affine::make_map_id<LinearMatT>()) {}
+
+  /**
+   * @brief CTOR
+   *
+   * @param linear map in
+   */
+  constexpr explicit Variable(const affine::AffineMap<LinearMatT>& map_in)
+      : BaseT(), map(map_in) {}
+
+  /**
+   * @brief operator overload for index
+   *
+   * @param index
+   *
+   * @return ScalarView of var at index
+   */
   constexpr std::optional<ScalarViewT> operator()(const size_t& idx) const {
     if (idx >= N) return std::nullopt;
     affine::AffineMap<linalg::Matrix<T, 1, N>> scalar_map(
@@ -183,31 +239,72 @@ struct Variable : Atom<Meta, Variable<Meta>> {
     return ScalarViewT(idx, *this, scalar_map);
   }
 
+  /**
+   * @brief mul (scalar)
+   *
+   * @param alpha (scalar that scales var)
+   *
+   * @return new var (updated map)
+   */
   constexpr auto mul(const T& alpha) const {
     affine::AffineMap<LinearMatT> new_map(alpha * map.linear_part(),
                                           map.translation());
     return Variable(new_map);
   }
 
+  /**
+   * @brief mul (scalar)
+   *
+   * @param alpha (linear mat)
+   *
+   * @return new var (updated map)
+   */
   constexpr auto mul(const LinearMatT& alpha) const {
     affine::AffineMap<LinearMatT> new_map(alpha * map.linear_part(),
                                           map.translation());
     return Variable(new_map);
   }
 
+  /**
+   * @brief add (scalar)
+   *
+   * @param beta (scalar)
+   *
+   * @return new var (updated map)
+   */
   constexpr auto add(const TransT& beta) const {
     affine::AffineMap<LinearMatT> new_map(map.linear_part(),
                                           TransT{beta} + map.translation());
     return Variable(new_map);
   }
 
-  template <AtomType Type, BuilderLike Builder>
+  /**
+   * @brief canonicalize
+   *
+   * Almost treated as a no-op as var will always be leaf node but need to pass
+   * its map and cone block
+   *
+   * @param builder (ConeBlockBuilder)
+   *
+   * @return cone block builder (new)
+   */
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
-    return ConeBlockBuilder<builder_dom_t<Builder>, decltype(map),
+    return conic::ConeBlockBuilder<conic::builder_dom_t<Builder>, decltype(map),
                             decltype(builder.cb)>(map, builder.cb);
   }
 
-  template <AtomType Type, BuilderLike Builder>
+  /**
+   * @brief add_var_block
+   *
+   * Instead of canonicalization adding the variable to the block it is treated
+   * specially by this function to manually add it to F
+   *
+   * @param builder (ConeBlockBuilder)
+   *
+   * @return new cone block builder
+   */
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto add_var_block(const Builder& builder) const {
     static constexpr SignType sign = dom_sign_v<meta_dom_t<Meta>>;
     static constexpr bool is_sdp = SignType::PSD == sign ||
@@ -238,7 +335,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
 
       const auto new_builder =
-          ConeBlockBuilder<builder_dom_t<decltype(builder)>,
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
                            decltype(coord_map_up), decltype(child_cb)>(
               coord_map_up, child_cb);
       if constexpr (!is_sdp) {

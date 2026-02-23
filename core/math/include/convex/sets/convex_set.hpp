@@ -116,7 +116,7 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
    *
    * @return cone block
    */
-  template <AtomType Type, BuilderLike Builder>
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     return self().template canonicalize_set<Type>(builder);
   }

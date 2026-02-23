@@ -12,46 +12,12 @@
 
 #pragma once
 
-#include "config/assert.hpp"
-
 #include "affine/affine_map.hpp"
+#include "config/assert.hpp"
 #include "convex/cone_traits.hpp"
 #include "convex/convex_traits.hpp"
 
-namespace convex {
-
-template <typename Builder>
-concept BuilderLike = requires(const Builder& builder) {
-  { builder.coord_map };
-  { builder.cb };
-};
-
-template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
-          conic::ConeBlockLike CB>
-struct ConeBlockBuilder;
-
-template <typename Builder>
-struct builder_traits;
-
-template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
-          conic::ConeBlockLike CB>
-struct builder_traits<ConeBlockBuilder<DecVarDom, CoordMap, CB>> {
-  using Dom = DecVarDom;
-  using Map = CoordMap;
-  using ConeBlock = CB;
-};
-
-template <typename Builder>
-using builder_dom_t =
-    typename builder_traits<linalg::remove_cvref_t<Builder>>::Dom;
-
-template <typename Builder>
-using builder_map_t =
-    typename builder_traits<linalg::remove_cvref_t<Builder>>::Map;
-
-template <typename Builder>
-using builder_cb_t =
-    typename builder_traits<linalg::remove_cvref_t<Builder>>::ConeBlock;
+namespace conic {
 
 /// @brief cone map builder functor
 template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
@@ -78,7 +44,7 @@ struct ConeBlockBuilder {
    *
    * @return map
    */
-  template <AtomType Type>
+  template <convex::AtomType Type>
   constexpr auto update_map() const {
     const auto& cone_map = cb.map;
     using ConeMapT = affine::affine_mat_t<decltype(cone_map)>;
@@ -96,7 +62,7 @@ struct ConeBlockBuilder {
     static constexpr size_t CoordAux = CoordDom - N;
 
     static constexpr bool is_op =
-        Type == AtomType::ADD || Type == AtomType::CAP;
+        Type == convex::AtomType::ADD || Type == convex::AtomType::CAP;
 
     /// (dakre) F cols: [ dec vars | cone aux | coord aux ]
     static constexpr size_t FullDom = is_op ? N + ConeAux + CoordAux : CoordDom;
@@ -123,7 +89,7 @@ struct ConeBlockBuilder {
     F = linalg::set_block<ConeCodom, FullCodom, 0, N>(F, dec_spanning_blk);
 
     /// (2) fill bottom right with new aux vars from latest cone
-    if constexpr (Type != AtomType::VAR && CoordAux > 0) {
+    if constexpr (Type != convex::AtomType::VAR && CoordAux > 0) {
       static_assert(CoordAuxEndCol > CoordAuxStartCol);
       const auto coord_aux_blk =
           linalg::get_block<0, CoordCodom, N, CoordDom>(A);
@@ -147,7 +113,8 @@ struct ConeBlockBuilder {
    *
    * @return new cone block builder
    */
-  template <AtomType Type, affine::AffineMapLike LiftedMap, typename... Cs>
+  template <convex::AtomType Type, affine::AffineMapLike LiftedMap,
+            typename... Cs>
   constexpr auto make(const int& idx, const LiftedMap& lift_map,
                       const std::tuple<Cs...>& cones) const {
     const auto new_map = this->template update_map<Type>();
@@ -158,7 +125,8 @@ struct ConeBlockBuilder {
     linalg::Vector<T, 1> bias{lift_map.translation()(0)};
 
     AK_ASSERT(FullDom + idx >= FullDom &&
-           "Aux variable selector index underflow/overflow in ConeBlockBuilder::make");
+              "Aux variable selector index underflow/overflow in "
+              "ConeBlockBuilder::make");
 
     sel(FullDom + idx) = lift_map.linear_part()(0)(0);
     const auto sel_row = linalg::as_row_vector(sel);
@@ -177,7 +145,7 @@ struct ConeBlockBuilder {
    *
    * @return new cone block builder
    */
-  template <AtomType Type, typename... Cs>
+  template <convex::AtomType Type, typename... Cs>
   constexpr auto make(const std::tuple<Cs...>& cones) const {
     const auto new_map = this->template update_map<Type>();
     const auto new_cb =
@@ -215,4 +183,4 @@ constexpr auto create_empty_cblk_builder() {
       cblk.map, cblk);
 }
 
-}  // namespace convex
+}  // namespace conic

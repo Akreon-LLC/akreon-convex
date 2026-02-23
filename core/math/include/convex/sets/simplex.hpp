@@ -160,7 +160,7 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
    * x \in rplus pre-req in domain of simplex
    * 0 <= 1 - sum(x_i) \in rplus
    */
-  template <AtomType Type, BuilderLike Builder>
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
@@ -182,7 +182,7 @@ struct Simplex : ConvexSet<Meta, Simplex<Meta, Child>, Child> {
     const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
-        ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
     return new_builder.template make<Type>(cones);
   }

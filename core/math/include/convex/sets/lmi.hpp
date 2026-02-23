@@ -135,7 +135,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
    *
    * smat(u) >= 0, t>= 0
    */
-  template <AtomType Type, BuilderLike Builder>
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
@@ -164,7 +164,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
     const auto cones = std::make_tuple(psd_cone);
 
     const auto new_builder =
-        ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
     return new_builder.template make<Type>(cones);
   }

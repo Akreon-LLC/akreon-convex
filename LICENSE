@@ -1,38 +1,111 @@
-Akreon SDK License Agreement
-Version 1.0 – © 2025 Akreon LLC. All rights reserved.
+Akreon SDK Proprietary License Agreement
+Version 2.0 - Effective February 23, 2026
+Copyright (c) 2025-2026 Akreon LLC. All rights reserved.
 
-This software and accompanying documentation (the “Software”) are proprietary
-to Akreon LLC and protected by copyright and trade secret law.
+IMPORTANT: BY ACCESSING, DOWNLOADING, INSTALLING, COPYING, OR USING THE
+SOFTWARE, YOU ACCEPT THIS AGREEMENT. IF YOU DO NOT ACCEPT, DO NOT ACCESS OR
+USE THE SOFTWARE.
 
-1. GRANT OF LICENSE
-   Akreon grants Licensee a non-exclusive, non-transferable, revocable license
-   to use the Software solely for internal evaluation, research, or as otherwise
-   authorized in a written agreement.
+This software and accompanying documentation, source code, object code,
+artifacts, interfaces, designs, models, and related materials (collectively,
+the "Software") are proprietary to Akreon LLC ("Akreon") and protected by
+copyright, trade secret, and other applicable intellectual property laws.
+
+1. LICENSE GRANT
+Akreon grants Licensee a limited, non-exclusive, non-transferable,
+non-sublicensable, revocable license to use the Software solely for internal
+evaluation, internal research, and development explicitly authorized by Akreon
+in writing.
 
 2. RESTRICTIONS
-   Licensee shall not:
-     (a) copy, modify, distribute, sublicense, or disclose the Software;
-     (b) reverse engineer, decompile, or disassemble any part of it;
-     (c) remove any proprietary notices or markings.
+Except as expressly allowed under Section 1 or a separate written agreement
+signed by Akreon, Licensee shall not, and shall not permit any third party to:
+(a) copy, reproduce, modify, adapt, translate, create derivative works of, or
+    publicly display the Software;
+(b) distribute, sell, lease, lend, sublicense, assign, publish, disclose,
+    transfer, or otherwise make the Software available to any third party;
+(c) reverse engineer, decompile, disassemble, decode, or otherwise attempt to
+    derive source code, structure, ideas, algorithms, or non-public APIs;
+(d) benchmark, publish performance results, or perform competitive analysis
+    without Akreon's prior written consent;
+(e) remove, alter, or obscure proprietary notices, confidentiality legends, or
+    attribution markings;
+(f) use the Software to create, train, or improve competing products or
+    services;
+(g) use the Software in violation of applicable law or regulation.
 
-3. OWNERSHIP
-   Akreon retains all right, title, and interest, including all intellectual
-   property rights in the Software and its derivatives.
+3. OWNERSHIP AND RESERVED RIGHTS
+The Software is licensed, not sold. Akreon and its licensors retain all right,
+title, and interest in and to the Software, including all intellectual property
+rights, derivative works, and feedback-based improvements. No implied license
+is granted.
 
-4. TRADE SECRETS
-   Licensee acknowledges that the Software contains confidential information and
-   trade secrets of Akreon LLC. Licensee agrees to maintain strict confidence
-   and to use at least the same degree of care used to protect its own secrets.
+4. CONFIDENTIALITY AND TRADE SECRETS
+Licensee acknowledges the Software contains confidential and trade secret
+information. Licensee shall:
+(a) protect the Software using at least reasonable care, and no less than the
+    care used for its own highly sensitive information;
+(b) restrict access to personnel with a strict need to know who are bound by
+    written confidentiality obligations at least as protective as this
+    Agreement;
+(c) promptly notify Akreon of any actual or suspected unauthorized access,
+    disclosure, or use.
 
-5. WARRANTY DISCLAIMER
-   The Software is provided “AS IS” without warranty of any kind.
+5. SECURITY OBLIGATIONS
+Licensee shall maintain commercially reasonable administrative, technical, and
+physical safeguards to prevent unauthorized access, use, or disclosure,
+including access control, credential hygiene, and prompt offboarding.
 
-6. LIMITATION OF LIABILITY
-   In no event shall Akreon LLC be liable for any consequential, incidental, or
-   indirect damages arising out of the use or inability to use the Software.
+6. FEEDBACK
+If Licensee provides suggestions, ideas, bug reports, or other feedback,
+Licensee grants Akreon a perpetual, irrevocable, worldwide, royalty-free,
+fully paid-up right to use, modify, and incorporate such feedback without
+restriction or compensation.
 
-7. TERMINATION
-   This license terminates immediately upon violation of these terms.
+7. TERM AND TERMINATION
+This Agreement remains effective until terminated. Akreon may terminate this
+Agreement immediately upon notice if Licensee breaches any term. Upon
+termination, Licensee shall immediately cease use and destroy all copies of the
+Software, including backups where feasible, and certify destruction upon
+request.
 
-For commercial licensing, contact: David Akre david@akreon.ai
+8. NO WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE". TO THE MAXIMUM EXTENT
+PERMITTED BY LAW, AKREON DISCLAIMS ALL WARRANTIES, EXPRESS, IMPLIED, OR
+STATUTORY, INCLUDING IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT, AND QUIET ENJOYMENT.
 
+9. LIMITATION OF LIABILITY
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL AKREON BE LIABLE FOR
+ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE
+DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, GOODWILL, OR BUSINESS
+INTERRUPTION, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. AKREON'S
+TOTAL LIABILITY ARISING FROM OR RELATED TO THIS AGREEMENT SHALL NOT EXCEED ONE
+HUNDRED U.S. DOLLARS (USD $100).
+
+10. EXPORT COMPLIANCE
+Licensee shall comply with all applicable export control and sanctions laws and
+shall not export, re-export, or transfer the Software in violation of such
+laws.
+
+11. INJUNCTIVE RELIEF
+Licensee acknowledges that unauthorized use or disclosure may cause irreparable
+harm for which monetary damages are inadequate. Akreon is entitled to seek
+injunctive or equitable relief, without bond where permitted by law, in
+addition to other remedies.
+
+12. GOVERNING LAW; VENUE
+This Agreement is governed by the laws of the State of Delaware, excluding
+conflict-of-law rules. The parties consent to exclusive jurisdiction and venue
+in state or federal courts located in Delaware, except Akreon may seek
+injunctive relief in any competent jurisdiction.
+
+13. ENTIRE AGREEMENT; MODIFICATIONS
+This Agreement and any signed written addendum by Akreon constitute the entire
+agreement regarding the Software and supersede prior understandings on this
+subject. Any modifications must be in writing and signed by Akreon.
+
+14. CONTACT
+Commercial licensing and legal inquiries:
+David Akre, Akreon LLC
+Email: david@akreon.ai

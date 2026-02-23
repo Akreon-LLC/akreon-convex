@@ -13,7 +13,7 @@
 #pragma once
 
 #include "convex/convex_traits.hpp"
-#include "convex/convex_util.hpp"
+#include "convex/cone_block_builder.hpp"
 
 namespace convex {
 
@@ -184,7 +184,7 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
    *
    * @return cone block
    */
-  template <AtomType Type, BuilderLike Builder>
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
@@ -212,7 +212,7 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
-        ConeBlockBuilder<builder_dom_t<decltype(builder)>,
+        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
                          decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
     const auto exp_cone = conic::ExpCone<linalg::Vector<T, 3>>();

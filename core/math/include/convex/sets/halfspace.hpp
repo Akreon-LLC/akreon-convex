@@ -146,7 +146,7 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    *
    * @return cone block
    */
-  template <AtomType AType, BuilderLike Builder>
+  template <AtomType AType, conic::BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
     const auto child_builder =
         std::get<0>(this->children)
@@ -168,7 +168,7 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
     const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
-        ConeBlockBuilder<builder_dom_t<decltype(builder)>, decltype(map),
+        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
     return new_builder.template make<AType>(cones);
   }

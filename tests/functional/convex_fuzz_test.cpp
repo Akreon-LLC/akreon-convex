@@ -25,5 +25,5 @@ int main() {
   constexpr auto norm =
       Norm<NormMeta<Dom, Codom>, decltype(var), L2<Vectord<N>>>(var);
   constexpr auto prob2 = prob.minimize(norm);
-  return prob2.validate();
+  return prob2.validate() == true;
 }

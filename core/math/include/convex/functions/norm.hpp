@@ -13,7 +13,7 @@
 #pragma once
 
 #include "convex/convex_traits.hpp"
-#include "convex/convex_util.hpp"
+#include "convex/cone_block_builder.hpp"
 
 namespace convex {
 
@@ -237,7 +237,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
    *
    * @return cone block
    */
-  template <AtomType Type, BuilderLike Builder>
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     using Vec = linalg::Vector<T, N>;
     const auto child_builder =
@@ -270,7 +270,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
       const auto new_builder =
-          ConeBlockBuilder<builder_dom_t<decltype(builder)>,
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
                            decltype(coord_map_up), decltype(child_cb)>(
               coord_map_up, child_cb);
 
@@ -297,7 +297,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
       const auto new_builder =
-          ConeBlockBuilder<builder_dom_t<decltype(builder)>,
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
                            decltype(coord_map_up), decltype(child_cb)>(
               coord_map_up, child_cb);
 
@@ -329,7 +329,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
       const auto new_builder =
-          ConeBlockBuilder<builder_dom_t<decltype(builder)>,
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
                            decltype(coord_map_up), decltype(child_cb)>(
               coord_map_up, child_cb);
 

@@ -14,6 +14,7 @@
 
 #include <optional>
 
+#include "cone_traits.hpp"
 #include "convex_traits.hpp"
 
 namespace convex {
@@ -146,7 +147,7 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
    *
    * @return cone block builder
    */
-  template <AtomType Type, BuilderLike Builder>
+  template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     static_assert(Type != AtomType::SET, "Minkowski sum is not yet supported");
 
@@ -162,9 +163,10 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
         affine::AffineMap<decltype(selector.linear_part())>(F, g);
 
     const auto new_builder = std::get<1>(res);
-    return ConeBlockBuilder<builder_dom_t<Builder>, decltype(new_selector),
-                            decltype(new_builder.cb)>(new_selector,
-                                                      new_builder.cb);
+    return conic::ConeBlockBuilder<conic::builder_dom_t<Builder>,
+                                   decltype(new_selector),
+                                   decltype(new_builder.cb)>(new_selector,
+                                                             new_builder.cb);
   }
 
   /** @brief member var */

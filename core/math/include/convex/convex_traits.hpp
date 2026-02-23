@@ -13,6 +13,7 @@
 #pragma once
 
 #include "affine/affine_traits.hpp"
+#include "cone_traits.hpp"
 
 namespace convex {
 
@@ -24,8 +25,10 @@ using LiftedVarMat = linalg::Matrix<T, 1, 1>;
 template <typename T>
 using LiftedVarBias = linalg::Vector<T, 1>;
 
+/// @brief Atom category used by canonicalization and DCP checks.
 enum struct AtomType : uint8_t { VAR = 0, INDEX, FN, SET, ADD, CAP, INEQ };
 
+/// @brief Sign annotation attached to domains/codomains.
 enum struct SignType : uint8_t {
   FREE = 0,
   NONNEG,
@@ -38,15 +41,22 @@ enum struct SignType : uint8_t {
   ND
 };
 
+/// @brief Curvature annotation for atom codomain.
 enum struct CurvatureType : uint8_t { AFFINE = 0, CONVEX, CONCAVE };
 
+/// @brief Monotonicity annotation for function atoms.
 enum struct MonotonicityType : uint8_t { UNKNOWN = 0, NONDEC, NONINC };
 
+/// @brief Constraint operator kinds when building a problem.
 enum struct ConstraintType : uint8_t { EQ = 0, LEQ, GEQ, IN_SET };
+/// @brief Problem construction lifecycle stage.
+enum struct StageType : uint8_t { INIT = 0, IN_PROGRESS, PROBLEM_SET };
 
+/// @brief Domain wrapper with a static sign label.
 template <linalg::RnSpace Space, SignType Sign>
 struct ConvexDomain {};
 
+/// @brief Base domain traits.
 template <typename Dom>
 struct dom_traits {};
 
@@ -75,10 +85,12 @@ template <typename Dom>
 inline constexpr SignType dom_sign_v =
     dom_traits<linalg::remove_cvref_t<Dom>>::sign;
 
+/// @brief Atom metadata bundling domain, codomain, and curvature.
 template <typename Dom, typename Codom, CurvatureType Curv>
   requires(std::same_as<dom_type_t<Dom>, dom_type_t<Codom>>)
 struct ConvexAtomMeta {};
 
+/// @brief Base metadata traits.
 template <typename Meta>
 struct meta_traits {};
 
@@ -180,7 +192,7 @@ template <typename Meta, typename Child>
   requires(linalg::SquareMatrixLike<dom_point_t<meta_dom_t<Meta>>>)
 struct LogDet;
 
-/// @brief forward declataion - sum op
+/// @brief forward declaration - sum op
 template <typename Meta, typename... Cs>
 struct Sum;
 
@@ -226,9 +238,44 @@ struct NormBall;
 template <typename Meta, typename Child>
 struct Polyhedron;
 
+/// @brief forward declaration of set intersection operator.
 template <typename Meta, typename... Cs>
 struct Intersection;
 
+/// @brief forward declaration of convex problem
+template <conic::BuilderLike Builder, StageType Stage>
+class ConvexProblem;
+
+/// @brief problem type traits
+template <typename Prob>
+struct prob_traits;
+
+/// @brief problem type traits
+template <conic::BuilderLike Builder, StageType Stage>
+struct prob_traits<ConvexProblem<Builder, Stage>> {
+  using BuilderT = Builder;
+  static constexpr StageType StageV = Stage;
+};
+
+/// @brief builder type from prob
+template <typename Prob>
+using prob_builder_t =
+    typename prob_traits<linalg::remove_cvref_t<Prob>>::BuilderT;
+
+/// @brief stage type from prob
+template <typename Prob>
+inline constexpr bool is_problem_set_v =
+    prob_traits<linalg::remove_cvref_t<Prob>>::StageV == StageType::PROBLEM_SET;
+
+/// @brief ProblemLike Concept
+template <typename Problem>
+concept ProblemLike = requires(const Problem& prob) {
+  { prob.linear_objective() };
+  { prob.constraint_map() };
+  { prob.constraint_cones() };
+};
+
+/// @brief Base atom traits.
 template <typename Atom>
 struct atom_traits {};
 
@@ -393,13 +440,16 @@ struct atom_traits<Polyhedron<Meta, Child>> {
   static constexpr AtomType Type = AtomType::SET;
 };
 
+/// @brief Domain alias for sum atom.
 template <linalg::RnSpace Dom>
 using SumDom = ConvexDomain<Dom, SignType::FREE>;
 
+/// @brief Codomain alias for sum atom (scalar).
 template <linalg::RnSpace Codom>
   requires(linalg::space_dim_v<Codom> == 1)
 using SumCodom = ConvexDomain<Codom, SignType::FREE>;
 
+/// @brief Meta alias for sum atom.
 template <linalg::RnSpace Dom, linalg::RnSpace Codom>
 using SumMeta =
     ConvexAtomMeta<SumDom<Dom>, SumCodom<Codom>, CurvatureType::AFFINE>;
@@ -410,12 +460,15 @@ struct atom_traits<Sum<SumMeta<Dom, Codom>, Cs...>> {
   static constexpr AtomType Type = AtomType::ADD;
 };
 
+/// @brief Domain alias for intersection atom.
 template <linalg::RnSpace Space>
 using IntersectionDom = ConvexDomain<Space, SignType::FREE>;
 
+/// @brief Codomain alias for intersection atom.
 template <linalg::RnSpace Space>
 using IntersectionCodom = IntersectionDom<Space>;
 
+/// @brief Meta alias for intersection atom.
 template <linalg::RnSpace Space>
 using IntersectionMeta =
     ConvexAtomMeta<IntersectionDom<Space>, IntersectionCodom<Space>,
@@ -427,20 +480,24 @@ struct atom_traits<Intersection<IntersectionMeta<Space>, Cs...>> {
   static constexpr AtomType Type = AtomType::CAP;
 };
 
+/// @brief Concept for any convex atom node in the expression tree.
 template <typename Atom>
 concept AtomLike = requires(const Atom& atom) {
   { atom.validate_domain() } -> std::convertible_to<void>;
   { atom.children };
 };
 
+/// @brief Extract metadata type from atom.
 template <AtomLike Atom>
 using atom_meta_t =
     typename atom_traits<linalg::remove_cvref_t<Atom>>::ConvexMeta;
 
+/// @brief Compile-time atom category.
 template <AtomLike Atom>
 inline constexpr AtomType atom_type_v =
     atom_traits<linalg::remove_cvref_t<Atom>>::Type;
 
+/// @brief Helper predicates on atom category.
 template <AtomLike Atom>
 inline constexpr bool is_fn_type_v = atom_type_v<Atom> == AtomType::FN;
 

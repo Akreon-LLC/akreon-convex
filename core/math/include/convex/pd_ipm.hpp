@@ -245,15 +245,15 @@ template <ProblemLike Problem>
 struct PrimalDualIPM {
   /// @brief alias and helpers to get types
   using Builder = prob_builder_t<Problem>;
-  using DecVar = builder_dom_t<Builder>;
-  using CB = builder_cb_t<Builder>;
+  using DecVar = conic::builder_dom_t<Builder>;
+  using CB = conic::builder_cb_t<Builder>;
   using FMap = conic::cone_block_map_t<CB>;
   using FMat = affine::affine_mat_t<FMap>;
   using T = linalg::space_type_t<DecVar>;
 
   /// @brief helpers for size of cones & F mat
   static constexpr size_t NumCones =
-      conic::cone_block_num_cones_v<builder_cb_t<Builder>>;
+      conic::cone_block_num_cones_v<conic::builder_cb_t<Builder>>;
   static constexpr size_t M = linalg::mat_rows_v<FMat>;
   static constexpr size_t N = linalg::mat_cols_v<FMat>;
 

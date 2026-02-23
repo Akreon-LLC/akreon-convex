@@ -13,7 +13,6 @@
 #pragma once
 
 #include "affine/affine_traits.hpp"
-#include "convex_traits.hpp"
 
 namespace conic {
 
@@ -56,11 +55,11 @@ struct RotatedSecondOrderCone;
 template <linalg::VectorLike Vec>
 struct LogDetCone;
 
-/// @brief cone traits
+/// @brief Base cone traits.
 template <typename Cone>
 struct cone_traits;
 
-/// @brief cone traits derived for zoc
+/// @brief Cone traits for ZeroOrderCone.
 template <linalg::VectorLike Vec>
 struct cone_traits<ZeroOrderCone<Vec>> : std::true_type {
   using SlackT = Vec;
@@ -69,7 +68,7 @@ struct cone_traits<ZeroOrderCone<Vec>> : std::true_type {
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
-/// @brief cone traits derived for rplus
+/// @brief Cone traits for NonnegOrthantCone.
 template <linalg::VectorLike Vec>
 struct cone_traits<NonnegOrthantCone<Vec>> : std::false_type {
   using SlackT = Vec;
@@ -78,7 +77,7 @@ struct cone_traits<NonnegOrthantCone<Vec>> : std::false_type {
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
-/// @brief cone traits derived for soc
+/// @brief Cone traits for SecondOrderCone.
 template <linalg::VectorLike Vec>
 struct cone_traits<SecondOrderCone<Vec>> : std::false_type {
   using SlackT = Vec;
@@ -87,7 +86,7 @@ struct cone_traits<SecondOrderCone<Vec>> : std::false_type {
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
-/// @brief cone traits derived for psd
+/// @brief Cone traits for PositiveSemidefiniteCone.
 template <linalg::VectorLike Vec, size_t Dim>
 struct cone_traits<PositiveSemidefiniteCone<Vec, Dim>> : std::false_type {
   using SlackT = Vec;
@@ -96,7 +95,7 @@ struct cone_traits<PositiveSemidefiniteCone<Vec, Dim>> : std::false_type {
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
-/// @brief cone traits derived for exp
+/// @brief Cone traits for ExpCone.
 template <linalg::VectorLike Vec>
 struct cone_traits<ExpCone<Vec>> : std::false_type {
   using SlackT = Vec;
@@ -105,7 +104,7 @@ struct cone_traits<ExpCone<Vec>> : std::false_type {
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
-/// @brief cone traits derived for power cone
+/// @brief Cone traits for PowerCone.
 template <linalg::VectorLike Vec>
 struct cone_traits<PowerCone<Vec>> : std::false_type {
   using SlackT = Vec;
@@ -114,7 +113,7 @@ struct cone_traits<PowerCone<Vec>> : std::false_type {
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
-/// @brief cone traits derived for rsoc
+/// @brief Cone traits for RotatedSecondOrderCone.
 template <linalg::VectorLike Vec>
 struct cone_traits<RotatedSecondOrderCone<Vec>> : std::false_type {
   using SlackT = Vec;
@@ -149,11 +148,11 @@ inline constexpr bool is_zoc_v = cone_traits<linalg::remove_cvref_t<Cone>>{};
 template <affine::AffineMapLike Map, typename... Cs>
 struct ConeBlock;
 
-/// @brief cone block traits
+/// @brief Base cone block traits.
 template <typename ConeBlock>
 struct cone_block_traits;
 
-/// @brief cone clobk type traits
+/// @brief Cone block traits specialization.
 template <affine::AffineMapLike Map, typename... Cs>
 struct cone_block_traits<ConeBlock<Map, Cs...>> {
   using FMap = Map;
@@ -176,5 +175,45 @@ concept ConeBlockLike = requires(const Cblk& cblk) {
   { cblk.map };
   { cblk.cones };
 };
+
+/// @brief Concept for canonicalization builder objects.
+template <typename Builder>
+concept BuilderLike = requires(const Builder& builder) {
+  { builder.coord_map };
+  { builder.cb };
+};
+
+/// @brief forward declaration of cone block builder
+template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+          conic::ConeBlockLike CB>
+struct ConeBlockBuilder;
+
+/// @brief Base builder traits.
+template <typename Builder>
+struct builder_traits;
+
+/// @brief builder type traits of cone block builder
+template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+          conic::ConeBlockLike CB>
+struct builder_traits<ConeBlockBuilder<DecVarDom, CoordMap, CB>> {
+  using Dom = DecVarDom;
+  using Map = CoordMap;
+  using ConeBlock = CB;
+};
+
+/// @brief builder domain
+template <typename Builder>
+using builder_dom_t =
+    typename builder_traits<linalg::remove_cvref_t<Builder>>::Dom;
+
+/// @brief builder map
+template <typename Builder>
+using builder_map_t =
+    typename builder_traits<linalg::remove_cvref_t<Builder>>::Map;
+
+/// @brief builder cone block
+template <typename Builder>
+using builder_cb_t =
+    typename builder_traits<linalg::remove_cvref_t<Builder>>::ConeBlock;
 
 }  // namespace conic
