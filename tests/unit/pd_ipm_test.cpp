@@ -136,7 +136,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     const auto res = solver.res;
     const auto trace = solver.trace;
 
-    char buf[16384];
+    char buf[64000];
     trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
     std::cout << buf << std::endl;
     std::cout << res.z(0) << " " << res.z(1) << std::endl;

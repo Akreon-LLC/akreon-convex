@@ -267,11 +267,12 @@ struct PredictorCorrector {
    * @return pz_rhs (ignore on return)
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr Var corrector(Var&& pz_rhs, const T& mu_tgt, const ConeVar& x_pred,
-                          const ConeVar& y_pred, const auto& K,
-                          const auto& S_inv, const Mat& F, const ConeVar& rp,
-                          const Var& rd, const ConeVar& x, const ConeVar& y,
-                          Var& pz, ConeVar& px, ConeVar& py) const {
+  constexpr Var corrector(Var&& pz_rhs, const T& mu_tgt, const T& aff_scale_sq,
+                          const ConeVar& dx_aff, const ConeVar& dy_aff,
+                          const auto& K, const auto& S_inv, const Mat& F,
+                          const ConeVar& rp, const Var& rd, const ConeVar& x,
+                          const ConeVar& y, Var& pz, ConeVar& px,
+                          ConeVar& py) const {
     if constexpr (idx >= NumCones)
       return pz_rhs;
     else {
@@ -281,20 +282,18 @@ struct PredictorCorrector {
       constexpr size_t End = Start + KiRows;
 
       if (conic::is_zoc_v<decltype(Ki)>)
-        return corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, x_pred,
-                                       y_pred, K, S_inv, F, rp, rd, x, y, pz,
-                                       px, py);
+        return corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, aff_scale_sq,
+                                       dx_aff, dy_aff, K, S_inv, F, rp, rd, x,
+                                       y, pz, px, py);
 
       using ConePoint = linalg::Vector<T, End - Start>;
-      ConePoint xk{}, yk{}, pxk{}, pyk{}, rpk{}, x_pred_k{}, y_pred_k{};
+      ConePoint xk{}, yk{}, dx_aff_k{}, dy_aff_k{}, rpk{};
 
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         xk(j) = x(i);
         yk(j) = y(i);
-        pxk(j) = px(i);
-        pyk(j) = py(i);
-        x_pred_k(j) = x_pred(i);
-        y_pred_k(j) = y_pred(i);
+        dx_aff_k(j) = dx_aff(i);
+        dy_aff_k(j) = dy_aff(i);
         rpk(j) = rp(i);
       }
 
@@ -302,16 +301,14 @@ struct PredictorCorrector {
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
-      // ConePoint rhs_c =
-      // Ki.circ(xk, yk) + Ki.circ(x_pred_k, y_pred_k) - mu_tgt * Ki.e();
-
-      ConePoint rhs_c = Ki.circ(xk, yk) - mu_tgt * Ki.e();
+      ConePoint rhs_c =
+          aff_scale_sq * Ki.circ(dx_aff_k, dy_aff_k) - mu_tgt * Ki.e();
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 
-      const auto new_pz_rhs =
-          corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, x_pred, y_pred, K,
-                                  S_inv, F, rp, rd, x, y, pz, px, py);
+      const auto new_pz_rhs = corrector<idx + 1, End>(
+          std::move(pz_rhs), mu_tgt, aff_scale_sq, dx_aff, dy_aff, K, S_inv, F,
+          rp, rd, x, y, pz, px, py);
 
       if constexpr (idx + 1 == NumCones) pz = S_inv.solve(new_pz_rhs + rd);
 
@@ -365,7 +362,7 @@ struct PrimalDualIPM {
   /** @brief member vars */
   PrimalDualResult<Var, ConeVar> res;  ///< PD-IPM result
 #ifdef AKREON_DEBUG
-  std::array<IterState<T>, linalg::SolverTraits<T>::STEPS>
+  std::array<IterState<T>, linalg::SolverTraits<T>::PD_IPM_STEPS>
       trace;  ///< debug iteration trace
 #endif
 
@@ -422,7 +419,7 @@ struct PrimalDualIPM {
     seed_cone_vars(K, x, y);
 
     bool dual_feas{false}, primal_feas{false}, gap_min{false};
-    for (i = 0; i < linalg::SolverTraits<T>::STEPS &&
+    for (i = 0; i < linalg::SolverTraits<T>::PD_IPM_STEPS &&
                 tag != linalg::SolverResult::OPTIMAL;
          ++i) {
       ConeVar px_pred{}, px_corr{}, py_pred{}, py_corr{};
@@ -438,37 +435,41 @@ struct PrimalDualIPM {
       /// (dakre) 2 - compute initial primal & dual residuals (negated)
       rd = dual_residual(y);
       rp = primal_residual(z, x);
+      auto rd_norm = linalg::L2<decltype(rd)>()(rd);
+      auto rp_norm = linalg::L2<decltype(rp)>()(rp);
 
       /// (dakre) 3 - predictor step
       pc.predictor(Var{}, K, ldl, F, rp, rd, x, y, pz_pred, px_pred, py_pred);
 
       /// (dakre) 4 - mehrotra centering
       auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px_pred, py_pred);
-      auto alpha = std::min(std::get<0>(alpha_xy), std::get<1>(alpha_xy));
       const auto x_aff = x + std::get<0>(alpha_xy) * px_pred;
       const auto y_aff = y + std::get<1>(alpha_xy) * py_pred;
+      const auto mu_curr = mu(x, y, nu);
       const auto mu_aff = mu(x_aff, y_aff, nu);
-      auto sigma = linalg::constexpr_pow(mu_aff / mu(x, y, nu), 3);
-      sigma = std::max(T(0), std::min(T(1.0), sigma));
 
-      const auto mu_tgt = sigma * mu(x, y, nu);
+      auto sigma = linalg::constexpr_pow(mu_aff / mu_curr, 3);
+      sigma = std::max(T(0), std::min(T(1.0), sigma));
+      T theta = T(0.7);
+      if (primal_feas && dual_feas) theta = T(0.3), sigma *= theta;
+
+      const auto mu_tgt = sigma * mu_curr;
+      const auto aff_scale_sq = std::get<0>(alpha_xy) * std::get<1>(alpha_xy);
 
       /// (dakre) 5 - corrector step
-      pc.corrector(Var{}, mu_tgt, px_pred, py_pred, K, ldl, F, rp, rd, x, y,
-                   pz_corr, px_corr, py_corr);
+      pc.corrector(Var{}, mu_tgt, aff_scale_sq, px_pred, py_pred, K, ldl, F,
+                   ConeVar{}, Var{}, x, y, pz_corr, px_corr, py_corr);
 
-      auto rd_norm = linalg::L2<decltype(rd)>()(rd);
-      auto rp_norm = linalg::L2<decltype(rp)>()(rp);
-
-      /// (dakre) 6 - linear combination between predictor & corrector
-      /// dirs to form uniform newton step
-      const auto px = px_pred + px_corr;
-      const auto py = py_pred + py_corr;
-      const auto pz = pz_pred + pz_corr;
+      /// (dakre) 6 - blend predictor/corrector to avoid over-aggressive
+      /// second-order correction on near-feasible iterates.
+      const auto px = px_pred + theta * px_corr;
+      const auto py = py_pred + theta * py_corr;
+      const auto pz = pz_pred + theta * pz_corr;
 
       /// (dakre) 7 - alpha max
       alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
-      alpha = std::min(std::get<0>(alpha_xy), std::get<1>(alpha_xy));
+      auto alpha_y = std::get<1>(alpha_xy);
+      if (primal_feas && dual_feas) alpha_y *= theta;
 
 #ifdef AKREON_DEBUG
       trace[i].mu = res.mu;
@@ -482,14 +483,11 @@ struct PrimalDualIPM {
       trace[i].pz_norm = linalg::L2<decltype(pz)>()(pz);
       trace[i].px_norm = linalg::L2<decltype(px)>()(px);
       trace[i].py_norm = linalg::L2<decltype(py)>()(py);
-      trace[i].flags |= primal_feas ? (1 << 0) : 0;
-      trace[i].flags |= dual_feas ? (1 << 1) : 0;
-      trace[i].flags |= gap_min ? (1 << 2) : 0;
 #endif
 
       /// (dakre) 8 - take newton step scaled by alpha
       x = x + std::get<0>(alpha_xy) * px;
-      y = y + std::get<1>(alpha_xy) * py;
+      y = y + alpha_y * py;
       z = z + std::get<0>(alpha_xy) * pz;
 
       /// (dakre) 9 - compute residuals + mu again
@@ -505,6 +503,10 @@ struct PrimalDualIPM {
       gap_min = res.mu <= linalg::SolverTraits<T>::DUALITY_GAP;
 
       tag = get_tag(primal_feas, dual_feas, gap_min);
+#ifdef AKREON_DEBUG
+      trace[i].flags = (primal_feas ? (1 << 0) : 0) |
+                       (dual_feas ? (1 << 1) : 0) | (gap_min ? (1 << 2) : 0);
+#endif
     }
   }
   /**
@@ -615,9 +617,9 @@ struct PrimalDualIPM {
   constexpr auto alpha_max(T&& alpha_x, T&& alpha_y, const auto& K,
                            const ConeVar& x, const ConeVar& y,
                            const ConeVar& px, const ConeVar& py) const {
-    if constexpr (idx >= NumCones)
-      return std::tuple(alpha_x, alpha_y);
-    else {
+    if constexpr (idx >= NumCones) {
+      return std::tuple(std::min(T(1), alpha_x), std::min(T(1), alpha_y));
+    } else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;

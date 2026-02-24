@@ -28,6 +28,7 @@ struct SolverTraits {};
 template <>
 struct SolverTraits<float> {
   static constexpr size_t STEPS = 32;
+  static constexpr size_t PD_IPM_STEPS = 128;
   static constexpr float TOL = 1e-8;
   static constexpr double PRIMAL_FEASIBLE = 1e-5;
   static constexpr double DUAL_FEASIBLE = 1e-5;
@@ -40,6 +41,7 @@ struct SolverTraits<float> {
 template <>
 struct SolverTraits<double> {
   static constexpr size_t STEPS = 64;
+  static constexpr size_t PD_IPM_STEPS = 256;
   static constexpr float TOL = 1e-8;
   static constexpr double PRIMAL_FEASIBLE = 1e-5;
   static constexpr double DUAL_FEASIBLE = 1e-5;

@@ -85,21 +85,19 @@ struct SchurKKT {
   /**
    * @brief tikhonov regularization
    *
-   * TODO - IPM aware (use w-norm instead of max)
-   *
    * @param Schur mat
    *
    * @return regularized
    */
   constexpr auto regularize(Schur S) const {
-    auto d = get_diag(S);
-    const auto mx = std::max(max(d), eps);
-    d = (T(1) / mx) * d;
-    size_t cnt{0};
-    std::for_each(d.begin(), d.end(),
-                  [&](const auto& elem) { cnt += constexpr_abs(elem) < eps; });
-    if (cnt > 0)
-      for (size_t i = 0; i < N; ++i) S(i)(i) -= cnt * eps;
+    const auto d = get_diag(S);
+    T s{0};
+    for (const auto& x : d)
+      if (linalg::constexpr_abs(x) > s) s = linalg::constexpr_abs(x);
+
+    s = std::max(s, T(1));
+    const auto delta = eps * s;
+    for (size_t i = 0; i < N; ++i) S(i)(i) += delta;
     return S;
   }
 };
