@@ -225,9 +225,9 @@ struct PredictorCorrector {
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
-      ConePoint rhs_c = T(-1) * Ki.circ(xk, yk);
+      ConePoint rhs_c = Ki.circ(xk, yk);
 
-      pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) + F_blk_T * rhs_c;
+      pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 
       const auto new_pz_rhs = predictor<idx + 1, End>(
           std::move(pz_rhs), K, S_inv, F, rp, rd, x, y, pz, px, py);
@@ -236,7 +236,7 @@ struct PredictorCorrector {
 
       const auto px_tmp = F_blk * pz + rpk;
 
-      const auto py_tmp = rhs_c - Hes.apply(px_tmp);
+      const auto py_tmp = T(-1) * rhs_c - Hes.apply(px_tmp);
 
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         px(i) = px_tmp(j), py(i) = py_tmp(j);
@@ -302,10 +302,12 @@ struct PredictorCorrector {
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
-      ConePoint rhs_c =
-          mu_tgt * Ki.e() - Ki.circ(x_pred_k, y_pred_k) - Ki.circ(xk, yk);
+      // ConePoint rhs_c =
+      // Ki.circ(xk, yk) + Ki.circ(x_pred_k, y_pred_k) - mu_tgt * Ki.e();
 
-      pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) + F_blk_T * rhs_c;
+      ConePoint rhs_c = Ki.circ(xk, yk) - mu_tgt * Ki.e();
+
+      pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 
       const auto new_pz_rhs =
           corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, x_pred, y_pred, K,
@@ -315,7 +317,7 @@ struct PredictorCorrector {
 
       const auto px_tmp = F_blk * pz + rpk;
 
-      const auto py_tmp = rhs_c - Hes.apply(px_tmp);
+      const auto py_tmp = T(-1) * rhs_c - Hes.apply(px_tmp);
 
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         px(i) = px_tmp(j), py(i) = py_tmp(j);
@@ -419,6 +421,7 @@ struct PrimalDualIPM {
 
     seed_cone_vars(K, x, y);
 
+    bool dual_feas{false}, primal_feas{false}, gap_min{false};
     for (i = 0; i < linalg::SolverTraits<T>::STEPS &&
                 tag != linalg::SolverResult::OPTIMAL;
          ++i) {
@@ -451,8 +454,11 @@ struct PrimalDualIPM {
       const auto mu_tgt = sigma * mu(x, y, nu);
 
       /// (dakre) 5 - corrector step
-      pc.corrector(Var{}, mu_tgt, x_aff, y_aff, K, ldl, F, rp, rd, x, y,
+      pc.corrector(Var{}, mu_tgt, px_pred, py_pred, K, ldl, F, rp, rd, x, y,
                    pz_corr, px_corr, py_corr);
+
+      auto rd_norm = linalg::L2<decltype(rd)>()(rd);
+      auto rp_norm = linalg::L2<decltype(rp)>()(rp);
 
       /// (dakre) 6 - linear combination between predictor & corrector
       /// dirs to form uniform newton step
@@ -463,24 +469,6 @@ struct PrimalDualIPM {
       /// (dakre) 7 - alpha max
       alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
       alpha = std::min(std::get<0>(alpha_xy), std::get<1>(alpha_xy));
-
-      /// (dakre) 8 - take newton step scaled by alpha
-      x = x + alpha * px;
-      y = y + alpha * py;
-      z = z + alpha * pz;
-
-      /// (dakre) 9 - compute residuals + mu again
-      rd = dual_residual(y);
-      rp = primal_residual(z, x);
-      res.mu = mu(x, y, nu);
-
-      const auto rd_norm = linalg::L2<decltype(rd)>()(rd);
-      const auto rp_norm = linalg::L2<decltype(rp)>()(rp);
-
-      const bool dual_feas = rd_norm <= linalg::SolverTraits<T>::DUAL_FEASIBLE;
-      const bool primal_feas =
-          rp_norm <= linalg::SolverTraits<T>::PRIMAL_FEASIBLE;
-      const bool gap_min = res.mu <= linalg::SolverTraits<T>::DUALITY_GAP;
 
 #ifdef AKREON_DEBUG
       trace[i].mu = res.mu;
@@ -498,6 +486,23 @@ struct PrimalDualIPM {
       trace[i].flags |= dual_feas ? (1 << 1) : 0;
       trace[i].flags |= gap_min ? (1 << 2) : 0;
 #endif
+
+      /// (dakre) 8 - take newton step scaled by alpha
+      x = x + std::get<0>(alpha_xy) * px;
+      y = y + std::get<1>(alpha_xy) * py;
+      z = z + std::get<0>(alpha_xy) * pz;
+
+      /// (dakre) 9 - compute residuals + mu again
+      rd = dual_residual(y);
+      rp = primal_residual(z, x);
+      res.mu = mu(x, y, nu);
+
+      rd_norm = linalg::L2<decltype(rd)>()(rd);
+      rp_norm = linalg::L2<decltype(rp)>()(rp);
+
+      dual_feas = rd_norm <= linalg::SolverTraits<T>::DUAL_FEASIBLE;
+      primal_feas = rp_norm <= linalg::SolverTraits<T>::PRIMAL_FEASIBLE;
+      gap_min = res.mu <= linalg::SolverTraits<T>::DUALITY_GAP;
 
       tag = get_tag(primal_feas, dual_feas, gap_min);
     }
