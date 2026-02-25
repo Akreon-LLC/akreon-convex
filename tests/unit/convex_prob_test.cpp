@@ -317,6 +317,39 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 9);
     STATIC_REQUIRE(vec_size_v<decltype(canon_cb.map.translation())> == 15);
   }
+
+  SECTION("Weighted sum") {
+    using MatT = Matrixd<1, 5>;
+    constexpr auto x = Variable<FreeVarMeta<MatT>>();
+    constexpr Vectord<5> c{1.0, 1.0, 1.0, 1.0, 1.0};
+    constexpr auto sum = weighted_sum(c, x);
+
+    constexpr auto builder = create_empty_cblk_builder<MatT>();
+    constexpr auto new_builder =
+        sum.template canonicalize<AtomType::ADD>(builder);
+
+    constexpr auto canon_map = new_builder.coord_map;
+    STATIC_REQUIRE(all_equal(as_row_vector(c), canon_map.linear_part()));
+    STATIC_REQUIRE(canon_map.translation() == Vectord<1>{0.0});
+
+    constexpr auto canon_cb = new_builder.cb;
+    STATIC_REQUIRE(canon_cb.validate());
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 0);
+
+    constexpr Vectord<5> c2{1.0, 2.0, -1.0, 4.0, 0.0};
+    constexpr auto sum2 = weighted_sum(c2, x);
+
+    constexpr auto new_builder2 =
+        sum2.template canonicalize<AtomType::ADD>(builder);
+
+    constexpr auto canon_map2 = new_builder2.coord_map;
+    STATIC_REQUIRE(all_equal(as_row_vector(c2), canon_map2.linear_part()));
+    STATIC_REQUIRE(canon_map2.translation() == Vectord<1>{0.0});
+
+    constexpr auto canon_cb2 = new_builder2.cb;
+    STATIC_REQUIRE(canon_cb2.validate());
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb2.cones)>::value == 0);
+  }
 }
 
 TEST_CASE("Simple function ops", "[convex_ops]") {
