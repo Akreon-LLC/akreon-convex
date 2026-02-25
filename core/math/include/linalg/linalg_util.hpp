@@ -13,8 +13,7 @@
 #pragma once
 
 #include "config/assert.hpp"
-
-#include "config/solver_traits.hpp"
+#include "config/solver_config.hpp"
 #include "norms/matrix_norms.hpp"
 #include "norms/vector_norms.hpp"
 #include "operator/operator_traits.hpp"

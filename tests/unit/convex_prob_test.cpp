@@ -24,6 +24,7 @@ using namespace conic;
 using namespace unit_test;
 
 TEST_CASE("Test var setup", "[convex_vars]") {
+  constexpr double var_eps{1e-8};
   SECTION("Free var") {
     using MatT = Matrixd<1, 1>;
     constexpr auto x = Variable<FreeVarMeta<MatT>>();
@@ -181,8 +182,6 @@ TEST_CASE("Test var setup", "[convex_vars]") {
   }
 
   SECTION("Var -> cones") {
-    constexpr auto cone_eps = -1.0 * SolverTraits<double>::TOL;
-
     using Space = Matrixd<1, 5>;
     constexpr auto x = Variable<FreeVarMeta<Space>>();
     constexpr auto builder = create_empty_cblk_builder<Space>();
@@ -204,7 +203,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(all_equal(builder4.cb.map.linear_part(), I));
     STATIC_REQUIRE(
         builder4.cb.map.translation() ==
-        Vectord<5>{cone_eps, cone_eps, cone_eps, cone_eps, cone_eps});
+        Vectord<5>{-var_eps, -var_eps, -var_eps, -var_eps, -var_eps});
 
     constexpr auto x_nonpos = Variable<NonposVarMeta<Space>>();
     constexpr auto builder5 = x_nonpos.add_var_block<AtomType::VAR>(builder);
@@ -218,7 +217,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(all_equal(builder6.cb.map.linear_part(), -1.0 * I));
     STATIC_REQUIRE(
         builder6.cb.map.translation() ==
-        Vectord<5>{cone_eps, cone_eps, cone_eps, cone_eps, cone_eps});
+        Vectord<5>{-var_eps, -var_eps, -var_eps, -var_eps, -var_eps});
 
     constexpr auto x_psd = Variable<PSDVarMeta<Space>>();
     constexpr auto builder7 = x_psd.add_var_block<AtomType::VAR>(builder);
@@ -296,10 +295,10 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     constexpr auto abs_x2 = Abs<AbsMeta<Scalar>, decltype(x2)>(x2);
     constexpr auto sum01 =
         Sum<SumMeta<Pair, Scalar>, decltype(abs_x0), decltype(abs_x1)>(abs_x0,
-                                                                        abs_x1);
+                                                                       abs_x1);
     constexpr auto sum012 =
         Sum<SumMeta<Pair, Scalar>, decltype(sum01), decltype(abs_x2)>(sum01,
-                                                                       abs_x2);
+                                                                      abs_x2);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder =
@@ -676,11 +675,10 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
         2);
 
     constexpr mat_traits<Matrix<double, 4, 2>> F_mat;
-    constexpr auto solver_eps = linalg::SolverTraits<double>::TOL;
     constexpr auto F = F_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
     STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(), F));
     STATIC_REQUIRE(prob2.constraint_map().translation() ==
-                   Vectord<4>{-1 * solver_eps, 0.0, 1.0, 0.0});
+                   Vectord<4>{-1 * eps, 0.0, 1.0, 0.0});
   }
 
   SECTION("Simple sum sqrt max. problem") {
@@ -714,15 +712,14 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
         4);
 
     constexpr mat_traits<Matrix<double, 8, 4>> F_mat;
-    constexpr auto solver_eps = linalg::SolverTraits<double>::TOL;
     constexpr auto F =
         F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
               0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
               0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(), F));
-    STATIC_REQUIRE(prob2.constraint_map().translation() ==
-                   Vectord<8>{-1 * solver_eps, -1 * solver_eps, 0.0, 0.5, 0.0,
-                              0.0, 0.5, 0.0});
+    STATIC_REQUIRE(
+        prob2.constraint_map().translation() ==
+        Vectord<8>{-1 * eps, -1 * eps, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0});
   }
 }
 
@@ -749,8 +746,7 @@ TEST_CASE("Simple feasibility test", "[convex_problem]") {
     constexpr mat_traits<Matrix<double, 5, 2>> F_mat;
     constexpr auto F = F_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
-    constexpr auto solver_eps = linalg::SolverTraits<double>::TOL;
-    constexpr auto g = Vectord<5>{-1 * solver_eps, 0.0, 1.0, 0.0, 1.0};
+    constexpr auto g = Vectord<5>{-1 * eps, 0.0, 1.0, 0.0, 1.0};
     STATIC_REQUIRE(prob3.constraint_map().translation() == g);
 
     /// (dakre) part 2 - geq
@@ -768,7 +764,7 @@ TEST_CASE("Simple feasibility test", "[convex_problem]") {
         2);
     constexpr auto F1 = F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(prob5.constraint_map().linear_part(), F1));
-    constexpr auto g1 = Vectord<5>{-1 * solver_eps, 0.0, 1.0, 0.0, -2.0};
+    constexpr auto g1 = Vectord<5>{-1 * eps, 0.0, 1.0, 0.0, -2.0};
     STATIC_REQUIRE(prob5.constraint_map().translation() == g1);
   }
 }

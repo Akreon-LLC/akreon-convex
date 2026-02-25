@@ -37,9 +37,20 @@ struct EigenDecomposition {
    * @brief CTOR
    *
    * @param matrix A of type T with Rows x Cols elements
-   * @param tolerance dictating algorithm convergence
    */
-  constexpr EigenDecomposition(const Mat& A) : converged(false) { solve_qr(A); }
+  constexpr explicit EigenDecomposition(const Mat& A) { solve_qr(A); }
+
+  /**
+   * @brief CTOR
+   *
+   * @param A mat to be spectrally decomposed
+   * @param config (FactorConfig)
+   */
+  constexpr explicit EigenDecomposition(
+      const Mat& A, const config::FactorConfig<Real>& config_in)
+      : config(config_in) {
+    solver_qr(A);
+  }
 
   /**
    * @brief get spectral radius
@@ -77,7 +88,7 @@ struct EigenDecomposition {
   /** @brief eigendecomposition member variables */
   Vector<Complex, N> lambda;  ///< eigenvalues
   Matrix<Complex, N, N> V;    ///< eigenvectors
-  bool converged;             ///< eigenvalue convergence flag
+  bool converged{false};      ///< eigenvalue convergence flag
 
  private:
   /**
@@ -103,7 +114,7 @@ struct EigenDecomposition {
     // 3. the practical QR iteration on H -- form quasi triangular matrix in
     // real schur form and extract eigenvalues depending on real / complex form
     // of 2x2 or 1x1 schur blocks
-    for (size_t i = 0; i < SolverTraits<Real>::STEPS; ++i) {
+    for (size_t i = 0; i < config.steps; ++i) {
       const auto qr = QR(H);
       const auto Q = qr.Q();
       const auto R = qr.R();
@@ -130,7 +141,7 @@ struct EigenDecomposition {
           const Real& c = H(j + 1)(j);
           const Real& d = H(j + 1)(j + 1);
           if (constexpr_abs(c) <
-              SolverTraits<Real>::TOL * (constexpr_abs(c) + constexpr_abs(d))) {
+              config.tol * (constexpr_abs(c) + constexpr_abs(d))) {
             eigs(j) = Complex(a, 0);
             continue;
           }
@@ -166,7 +177,7 @@ struct EigenDecomposition {
           }
         }
 
-        if (res < SolverTraits<Real>::TOL * SolverTraits<Real>::TOL) {
+        if (res < config.tol * config.tol) {
           converged = true;
           break;
         }
@@ -215,10 +226,9 @@ struct EigenDecomposition {
       // - Defect = # of extra generalized evecs to span the space the Jordan
       // block lies in
       int AM = 0;
-      std::for_each(
-          eigs.begin(), eigs.end(), [&i, &eigs, &AM](const auto& val) {
-            AM += constexpr_absc(eigs(i) - val) < SolverTraits<Real>::TOL;
-          });
+      std::for_each(eigs.begin(), eigs.end(), [&](const auto& val) {
+        AM += constexpr_absc(eigs(i) - val) < config.tol;
+      });
       int GM = 0, defect = 0;
       if (AM > 1) {
         const auto I = make_identity<Complex, N>();
@@ -461,6 +471,9 @@ struct EigenDecomposition {
 
     return normalize(v, L2<Vector<Complex, N>>());
   }
+
+  /** @brief member vars */
+  config::FactorConfig<Real> config;
 };
 
 }  // namespace linalg

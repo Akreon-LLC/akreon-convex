@@ -41,7 +41,7 @@ template <linalg::VectorLike Var, linalg::VectorLike ConeVar>
 struct PrimalDualResult {
   using T = linalg::vec_type_t<Var>;
 
-  linalg::SolverResult tag{};  ///< tag for result of pd-ipm
+  config::SolverResult tag{};  ///< tag for result of pd-ipm
   T mu{};                      ///< normalized duality gap
   Var rd{};                    ///< dual residuals
   ConeVar rp{};                ///< primal residuals
@@ -52,7 +52,6 @@ struct PrimalDualResult {
 };
 
 #ifdef AKREON_DEBUG
-#include <array>
 #include <cstddef>
 #include <cstdio>
 
@@ -353,17 +352,29 @@ struct PrimalDualIPM {
                 "Problem is not set therefore cannot be solved");
 
   /**
-   * @CTOR
+   * @brief CTOR
    *
-   * @param prob : ConvexProblem
+   * @param prob (ConvexProblem)
    */
   constexpr explicit PrimalDualIPM(const Problem& prob) { solve(prob); }
+
+  /**
+   * @brief CTOR
+   *
+   * @param prob (ConvexProblem)
+   * @param config (PrimalDualIPM Config)
+   */
+  constexpr explicit PrimalDualIPM(
+      const Problem& prob, const config::PrimalDualIPMConfig<T>& config_in)
+      : config(config_in) {
+    solve(prob);
+  }
 
   /** @brief member vars */
   PrimalDualResult<Var, ConeVar> res;  ///< PD-IPM result
 #ifdef AKREON_DEBUG
-  std::array<IterState<T>, linalg::SolverTraits<T>::PD_IPM_STEPS>
-      trace;  ///< debug iteration trace
+  /// TODO -- vector?
+  std::array<IterState<T>, 256> trace;  ///< debug iteration trace
 #endif
 
  private:
@@ -392,17 +403,17 @@ struct PrimalDualIPM {
 
     auto get_tag = [](const auto& primal_feas, const auto& dual_feas,
                       const auto& gap_min) {
-      linalg::SolverResult tag;
+      config::SolverResult tag;
       if (primal_feas && dual_feas && gap_min)
-        tag = linalg::SolverResult::OPTIMAL;
+        tag = config::SolverResult::OPTIMAL;
       else if (primal_feas && dual_feas)
-        tag = linalg::SolverResult::PRIMAL_DUAL_FEASIBLE;
+        tag = config::SolverResult::PRIMAL_DUAL_FEASIBLE;
       else if (primal_feas)
-        tag = linalg::SolverResult::PRIMAL_FEASIBLE;
+        tag = config::SolverResult::PRIMAL_FEASIBLE;
       else if (dual_feas)
-        tag = linalg::SolverResult::DUAL_FEASIBLE;
+        tag = config::SolverResult::DUAL_FEASIBLE;
       else
-        tag = linalg::SolverResult::INFEASIBLE_OR_UNBOUNDED;
+        tag = config::SolverResult::INFEASIBLE_OR_UNBOUNDED;
       return tag;
     };
 
@@ -419,9 +430,7 @@ struct PrimalDualIPM {
     seed_cone_vars(K, x, y);
 
     bool dual_feas{false}, primal_feas{false}, gap_min{false};
-    for (i = 0; i < linalg::SolverTraits<T>::PD_IPM_STEPS &&
-                tag != linalg::SolverResult::OPTIMAL;
-         ++i) {
+    for (i = 0; i < config.steps && tag != config::SolverResult::OPTIMAL; ++i) {
       ConeVar px_pred{}, px_corr{}, py_pred{}, py_corr{};
       Var pz_pred{}, pz_corr{};
 
@@ -498,9 +507,9 @@ struct PrimalDualIPM {
       rd_norm = linalg::L2<decltype(rd)>()(rd);
       rp_norm = linalg::L2<decltype(rp)>()(rp);
 
-      dual_feas = rd_norm <= linalg::SolverTraits<T>::DUAL_FEASIBLE;
-      primal_feas = rp_norm <= linalg::SolverTraits<T>::PRIMAL_FEASIBLE;
-      gap_min = res.mu <= linalg::SolverTraits<T>::DUALITY_GAP;
+      dual_feas = rd_norm <= config.dual_feas_tol;
+      primal_feas = rp_norm <= config.primal_feas_tol;
+      gap_min = res.mu <= config.duality_gap_tol;
 
       tag = get_tag(primal_feas, dual_feas, gap_min);
 #ifdef AKREON_DEBUG
@@ -642,6 +651,9 @@ struct PrimalDualIPM {
                                      x, y, px, py);
     }
   }
+
+  /** @brief member vars */
+  config::PrimalDualIPMConfig<T> config;  ///< PD-IPM config
 };
 
 }  // namespace convex

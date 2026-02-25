@@ -22,6 +22,7 @@ using namespace convex;
 using namespace affine;
 using namespace conic;
 using namespace unit_test;
+using namespace config;
 
 TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
   using Space = Matrixd<1, 2>;
@@ -41,6 +42,8 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
 
   constexpr auto g_exp = Vectord<5>{0.0, 0.0, 4.0, 5.0, 2.0};
 
+  constexpr auto res_tol = 1e-3;
+
   SECTION("Min x0") {
     constexpr auto prob_min = prob_constr.minimize(x(0).value());
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
@@ -58,21 +61,13 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     constexpr auto c = prob_min.linear_objective();
     STATIC_REQUIRE(c == Vectord<2>{1.0, 0.0});
 
-    PrimalDualIPM solver(prob_min);
-    auto res = solver.res;
-    auto trace = solver.trace;
-#if 0
-    STATIC_REQUIRE(constexpr_abs(res.z(0)) < SolverTraits<double>::DUALITY_GAP);
+    constexpr PrimalDualIPM solver(prob_min);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+    STATIC_REQUIRE(constexpr_abs(res.z(0)) < res_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 &&
-                   res.num_iter < SolverTraits<double>::STEPS);
-    STATIC_REQUIRE(trace[res.num_iter - 1].flags == 0x4);
-#endif
-
-    char buf[16384];
-    trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
-    std::cout << buf << std::endl;
-    std::cout << res.z(0) << " " << res.z(1) << std::endl;
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < 32);
+    STATIC_REQUIRE(trace[res.num_iter - 1].flags == 0x7);
   }
 
   SECTION("Min x1") {
@@ -92,21 +87,13 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     constexpr auto c = prob_min.linear_objective();
     STATIC_REQUIRE(c == Vectord<2>{0.0, 1.0});
 
-    PrimalDualIPM solver(prob_min);
-    auto res = solver.res;
-    auto trace = solver.trace;
-#if 0
-    STATIC_REQUIRE(constexpr_abs(res.z(1)) < SolverTraits<double>::DUALITY_GAP);
+    constexpr PrimalDualIPM solver(prob_min);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+    STATIC_REQUIRE(constexpr_abs(res.z(1)) < res_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 &&
-                   res.num_iter < SolverTraits<double>::STEPS);
-    STATIC_REQUIRE(trace[res.num_iter - 1].flags == 0x4);
-#endif
-
-    char buf[16384];
-    trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
-    std::cout << buf << std::endl;
-    std::cout << res.z(0) << " " << res.z(1) << std::endl;
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < 32);
+    STATIC_REQUIRE(trace[res.num_iter - 1].flags == 0x7);
   }
 
   SECTION("Min sum(x.split())") {
@@ -132,13 +119,13 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     constexpr auto c = prob_min.linear_objective();
     STATIC_REQUIRE(c == Vectord<2>{1.0, 1.0});
 
-    const PrimalDualIPM solver(prob_min);
-    const auto res = solver.res;
-    const auto trace = solver.trace;
-
-    char buf[64000];
-    trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
-    std::cout << buf << std::endl;
-    std::cout << res.z(0) << " " << res.z(1) << std::endl;
+    /// (dakre) NOTE mu monotonically decreases but threshold not good enough
+    /// for complementarity to succeed by default
+    constexpr PrimalDualIPM solver(prob_min);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+    STATIC_REQUIRE(res.tag == SolverResult::PRIMAL_DUAL_FEASIBLE);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= 32);
+    STATIC_REQUIRE(trace[res.num_iter - 1].flags == 0x3);
   }
 }

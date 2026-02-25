@@ -17,7 +17,7 @@
 
 #include "cone_block_builder.hpp"
 #include "config/assert.hpp"
-#include "config/solver_traits.hpp"
+#include "config/solver_config.hpp"
 #include "convex_traits.hpp"
 
 namespace convex {
@@ -325,6 +325,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
                                    SignType::NSD == sign ||
                                    SignType::PD == sign || SignType::ND == sign;
     const auto child_builder = this->template canonicalize<Type>(builder);
+    constexpr T eps{1e-8};
     if constexpr (SignType::FREE == sign) {
       return child_builder;
     } else {
@@ -337,11 +338,9 @@ struct Variable : Atom<Meta, Variable<Meta>> {
       } else if constexpr (SignType::NONPOS == sign || SignType::NSD == sign) {
         F = T(-1) * F;
       } else if constexpr (SignType::POS == sign || SignType::PD == sign) {
-        const auto eps = linalg::SolverTraits<T>::TOL;
         for (size_t i = 0; i < N; ++i) g(i) = T(-1) * eps;
       } else if constexpr (SignType::NEG == sign || SignType::ND == sign) {
         F = T(-1) * F;
-        const auto eps = linalg::SolverTraits<T>::TOL;
         for (size_t i = 0; i < N; ++i) g(i) = T(-1) * eps;
       } else {
         AK_ASSERT(false && "Unsupported sign type in Variable::add_var_block");

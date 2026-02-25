@@ -11,6 +11,8 @@ set(UNIT_COMPILE_OPTS
   -flto
   -Oz
   -DAKREON_DEBUG
+  #-fconstexpr-depth=100000000
+  #-fconstexpr-steps=100000000
 )
 set(FUNC_COMPILE_OPTS
   -ffunction-sections
