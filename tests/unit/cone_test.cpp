@@ -52,12 +52,6 @@ TEST_CASE("Test cone formations", "[cone_test]") {
     STATIC_REQUIRE(rsoc.in_cone(rsoc.x0()));
   }
 
-  SECTION("Test soc") {
-    using Slack = Vectord<10>;
-    constexpr SecondOrderCone<Slack> soc;
-    STATIC_REQUIRE(soc.in_cone(soc.x0()));
-  }
-
   SECTION("Test zoc") {
     using Slack = Vectord<5>;
     constexpr ZeroOrderCone<Slack> zoc;
@@ -66,7 +60,7 @@ TEST_CASE("Test cone formations", "[cone_test]") {
 }
 
 TEST_CASE("Test R^n_+ cone", "[cone_test]") {
-  SECTION("Test rplus cone") {
+  SECTION("Test rplus cone api") {
     using Slack = Vectord<12>;
     constexpr NonnegOrthantCone<Slack> rplus;
     STATIC_REQUIRE(rplus.in_cone(rplus.x0()));
@@ -89,5 +83,22 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
     STATIC_REQUIRE(rplus.e() == e);
     STATIC_REQUIRE(rplus.circ(rplus.x0(), rplus.s0()) == e);
     STATIC_REQUIRE(rplus.nu() == 12.0);
+  }
+}
+
+TEST_CASE("Test SOC", "[cone_test]") {
+  SECTION("Test soc cone api") {
+    using Slack = Vectord<10>;
+    constexpr SecondOrderCone<Slack> soc;
+    STATIC_REQUIRE(soc.in_cone(soc.x0()));
+
+    constexpr vec_traits<Slack> vec;
+
+    /// TODO - test alpha max
+    STATIC_REQUIRE(soc.nu() == 2.0);
+    constexpr Vectord<10> e{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+    STATIC_REQUIRE(soc.e() == e);
+    constexpr auto x = vec.fill(5.5);
+    STATIC_REQUIRE(soc.circ(x, soc.e()) == x);
   }
 }

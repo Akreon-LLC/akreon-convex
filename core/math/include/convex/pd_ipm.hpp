@@ -14,6 +14,9 @@
 
 #include "convex_problem.hpp"
 #include "linalg/operator/schur_kkt.hpp"
+#ifdef AKREON_DEBUG
+#include "pd_ipm_debug.hpp"
+#endif
 
 namespace convex {
 
@@ -43,6 +46,8 @@ struct PrimalDualResult {
 
   config::SolverResult tag{};  ///< tag for result of pd-ipm
   T mu{};                      ///< normalized duality gap
+  T convex_obj{};              ///< convex objective value c^T z
+  T dual_obj{};                ///< dual objective value -g^T y
   Var rd{};                    ///< dual residuals
   ConeVar rp{};                ///< primal residuals
   Var z{};                     ///< decision var \in Rn + aux lifts
@@ -50,120 +55,6 @@ struct PrimalDualResult {
   ConeVar y{};                 ///< dual cone var \in K^*
   size_t num_iter{};           ///< total number of iter
 };
-
-#ifdef AKREON_DEBUG
-#include <cstddef>
-#include <cstdio>
-
-/**
- * @brief IterState
- */
-template <linalg::FieldLike T>
-struct IterState {
-  T mu{};       ///< normalized duality gap
-  T mu_aff{};   ///< duality gap of affine-scaling step
-  T sigma{};    ///< mehrotra centering correction
-  T mu_tgt{};   ///< mehrotra mu target for centering
-  T alpha_x{};  ///< max step to dK size
-  T alpha_y{};  ///< max step to dK^* size
-  T rd_norm{};  ///< dual norm residual size
-  T rp_norm{};  ///< primal norm residual size
-  T pz_norm{};  ///< newton step in z \in R^n size
-  T px_norm{};  ///< newton step in x \in K size
-  T py_norm{};  /// <newton step in y \in K^* size
-
-  /**
-   * @flags
-   *
-   * first bit : primal feasible
-   * second bit : dual feasible
-   * third bit : dual gap minimized
-   */
-  uint8_t flags{};  ///< status of iter
-};
-
-/**
- * @brief iter state to c string
- *
- * @param iter state,
- * @param char buffer
- * @param buffer size
- *
- * @return write position
- */
-template <linalg::FieldLike T>
-inline size_t iter_state_to_cstr(const IterState<T>& state, char* out,
-                                 const size_t out_size) {
-  AK_ASSERT(out != nullptr && "iter_state_to_cstr requires non-null output");
-  if (out == nullptr || out_size == 0) return 0;
-
-  const int bytes = std::snprintf(
-      out, out_size,
-      "mu=%g mu_aff=%g sigma=%g mu_tgt=%g ax=%g ay=%g rd=%g rp=%g pz=%g px=%g "
-      "py=%g flags=0x%02X",
-      static_cast<double>(state.mu), static_cast<double>(state.mu_aff),
-      static_cast<double>(state.sigma), static_cast<double>(state.mu_tgt),
-      static_cast<double>(state.alpha_x), static_cast<double>(state.alpha_y),
-      static_cast<double>(state.rd_norm), static_cast<double>(state.rp_norm),
-      static_cast<double>(state.pz_norm), static_cast<double>(state.px_norm),
-      static_cast<double>(state.py_norm), state.flags);
-
-  if (bytes < 0) {
-    out[0] = '\0';
-    return 0;
-  }
-
-  if (static_cast<size_t>(bytes) >= out_size) {
-    out[out_size - 1] = '\0';
-    return out_size - 1;
-  }
-
-  return static_cast<size_t>(bytes);
-}
-
-/**
- * @brief trace to cstring
- *
- * @param number of iters
- * @param trace (array of iter states)
- * @param buffer char string
- * @param buffer size
- *
- * @return write position (in case buffer to small)
- */
-template <linalg::FieldLike T, size_t N>
-inline size_t trace_to_cstr(const size_t& num_iter,
-                            const std::array<IterState<T>, N>& trace, char* out,
-                            const size_t& out_size) {
-  AK_ASSERT(out != nullptr && "trace_to_cstr requires non-null output");
-  if (out == nullptr || out_size == 0) return 0;
-
-  const size_t used_iters = (num_iter < N) ? num_iter : N;
-  size_t write_pos{0};
-  for (size_t i = 0; i < used_iters; ++i) {
-    const int header =
-        std::snprintf(out + write_pos, out_size - write_pos, "[%zu] ", i);
-    if (header < 0) break;
-    if (static_cast<size_t>(header) >= out_size - write_pos) {
-      out[out_size - 1] = '\0';
-      return out_size - 1;
-    }
-    write_pos += static_cast<size_t>(header);
-
-    const size_t body =
-        iter_state_to_cstr(trace[i], out + write_pos, out_size - write_pos);
-    write_pos += body;
-    if (write_pos >= out_size - 1) {
-      out[out_size - 1] = '\0';
-      return out_size - 1;
-    }
-
-    out[write_pos++] = '\n';
-    out[write_pos] = '\0';
-  }
-  return write_pos;
-}
-#endif
 
 /**
  * @brief Predictor Corrector
@@ -481,7 +372,7 @@ struct PrimalDualIPM {
       if (primal_feas && dual_feas) alpha_y *= theta;
 
 #ifdef AKREON_DEBUG
-      trace[i].mu = res.mu;
+      trace[i].mu = mu_curr;
       trace[i].mu_aff = mu_aff;
       trace[i].sigma = sigma;
       trace[i].mu_tgt = mu_tgt;
@@ -517,6 +408,9 @@ struct PrimalDualIPM {
                        (dual_feas ? (1 << 1) : 0) | (gap_min ? (1 << 2) : 0);
 #endif
     }
+
+    res.convex_obj = linalg::dot(c, z);
+    res.dual_obj = -linalg::dot(g, y);
   }
   /**
    * @brief accumulate params (Schur & nu)

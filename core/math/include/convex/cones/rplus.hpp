@@ -67,7 +67,8 @@ struct NonnegOrthantCone
    * @brief fraction to boundary dK
    *
    * sigma_x = \frac{1}{sup{alpha | x + alpha p \in K}}
-   * sup{alpha | x + alpha p \in K} = -1 / sigma_x(p)
+   * sup{alpha | x + alpha p \in K} -> -inf(x + alpha p) 
+   * x + alpha p = 0 -> alpha = -x / p
    * alpha = min. -x_i / p_i
    *
    * (similar for dual)
@@ -79,7 +80,7 @@ struct NonnegOrthantCone
    */
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {
-    const T eta{0.99};
+    constexpr T eta{0.99};
     T a{1};
     for (size_t i = 0; i < M; ++i) {
       if (p(i) < T(0)) {
@@ -118,7 +119,7 @@ struct NonnegOrthantCone
    * @param x \in K
    * @param s \in K^*
    *
-   * @return H
+   * @return H^{-1}
    */
   constexpr auto H_inv_impl(const Slack& x, const Slack& s) const {
     HessianMat H_inv{};

@@ -128,4 +128,41 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= 32);
     STATIC_REQUIRE(trace[res.num_iter - 1].flags == 0x3);
   }
+
+  SECTION("Min c^T x") {
+    constexpr auto c = Vectord<2>{2.0, -1.0};
+    constexpr auto cx = weighted_sum(c, x);
+    constexpr auto prob_min = prob_constr.minimize(cx);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
+
+    STATIC_REQUIRE(all_equal(F_exp, F));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(g == g_exp);
+
+    constexpr auto obj = prob_min.linear_objective();
+    STATIC_REQUIRE(obj == c);
+
+    constexpr PrimalDualIPM solver(prob_min);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+    STATIC_REQUIRE(res.tag == SolverResult::PRIMAL_DUAL_FEASIBLE);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= 32);
+    STATIC_REQUIRE(trace[res.num_iter - 1].flags == 0x3);
+
+#if 0
+    char buf[16000];
+    trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
+    std::cout << buf << std::endl;
+
+    memset(buf, '\0', sizeof(buf));
+    result_to_cstr(res, buf, sizeof(buf));
+    std::cout << buf << std::endl;
+#endif
+  }
 }
