@@ -16,11 +16,6 @@
 
 namespace linalg {
 
-/// @brief forward declaration AugmentedKKT
-template <linalg::SquareMatrixLike HessianMat, linalg::MatrixLike EqualityMat>
-  requires(std::same_as<mat_type_t<HessianMat>, mat_type_t<EqualityMat>>)
-struct AugmentedKKT;
-
 /// @brief simple enum to define symmetric matrix types
 /// INV = Invalid
 /// IND = Indefinite
@@ -56,6 +51,10 @@ struct Hessian;
 /// @brief forward declaration of LDL^T operator
 template <SquareMatrixLike Mat>
 struct LDL;
+
+/// @brief forward declaration of P(x) / P(x^{-1})
+template <SquareMatrixLike Mat, typename Circ, DifferentialType Type>
+struct QuadraticRep;
 
 /// @brief type traits definition for linear operator (subspace of Rn)
 template <SquareMatrixLike Mat, typename Derived>
@@ -117,12 +116,23 @@ struct space_traits<LDL<Mat>> {
   static constexpr size_t DIM = N * (N + 1) / 2;
 };
 
+/// @brief type traits definition for P(x) (subspace of J)
+template <SquareMatrixLike Mat, typename Circ, DifferentialType Type>
+struct space_traits<QuadraticRep<Mat, Circ, Type>> {
+  using value_type = mat_type_t<Mat>;
+  using Point = Mat;
+
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t DIM = N * N;
+};
+
 /// @brief mat type traits definition for linear operator
 template <SquareMatrixLike Mat, typename Derived>
 struct mat_traits<Endomorphism<Mat, Derived>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t ROWS = mat_rows_v<Mat>;
   static constexpr size_t COLS = mat_cols_v<Mat>;
+  using MatT = Mat;
 };
 
 /// @brief mat type traits definition for symmetric operator
@@ -131,6 +141,7 @@ struct mat_traits<SymmetricOperator<Mat, Derived>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t ROWS = mat_rows_v<Mat>;
   static constexpr size_t COLS = mat_cols_v<Mat>;
+  using MatT = Mat;
 };
 
 /// @brief mat type traits definition for symmetric matrices
@@ -139,6 +150,7 @@ struct mat_traits<SymmetricMatrix<Mat>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t ROWS = mat_rows_v<Mat>;
   static constexpr size_t COLS = mat_cols_v<Mat>;
+  using MatT = Mat;
 };
 
 /// @brief mat type traits definition for hessenberg matrices
@@ -147,6 +159,7 @@ struct mat_traits<Hessenberg<Mat>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t ROWS = mat_rows_v<Mat>;
   static constexpr size_t COLS = mat_cols_v<Mat>;
+  using MatT = Mat;
 };
 
 /// @brief mat type traits definition for hessian matrices
@@ -155,6 +168,7 @@ struct mat_traits<Hessian<Mat, Type>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t ROWS = mat_rows_v<Mat>;
   static constexpr size_t COLS = mat_cols_v<Mat>;
+  using MatT = Mat;
 };
 
 /// @brief mat type traits definition for LDL
@@ -163,6 +177,16 @@ struct mat_traits<LDL<Mat>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t ROWS = mat_rows_v<Mat>;
   static constexpr size_t COLS = mat_cols_v<Mat>;
+  using MatT = Mat;
+};
+
+/// @brief mat type traits definition for P(x)
+template <SquareMatrixLike Mat, typename Circ, DifferentialType Type>
+struct mat_traits<QuadraticRep<Mat, Circ, Type>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t ROWS = mat_rows_v<Mat>;
+  static constexpr size_t COLS = mat_cols_v<Mat>;
+  using MatT = Mat;
 };
 
 /// @brief vec type traits for symmetric operator
@@ -171,6 +195,7 @@ struct vec_traits<Endomorphism<Mat, Derived>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t SIZE = N * N;
+  using Vec = Vector<value_type, N>;
 };
 
 /// @brief vec type traits for symmetric operator
@@ -179,6 +204,7 @@ struct vec_traits<SymmetricOperator<Mat, Derived>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t SIZE = N * (N + 1) / 2;
+  using Vec = Vector<value_type, N>;
 };
 
 /// @brief vec type traits for symmetric matrices
@@ -187,6 +213,7 @@ struct vec_traits<SymmetricMatrix<Mat>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t SIZE = N * (N + 1) / 2;
+  using Vec = Vector<value_type, N>;
 };
 
 /// @brief vec type traits for hessenberg matrices
@@ -195,6 +222,7 @@ struct vec_traits<Hessenberg<Mat>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t SIZE = N * N;
+  using Vec = Vector<value_type, N>;
 };
 
 /// @brief vec type traits for hessian matrices
@@ -203,6 +231,7 @@ struct vec_traits<Hessian<Mat, Type>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t SIZE = N * N;
+  using Vec = Vector<value_type, N>;
 };
 
 /// @brief vec type traits for LDL matrices
@@ -211,33 +240,64 @@ struct vec_traits<LDL<Mat>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t SIZE = N * (N + 1) / 2;
+  using Vec = Vector<value_type, N>;
+};
+
+/// @brief vec type traits for quadratic rep matrices
+template <SquareMatrixLike Mat, typename Circ, DifferentialType Type>
+struct vec_traits<QuadraticRep<Mat, Circ, Type>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t SIZE = N * N;
+  using Vec = Vector<value_type, N>;
 };
 
 /// @brief underlying type of symmetric operator
 template <typename Operator>
-using operator_type_t = typename mat_traits<Operator>::value_type;
+using operator_type_t =
+    typename mat_traits<remove_cvref_t<Operator>>::value_type;
+
+/// @brief operator vec type (dom == codom)
+template <typename Operator>
+using operator_vec_t = typename vec_traits<remove_cvref_t<Operator>>::Vec;
+
+/// @brief operator mat type
+template <typename Operator>
+using operator_mat_t = typename mat_traits<remove_cvref_t<Operator>>::MatT;
 
 /// @brief helper to extract rows from symmetric operator
 template <typename Operator>
-inline constexpr size_t operator_rows_v = mat_traits<Operator>::ROWS;
+inline constexpr size_t operator_rows_v =
+    mat_traits<remove_cvref_t<Operator>>::ROWS;
 
 /// @brief helper to extract cols from symmetric operator
 template <typename Operator>
-inline constexpr size_t operator_cols_v = mat_traits<Operator>::COLS;
+inline constexpr size_t operator_cols_v =
+    mat_traits<remove_cvref_t<Operator>>::COLS;
 
 /// @brief helper to extract dim from symmetric operator
 template <typename Operator>
-inline constexpr size_t operator_dim_v = space_traits<Operator>::DIM;
+inline constexpr size_t operator_dim_v =
+    space_traits<remove_cvref_t<Operator>>::DIM;
 
-/// @brief OperatorLike concept
+/// @brief Linear Operator Concept
+template <typename Operator>
+concept LinearOperatorLike =
+    MatrixLike<Operator> ||
+    requires(const Operator& op, const operator_type_t<Operator>& X) {
+      { op.apply(X) } -> std::convertible_to<operator_type_t<Operator>>;
+    } || requires(const Operator& op, const operator_vec_t<Operator>& x) {
+      { op.apply(x) } -> std::convertible_to<operator_vec_t<Operator>>;
+    };
+
+/// @brief Endomorphism concept
 template <typename Operator>
 concept EndomorphismLike =
-    MatrixLike<Operator> || requires(const Operator& op) {
+    LinearOperatorLike<Operator> || requires(const Operator& op) {
       { op.type } -> std::convertible_to<SymmetricOperatorType>;
       {
         op.L
       } -> std::convertible_to<
           Vector<operator_type_t<Operator>, operator_dim_v<Operator>>>;
     };
-
 }  // namespace linalg

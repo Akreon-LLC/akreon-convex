@@ -327,7 +327,7 @@ struct PrimalDualIPM {
 
       /// (dakre) 1 - accumulate and factor schur & nu
       const auto params = accumulate_params(Schur{}, T(0), F, K, x, y);
-      const auto S = std::get<0>(params);
+      const auto S = regularize(std::get<0>(params));
       const auto nu = std::get<1>(params);
 
       const auto ldl = linalg::LDL(S);
@@ -456,7 +456,9 @@ struct PrimalDualIPM {
       const auto Hes = Ki.H(xk, yk);
 
       const auto F_blk = get_block<Start, End, 0, N>(F);
-      const linalg::SchurKKT<decltype(Hes.H), decltype(F_blk)> kkt;
+      const linalg::SchurKKT<linalg::operator_mat_t<decltype(Hes)>,
+                             decltype(F_blk)>
+          kkt;
       const auto Si = kkt.make(Hes, F_blk);
       S = S + Si;
 
@@ -493,9 +495,9 @@ struct PrimalDualIPM {
       if (conic::is_zoc_v<decltype(Ki)>)
         return seed_cone_vars<idx + 1, End>(K, x, y);
 
-      const auto x0 = Ki.x0(), s0 = Ki.s0();
+      const auto x0 = Ki.x0(), y0 = Ki.y0();
       for (size_t i = Start, j = 0; i < End; ++i, ++j)
-        x(i) = x0(j), y(i) = s0(j);
+        x(i) = x0(j), y(i) = y0(j);
 
       seed_cone_vars<idx + 1, End>(K, x, y);
     }

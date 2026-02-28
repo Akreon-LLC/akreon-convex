@@ -32,7 +32,7 @@ struct Cone {
   /// @brief eps constant
   static constexpr T eps = 1e-8;
 
-  /// @brief HessianMat
+  /// @brief hessian type
   using HessianMat = linalg::Matrix<T, M, M>;
 
   /**
@@ -47,11 +47,11 @@ struct Cone {
   /**
    * @brief default interior point (initial slack in dual cone)
    *
-   * s0 \in S^0(D)
+   * y0 \in S^0(D)
    *
    * @return vector
    */
-  constexpr Slack s0() const { return self().s0_impl(); }
+  constexpr Slack y0() const { return self().y0_impl(); }
 
   /**
    * @brief in the interior of k
@@ -70,12 +70,12 @@ struct Cone {
    * @brief hessian
    *
    * @param x \in K
-   * @param s \in K^*
+   * @param y \in K^*
    *
    * @return H
    */
-  constexpr auto H(const Slack& x, const Slack& s) const {
-    return self().H_impl(x, s);
+  constexpr auto H(const Slack& x, const Slack& y) const {
+    return self().H_impl(x, y);
   }
 
   /**
@@ -86,8 +86,8 @@ struct Cone {
    *
    * @return H
    */
-  constexpr auto H_inv(const Slack& x, const Slack& s) const {
-    return self().H_inv_impl(x, s);
+  constexpr auto H_inv(const Slack& x, const Slack& y) const {
+    return self().H_inv_impl(x, y);
   }
 
   /**
@@ -118,20 +118,6 @@ struct Cone {
   constexpr T nu() const { return self().nu_impl(); }
 
   /**
-   * @brief circ (jordan product / map)
-   *
-   * @param x \in K
-   * @param s \in K^*
-   *
-   * @return x \circ s
-   */
-  constexpr auto circ(const Slack& x, const Slack& s) const {
-    static_assert(ConeType::SYMMETRIC == CType,
-                  "Nonsymmetric cone is not equipped with Jordan Algebras");
-    return self().circ_impl(x, s);
-  }
-
-  /**
    * @brief e (jordan identity)
    *
    * x \circ e = x
@@ -142,6 +128,34 @@ struct Cone {
     static_assert(ConeType::SYMMETRIC == CType,
                   "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().e_impl();
+  }
+
+  /**
+   * @brief w (self-scaling point)
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return w
+   */
+  constexpr auto w(const Slack& x, const Slack& y) const {
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
+    return self().w_impl(x, y);
+  }
+
+  /**
+   * @brief circ (jordan map/product operator)
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @param x \circ y
+   */
+  constexpr auto circ(const Slack& x, const Slack& y) const {
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
+    return self().circ_impl(x, y);
   }
 
   /**

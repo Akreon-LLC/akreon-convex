@@ -18,6 +18,29 @@
 namespace linalg {
 
 /**
+ * @brief tikhonov regularization
+ *
+ * @param Schur mat
+ *
+ * @return regularized
+ */
+template <SquareMatrixLike Schur>
+constexpr auto regularize(Schur S, mat_type_t<Schur> eps = 1e-8) {
+  using T = mat_type_t<Schur>;
+  constexpr size_t N = mat_cols_v<Schur>;
+
+  const auto d = get_diag(S);
+  T s{0};
+  for (const auto& x : d)
+    if (linalg::constexpr_abs(x) > s) s = linalg::constexpr_abs(x);
+
+  s = std::max(s, T(1));
+  const auto delta = eps * s;
+  for (size_t i = 0; i < N; ++i) S(i)(i) += delta;
+  return S;
+}
+
+/**
  * @brief KKT Schur Matrix
  *
  * Form assumes the following:
@@ -56,49 +79,51 @@ struct SchurKKT {
   /// @brief helpers for rows & sizes of vectors / matrices
   static constexpr size_t M = mat_rows_v<EqualityMat>;
   static constexpr size_t N = mat_cols_v<EqualityMat>;
-  static constexpr T eps = 1e-10;
 
   /// @brief alias for mat and schur matrices
   using Schur = linalg::Matrix<T, N, N>;
 
   static_assert(mat_rows_v<HessianMat> == M,
-                "Hessian Mat Rows != Equality Cols");
+                "Hessian is not commutable with Equality block");
 
   /**
-   * @brief make augmented schur
+   * @brief make schur
    *
-   * \hat{S} = F^T H_x F
+   * S = F^T H_x F
    *
    * @param H_x (hessian for cone var in lifted dom-- [ z; x ] \in R^n x E
    * @param F (cone block slice for affine equality)
    *
-   * @return \hat{S}
+   * @return S
    */
   constexpr auto make(
       const Hessian<HessianMat, DifferentialType::PUSHFORWARD>& H_x,
       const EqualityMat& F) const {
     const auto S = transpose(F) * (H_x.apply(F));
-    return regularize(S);
+    return S;
   }
 
- private:
   /**
-   * @brief tikhonov regularization
+   * @brief make augmented schur
    *
-   * @param Schur mat
+   * G_i = H F
+   * S = F^T H_x
    *
-   * @return regularized
+   * @param P (quadratic rep)
+   * @param F (cone block slice for affine equality)
+   *
+   * @return S
    */
-  constexpr auto regularize(Schur S) const {
-    const auto d = get_diag(S);
-    T s{0};
-    for (const auto& x : d)
-      if (linalg::constexpr_abs(x) > s) s = linalg::constexpr_abs(x);
-
-    s = std::max(s, T(1));
-    const auto delta = eps * s;
-    for (size_t i = 0; i < N; ++i) S(i)(i) += delta;
-    return S;
+  template <typename Circ>
+  constexpr auto make(
+      const QuadraticRep<HessianMat, Circ, DifferentialType::PUSHFORWARD>& P,
+      const EqualityMat& F) const {
+    linalg::Matrix<T, M, N> G{};
+    for (size_t i = 0; i < N; ++i) {
+      const auto g = P.apply(get_col(F, i));
+      for (size_t j = 0; j < M; ++j) G(j)(i) = g(j);
+    }
+    return transpose(F) * G;
   }
 };
 

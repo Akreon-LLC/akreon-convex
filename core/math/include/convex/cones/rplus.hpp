@@ -13,8 +13,37 @@
 #pragma once
 
 #include "cone.hpp"
+#include "linalg/operator/quadratic_rep.hpp"
 
 namespace conic {
+
+/**
+ * @brief Circ - Jordan Map/Product for R^n_+
+ *
+ * x \circ y = x_i y_i
+ */
+template <linalg::VectorLike Vec>
+struct RplusCirc {
+  /// @brief types and size extraction
+  using T = linalg::vec_type_t<Vec>;
+  static constexpr size_t N = linalg::vec_size_v<Vec>;
+
+  /**
+   * @brief circ (jordan map/product)
+   *
+   * x \circ y = x_i y_i (componentwise mul)
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return x \circ y (vector)
+   */
+  constexpr auto operator()(const Vec& x, const Vec& y) const {
+    Vec res{};
+    for (size_t i = 0; i < N; ++i) res(i) = x(i) * y(i);
+    return res;
+  }
+};
 
 /** @brief nonneg cone class
  *
@@ -46,9 +75,9 @@ struct NonnegOrthantCone
   /**
    * @brief default dual point
    *
-   * @return s0
+   * @return y0
    */
-  constexpr Slack s0_impl() const { return x0_impl(); }
+  constexpr Slack y0_impl() const { return x0_impl(); }
 
   /**
    * @brief in interior of K
@@ -67,7 +96,7 @@ struct NonnegOrthantCone
    * @brief fraction to boundary dK
    *
    * sigma_x = \frac{1}{sup{alpha | x + alpha p \in K}}
-   * sup{alpha | x + alpha p \in K} -> -inf(x + alpha p) 
+   * sup{alpha | x + alpha p \in K} -> -inf(x + alpha p)
    * x + alpha p = 0 -> alpha = -x / p
    * alpha = min. -x_i / p_i
    *
@@ -97,38 +126,41 @@ struct NonnegOrthantCone
    * F''(w) -> pushforward operator that maps primal / tangent dir to change in
    * gradient at scaling point w... acts as forward sensitivity & curvature
    *
+   * w_i = sqrt(x_i/y_i)
+   * F(w) = -log(sum(w_i))
+   * F'(w) = -(1/w)^{T}
+   * F''(w) = diag(1/w^2)
+   *
    * @param x \in K
-   * @param s \in K^*
+   * @param y \in K^*
    *
    * @return H
    */
-  constexpr auto H_impl(const Slack& x, const Slack& s) const {
-    HessianMat H{};
+  constexpr auto H_impl(const Slack& x, const Slack& y) const {
+    const auto w = w_impl(x, y);
+    Slack w_inv{};
     for (size_t i = 0; i < M; ++i) {
-      const auto val = linalg::constexpr_abs(x(i)) < eps ? eps : x(i);
-      H(i)(i) = s(i) / val;
+      const T wi_safe = std::max(w(i), eps);
+      w_inv(i) = T(1) / wi_safe;
     }
-    return linalg::Hessian(H);
+    return linalg::QuadraticRep<HessianMat, RplusCirc<Slack>>(w_inv);
   }
+
   /**
    * @brief hessian inverse
    *
-   *    F''(w)^{-1} -> pullback operator that maps vectors in the gradient space
+   * F''(w)^{-1} -> pullback operator that maps vectors in the gradient space
    * back to primal / tangent dirs... acts as metric induced lifting
    *
    * @param x \in K
-   * @param s \in K^*
+   * @param y \in K^*
    *
    * @return H^{-1}
    */
-  constexpr auto H_inv_impl(const Slack& x, const Slack& s) const {
-    HessianMat H_inv{};
-    for (size_t i = 0; i < M; ++i) {
-      const auto val = linalg::constexpr_abs(s(i)) < eps ? eps : s(i);
-      H_inv(i)(i) = x(i) / val;
-    }
-    return linalg::Hessian<HessianMat, linalg::DifferentialType::PULLBACK>(
-        H_inv);
+  constexpr auto H_inv_impl(const Slack& x, const Slack& y) const {
+    const auto w = w_impl(x, y);
+    return linalg::QuadraticRep<HessianMat, RplusCirc<Slack>,
+                                linalg::DifferentialType::PULLBACK>(w);
   }
 
   /**
@@ -137,22 +169,6 @@ struct NonnegOrthantCone
    * @return nu
    */
   constexpr T nu_impl() const { return static_cast<T>(M); }
-
-  /**
-   * @brief circ (jordan map/product)
-   *
-   * x \circ s = x_i s_i (componentwise mul)
-   *
-   * @param x \in K
-   * @param s \in K^*
-   *
-   * @return x \circ s (vector)
-   */
-  constexpr auto circ_impl(const Slack& x, const Slack& s) const {
-    Slack res{};
-    for (size_t i = 0; i < M; ++i) res(i) = x(i) * s(i);
-    return res;
-  }
 
   /**
    * @brief e (jordan identity)
@@ -164,6 +180,38 @@ struct NonnegOrthantCone
   constexpr auto e_impl() const {
     linalg::vec_traits<Slack> vec{};
     return vec.fill(T(1));
+  }
+
+  /**
+   * @brief w (self-scaled point)
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return w
+   */
+  constexpr auto w_impl(const Slack& x, const Slack& y) const {
+    Slack w{};
+    for (size_t i = 0; i < M; ++i) {
+      const T x_safe = std::max(x(i), eps);
+      const T y_safe = std::max(y(i), eps);
+      w(i) = linalg::constexpr_sqrt(x_safe / y_safe);
+    }
+    return w;
+  }
+
+  /**
+   * @brief circ
+   *
+   * x \circ y
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return x circ y
+   */
+  constexpr auto circ_impl(const Slack& x, const Slack& y) const {
+    return RplusCirc<Slack>()(x, y);
   }
 };
 

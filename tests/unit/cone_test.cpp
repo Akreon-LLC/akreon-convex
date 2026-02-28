@@ -64,24 +64,29 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
     using Slack = Vectord<12>;
     constexpr NonnegOrthantCone<Slack> rplus;
     STATIC_REQUIRE(rplus.in_cone(rplus.x0()));
-    STATIC_REQUIRE(rplus.in_cone(rplus.s0()));
+    STATIC_REQUIRE(rplus.in_cone(rplus.y0()));
 
     constexpr vec_traits<Slack> vec;
     constexpr auto p = vec.fill(2.0);
     STATIC_REQUIRE(
         linalg::constexpr_abs(rplus.alpha_max(rplus.x0(), p) - 0.99) < eps);
 
-    constexpr auto H = rplus.H(rplus.x0(), rplus.s0());
-    STATIC_REQUIRE(all_equal(H.H, make_identity<double, 12>()));
-    STATIC_REQUIRE(H(0, 0) == 1.0);
+    constexpr auto w = rplus.w(rplus.x0(), rplus.y0());
+    constexpr auto ones = vec.fill(1.0);
+    STATIC_REQUIRE(L2<Slack>()(w - ones) < eps);
 
-    constexpr auto H_inv = rplus.H_inv(rplus.x0(), rplus.s0());
-    STATIC_REQUIRE(all_equal(H_inv.H, make_identity<double, 12>()));
-    STATIC_REQUIRE(H_inv(0, 0) == 1.0);
+    constexpr auto P = rplus.H(rplus.x0(), rplus.y0());
+    STATIC_REQUIRE(P.apply(Slack{}) == Slack{});
+
+    constexpr auto Pinv = rplus.H_inv(rplus.x0(), rplus.y0());
+    STATIC_REQUIRE(Pinv.apply(Slack{}) == Slack{});
 
     constexpr auto e = vec.fill(1.0);
     STATIC_REQUIRE(rplus.e() == e);
-    STATIC_REQUIRE(rplus.circ(rplus.x0(), rplus.s0()) == e);
+
+    constexpr RplusCirc<Slack> circ;
+    STATIC_REQUIRE(circ(rplus.x0(), rplus.y0()) == e);
+
     STATIC_REQUIRE(rplus.nu() == 12.0);
   }
 }
@@ -91,14 +96,18 @@ TEST_CASE("Test SOC", "[cone_test]") {
     using Slack = Vectord<10>;
     constexpr SecondOrderCone<Slack> soc;
     STATIC_REQUIRE(soc.in_cone(soc.x0()));
+    STATIC_REQUIRE(soc.in_cone(soc.y0()));
 
     constexpr vec_traits<Slack> vec;
 
     /// TODO - test alpha max
     STATIC_REQUIRE(soc.nu() == 2.0);
+
     constexpr Vectord<10> e{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
     STATIC_REQUIRE(soc.e() == e);
+
+    constexpr SOCCirc<Slack> circ;
     constexpr auto x = vec.fill(5.5);
-    STATIC_REQUIRE(soc.circ(x, soc.e()) == x);
+    STATIC_REQUIRE(circ(x, soc.e()) == x);
   }
 }
