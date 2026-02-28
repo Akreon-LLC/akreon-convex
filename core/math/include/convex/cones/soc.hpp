@@ -197,9 +197,8 @@ struct SecondOrderCone
    * @return H
    */
   constexpr auto H_impl(const Slack& x, const Slack& y) const {
-    (void)x, (void)y;
-    /// TODO - impl
-    return false;
+    const auto w_inv = inv(w_impl(x, y));
+    return linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(w_inv);
   }
 
   /**
@@ -213,9 +212,8 @@ struct SecondOrderCone
    * @return H^{-1}
    */
   constexpr auto H_inv_impl(const Slack& x, const Slack& y) const {
-    (void)x, (void)y;
-    /// TODO - impl
-    return false;
+    const auto w = w_impl(x, y);
+    return linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(w);
   }
 
   /**
@@ -315,7 +313,7 @@ struct SecondOrderCone
    *
    * @return sqrt(x)
    */
-  constexpr auto sqrt(const Slack& x) {
+  constexpr auto sqrt(const Slack& x) const {
     const auto v = std::get<0>(linalg::splice<M - 1>(x));
     const auto t = x(M - 1);
 
@@ -347,7 +345,7 @@ struct SecondOrderCone
    *
    * @return inv(x)
    */
-  constexpr auto inv(const Slack& x) {
+  constexpr auto inv(const Slack& x) const {
     const auto v = std::get<0>(linalg::splice<M - 1>(x));
     const auto t = x(M - 1);
     Slack adj_v;

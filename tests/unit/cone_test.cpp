@@ -99,8 +99,17 @@ TEST_CASE("Test SOC", "[cone_test]") {
     STATIC_REQUIRE(soc.in_cone(soc.y0()));
 
     constexpr vec_traits<Slack> vec;
+    constexpr auto p = vec.fill(0.5);
+    std::cout << soc.alpha_max(soc.x0(), p) << std::endl;
+    STATIC_REQUIRE(linalg::constexpr_abs(soc.alpha_max(soc.x0(), p) - 0.99) <
+                   eps);
 
-    /// TODO - test alpha max
+    constexpr auto P = soc.H(soc.x0(), soc.y0());
+    STATIC_REQUIRE(P.apply(Slack{}) == Slack{});
+
+    constexpr auto Pinv = soc.H_inv(soc.x0(), soc.y0());
+    STATIC_REQUIRE(Pinv.apply(Slack{}) == Slack{});
+
     STATIC_REQUIRE(soc.nu() == 2.0);
 
     constexpr Vectord<10> e{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
