@@ -25,9 +25,9 @@ namespace conic {
  * next M/3 rows, and w are the final rows
  */
 template <linalg::VectorLike Slack>
-struct ExpCone : public Cone<Slack, ExpCone<Slack>, ConeType::NONSYMMETRIC> {
+struct ExpCone : public Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Slack, ExpCone<Slack>, ConeType::NONSYMMETRIC>;
+  using ConeBase = Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC>;
 
   /// @brief helpers to get T and M
   using ConeBase::M;

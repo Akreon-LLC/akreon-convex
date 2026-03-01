@@ -171,6 +171,19 @@ struct SecondOrderCone
   }
 
   /**
+   * @brief fracto to dK^*
+   *
+   * @param y \in K
+   * @param p \in E^*
+   *
+   * @return \alpha_max (dual)
+   */
+  constexpr T alpha_max_dual_impl(const Slack& y,
+                                  const linalg::Vector<T, M>& p) const {
+    return alpha_max_impl(y, p);
+  }
+
+  /**
    * @brief hessian
    *
    * F''(w) -> pushforward op same style as R^n_+
@@ -199,21 +212,6 @@ struct SecondOrderCone
   constexpr auto H_impl(const Slack& x, const Slack& y) const {
     const auto w_inv = inv(w_impl(x, y));
     return linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(w_inv);
-  }
-
-  /**
-   * @brief hessian inverse
-   *
-   * F''(w)^{-1} -> pullback operator same style as R^n_+
-   *
-   * @param x \in K
-   * @param s \in K^*
-   *
-   * @return H^{-1}
-   */
-  constexpr auto H_inv_impl(const Slack& x, const Slack& y) const {
-    const auto w = w_impl(x, y);
-    return linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(w);
   }
 
   /**

@@ -121,6 +121,19 @@ struct NonnegOrthantCone
   }
 
   /**
+   * @brief fracto to dK^*
+   *
+   * @param y \in K
+   * @param p \in E^*
+   *
+   * @return \alpha_max (dual)
+   */
+  constexpr T alpha_max_dual_impl(const Slack& y,
+                                  const linalg::Vector<T, M>& p) const {
+    return alpha_max_impl(y, p);
+  }
+
+  /**
    * @brief hessian
    *
    * F''(w) -> pushforward operator that maps primal / tangent dir to change in
@@ -144,23 +157,6 @@ struct NonnegOrthantCone
       w_inv(i) = T(1) / wi_safe;
     }
     return linalg::QuadraticRep<HessianMat, RplusCirc<Slack>>(w_inv);
-  }
-
-  /**
-   * @brief hessian inverse
-   *
-   * F''(w)^{-1} -> pullback operator that maps vectors in the gradient space
-   * back to primal / tangent dirs... acts as metric induced lifting
-   *
-   * @param x \in K
-   * @param y \in K^*
-   *
-   * @return H^{-1}
-   */
-  constexpr auto H_inv_impl(const Slack& x, const Slack& y) const {
-    const auto w = w_impl(x, y);
-    return linalg::QuadraticRep<HessianMat, RplusCirc<Slack>,
-                                linalg::DifferentialType::PULLBACK>(w);
   }
 
   /**

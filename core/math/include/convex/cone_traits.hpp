@@ -17,7 +17,7 @@
 namespace conic {
 
 /// @brief cone type
-enum struct ConeType : uint8_t { SYMMETRIC = 0, NONSYMMETRIC };
+enum struct ConeType : uint8_t { SYMMETRIC = 0, ASYMMETRIC, SYMMETRIC_WRAPPER };
 
 /// @brief cone base class
 template <linalg::VectorLike Vec, typename Derived, ConeType Type>
@@ -100,7 +100,7 @@ template <linalg::VectorLike Vec>
 struct cone_traits<ExpCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
-  static constexpr ConeType CT = ConeType::NONSYMMETRIC;
+  static constexpr ConeType CT = ConeType::ASYMMETRIC;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -109,7 +109,7 @@ template <linalg::VectorLike Vec>
 struct cone_traits<PowerCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
-  static constexpr ConeType CT = ConeType::NONSYMMETRIC;
+  static constexpr ConeType CT = ConeType::ASYMMETRIC;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -118,7 +118,7 @@ template <linalg::VectorLike Vec>
 struct cone_traits<RotatedSecondOrderCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
-  static constexpr ConeType CT = ConeType::SYMMETRIC;
+  static constexpr ConeType CT = ConeType::SYMMETRIC_WRAPPER;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 
@@ -133,7 +133,9 @@ using cone_slack_t = typename cone_traits<linalg::remove_cvref_t<Cone>>::SlackT;
 /// @brief helper to see if cone is symmetric
 template <class Cone>
 inline constexpr bool is_cone_symmetric_v =
-    cone_traits<linalg::remove_cvref_t<Cone>>::CT == ConeType::SYMMETRIC;
+    cone_traits<linalg::remove_cvref_t<Cone>>::CT == ConeType::SYMMETRIC ||
+    cone_traits<linalg::remove_cvref_t<Cone>>::CT ==
+        ConeType::SYMMETRIC_WRAPPER;
 
 /// @brief helper to get N from cone
 template <class Cone>
@@ -143,6 +145,12 @@ inline constexpr size_t cone_dim_t =
 /// @brief helper for checking if its zero order cone
 template <class Cone>
 inline constexpr bool is_zoc_v = cone_traits<linalg::remove_cvref_t<Cone>>{};
+
+/// @brief helper for symmetric wrapped
+template <class Cone>
+inline constexpr bool is_wrapper_v =
+    cone_traits<linalg::remove_cvref_t<Cone>>::CT ==
+    ConeType::SYMMETRIC_WRAPPER;
 
 /// @brief cone block forward decl
 template <affine::AffineMapLike Map, typename... Cs>

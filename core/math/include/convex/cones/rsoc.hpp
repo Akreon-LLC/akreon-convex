@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "cone.hpp"
+#include "soc.hpp"
 
 namespace conic {
 
@@ -20,26 +20,77 @@ namespace conic {
  * @brief rsoc cone class
  *
  * K_rsoc = { (u, v, w) | ||u||_2^2 <= 2 v w, v >= 0, w >= 0 }
+ * K_soc = { (x, t) | ||x|| <= t, t >= 0 }
+ *
+ * RSOC -> SOC map
+ * SOC: x^T x <= t^2... 0 <= t^2 - x^T x
+ * RSOC: u^T u <= 2 v w... 0 <= 2 v w - u^T u
+ *
+ * id: (v + w)^2 - (v - w)^2 = 4 v w
+ * linear change of vars -> (x, x0, t) \in R^{n+1} x R
+ * t = v + w
+ * x0 = v - w
+ * x = sqrt(2)u
+ *
+ * SOC: (v - w)^2 + 2 u^T u <= (v + w)^2
+ * v^2 - 2vw + w^2 + 2 u^T u <= v^2 + 2vw + w^2
+ * 2u^T u <= 4vw
+ * u^T u <= 2 vw (eq RSOC)
+ *
+ * A = [ sqrt(2)I 0  0 ] [ u; v; w ] = (x=sqrt(2)u, x0=v - w, t=v+w)
+ *     [ 0        1 -1 ]
+ *     [ 0        1  1 ]
  */
 template <linalg::VectorLike Slack>
 struct RotatedSecondOrderCone
-    : public Cone<Slack, RotatedSecondOrderCone<Slack>, ConeType::SYMMETRIC> {
+    : public Cone<Slack, RotatedSecondOrderCone<Slack>,
+                  ConeType::SYMMETRIC_WRAPPER> {
   /// @brief bring into scope alias from cone base
   using ConeBase =
-      Cone<Slack, RotatedSecondOrderCone<Slack>, ConeType::SYMMETRIC>;
+      Cone<Slack, RotatedSecondOrderCone<Slack>, ConeType::SYMMETRIC_WRAPPER>;
 
   /// @brief helpers to get T and M
   using ConeBase::M;
+  using typename ConeBase::HessianMat;
   using typename ConeBase::T;
+  using Mat = linalg::Matrix<T, M, M>;
 
-  static_assert(M == 3, "RSOC must be a triplet");
+  static_assert(M >= 3, "RSOC requires N + 2");
+
+  constexpr explicit RotatedSecondOrderCone() {
+    const auto I = linalg::make_identity<T, M - 2>();
+    Mat A{};
+    A = linalg::set_block<0, M - 2, 0, M - 2>(A,
+                                              linalg::constexpr_sqrt(T(2)) * I);
+    A(M - 2)(M - 2) = T(1);
+    A(M - 2)(M - 1) = T(-1);
+    A(M - 1)(M - 2) = T(1);
+    A(M - 1)(M - 1) = T(1);
+
+    map = affine::AffineMap<Mat>(A);
+
+    const auto adj_inv_A = linalg::transpose(linalg::inverse(A));
+    dual_map = affine::AffineMap<Mat>(adj_inv_A);
+  }
 
   /**
-   * @brief default interior point
+   * @brief default interior point K
    *
-   * @return vector
+   * @return x \in K
    */
-  constexpr Slack x0_impl() const { return Slack{T(0), T(1), T(1)}; }
+  constexpr Slack x0_impl() const {
+    Slack x{};
+    x(M - 2) = T(1);
+    x(M - 1) = T(2);
+    return x;
+  }
+
+  /**
+   * @brief default interior point K^*
+   *
+   * @return y \in K^*
+   */
+  constexpr Slack y0_impl() const { return x0_impl(); }
 
   /**
    * @brief in interior of K
@@ -49,70 +100,122 @@ struct RotatedSecondOrderCone
    * @return bool
    */
   constexpr bool in_cone_impl(const Slack& x) const {
-    return x(0) * x(0) < T(2) * x(1) * x(2);
+    const auto x_soc = map(x);
+    return soc.in_cone(x_soc);
   }
 
   /**
-   * @brief fraction to boundary dK
+   * @brief fraction to boundary dK (max step)
    *
-   * sigma_x = \frac{1}{sup{alpha | x - alpha * p in K}}
-   * p = [ delta(u); delta(v); delta(w) ]
-   * new coords = [(u - alpha * delta(u), (v - alpha * delta(v)), (w - alpha *
-   * delta(w)]
-   *
-   * ||u - alpha*delta(u)||_2^2 <= 2 * (v - alpha * delta(v)) * (w - alpha *
-   * delta(w))
-   *
-   * a alpha^2 + b alpha + c <= 0
-   *
-   * a = ||delta(u)||^2 - 2 * delta(v) * delta(w)... < 0... strictly in int(K)
-   * b = -2 u^T delta(u) + 2 (v delta(w) + w delta(v))
-   * c = ||u||^2 - 2 * v * w
-   *
-   * (i) alpha_quad = piecewise{
-   *   \frac{-b + \sqrt(b^2 - 4 ac)}{2a}, a > 0
-   *   \frac{-c}{b}, a = 0 & b > 0
-   *   +inf, a < 0
-   * }
-   *
-   * v - alpha * delta(v) >= 0
-   * (ii) alpha_v = v / delta(v) if delta(v) > 0
-   *
-   * w - alpha * delta(w) >= 0
-   * (iii) alpha_w = w / delta(w) if delta(w) > 0
+   * let x = (u, v, w)
    *
    * @param x \in K
-   * @param p \in E
+   * @param p \in E (delta dir)
    *
    * @return \alpha_max
    */
-  constexpr std::optional<T> alpha_max_impl(
-      const Slack& x, const linalg::Vector<T, M>& p) const {
-    const T u = x(0), v = x(1), w = x(2);
-    const T du = p(0), dv = p(1), dw = p(2);
-
-    const T a = du * du - T(2) * dv * dw;
-    const T b = T(-2) * u * du + T(2) * (v * dw + w * dv);
-    const T c = u * u - T(2) * v * w;
-
-    std::optional<T> alpha;
-    if (a > T(0))
-      alpha = a;
-    else if (a == T(0) && b > T(0))
-      alpha = b;
-
-    if (dv > T(0)) {
-      const T d = v / dv;
-      alpha = alpha.has_value() ? (alpha.value() > d ? d : alpha.value()) : d;
-    }
-
-    if (dw > T(0)) {
-      const T d = w / dw;
-      alpha = alpha.has_value() ? (alpha.value() > d ? d : alpha.value()) : d;
-    }
-
-    return alpha;
+  constexpr T alpha_max_impl(const Slack& x,
+                             const linalg::Vector<T, M>& p) const {
+    const auto x_soc = map(x);
+    const auto p_soc = map(p);
+    return soc.alpha_max(x_soc, p_soc);
   }
+
+  /**
+   * @brief fraction to boundary dK^* (max step)
+   *
+   * let x = (u, v, w)
+   *
+   * @param y \in K^*
+   * @param p \in E^* (delta dir)
+   *
+   * @return \alpha_max
+   */
+  constexpr T alpha_max_dual_impl(const Slack& y,
+                                  const linalg::Vector<T, M>& p) const {
+    const auto y_soc = dual_map(y);
+    const auto p_soc = dual_map(p);
+    return soc.alpha_max_dual(y_soc, p_soc);
+  }
+
+  /**
+   * @brief hessian
+   *
+   * Pullback congruence map into RSOC coords
+   * H_rsoc = A^T H_soc A
+   * - A pushes RSOC primal dir into SOC primal dir
+   * - H_soc acts in SOC
+   * - A^T pulls the resulting SOC covector back into RSOC
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return H
+   */
+  constexpr auto H_impl(const Slack& x, const Slack& y) const {
+    const auto x_soc = map(x);
+    const auto y_soc = dual_map(y);
+    const auto A = map.linear_part();
+    const auto A_t = linalg::transpose(A);
+    const auto H_soc = soc.H(x_soc, y_soc);
+
+    HessianMat H_rsoc{};
+    for (size_t j = 0; j < M; ++j) {
+      const auto col = A_t * H_soc.apply(linalg::get_col(A, j));
+      for (size_t i = 0; i < M; ++i) H_rsoc(i)(j) = col(i);
+    }
+
+    return linalg::Hessian<HessianMat>(H_rsoc);
+  }
+
+  /**
+   * @brief barrier param
+   *
+   * @return nu
+   */
+  constexpr T nu_impl() const { return T(2); }
+
+  /**
+   * @brief e (jordan identity) in RSOC coords
+   *
+   * @return e
+   */
+  constexpr auto e_impl() const { return map.inverse()(soc.e()); }
+
+  /**
+   * @brief w (w-scaling point)
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return w
+   */
+  constexpr auto w_impl(const Slack& x, const Slack& y) const {
+    const auto x_soc = map(x);
+    const auto y_soc = dual_map(y);
+    return map.inverse()(soc.w(x_soc, y_soc));
+  }
+
+  /**
+   * @brief circ
+   *
+   * x \circ y
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return x \circ y
+   */
+  constexpr auto circ_impl(const Slack& x, const Slack& y) const {
+    const auto x_soc = map(x);
+    const auto y_soc = dual_map(y);
+    return map.inverse()(soc.circ(x_soc, y_soc));
+  }
+
+  /** @brief member var */
+  SecondOrderCone<Slack> soc;       ///< native SOC type
+  affine::AffineMap<Mat> map;       ///< RSOC -> SOC map (primal)
+  affine::AffineMap<Mat> dual_map;  ///< RSOC -> SOC map (dual)
 };
 
 }  // namespace conic

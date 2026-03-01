@@ -91,12 +91,12 @@ struct Cone {
   }
 
   /**
-   * @brief fraction to boundary dK
+   * @brief fraction to boundary dk
    *
-   * \sigma_x(p) = \frac{1}{\sup{\alpha | x - \alpha p \in K }}
+   * \sigma_x(p) = \frac{1}{\sup{\alpha | x - \alpha p \in k }}
    * \alpha_max = \frac{1}{\sigma_x(p)}
    *
-   * we want the largest alpha that stays within K for our next step
+   * we want the largest alpha that stays within k for our next step
    * x_{k+1} = x_{k} - \alpha p
    *
    * @param x \in K
@@ -106,6 +106,25 @@ struct Cone {
    */
   constexpr T alpha_max(const Slack& x, const linalg::Vector<T, M>& p) const {
     return self().alpha_max_impl(x, p);
+  }
+
+  /**
+   * @brief fraction to boundary dk^*
+   *
+   * \sigma_x(p) = \frac{1}{\sup{\alpha | y - \alpha p \in k^* }}
+   * \alpha_max = \frac{1}{\sigma_x(p)}
+   *
+   * we want the largest alpha that stays within k for our next step
+   * y_{k+1} = y_{k} - \alpha p
+   *
+   * @param y \in K^*
+   * @param p \in E^*
+   *
+   * @return \alpha_max
+   */
+  constexpr T alpha_max_dual(const Slack& y,
+                             const linalg::Vector<T, M>& p) const {
+    return self().alpha_max_dual_impl(y, p);
   }
 
   /**
@@ -125,7 +144,8 @@ struct Cone {
    * @return e
    */
   constexpr auto e() const {
-    static_assert(ConeType::SYMMETRIC == CType,
+    static_assert(ConeType::SYMMETRIC == CType ||
+                      ConeType::SYMMETRIC_WRAPPER == CType,
                   "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().e_impl();
   }
@@ -139,7 +159,8 @@ struct Cone {
    * @return w
    */
   constexpr auto w(const Slack& x, const Slack& y) const {
-    static_assert(ConeType::SYMMETRIC == CType,
+    static_assert(ConeType::SYMMETRIC == CType ||
+                      ConeType::SYMMETRIC_WRAPPER == CType,
                   "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().w_impl(x, y);
   }
@@ -153,7 +174,8 @@ struct Cone {
    * @param x \circ y
    */
   constexpr auto circ(const Slack& x, const Slack& y) const {
-    static_assert(ConeType::SYMMETRIC == CType,
+    static_assert(ConeType::SYMMETRIC == CType ||
+                      ConeType::SYMMETRIC_WRAPPER == CType,
                   "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().circ_impl(x, y);
   }

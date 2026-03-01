@@ -23,9 +23,9 @@ namespace conic {
  */
 template <linalg::VectorLike Slack>
 struct PowerCone
-    : public Cone<Slack, PowerCone<Slack>, ConeType::NONSYMMETRIC> {
+    : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
   /// @brief bring into scope alias from cone base
-  using ConeBase = Cone<Slack, PowerCone<Slack>, ConeType::NONSYMMETRIC>;
+  using ConeBase = Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC>;
 
   /// @brief helpers to get T and M
   using ConeBase::M;

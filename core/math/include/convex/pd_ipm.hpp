@@ -124,12 +124,11 @@ struct PredictorCorrector {
 
       if constexpr (idx + 1 == NumCones) pz = S_inv.solve(new_pz_rhs + rd);
 
-      const auto px_tmp = F_blk * pz + rpk;
-
-      const auto py_tmp = T(-1) * rhs_c - Hes.apply(px_tmp);
+      const auto px_local = F_blk * pz + rpk;
+      const auto py_local = T(-1) * rhs_c - Hes.apply(px_local);
 
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
-        px(i) = px_tmp(j), py(i) = py_tmp(j);
+        px(i) = px_local(j), py(i) = py_local(j);
       }
 
       return new_pz_rhs;
@@ -202,12 +201,11 @@ struct PredictorCorrector {
 
       if constexpr (idx + 1 == NumCones) pz = S_inv.solve(new_pz_rhs + rd);
 
-      const auto px_tmp = F_blk * pz + rpk;
-
-      const auto py_tmp = T(-1) * rhs_c - Hes.apply(px_tmp);
+      const auto px_local = F_blk * pz + rpk;
+      const auto py_local = T(-1) * rhs_c - Hes.apply(px_local);
 
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
-        px(i) = px_tmp(j), py(i) = py_tmp(j);
+        px(i) = px_local(j), py(i) = py_local(j);
       }
 
       return new_pz_rhs;
@@ -541,7 +539,7 @@ struct PrimalDualIPM {
         xk(j) = x(i), yk(j) = y(i), pxk(j) = px(i), pyk(j) = py(i);
 
       alpha_x = std::min(Ki.alpha_max(xk, pxk), alpha_x);
-      alpha_y = std::min(Ki.alpha_max(yk, pyk), alpha_y);
+      alpha_y = std::min(Ki.alpha_max_dual(yk, pyk), alpha_y);
 
       return alpha_max<idx + 1, End>(std::move(alpha_x), std::move(alpha_y), K,
                                      x, y, px, py);
