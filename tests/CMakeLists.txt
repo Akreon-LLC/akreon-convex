@@ -11,9 +11,19 @@ set(UNIT_COMPILE_OPTS
   -flto
   -Oz
   -DAKREON_DEBUG
-  #-fconstexpr-depth=100000000
-  #-fconstexpr-steps=100000000
 )
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  list(APPEND UNIT_COMPILE_OPTS
+    -fconstexpr-depth=65536
+    -fconstexpr-steps=200000000
+  )
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  list(APPEND UNIT_COMPILE_OPTS
+    -fconstexpr-depth=65536
+    -fconstexpr-ops-limit=200000000
+  )
+endif()
 set(FUNC_COMPILE_OPTS
   -ffunction-sections
   -fdata-sections

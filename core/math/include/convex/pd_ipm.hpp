@@ -45,6 +45,7 @@ struct PrimalDualResult {
   using T = linalg::vec_type_t<Var>;
 
   config::SolverResult tag{};  ///< tag for result of pd-ipm
+  bool stalled{false};         ///< backtracking status (stalled or not)
   T mu{};                      ///< normalized duality gap
   T convex_obj{};              ///< convex objective value c^T z
   T dual_obj{};                ///< dual objective value -g^T y
@@ -240,6 +241,19 @@ struct PrimalDualIPM {
   static_assert(is_problem_set_v<Problem>,
                 "Problem is not set therefore cannot be solved");
 
+  /// @brief damping param using for alpha steps in predictor corrector
+  static constexpr T rho{linalg::constexpr_ln(T(2)).value()};
+
+  /// @brief minimum acceptable mu predictor correct
+  static constexpr T mu_floor{1e-12};
+
+  /// @brief beta F(\beta) neighborhood of central path (within feasibility)
+  static constexpr T beta{1.0 - rho};
+
+  /// @brief \Delta marginal increase of dimensionless search from central path
+  /// TODO - may want to make this config / param driven D.I. ?
+  static constexpr T Delta{5};
+
   /**
    * @brief CTOR
    *
@@ -261,9 +275,11 @@ struct PrimalDualIPM {
 
   /** @brief member vars */
   PrimalDualResult<Var, ConeVar> res;  ///< PD-IPM result
+  bool dual_feas{false};               ///< status flag for dual feasibility
+  bool primal_feas{false};             ///< status flag for primal feasibility
+  bool gap_min{false};  ///< status flag for duality gap minimized
 #ifdef AKREON_DEBUG
-  /// TODO -- vector?
-  std::array<IterState<T>, 256> trace;  ///< debug iteration trace
+  std::array<IterState<T>, PD_IPM_STEPS> trace;  ///< debug iteration trace
 #endif
 
  private:
@@ -282,30 +298,6 @@ struct PrimalDualIPM {
 
     if (!prob.validate()) return;
 
-    auto dual_residual = [&F, &c](const auto& y) {
-      return linalg::transpose(F) * y - c;
-    };
-
-    auto primal_residual = [&F, &g](const auto& z, const auto& x) {
-      return F * z + g - x;
-    };
-
-    auto get_tag = [](const auto& primal_feas, const auto& dual_feas,
-                      const auto& gap_min) {
-      config::SolverResult tag;
-      if (primal_feas && dual_feas && gap_min)
-        tag = config::SolverResult::OPTIMAL;
-      else if (primal_feas && dual_feas)
-        tag = config::SolverResult::PRIMAL_DUAL_FEASIBLE;
-      else if (primal_feas)
-        tag = config::SolverResult::PRIMAL_FEASIBLE;
-      else if (dual_feas)
-        tag = config::SolverResult::DUAL_FEASIBLE;
-      else
-        tag = config::SolverResult::INFEASIBLE_OR_UNBOUNDED;
-      return tag;
-    };
-
     auto& z = res.z;
     auto& x = res.x;
     auto& y = res.y;
@@ -318,7 +310,6 @@ struct PrimalDualIPM {
 
     seed_cone_vars(K, x, y);
 
-    bool dual_feas{false}, primal_feas{false}, gap_min{false};
     for (i = 0; i < config.steps && tag != config::SolverResult::OPTIMAL; ++i) {
       ConeVar px_pred{}, px_corr{}, py_pred{}, py_corr{};
       Var pz_pred{}, pz_corr{};
@@ -331,8 +322,8 @@ struct PrimalDualIPM {
       const auto ldl = linalg::LDL(S);
 
       /// (dakre) 2 - compute initial primal & dual residuals (negated)
-      rd = dual_residual(y);
-      rp = primal_residual(z, x);
+      rd = dual_residual(F, c, y);
+      rp = primal_residual(F, g, z, x);
       auto rd_norm = linalg::L2<decltype(rd)>()(rd);
       auto rp_norm = linalg::L2<decltype(rp)>()(rp);
 
@@ -341,17 +332,17 @@ struct PrimalDualIPM {
 
       /// (dakre) 4 - mehrotra centering
       auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px_pred, py_pred);
+      dampen_alpha(alpha_xy);
       const auto x_aff = x + std::get<0>(alpha_xy) * px_pred;
       const auto y_aff = y + std::get<1>(alpha_xy) * py_pred;
       const auto mu_curr = mu(x, y, nu);
       const auto mu_aff = mu(x_aff, y_aff, nu);
 
       auto sigma = linalg::constexpr_pow(mu_aff / mu_curr, 3);
-      sigma = std::max(T(0), std::min(T(1.0), sigma));
-      T theta = T(0.7);
-      if (primal_feas && dual_feas) theta = T(0.3), sigma *= theta;
+      sigma = std::max(T(0), std::min(T(1), sigma));
+      if (!dual_feas) sigma = std::min(sigma, rho);
 
-      const auto mu_tgt = sigma * mu_curr;
+      const auto mu_tgt = std::max(sigma * mu_curr, mu_floor);
       const auto aff_scale_sq = std::get<0>(alpha_xy) * std::get<1>(alpha_xy);
 
       /// (dakre) 5 - corrector step
@@ -360,37 +351,39 @@ struct PrimalDualIPM {
 
       /// (dakre) 6 - blend predictor/corrector to avoid over-aggressive
       /// second-order correction on near-feasible iterates.
-      const auto px = px_pred + theta * px_corr;
-      const auto py = py_pred + theta * py_corr;
-      const auto pz = pz_pred + theta * pz_corr;
+      const auto px = px_pred + rho * px_corr;
+      const auto py = py_pred + rho * py_corr;
+      const auto pz = pz_pred + rho * pz_corr;
 
       /// (dakre) 7 - alpha max
       alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
-      auto alpha_y = std::get<1>(alpha_xy);
-      if (primal_feas && dual_feas) alpha_y *= theta;
+      dampen_alpha(alpha_xy);
+
+      /// (dakre) 8 - backtrack line search to acquire next iterate
+      const auto good_iter =
+          backtrack_iterates(alpha_xy, K, pz, px, py, z, x, y);
+      if (!good_iter) {
+        res.stalled = true;
+        break;
+      }
 
 #ifdef AKREON_DEBUG
       trace[i].mu = mu_curr;
       trace[i].mu_aff = mu_aff;
       trace[i].sigma = sigma;
       trace[i].mu_tgt = mu_tgt;
-      trace[i].alpha_x = std::get<0>(alpha_xy);
-      trace[i].alpha_y = std::get<1>(alpha_xy);
       trace[i].rd_norm = rd_norm;
       trace[i].rp_norm = rp_norm;
+      trace[i].alpha_x = std::get<0>(alpha_xy);
+      trace[i].alpha_y = std::get<1>(alpha_xy);
       trace[i].pz_norm = linalg::L2<decltype(pz)>()(pz);
       trace[i].px_norm = linalg::L2<decltype(px)>()(px);
       trace[i].py_norm = linalg::L2<decltype(py)>()(py);
 #endif
 
-      /// (dakre) 8 - take newton step scaled by alpha
-      x = x + std::get<0>(alpha_xy) * px;
-      y = y + alpha_y * py;
-      z = z + std::get<0>(alpha_xy) * pz;
-
       /// (dakre) 9 - compute residuals + mu again
-      rd = dual_residual(y);
-      rp = primal_residual(z, x);
+      rd = dual_residual(F, c, y);
+      rp = primal_residual(F, g, z, x);
       res.mu = mu(x, y, nu);
 
       rd_norm = linalg::L2<decltype(rd)>()(rd);
@@ -398,18 +391,18 @@ struct PrimalDualIPM {
 
       dual_feas = rd_norm <= config.dual_feas_tol;
       primal_feas = rp_norm <= config.primal_feas_tol;
-      gap_min = res.mu <= config.duality_gap_tol;
+      gap_min = res.mu >= T(0) && res.mu <= config.duality_gap_tol;
 
-      tag = get_tag(primal_feas, dual_feas, gap_min);
+      tag = get_tag();
 #ifdef AKREON_DEBUG
-      trace[i].flags = (primal_feas ? (1 << 0) : 0) |
-                       (dual_feas ? (1 << 1) : 0) | (gap_min ? (1 << 2) : 0);
+      trace[i].tag = tag;
 #endif
     }
 
     res.convex_obj = linalg::dot(c, z);
     res.dual_obj = -linalg::dot(g, y);
   }
+
   /**
    * @brief accumulate params (Schur & nu)
    *
@@ -521,7 +514,9 @@ struct PrimalDualIPM {
                            const ConeVar& x, const ConeVar& y,
                            const ConeVar& px, const ConeVar& py) const {
     if constexpr (idx >= NumCones) {
-      return std::tuple(std::min(T(1), alpha_x), std::min(T(1), alpha_y));
+      const auto ax = std::max(T(0), std::min(T(1), alpha_x));
+      const auto ay = std::max(T(0), std::min(T(1), alpha_y));
+      return std::tuple(ax, ay);
     } else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
@@ -544,6 +539,148 @@ struct PrimalDualIPM {
       return alpha_max<idx + 1, End>(std::move(alpha_x), std::move(alpha_y), K,
                                      x, y, px, py);
     }
+  }
+
+  /**
+   * @brief dual residual
+   *
+   * F^T y - c = rd
+   *
+   * @param F (global map)
+   * @param c (linear objective)
+   * @param y (dual var slack)
+   *
+   * @return rd
+   */
+  static constexpr auto dual_residual(const FMat& F, const Var& c,
+                                      const ConeVar& y) {
+    return linalg::transpose(F) * y - c;
+  }
+
+  /**
+   * @brief primal residual
+   *
+   * rp = F z + g - x
+   *
+   * @param F (global map)
+   * @param g (dual objective / bias)
+   * @param z (dec var)
+   * @param x (primal var slack)
+   *
+   * @return rp
+   */
+  static constexpr auto primal_residual(const FMat& F, const ConeVar& g,
+                                        const Var& z, const ConeVar& x) {
+    return F * z + g - x;
+  }
+
+  /**
+   * @brief in cones membership check
+   *
+   * check x \in K and y \in K^*
+   *
+   * @param K (cartesian product of cones)
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return T/F
+   */
+  template <size_t idx = 0, size_t Start = 0>
+  constexpr bool check_functional_proximity(const auto& K, const ConeVar& x,
+                                            const ConeVar& y) const {
+    if constexpr (idx >= NumCones) {
+      return true;
+    } else {
+      const auto Ki = std::get<idx>(K);
+      using Slack = conic::cone_slack_t<decltype(Ki)>;
+      constexpr size_t KiRows = linalg::vec_size_v<Slack>;
+      constexpr size_t End = Start + KiRows;
+
+      if (conic::is_zoc_v<decltype(Ki)>)
+        return check_functional_proximity<idx + 1, End>(K, x, y);
+
+      using ConePoint = linalg::Vector<T, End - Start>;
+      ConePoint xk{}, yk{};
+      for (size_t i = Start, j = 0; i < End; ++i, ++j)
+        xk(j) = x(i), yk(j) = y(i);
+
+      bool rv = Ki.gamma_F(xk, yk) < beta + Delta;
+      return rv && check_functional_proximity<idx + 1, End>(K, x, y);
+    }
+  }
+
+  /**
+   * @brief backtrack alpha to acquire next iterate
+   *
+   * @param alpha_xy (tuple alpha step in x & y dir)
+   * @param K (cartesian product of cones)
+   * @param pz (newton step in z)
+   * @param px (newton step in x)
+   * @param pz (newton step in y)
+   * @param z \in R^n
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return T/F (indicates if backtracking found valid alpha)
+   */
+  constexpr bool backtrack_iterates(std::tuple<T, T>& alpha_xy, const auto& K,
+                                    const Var& pz, const ConeVar& px,
+                                    const ConeVar& py, Var& z, ConeVar& x,
+                                    ConeVar& y) {
+    T& ax = std::get<0>(alpha_xy);
+    T& ay = std::get<1>(alpha_xy);
+    ax = std::max(T(0), ax);
+    ay = std::max(T(0), ay);
+    for (size_t i = 0; i < config.backtrack_steps; ++i) {
+      const auto z_tmp = z + ax * pz;
+      const auto x_tmp = x + ax * px;
+      const auto y_tmp = y + ay * py;
+
+      if (check_functional_proximity(K, x_tmp, y_tmp)) {
+        x = x_tmp;
+        y = y_tmp;
+        z = z_tmp;
+        return true;
+      }
+
+      ax *= rho;
+      ay *= rho;
+    }
+    return false;
+  }
+
+  /**
+   * @brief get tag for current iterate
+   *
+   * @return tag (SolverResult)
+   */
+  constexpr auto get_tag() const {
+    config::SolverResult tag;
+    if (primal_feas && dual_feas && gap_min)
+      tag = config::SolverResult::OPTIMAL;
+    else if (primal_feas && dual_feas)
+      tag = config::SolverResult::PRIMAL_DUAL_FEASIBLE;
+    else if (primal_feas)
+      tag = config::SolverResult::PRIMAL_FEASIBLE;
+    else if (dual_feas)
+      tag = config::SolverResult::DUAL_FEASIBLE;
+    else
+      tag = config::SolverResult::INFEASIBLE_OR_UNBOUNDED;
+    return tag;
+  }
+
+  /**
+   * @brief dampen alpha
+   *
+   * @param alpha_xy (tuple)
+   *
+   * @return (void)
+   */
+  constexpr auto dampen_alpha(std::tuple<T, T>& alpha_xy) const {
+    T& ax = std::get<0>(alpha_xy);
+    T& ay = std::get<1>(alpha_xy);
+    if (primal_feas) ax *= rho;
+    if (dual_feas) ay *= rho;
   }
 
   /** @brief member vars */

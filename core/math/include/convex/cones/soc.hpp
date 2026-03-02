@@ -109,6 +109,17 @@ struct SecondOrderCone
   }
 
   /**
+   * @brief in interior of K^*
+   *
+   * @param y \in K^*
+   *
+   * @return bool
+   */
+  constexpr bool in_dual_cone_impl(const Slack& y) const {
+    return in_cone_impl(y);
+  }
+
+  /**
    * @brief fraction to boundary dK
    *
    * sigma_x = \frac{1}{sup{alpha | x + alpha p in K}}
@@ -143,18 +154,18 @@ struct SecondOrderCone
 
     const auto var = std::get<0>(linalg::splice<M - 1>(x));
     const auto t = x(M - 1);
-    const auto delta_var = std::get<0>(linalg::splice<M - 1>(p));
-    const auto delta_t = p(M - 1);
+    const auto dvar = std::get<0>(linalg::splice<M - 1>(p));
+    const auto dt = p(M - 1);
 
-    const auto a = delta_t * delta_t - linalg::dot(delta_var, delta_var);
-    const auto b = T(2) * (t * delta_t - linalg::dot(var, delta_var));
+    const auto a = dt * dt - linalg::dot(dvar, dvar);
+    const auto b = T(2) * (t * dt - linalg::dot(var, dvar));
     const auto c = t * t - linalg::dot(var, var);
 
     if (linalg::constexpr_abs(a) <= eps)
       alpha = b < T(0) ? -c / b : alpha;
     else {
       const auto disc = b * b - T(4) * a * c;
-      if (disc > T(0)) {
+      if (disc >= T(0)) {
         const auto s = linalg::constexpr_sqrt(disc);
         const auto r1 = (T(-1) * b - s) / (T(2) * a);
         const auto r2 = (T(-1) * b + s) / (T(2) * a);
@@ -165,7 +176,7 @@ struct SecondOrderCone
     }
 
     /// (dakre) ensure t + alpha dt > 0
-    if (delta_t < T(0)) alpha_t = -t / delta_t;
+    if (dt < T(0)) alpha_t = -t / dt;
 
     return eta * std::min(alpha, alpha_t);
   }
@@ -275,8 +286,8 @@ struct SecondOrderCone
 
     SOCCirc<Slack> circ;
 
-    const auto z = T(2) * circ(x_sqrt_inv, circ(x_sqrt, y)) -
-                   circ(circ(x_sqrt_inv, x_sqrt), y);
+    const auto z = T(2) * circ(x_sqrt_inv, circ(x_sqrt_inv, y)) -
+                   circ(circ(x_sqrt_inv, x_sqrt_inv), y);
     const auto z_sqrt = sqrt(z);
 
     const auto w = T(2) * circ(x_sqrt, circ(x_sqrt, z_sqrt)) -
@@ -315,19 +326,19 @@ struct SecondOrderCone
     const auto v = std::get<0>(linalg::splice<M - 1>(x));
     const auto t = x(M - 1);
 
-    const auto lam1 = t + linalg::L2<decltype(v)>()(v);
-    const auto lam2 = t - linalg::L2<decltype(v)>()(v);
+    const auto v_norm = linalg::L2<decltype(v)>()(v);
+    const auto lam1 = t + v_norm;
+    const auto lam2 = t - v_norm;
 
     const auto alpha =
         T(0.5) * (linalg::constexpr_sqrt(lam1) + linalg::constexpr_sqrt(lam2));
     const auto beta =
         T(0.5) * (linalg::constexpr_sqrt(lam1) - linalg::constexpr_sqrt(lam2));
 
-    Slack v_zero;
+    Slack v_zero{};
     for (size_t i = 0; i < M - 1; ++i) v_zero(i) = v(i);
 
     auto x_sqrt = alpha * e_impl();
-    const auto v_norm = linalg::L2<decltype(v)>()(v);
     if (v_norm > eps) x_sqrt = x_sqrt + beta * (T(1) / v_norm) * v_zero;
 
     return x_sqrt;
@@ -349,8 +360,9 @@ struct SecondOrderCone
     Slack adj_v;
     for (size_t i = 0; i < M - 1; ++i) adj_v(i) = T(-1) * v(i);
     adj_v(M - 1) = t;
-    const auto x_inv = (T(1) / (t * t - linalg::dot(v, v))) * adj_v;
-    return x_inv;
+    auto div = t * t - linalg::dot(v, v);
+    if (linalg::constexpr_abs(div) < eps) div = eps;
+    return (T(1) / div) * adj_v;
   }
 };
 

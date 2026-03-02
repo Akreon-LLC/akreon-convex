@@ -632,7 +632,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob3.validate());
 
     STATIC_REQUIRE(prob3.linear_objective() ==
-                   Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0});
+                   Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
                    4);
 
@@ -641,15 +641,13 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
         10);
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
-        6);
-    constexpr mat_traits<Matrix<double, 10, 6>> F_mat;
+        5);
+    constexpr mat_traits<Matrix<double, 10, 5>> F_mat;
     constexpr auto F =
         F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-              1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-
+              1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
     STATIC_REQUIRE(
         prob3.constraint_map().translation() ==
@@ -662,7 +660,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob5.validate());
 
     STATIC_REQUIRE(prob5.linear_objective() ==
-                   Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0});
+                   Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob5.constraint_cones())>::value ==
                    4);
 
@@ -671,14 +669,12 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
         10);
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob5.constraint_map().linear_part())> ==
-        6);
+        5);
     constexpr auto F1 =
         F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 0.0,
-              1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-
+              -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     STATIC_REQUIRE(all_equal(prob5.constraint_map().linear_part(), F1));
     STATIC_REQUIRE(
         prob5.constraint_map().translation() ==

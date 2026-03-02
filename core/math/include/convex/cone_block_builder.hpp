@@ -57,21 +57,24 @@ struct ConeBlockBuilder {
 
     static constexpr size_t ConeDom = linalg::mat_cols_v<ConeMapT>;
     static constexpr size_t ConeCodom = linalg::mat_rows_v<ConeMapT>;
-
     static constexpr size_t ConeAux = ConeDom == 0 ? 0 : ConeDom - N;
     static constexpr size_t CoordAux = CoordDom - N;
 
     static constexpr bool is_op =
         Type == convex::AtomType::ADD || Type == convex::AtomType::CAP;
+    static constexpr bool is_add = Type == convex::AtomType::ADD;
 
     /// (dakre) F cols: [ dec vars | cone aux | coord aux ]
-    static constexpr size_t FullDom = is_op ? N + ConeAux + CoordAux : CoordDom;
+    static constexpr size_t FullDom =
+        is_add ? (N + ConeAux + CoordAux)
+               : (is_op ? ((ConeDom > CoordDom) ? ConeDom : CoordDom)
+                        : CoordDom);
     static constexpr size_t FullCodom = ConeCodom + CoordCodom;
 
     static constexpr size_t CoordAuxStartCol =
-        is_op ? ((ConeDom == 0) ? N : ConeDom) : N;
+        is_add ? ((ConeDom == 0) ? N : ConeDom) : N;
     static constexpr size_t CoordAuxEndCol =
-        is_op ? CoordAuxStartCol + CoordAux : FullDom;
+        is_add ? (CoordAuxStartCol + CoordAux) : CoordDom;
 
     linalg::Matrix<T, FullCodom, FullDom> F{};
     linalg::Vector<T, FullCodom> g{};
@@ -89,7 +92,8 @@ struct ConeBlockBuilder {
     F = linalg::set_block<ConeCodom, FullCodom, 0, N>(F, dec_spanning_blk);
 
     /// (2) fill bottom right with new aux vars from latest cone
-    if constexpr (Type != convex::AtomType::VAR && CoordAux > 0) {
+    if constexpr (Type != convex::AtomType::VAR &&
+                  ((is_add && CoordAux > 0) || (!is_add && CoordDom > N))) {
       static_assert(CoordAuxEndCol > CoordAuxStartCol);
       const auto coord_aux_blk =
           linalg::get_block<0, CoordCodom, N, CoordDom>(A);

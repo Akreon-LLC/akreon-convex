@@ -58,7 +58,7 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
     using Slack = Vectord<12>;
     constexpr NonnegOrthantCone<Slack> rplus;
     STATIC_REQUIRE(rplus.in_cone(rplus.x0()));
-    STATIC_REQUIRE(rplus.in_cone(rplus.y0()));
+    STATIC_REQUIRE(rplus.in_dual_cone(rplus.y0()));
 
     constexpr vec_traits<Slack> vec;
     constexpr auto p = vec.fill(2.0);
@@ -94,7 +94,7 @@ TEST_CASE("Test SOC", "[cone_test]") {
     using Slack = Vectord<10>;
     constexpr SecondOrderCone<Slack> soc;
     STATIC_REQUIRE(soc.in_cone(soc.x0()));
-    STATIC_REQUIRE(soc.in_cone(soc.y0()));
+    STATIC_REQUIRE(soc.in_dual_cone(soc.y0()));
 
     constexpr vec_traits<Slack> vec;
     constexpr auto p = vec.fill(0.5);
@@ -105,8 +105,8 @@ TEST_CASE("Test SOC", "[cone_test]") {
 
     constexpr auto P = soc.H(soc.x0(), soc.y0());
     STATIC_REQUIRE(P.apply(Slack{}) == Slack{});
-    constexpr auto q = Slack{0.1, -0.2, 0.3, -0.4, 0.5,
-                             -0.6, 0.7, -0.8, 0.9, 0.2};
+    constexpr auto q =
+        Slack{0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8, 0.9, 0.2};
     STATIC_REQUIRE(L2<Slack>()(P.apply(q) - q) < eps);
 
     STATIC_REQUIRE(soc.nu() == 2.0);
@@ -128,7 +128,7 @@ TEST_CASE("Test RSOC", "[cone_test]") {
     using Slack = Vectord<4>;
     constexpr RotatedSecondOrderCone<Slack> rsoc;
     STATIC_REQUIRE(rsoc.in_cone(rsoc.x0()));
-    STATIC_REQUIRE(rsoc.in_cone(rsoc.y0()));
+    STATIC_REQUIRE(rsoc.in_dual_cone(rsoc.y0()));
 
     constexpr vec_traits<Slack> vec;
     constexpr auto p = vec.fill(0.5);
@@ -151,8 +151,7 @@ TEST_CASE("Test RSOC", "[cone_test]") {
     constexpr auto A = rsoc.map.linear_part();
     STATIC_REQUIRE(H_rsoc.apply(Slack{}) == Slack{});
     constexpr auto q = Slack{0.1, -0.2, 0.3, -0.4};
-    constexpr auto H_pull_q =
-        linalg::transpose(A) * H_soc.apply(A * q);
+    constexpr auto H_pull_q = linalg::transpose(A) * H_soc.apply(A * q);
     STATIC_REQUIRE(L2<Slack>()(H_rsoc.apply(q) - H_pull_q) < eps);
 
     STATIC_REQUIRE(rsoc.nu() == 2.0);

@@ -82,7 +82,7 @@ struct NonnegOrthantCone
   /**
    * @brief in interior of K
    *
-   * @param slack vector
+   * @param x \in K
    *
    * @return bool
    */
@@ -90,6 +90,17 @@ struct NonnegOrthantCone
     for (size_t i = 0; i < M; ++i)
       if (x(i) <= T(0)) return false;
     return true;
+  }
+
+  /**
+   * @brief in interior of K^*
+   *
+   * @param y \in K^*
+   *
+   * @return bool
+   */
+  constexpr bool in_dual_cone_impl(const Slack& y) const {
+    return in_cone_impl(y);
   }
 
   /**
@@ -208,6 +219,25 @@ struct NonnegOrthantCone
    */
   constexpr auto circ_impl(const Slack& x, const Slack& y) const {
     return RplusCirc<Slack>()(x, y);
+  }
+
+  /**
+   * @brief gamma_F
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return gamma_F
+   */
+  constexpr auto gamma_F_impl(const Slack& x, const Slack& y) const {
+    T res{};
+    for (size_t i = 0; i < M; ++i) {
+      const auto xy_safe = std::max(x(i) * y(i), eps);
+      res += linalg::constexpr_ln(xy_safe).value();
+    }
+    const auto xTy_safe = std::max(linalg::dot(x, y), eps) / nu_impl();
+    res = nu_impl() * linalg::constexpr_ln(xTy_safe).value() - res;
+    return res;
   }
 };
 

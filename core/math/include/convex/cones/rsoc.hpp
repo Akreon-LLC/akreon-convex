@@ -69,7 +69,17 @@ struct RotatedSecondOrderCone
 
     map = affine::AffineMap<Mat>(A);
 
-    const auto adj_inv_A = linalg::transpose(linalg::inverse(A));
+    Mat A_inv{};
+    A_inv = linalg::set_block<0, M - 2, 0, M - 2>(
+        A_inv, T(1) / linalg::constexpr_sqrt(T(2)) * I);
+    A_inv(M - 2)(M - 2) = T(0.5);
+    A_inv(M - 2)(M - 1) = T(0.5);
+    A_inv(M - 1)(M - 2) = T(-0.5);
+    A_inv(M - 1)(M - 1) = T(0.5);
+
+    inv_map = affine::AffineMap<Mat>(A_inv);
+
+    const auto adj_inv_A = linalg::transpose(inv_map.linear_part());
     dual_map = affine::AffineMap<Mat>(adj_inv_A);
   }
 
@@ -102,6 +112,18 @@ struct RotatedSecondOrderCone
   constexpr bool in_cone_impl(const Slack& x) const {
     const auto x_soc = map(x);
     return soc.in_cone(x_soc);
+  }
+
+  /**
+   * @brief in interior of K^*
+   *
+   * @param y \in K^*
+   *
+   * @return bool
+   */
+  constexpr bool in_dual_cone_impl(const Slack& y) const {
+    const auto y_soc = dual_map(y);
+    return soc.in_dual_cone(y_soc);
   }
 
   /**
@@ -180,7 +202,7 @@ struct RotatedSecondOrderCone
    *
    * @return e
    */
-  constexpr auto e_impl() const { return map.inverse()(soc.e()); }
+  constexpr auto e_impl() const { return inv_map(soc.e()); }
 
   /**
    * @brief w (w-scaling point)
@@ -193,7 +215,7 @@ struct RotatedSecondOrderCone
   constexpr auto w_impl(const Slack& x, const Slack& y) const {
     const auto x_soc = map(x);
     const auto y_soc = dual_map(y);
-    return map.inverse()(soc.w(x_soc, y_soc));
+    return inv_map(soc.w(x_soc, y_soc));
   }
 
   /**
@@ -209,12 +231,13 @@ struct RotatedSecondOrderCone
   constexpr auto circ_impl(const Slack& x, const Slack& y) const {
     const auto x_soc = map(x);
     const auto y_soc = dual_map(y);
-    return map.inverse()(soc.circ(x_soc, y_soc));
+    return inv_map(soc.circ(x_soc, y_soc));
   }
 
   /** @brief member var */
   SecondOrderCone<Slack> soc;       ///< native SOC type
   affine::AffineMap<Mat> map;       ///< RSOC -> SOC map (primal)
+  affine::AffineMap<Mat> inv_map;   ///< SOC -> RSOC map (primal inverse)
   affine::AffineMap<Mat> dual_map;  ///< RSOC -> SOC map (dual)
 };
 

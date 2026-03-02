@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <cstdio>
 
+#include "config/solver_config.hpp"
+
 namespace convex {
 
 /// @brief forward declaration of pd result
@@ -28,26 +30,18 @@ struct PrimalDualResult;
  */
 template <linalg::FieldLike T>
 struct IterState {
-  T mu{};       ///< normalized duality gap
-  T mu_aff{};   ///< duality gap of affine-scaling step
-  T sigma{};    ///< mehrotra centering correction
-  T mu_tgt{};   ///< mehrotra mu target for centering
-  T alpha_x{};  ///< max step to dK size
-  T alpha_y{};  ///< max step to dK^* size
-  T rd_norm{};  ///< dual norm residual size
-  T rp_norm{};  ///< primal norm residual size
-  T pz_norm{};  ///< newton step in z \in R^n size
-  T px_norm{};  ///< newton step in x \in K size
-  T py_norm{};  /// <newton step in y \in K^* size
-
-  /**
-   * @flags
-   *
-   * first bit : primal feasible
-   * second bit : dual feasible
-   * third bit : dual gap minimized
-   */
-  uint8_t flags{};  ///< status of iter
+  T mu{};                      ///< normalized duality gap
+  T mu_aff{};                  ///< duality gap of affine-scaling step
+  T sigma{};                   ///< mehrotra centering correction
+  T mu_tgt{};                  ///< mehrotra mu target for centering
+  T alpha_x{};                 ///< max step to dK size
+  T alpha_y{};                 ///< max step to dK^* size
+  T rd_norm{};                 ///< dual norm residual size
+  T rp_norm{};                 ///< primal norm residual size
+  T pz_norm{};                 ///< newton step in z \in R^n size
+  T px_norm{};                 ///< newton step in x \in K size
+  T py_norm{};                 ///< newton step in y \in K^* size
+  config::SolverResult tag{};  ///< tag of current iterate
 };
 
 /**
@@ -68,13 +62,13 @@ inline size_t iter_state_to_cstr(const IterState<T>& state, char* out,
   const int bytes = std::snprintf(
       out, out_size,
       "mu=%g mu_aff=%g sigma=%g mu_tgt=%g ax=%g ay=%g rd=%g rp=%g pz=%g px=%g "
-      "py=%g flags=0x%02X",
+      "py=%g tag=%hhX",
       static_cast<double>(state.mu), static_cast<double>(state.mu_aff),
       static_cast<double>(state.sigma), static_cast<double>(state.mu_tgt),
       static_cast<double>(state.alpha_x), static_cast<double>(state.alpha_y),
       static_cast<double>(state.rd_norm), static_cast<double>(state.rp_norm),
       static_cast<double>(state.pz_norm), static_cast<double>(state.px_norm),
-      static_cast<double>(state.py_norm), state.flags);
+      static_cast<double>(state.py_norm), static_cast<uint8_t>(state.tag));
 
   if (bytes < 0) {
     out[0] = '\0';
@@ -224,10 +218,12 @@ inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar>& res,
 
   const int header = std::snprintf(
       out + write_pos, out_size - write_pos,
-      "tag=%u num_iter=%zu mu=%g convex_obj=%g dual_obj=%g rd=%g rp=%g\n",
-      static_cast<unsigned>(res.tag), res.num_iter, static_cast<double>(res.mu),
-      static_cast<double>(res.convex_obj), static_cast<double>(res.dual_obj),
-      static_cast<double>(rd_norm), static_cast<double>(rp_norm));
+      "tag=%u stalled=%d num_iter=%zu mu=%g convex_obj=%g dual_obj=%g rd=%g "
+      "rp=%g\n",
+      static_cast<unsigned>(res.tag), res.stalled, res.num_iter,
+      static_cast<double>(res.mu), static_cast<double>(res.convex_obj),
+      static_cast<double>(res.dual_obj), static_cast<double>(rd_norm),
+      static_cast<double>(rp_norm));
   if (header < 0) {
     out[0] = '\0';
     return 0;

@@ -56,7 +56,7 @@ struct Cone {
   /**
    * @brief in the interior of k
    *
-   * x \in K ? or (s,y) \in K^* ?
+   * x \in K
    *
    * @param x \in K
    *
@@ -64,6 +64,19 @@ struct Cone {
    */
   constexpr bool in_cone(const Slack& x) const {
     return self().in_cone_impl(x);
+  }
+
+  /**
+   * @brief in the interior of K^*
+   *
+   * y \in K^* ?
+   *
+   * @param y \in K^*
+   *
+   * @return bool
+   */
+  constexpr bool in_dual_cone(const Slack& y) const {
+    return self().in_dual_cone_impl(y);
   }
 
   /**
@@ -144,9 +157,9 @@ struct Cone {
    * @return e
    */
   constexpr auto e() const {
-    static_assert(ConeType::SYMMETRIC == CType ||
-                      ConeType::SYMMETRIC_WRAPPER == CType,
-                  "Nonsymmetric cone is not equipped with Jordan Algebras");
+    static_assert(
+        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
+        "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().e_impl();
   }
 
@@ -159,9 +172,9 @@ struct Cone {
    * @return w
    */
   constexpr auto w(const Slack& x, const Slack& y) const {
-    static_assert(ConeType::SYMMETRIC == CType ||
-                      ConeType::SYMMETRIC_WRAPPER == CType,
-                  "Nonsymmetric cone is not equipped with Jordan Algebras");
+    static_assert(
+        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
+        "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().w_impl(x, y);
   }
 
@@ -171,13 +184,28 @@ struct Cone {
    * @param x \in K
    * @param y \in K^*
    *
-   * @param x \circ y
+   * @return x \circ y
    */
   constexpr auto circ(const Slack& x, const Slack& y) const {
-    static_assert(ConeType::SYMMETRIC == CType ||
-                      ConeType::SYMMETRIC_WRAPPER == CType,
-                  "Nonsymmetric cone is not equipped with Jordan Algebras");
+    static_assert(
+        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
+        "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().circ_impl(x, y);
+  }
+
+  /**
+   * @brief \gamma_F (functional proximity neighborhood metric)
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return \gamma_F
+   */
+  constexpr auto gamma_F(const Slack& x, const Slack& y) const {
+    static_assert(
+        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
+        "Nonsymmetric cone is not equipped with Jordan Algebras");
+    return self().gamma_F_impl(x, y);
   }
 
   /**
