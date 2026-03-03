@@ -41,7 +41,7 @@ struct L2 {
       AK_ASSERT(is_real(tmp) && "L2 complex norm expects real inner product");
       result = tmp.real();
     }
-    return constexpr_sqrt(result);
+    return constexpr_sqrt_safe(result);
   }
 };
 

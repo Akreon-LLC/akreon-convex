@@ -61,7 +61,7 @@ struct RotatedSecondOrderCone
     const auto I = linalg::make_identity<T, M - 2>();
     Mat A{};
     A = linalg::set_block<0, M - 2, 0, M - 2>(A,
-                                              linalg::constexpr_sqrt(T(2)) * I);
+                                              linalg::constexpr_sqrt_safe(T(2)) * I);
     A(M - 2)(M - 2) = T(1);
     A(M - 2)(M - 1) = T(-1);
     A(M - 1)(M - 2) = T(1);
@@ -71,7 +71,7 @@ struct RotatedSecondOrderCone
 
     Mat A_inv{};
     A_inv = linalg::set_block<0, M - 2, 0, M - 2>(
-        A_inv, T(1) / linalg::constexpr_sqrt(T(2)) * I);
+        A_inv, T(1) / linalg::constexpr_sqrt_safe(T(2)) * I);
     A_inv(M - 2)(M - 2) = T(0.5);
     A_inv(M - 2)(M - 1) = T(0.5);
     A_inv(M - 1)(M - 2) = T(-0.5);

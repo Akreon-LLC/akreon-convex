@@ -242,17 +242,16 @@ struct PrimalDualIPM {
                 "Problem is not set therefore cannot be solved");
 
   /// @brief damping param using for alpha steps in predictor corrector
-  static constexpr T rho{linalg::constexpr_ln(T(2)).value()};
+  static constexpr T rho{linalg::constexpr_ln_safe(T(2))};
+
+  /// @brief sigma floor (infeasible dont overcorrect from predictor)
+  static constexpr T sigma_floor{0.1};
 
   /// @brief minimum acceptable mu predictor correct
-  static constexpr T mu_floor{1e-12};
+  static constexpr T eps{1e-12};
 
   /// @brief beta F(\beta) neighborhood of central path (within feasibility)
-  static constexpr T beta{1.0 - rho};
-
-  /// @brief \Delta marginal increase of dimensionless search from central path
-  /// TODO - may want to make this config / param driven D.I. ?
-  static constexpr T Delta{5};
+  static constexpr T beta{0.3};
 
   /**
    * @brief CTOR
@@ -338,19 +337,23 @@ struct PrimalDualIPM {
       const auto mu_curr = mu(x, y, nu);
       const auto mu_aff = mu(x_aff, y_aff, nu);
 
+      /// (dakre) TODO make this a separate function
       auto sigma = linalg::constexpr_pow(mu_aff / mu_curr, 3);
-      sigma = std::max(T(0), std::min(T(1), sigma));
-      if (!dual_feas) sigma = std::min(sigma, rho);
+      if (sigma < T(0) || std::isnan(sigma))
+        sigma = T(1);
+      else {
+        sigma = std::max(eps, std::min(sigma, T(1)));
+        if (!(dual_feas && primal_feas)) sigma = std::min(sigma, sigma_floor);
+      }
 
-      const auto mu_tgt = std::max(sigma * mu_curr, mu_floor);
+      const auto mu_tgt = std::max(sigma * mu_curr, eps);
       const auto aff_scale_sq = std::get<0>(alpha_xy) * std::get<1>(alpha_xy);
 
       /// (dakre) 5 - corrector step
       pc.corrector(Var{}, mu_tgt, aff_scale_sq, px_pred, py_pred, K, ldl, F,
                    T(0.5) * rp, T(0.5) * rd, x, y, pz_corr, px_corr, py_corr);
 
-      /// (dakre) 6 - blend predictor/corrector to avoid over-aggressive
-      /// second-order correction on near-feasible iterates.
+      /// (dakre) 6 - newton step
       const auto px = px_pred + px_corr;
       const auto py = py_pred + py_corr;
       const auto pz = pz_pred + pz_corr;
@@ -603,9 +606,8 @@ struct PrimalDualIPM {
       for (size_t i = Start, j = 0; i < End; ++i, ++j)
         xk(j) = x(i), yk(j) = y(i);
 
-      // Keep line-search iterates strictly in K x K* before proximity checks.
       bool rv = Ki.in_cone(xk) && Ki.in_dual_cone(yk) &&
-                Ki.gamma_F(xk, yk) < beta + Delta;
+                Ki.gamma_F(xk, yk) < beta + config.Delta;
       return rv && check_functional_proximity<idx + 1, End>(K, x, y);
     }
   }
@@ -674,20 +676,6 @@ struct PrimalDualIPM {
     else
       tag = config::SolverResult::INFEASIBLE_OR_UNBOUNDED;
     return tag;
-  }
-
-  /**
-   * @brief dampen alpha
-   *
-   * @param alpha_xy (tuple)
-   *
-   * @return (void)
-   */
-  constexpr auto dampen_alpha(std::tuple<T, T>& alpha_xy) const {
-    T& ax = std::get<0>(alpha_xy);
-    T& ay = std::get<1>(alpha_xy);
-    if (primal_feas) ax *= rho;
-    if (dual_feas) ay *= rho;
   }
 
   /** @brief member vars */

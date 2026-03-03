@@ -87,8 +87,9 @@ struct NonnegOrthantCone
    * @return bool
    */
   constexpr bool in_cone_impl(const Slack& x) const {
-    for (size_t i = 0; i < M; ++i)
-      if (x(i) <= T(0)) return false;
+    for (size_t i = 0; i < M; ++i) {
+      if (!(x(i) > T(0))) return false;
+    }
     return true;
   }
 
@@ -202,7 +203,7 @@ struct NonnegOrthantCone
     for (size_t i = 0; i < M; ++i) {
       const T x_safe = std::max(x(i), eps);
       const T y_safe = std::max(y(i), eps);
-      w(i) = linalg::constexpr_sqrt(x_safe / y_safe);
+      w(i) = linalg::constexpr_sqrt_safe(x_safe / y_safe);
     }
     return w;
   }
@@ -233,10 +234,10 @@ struct NonnegOrthantCone
     T res{};
     for (size_t i = 0; i < M; ++i) {
       const auto xy_safe = std::max(x(i) * y(i), eps);
-      res += linalg::constexpr_ln(xy_safe).value();
+      res += linalg::constexpr_ln_safe(xy_safe, eps);
     }
     const auto xTy_safe = std::max(linalg::dot(x, y), eps) / nu_impl();
-    res = nu_impl() * linalg::constexpr_ln(xTy_safe).value() - res;
+    res = nu_impl() * linalg::constexpr_ln_safe(xTy_safe, eps) - res;
     return res;
   }
 };

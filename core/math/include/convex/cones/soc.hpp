@@ -104,7 +104,7 @@ struct SecondOrderCone
   constexpr bool in_cone_impl(const Slack& x) const {
     T res{};
     for (size_t i = 0; i < M - 1; ++i) res += x(i) * x(i);
-    res = linalg::constexpr_sqrt(res);
+    res = linalg::constexpr_sqrt_safe(res, eps);
     return res < x(M - 1);
   }
 
@@ -166,7 +166,7 @@ struct SecondOrderCone
     else {
       const auto disc = b * b - T(4) * a * c;
       if (disc >= T(0)) {
-        const auto s = linalg::constexpr_sqrt(disc);
+        const auto s = linalg::constexpr_sqrt_safe(disc, eps);
         const auto r1 = (T(-1) * b - s) / (T(2) * a);
         const auto r2 = (T(-1) * b + s) / (T(2) * a);
         const auto r_min = std::min(r1, r2);
@@ -187,7 +187,7 @@ struct SecondOrderCone
     }
 
     /// (dakre) ensure t + alpha dt > 0
-    if (dt < T(0)) alpha_t = -t / dt;
+    if (dt < T(0)) alpha_t = std::min(alpha_t, -t / dt);
 
     return eta * std::min(alpha, alpha_t);
   }
@@ -332,18 +332,14 @@ struct SecondOrderCone
     const auto lambdas_x = eigs(x);
     const auto lambdas_y = eigs(y);
 
-    const auto det_x_safe =
-        std::max(std::get<0>(lambdas_x) * std::get<1>(lambdas_x), eps);
-    const auto det_y_safe =
-        std::max(std::get<0>(lambdas_y) * std::get<1>(lambdas_y), eps);
+    const auto det_x = std::get<0>(lambdas_x) * std::get<1>(lambdas_x);
+    const auto det_y = std::get<0>(lambdas_y) * std::get<1>(lambdas_y);
 
-    const auto xy = circ_impl(x, y);
+    const auto tr_xy = circ_impl(x, y)(M - 1);
 
-    const auto tr_xy_safe = std::max(xy(M - 1), eps);
-
-    return nu_impl() * linalg::constexpr_ln(tr_xy_safe).value() -
-           linalg::constexpr_ln(det_x_safe).value() -
-           linalg::constexpr_ln(det_y_safe).value();
+    return nu_impl() * linalg::constexpr_ln_safe(tr_xy, eps) -
+           linalg::constexpr_ln_safe(det_x, eps) -
+           linalg::constexpr_ln_safe(det_y, eps);
   }
 
  private:
@@ -367,10 +363,10 @@ struct SecondOrderCone
     const auto lam1 = std::get<0>(lambdas);
     const auto lam2 = std::get<1>(lambdas);
 
-    const auto alpha =
-        T(0.5) * (linalg::constexpr_sqrt(lam1) + linalg::constexpr_sqrt(lam2));
-    const auto beta =
-        T(0.5) * (linalg::constexpr_sqrt(lam1) - linalg::constexpr_sqrt(lam2));
+    const auto alpha = T(0.5) * (linalg::constexpr_sqrt_safe(lam1, eps) +
+                                 linalg::constexpr_sqrt_safe(lam2, eps));
+    const auto beta = T(0.5) * (linalg::constexpr_sqrt_safe(lam1, eps) -
+                                linalg::constexpr_sqrt_safe(lam2, eps));
 
     Slack v_zero{};
     for (size_t i = 0; i < M - 1; ++i) v_zero(i) = v(i);
@@ -397,8 +393,7 @@ struct SecondOrderCone
     Slack adj_v;
     for (size_t i = 0; i < M - 1; ++i) adj_v(i) = T(-1) * v(i);
     adj_v(M - 1) = t;
-    auto div = t * t - linalg::dot(v, v);
-    if (linalg::constexpr_abs(div) < eps) div = eps;
+    auto div = std::max(t * t - linalg::dot(v, v), eps);
     return (T(1) / div) * adj_v;
   }
 

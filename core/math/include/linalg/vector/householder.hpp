@@ -89,7 +89,7 @@ struct HouseholderVector {
       else if (sigma == 0 && x(0) < T(0))
         beta = T(-2);
       else {
-        const auto mu = constexpr_sqrt(x(0) * x(0) + sigma);
+        const auto mu = constexpr_sqrt_safe(x(0) * x(0) + sigma);
         if (x(0) <= T(0))
           v(0) = x(0) - mu;
         else

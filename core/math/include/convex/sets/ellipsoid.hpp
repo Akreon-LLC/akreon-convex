@@ -174,7 +174,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     const auto& D = eig_decomp.lambda;
     linalg::Matrix<T, N, N> D_sqrt;
     for (size_t i = 0; i < N; ++i)
-      D_sqrt(i)(i) = linalg::constexpr_sqrt(D(i).real());
+      D_sqrt(i)(i) = linalg::constexpr_sqrt_safe(D(i).real());
 
     linalg::Matrix<T, N, N> VT;
     const auto& V = eig_decomp.V;

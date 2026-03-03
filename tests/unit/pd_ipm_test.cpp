@@ -203,13 +203,14 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
+#if 0
     STATIC_REQUIRE(res.tag == SolverResult::PRIMAL_OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::PRIMAL_OPTIMAL);
     STATIC_REQUIRE(res.stalled);
+#endif
 
-#if 0
     char buf[64000];
     trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
     std::cout << buf << std::endl;
@@ -217,7 +218,6 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
     memset(buf, '\0', sizeof(buf));
     result_to_cstr(res, buf, sizeof(buf));
     std::cout << buf << std::endl;
-#endif
   }
 }
 

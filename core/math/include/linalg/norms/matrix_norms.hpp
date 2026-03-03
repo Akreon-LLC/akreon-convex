@@ -42,7 +42,7 @@ struct Fro {
              "Frobenius complex norm expects real trace(A* A)");
       result = tmp.real();
     }
-    return constexpr_sqrt(result);
+    return constexpr_sqrt_safe(result);
   }
 };
 

@@ -84,7 +84,7 @@ struct SVD {
     const auto& V = result.V;
 
     for (size_t i = 0; i < Cols; ++i)
-      S(i)(i) = constexpr_sqrt(std::max<Real>(0, lambdas(i)));
+      S(i)(i) = constexpr_sqrt_safe(std::max<Real>(0, lambdas(i)));
 
     // 3. back-solve for U with VT & sigmas
     // \Sigma^{-1} A V = U

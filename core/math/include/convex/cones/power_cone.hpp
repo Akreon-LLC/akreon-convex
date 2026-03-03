@@ -67,10 +67,11 @@ struct PowerCone
     } else {
       T res{};
       for (size_t i = 0; i < M - 1; ++i) {
-        if (x(i) < T(0)) return false;
-        res += alphas(i) * linalg::constexpr_ln(x(i)).value();
+        if (!(x(i) > T(0))) return false;
+        res += alphas(i) * linalg::constexpr_ln_safe(x(i));
       }
-      return res > linalg::constexpr_ln(linalg::constexpr_abs(x(M - 1)));
+      const auto rhs = linalg::constexpr_ln_safe(linalg::constexpr_abs(x(M - 1)));
+      return res > rhs;
     }
   }
 

@@ -31,11 +31,11 @@ TEST_CASE("Test field types", "[field]") {
 }
 
 TEST_CASE("Test constexpr math", "[math]") {
-  constexpr auto res1 = constexpr_sqrt(64.0) - 8.0;
+  constexpr auto res1 = constexpr_sqrt_safe(64.0) - 8.0;
   STATIC_REQUIRE(res1 < eps);
 
-  STATIC_REQUIRE(constexpr_abs(constexpr_nrt<double>(1.0, 3) - 1.0) < eps);
-  STATIC_REQUIRE(constexpr_abs(constexpr_nrt<double>(3.0, 3) - 1.44224957031) <
+  STATIC_REQUIRE(constexpr_abs(constexpr_nrt_safe<double>(1.0, 3) - 1.0) < eps);
+  STATIC_REQUIRE(constexpr_abs(constexpr_nrt_safe<double>(3.0, 3) - 1.44224957031) <
                  eps);
 
   STATIC_REQUIRE(constexpr_abs(-2.0) == 2.0);
@@ -271,7 +271,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(L(1)(0) == c * c_conj + d * d_conj);
     STATIC_REQUIRE(L(1)(1) == c * c_conj + d * d_conj);
     STATIC_REQUIRE(Fro<Matrix<std::complex<double>, 2, 2>>()(K) ==
-                   constexpr_sqrt(trace(L).real()));
+                   constexpr_sqrt_safe(trace(L).real()));
 
     constexpr auto I = make_identity<double, 3>();
     constexpr auto I_diag = get_diag(I);
@@ -282,7 +282,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 
     STATIC_REQUIRE(I * I == I);
 
-    STATIC_REQUIRE(Fro<Matrix<double, 3, 3>>()(I) == constexpr_sqrt<double>(3));
+    STATIC_REQUIRE(Fro<Matrix<double, 3, 3>>()(I) == constexpr_sqrt_safe<double>(3));
   }
 }
 

@@ -63,9 +63,9 @@ struct EigenDecomposition {
     Complex rho(0.0);
     for (size_t i = 0; i < N; ++i) {
       const auto mag_rho =
-          constexpr_sqrt(rho.real() * rho.real() + rho.imag() * rho.imag());
+          constexpr_sqrt_safe(rho.real() * rho.real() + rho.imag() * rho.imag());
       const auto mag_lambda =
-          constexpr_sqrt(lambda(i).real() * lambda(i).real() +
+          constexpr_sqrt_safe(lambda(i).real() * lambda(i).real() +
                          lambda(i).imag() * lambda(i).imag());
       rho = mag_lambda > mag_rho ? lambda(i) : rho;
     }
@@ -155,11 +155,11 @@ struct EigenDecomposition {
           const auto D = mu * mu + b * c;
 
           if (D >= 0) {
-            eigs(j) = Complex(t / 2 + constexpr_sqrt(D), 0.0);
-            eigs(j + 1) = Complex(t / 2 - constexpr_sqrt(D), 0.0);
+            eigs(j) = Complex(t / 2 + constexpr_sqrt_safe(D), 0.0);
+            eigs(j + 1) = Complex(t / 2 - constexpr_sqrt_safe(D), 0.0);
           } else {
-            eigs(j) = Complex(t / 2, constexpr_sqrt(D));
-            eigs(j + 1) = Complex(t / 2, -1 * constexpr_sqrt(D));
+            eigs(j) = Complex(t / 2, constexpr_sqrt_safe(D));
+            eigs(j + 1) = Complex(t / 2, -1 * constexpr_sqrt_safe(D));
           }
 
           j++;
@@ -429,7 +429,7 @@ struct EigenDecomposition {
       z0 = lambda(idx) - Complex(d);
       z1 = Complex(c);
     }
-    Real s = constexpr_sqrt(L2<Vector<Complex, 1>>()(z0) +
+    Real s = constexpr_sqrt_safe(L2<Vector<Complex, 1>>()(z0) +
                             L2<Vector<Complex, 1>>()(z1));
     if (s > Real(0)) {
       z0 /= s;

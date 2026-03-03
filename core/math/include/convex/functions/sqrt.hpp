@@ -115,9 +115,9 @@ struct Sqrt : Atom<Meta, Sqrt<Meta, Child>, Child> {
     if (x(0) < T(0)) return std::nullopt;
 
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      return alpha * linalg::constexpr_sqrt(x(0)) + beta;
+      return alpha * linalg::constexpr_sqrt_safe(x(0)) + beta;
     } else {
-      return T(-1) * alpha * linalg::constexpr_sqrt(x(0)) + beta;
+      return T(-1) * alpha * linalg::constexpr_sqrt_safe(x(0)) + beta;
     }
   }
 

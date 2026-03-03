@@ -283,8 +283,8 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     constexpr auto lambdas = res.lambda;
     STATIC_REQUIRE(res.converged);
 
-    constexpr auto d = std::complex<double>(3 + constexpr_sqrt(11.0));
-    constexpr auto e = std::complex<double>(3 - constexpr_sqrt(11.0));
+    constexpr auto d = std::complex<double>(3 + constexpr_sqrt_safe(11.0));
+    constexpr auto e = std::complex<double>(3 - constexpr_sqrt_safe(11.0));
     constexpr auto expected = make_diag(Vectorcd<2>{d, e});
     constexpr auto result = make_diag(lambdas);
     STATIC_REQUIRE(all_equal(result, expected));
@@ -378,8 +378,8 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto x2 = Vectorcd<2>{std::conj(b), c};
     constexpr auto A = Matrixcd<2, 2>{x1, x2};
 
-    constexpr auto d = double(3 + constexpr_sqrt(11.0));
-    constexpr auto e = constexpr_abs(double(3 - constexpr_sqrt(11.0)));
+    constexpr auto d = double(3 + constexpr_sqrt_safe(11.0));
+    constexpr auto e = constexpr_abs(double(3 - constexpr_sqrt_safe(11.0)));
     constexpr auto expected = make_diag(Vectord<2>{d, e});
 
     constexpr auto result = SVD(A);

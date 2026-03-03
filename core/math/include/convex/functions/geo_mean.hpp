@@ -115,9 +115,9 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
-      return T(-1) * alpha * linalg::constexpr_nrt<T>(prod, N) + beta;
+      return T(-1) * alpha * linalg::constexpr_nrt_safe<T>(prod, N) + beta;
     else
-      return alpha * linalg::constexpr_nrt<T>(prod, N) + beta;
+      return alpha * linalg::constexpr_nrt_safe<T>(prod, N) + beta;
   }
 
   /**

@@ -65,6 +65,36 @@ constexpr T constexpr_abs(const T& x) {
 }
 
 /**
+ * @brief constexpr-safe division with optional domain check
+ *
+ * @param num numerator
+ * @param den denominator
+ *
+ * @return num / den when denominator is nonzero, else nullopt
+ */
+template <RealLike T>
+constexpr std::optional<T> constexpr_div(const T& num, const T& den) {
+  if (!(den != T(0))) return std::nullopt;
+  return num / den;
+}
+
+/**
+ * @brief constexpr-safe scalar division with fallback
+ *
+ * @param num numerator
+ * @param den denominator
+ * @param fallback fallback value when denominator is zero
+ *
+ * @return scalar division result or fallback
+ */
+template <RealLike T>
+constexpr T constexpr_div_safe(const T& num, const T& den,
+                               const T& fallback = T(0)) {
+  if (const auto r = constexpr_div(num, den); r.has_value()) return *r;
+  return fallback;
+}
+
+/**
  * @brief power of a scalar
  *
  * @param x \in R
@@ -92,15 +122,16 @@ constexpr T constexpr_pow(const T& x, const size_t& power) {
  * @return sqrt(x)
  */
 template <RealLike T>
-constexpr T constexpr_sqrt(const T& x, T g = 1e-10, T tol = 1e-10) {
+constexpr std::optional<T> constexpr_sqrt(const T& x, T g = 1e-10,
+                                          T tol = 1e-10) {
+  if (!(x >= T(0))) return std::nullopt;
   if (x == T(0)) return T(1e-30);
-  // (dakre) TODO refactor to optional or something this is a global for
-  // removing non-constexpr safe assert calls
-  if (x < T(0)) return T(size_t(-1));
+  if (!(g > T(0))) g = T(1);
 
   for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
+    if (!(g > T(0))) g = T(1);
     if (constexpr_abs(g * g - x) <= tol) return g;
-    g = T(0.5) * (g + x / g);
+    g = T(0.5) * (g + constexpr_div_safe(x, g, g));
   }
   return g;
 }
@@ -119,30 +150,79 @@ constexpr T constexpr_sqrt(const T& x, T g = 1e-10, T tol = 1e-10) {
  * @return nth root of x
  */
 template <RealLike T>
-constexpr T constexpr_nrt(T x, size_t root, T g = 1e-10, T tol = 1e-10) {
+constexpr std::optional<T> constexpr_nrt(T x, size_t root, T g = 1e-10,
+                                         T tol = 1e-10) {
+  if (root == 0) return std::nullopt;
   if (x == T(0)) return T(1e-30);
 
-  if (root % 2 == 1) {
-    if (x < T(0)) x = -x, g = -g;
-  } else {
-    // (dakre) similar TODO as above
-    if (x < T(0)) return T(size_t(-1));
+  T sign = T(1);
+  if (x < T(0)) {
+    if (root % 2 == 0) return std::nullopt;
+    sign = T(-1);
+    x = -x;
   }
 
-  auto pow_n = [&]() {
+  if (!(g > T(0))) g = T(1);
+
+  auto pow_n = [&](const T& base, const size_t& n) {
     T pow(1);
-    for (size_t i = 0; i < root; ++i) pow *= g;
+    for (size_t i = 0; i < n; ++i) pow *= base;
     return pow;
   };
 
   for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
-    T gkm1(1);
-    for (size_t l = 0; l < root - 1; ++l) gkm1 *= g;
+    const auto gkm1 = pow_n(g, root - 1);
+    if (!(gkm1 > T(0))) return std::nullopt;
 
-    g = (T(root - 1) * g + x / gkm1) / T(root);
-    if (constexpr_abs(pow_n() - x) <= tol) return g;
+    g = (T(root - 1) * g + constexpr_div_safe(x, gkm1, g)) / T(root);
+    if (constexpr_abs(pow_n(g, root) - x) <= tol) return sign * g;
   }
-  return g;
+  return sign * g;
+}
+
+/**
+ * @brief safe scalar sqrt wrapper around optional constexpr_sqrt
+ *
+ * @param x input scalar
+ * @param floor minimum scalar for fallback
+ * @param g initial guess
+ * @param tol convergence tolerance
+ *
+ * @return scalar sqrt with optional fallback handling
+ */
+template <RealLike T>
+constexpr T constexpr_sqrt_safe(const T& x, const T& floor = T(0), T g = 1e-10,
+                                T tol = 1e-10) {
+  if (const auto r = constexpr_sqrt(x, g, tol); r.has_value()) return *r;
+
+  const auto floor_safe = (floor >= T(0)) ? floor : T(0);
+  if (const auto rf = constexpr_sqrt(floor_safe, g, tol); rf.has_value())
+    return *rf;
+
+  return T(0);
+}
+
+/**
+ * @brief safe scalar nth-root wrapper around optional constexpr_nrt
+ *
+ * @param x input scalar
+ * @param root root degree
+ * @param floor fallback scalar
+ * @param g initial guess
+ * @param tol convergence tolerance
+ *
+ * @return scalar nth-root with optional fallback handling
+ */
+template <RealLike T>
+constexpr T constexpr_nrt_safe(T x, const size_t& root, const T& floor = T(0),
+                               T g = 1e-10, T tol = 1e-10) {
+  if (const auto r = constexpr_nrt(x, root, g, tol); r.has_value()) return *r;
+
+  const auto floor_safe = (floor >= T(0)) ? floor : T(0);
+  if (const auto rf = constexpr_nrt(floor_safe, root, g, tol); rf.has_value())
+    return *rf;
+
+  return T(0);
 }
 
 /**
@@ -154,7 +234,7 @@ constexpr T constexpr_nrt(T x, size_t root, T g = 1e-10, T tol = 1e-10) {
  */
 template <ComplexLike T>
 constexpr scalar_type_t<T> constexpr_absc(const T& x) {
-  return constexpr_sqrt(x.real() * x.real() + x.imag() * x.imag());
+  return constexpr_sqrt_safe(x.real() * x.real() + x.imag() * x.imag());
 }
 
 /**
@@ -215,6 +295,22 @@ constexpr std::optional<T> constexpr_atanh(const T& x, int terms = 16) {
     sum += (term / T(2 * k + 1));
   }
   return sum;
+}
+
+/**
+ * @brief constexpr-safe atanh with fallback
+ *
+ * @param x input scalar
+ * @param fallback fallback value when |x| >= 1
+ * @param terms series terms
+ *
+ * @return scalar atanh result or fallback
+ */
+template <RealLike T>
+constexpr T constexpr_atanh_safe(const T& x, const T& fallback = T(0),
+                                 int terms = 16) {
+  if (const auto r = constexpr_atanh(x, terms); r.has_value()) return *r;
+  return fallback;
 }
 
 /**
@@ -302,13 +398,37 @@ constexpr std::optional<T> constexpr_ln(const T& x_in, int terms = 16) {
     --e;
   }
 
-  const T y = (x - T(1)) / (x + T(1));
+  const T y = constexpr_div_safe(x - T(1), x + T(1), T(0));
   const auto a = constexpr_atanh(y, terms);
   if (!a) return std::nullopt;
 
   constexpr T ln2 = T(0.693147180559945309417232121458176568L);
 
   return T(2) * (*a) + T(e) * ln2;
+}
+
+/**
+ * @brief natural log with domain sanitization and fallback
+ *
+ * Ensures no optional access is required at call sites that need a scalar.
+ * Handles NaN/invalid by clamping to a positive floor.
+ *
+ * @param x input scalar
+ * @param floor positive floor value used when x is invalid/non-positive
+ * @param terms series terms
+ *
+ * @return ln(max(x, floor)) with NaN-safe clamping semantics
+ */
+template <RealLike T>
+constexpr T constexpr_ln_safe(const T& x, const T& floor = T(1e-12),
+                              int terms = 16) {
+  const T floor_safe = (floor > T(0)) ? floor : T(1e-12);
+  const T x_safe = (x > floor_safe) ? x : floor_safe;
+  const auto l = constexpr_ln(x_safe, terms);
+  if (l.has_value()) return *l;
+
+  const auto l_floor = constexpr_ln(floor_safe, terms);
+  return l_floor.has_value() ? *l_floor : T(0);
 }
 
 /*
