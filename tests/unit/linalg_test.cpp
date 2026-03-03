@@ -74,6 +74,7 @@ TEST_CASE("Test constexpr math", "[math]") {
   STATIC_REQUIRE(constexpr_ln(1.0).value() == 0.0);
   STATIC_REQUIRE(constexpr_abs(constexpr_ln(constexpr_exp(1.0)).value() - 1.0) <
                  eps);
+  STATIC_REQUIRE(constexpr_ln(1e-10).has_value());
 }
 
 TEST_CASE("Test vector space types", "[vector_space]") {

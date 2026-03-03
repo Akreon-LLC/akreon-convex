@@ -77,7 +77,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(constexpr_abs(res.z(0)) < res_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
   }
@@ -104,7 +104,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(constexpr_abs(res.z(1)) < res_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
   }
@@ -136,7 +136,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
   }
@@ -164,7 +164,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
 
@@ -180,7 +180,47 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
   }
 }
 
+/**
+ * @brief Simple QP
+ *
+ * (1) c^T x s.t. ||x|| <= 1
+ */
+TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
+  using Space = Matrixd<1, 2>;
+  constexpr auto x = Variable<FreeVarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+  constexpr auto r = 1.0;
+  constexpr Vectord<2> c{3.0, 1.0};
+  constexpr auto ball =
+      NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L2>(c, r, x);
+  constexpr auto prob_constr = prob_init.in_set(ball);
+
+  SECTION("Min c^T x") {
+    constexpr Vectord<2> weights{1.0, 1.0};
+    constexpr auto cx = weighted_sum(weights, x);
+    constexpr auto prob_min = prob_constr.minimize(cx);
+
+    constexpr PrimalDualIPM solver(prob_min);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+    STATIC_REQUIRE(res.tag == SolverResult::PRIMAL_OPTIMAL);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
+                   config::SolverResult::PRIMAL_OPTIMAL);
+    STATIC_REQUIRE(res.stalled);
+
 #if 0
+    char buf[64000];
+    trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
+    std::cout << buf << std::endl;
+
+    memset(buf, '\0', sizeof(buf));
+    result_to_cstr(res, buf, sizeof(buf));
+    std::cout << buf << std::endl;
+#endif
+  }
+}
+
 /**
  * @brief Simple SOCP
  *
@@ -188,6 +228,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
  * (2) min 0.5 ||x + a||_2^2
  *     s.t. ||x|| <= 1
  */
+#if 0
 TEST_CASE("Minimal SOCP 2 Vars", "[pd_ipm_test]") {
   using Space = Matrixd<1, 2>;
   using Singleton = Matrixd<1, 1>;
@@ -233,7 +274,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[pd_ipm_test]") {
     STATIC_REQUIRE(res.tag != SolverResult::INVALID);
     // STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
     // SolverResult::PRIMAL_FEASIBLE);
-    char buf[16000];
+    char buf[64000];
     trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
     std::cout << buf << std::endl;
 

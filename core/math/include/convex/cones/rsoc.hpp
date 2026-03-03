@@ -234,6 +234,20 @@ struct RotatedSecondOrderCone
     return inv_map(soc.circ(x_soc, y_soc));
   }
 
+  /**
+   * @brief gamma_F
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return gamma_F
+   */
+  constexpr auto gamma_F_impl(const Slack& x, const Slack& y) const {
+    const auto x_soc = map(x);
+    const auto y_soc = dual_map(y);
+    return soc.gamma_F(x_soc, y_soc);
+  }
+
   /** @brief member var */
   SecondOrderCone<Slack> soc;       ///< native SOC type
   affine::AffineMap<Mat> map;       ///< RSOC -> SOC map (primal)

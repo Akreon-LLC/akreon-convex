@@ -328,11 +328,11 @@ struct PrimalDualIPM {
       auto rp_norm = linalg::L2<decltype(rp)>()(rp);
 
       /// (dakre) 3 - predictor step
-      pc.predictor(Var{}, K, ldl, F, rp, rd, x, y, pz_pred, px_pred, py_pred);
+      pc.predictor(Var{}, K, ldl, F, T(0.5) * rp, T(0.5) * rd, x, y, pz_pred,
+                   px_pred, py_pred);
 
       /// (dakre) 4 - mehrotra centering
       auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px_pred, py_pred);
-      dampen_alpha(alpha_xy);
       const auto x_aff = x + std::get<0>(alpha_xy) * px_pred;
       const auto y_aff = y + std::get<1>(alpha_xy) * py_pred;
       const auto mu_curr = mu(x, y, nu);
@@ -347,17 +347,16 @@ struct PrimalDualIPM {
 
       /// (dakre) 5 - corrector step
       pc.corrector(Var{}, mu_tgt, aff_scale_sq, px_pred, py_pred, K, ldl, F,
-                   ConeVar{}, Var{}, x, y, pz_corr, px_corr, py_corr);
+                   T(0.5) * rp, T(0.5) * rd, x, y, pz_corr, px_corr, py_corr);
 
       /// (dakre) 6 - blend predictor/corrector to avoid over-aggressive
       /// second-order correction on near-feasible iterates.
-      const auto px = px_pred + rho * px_corr;
-      const auto py = py_pred + rho * py_corr;
-      const auto pz = pz_pred + rho * pz_corr;
+      const auto px = px_pred + px_corr;
+      const auto py = py_pred + py_corr;
+      const auto pz = pz_pred + pz_corr;
 
       /// (dakre) 7 - alpha max
       alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
-      dampen_alpha(alpha_xy);
 
       /// (dakre) 8 - backtrack line search to acquire next iterate
       const auto good_iter =
@@ -604,7 +603,9 @@ struct PrimalDualIPM {
       for (size_t i = Start, j = 0; i < End; ++i, ++j)
         xk(j) = x(i), yk(j) = y(i);
 
-      bool rv = Ki.gamma_F(xk, yk) < beta + Delta;
+      // Keep line-search iterates strictly in K x K* before proximity checks.
+      bool rv = Ki.in_cone(xk) && Ki.in_dual_cone(yk) &&
+                Ki.gamma_F(xk, yk) < beta + Delta;
       return rv && check_functional_proximity<idx + 1, End>(K, x, y);
     }
   }
@@ -660,10 +661,16 @@ struct PrimalDualIPM {
       tag = config::SolverResult::OPTIMAL;
     else if (primal_feas && dual_feas)
       tag = config::SolverResult::PRIMAL_DUAL_FEASIBLE;
+    else if (primal_feas && gap_min)
+      tag = config::SolverResult::PRIMAL_OPTIMAL;
+    else if (dual_feas && gap_min)
+      tag = config::SolverResult::DUAL_OPTIMAL;
     else if (primal_feas)
       tag = config::SolverResult::PRIMAL_FEASIBLE;
     else if (dual_feas)
       tag = config::SolverResult::DUAL_FEASIBLE;
+    else if (gap_min)
+      tag = config::SolverResult::INFEASIBLE_OPTIMAL;
     else
       tag = config::SolverResult::INFEASIBLE_OR_UNBOUNDED;
     return tag;

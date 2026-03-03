@@ -138,7 +138,7 @@ struct SecondOrderCone
    * alpha_max = piecewise{
    *  \frac{-b +- \sqrt(b^2 - 4 a c)}{2a}, a > 0,
    *  \frac{-c}{b}, a = 0, b > 0,
-   *  +inf, a < 0
+   *  max(root, 1), a < 0
    * }
    *
    * @param x \in K
@@ -149,8 +149,8 @@ struct SecondOrderCone
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {
     constexpr T eta{0.99};
-    T alpha{std::numeric_limits<T>::infinity()};
-    T alpha_t{std::numeric_limits<T>::infinity()};
+    T alpha{1};
+    T alpha_t{1};
 
     const auto var = std::get<0>(linalg::splice<M - 1>(x));
     const auto t = x(M - 1);
@@ -169,9 +169,20 @@ struct SecondOrderCone
         const auto s = linalg::constexpr_sqrt(disc);
         const auto r1 = (T(-1) * b - s) / (T(2) * a);
         const auto r2 = (T(-1) * b + s) / (T(2) * a);
+        const auto r_min = std::min(r1, r2);
+        const auto r_max = std::max(r1, r2);
 
-        if (r1 > T(0)) alpha = std::min(alpha, r1);
-        if (r2 > T(0)) alpha = std::min(alpha, r2);
+        if (a > T(0)) {
+          /// (dakre) convex case take smallest positive root
+          if (r_min > T(0))
+            alpha = std::min(alpha, r_min);
+          else if (r_max > T(0))
+            alpha = std::min(alpha, r_max);
+        } else {
+          /// (dakre) concave parabola r_max to -inf so take largest possible
+          /// root on this interval
+          alpha = std::min(alpha, r_max);
+        }
       }
     }
 
@@ -309,6 +320,32 @@ struct SecondOrderCone
     return SOCCirc<Slack>()(x, y);
   }
 
+  /**
+   * @brief gamma_F
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return gamma_F
+   */
+  constexpr auto gamma_F_impl(const Slack& x, const Slack& y) const {
+    const auto lambdas_x = eigs(x);
+    const auto lambdas_y = eigs(y);
+
+    const auto det_x_safe =
+        std::max(std::get<0>(lambdas_x) * std::get<1>(lambdas_x), eps);
+    const auto det_y_safe =
+        std::max(std::get<0>(lambdas_y) * std::get<1>(lambdas_y), eps);
+
+    const auto xy = circ_impl(x, y);
+
+    const auto tr_xy_safe = std::max(xy(M - 1), eps);
+
+    return nu_impl() * linalg::constexpr_ln(tr_xy_safe).value() -
+           linalg::constexpr_ln(det_x_safe).value() -
+           linalg::constexpr_ln(det_y_safe).value();
+  }
+
  private:
   /**
    * @brief sqrt
@@ -324,11 +361,11 @@ struct SecondOrderCone
    */
   constexpr auto sqrt(const Slack& x) const {
     const auto v = std::get<0>(linalg::splice<M - 1>(x));
-    const auto t = x(M - 1);
-
     const auto v_norm = linalg::L2<decltype(v)>()(v);
-    const auto lam1 = t + v_norm;
-    const auto lam2 = t - v_norm;
+
+    const auto lambdas = eigs(x);
+    const auto lam1 = std::get<0>(lambdas);
+    const auto lam2 = std::get<1>(lambdas);
 
     const auto alpha =
         T(0.5) * (linalg::constexpr_sqrt(lam1) + linalg::constexpr_sqrt(lam2));
@@ -363,6 +400,27 @@ struct SecondOrderCone
     auto div = t * t - linalg::dot(v, v);
     if (linalg::constexpr_abs(div) < eps) div = eps;
     return (T(1) / div) * adj_v;
+  }
+
+  /**
+   * @brief eigs
+   *
+   * (v,t) \in K or K^*
+   *
+   * @param v (vector)
+   * @param t (scalar)
+   *
+   * @return tuple(lam1,lam2)
+   */
+  constexpr auto eigs(const Slack& x) const {
+    const auto v = std::get<0>(linalg::splice<M - 1>(x));
+    const auto t = x(M - 1);
+
+    const auto v_norm = linalg::L2<decltype(v)>()(v);
+    const auto lam1 = t + v_norm;
+    const auto lam2 = t - v_norm;
+
+    return std::tuple(lam1, lam2);
   }
 };
 

@@ -19,7 +19,7 @@ namespace config {
  * (dakre) note increase constexpr steps / depth for # steps to increase here
  * for constexpr usage
  */
-#define PD_IPM_STEPS 512
+#define PD_IPM_STEPS 128
 
 /**
  * @brief FactorConfig
@@ -51,6 +51,9 @@ enum struct SolverResult : uint8_t {
   PRIMAL_FEASIBLE,
   DUAL_FEASIBLE,
   PRIMAL_DUAL_FEASIBLE,
+  PRIMAL_OPTIMAL,
+  DUAL_OPTIMAL,
+  INFEASIBLE_OPTIMAL,
   INFEASIBLE_OR_UNBOUNDED
 };
 
