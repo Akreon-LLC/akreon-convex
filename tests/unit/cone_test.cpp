@@ -88,6 +88,60 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
 
     STATIC_REQUIRE(rplus.nu() == 12.0);
   }
+
+  SECTION("Stress rplus w/H on random interior points") {
+    using Slack = Vectord<8>;
+    constexpr NonnegOrthantCone<Slack> rplus;
+    constexpr auto zero = Slack{};
+    constexpr auto l2 = L2<Slack>();
+
+    auto make_rplus_point = [](std::mt19937& rng) {
+      std::uniform_real_distribution<double> coord_dist(0.05, 3.0);
+      Slack x{};
+      for (size_t i = 0; i < 8; ++i) x(i) = coord_dist(rng);
+      return x;
+    };
+
+    std::mt19937 rng(0xBEEF);
+    constexpr size_t trials = 512;
+    constexpr double tol = 1e-5;
+    constexpr double eta = 0.99;
+    constexpr double boundary_eps = 1e-8;
+
+    for (size_t i = 0; i < trials; ++i) {
+      const auto x = make_rplus_point(rng);
+      const auto y = make_rplus_point(rng);
+      const auto p = (-2.0) * x;
+
+      REQUIRE(rplus.in_cone(x));
+      REQUIRE(rplus.in_dual_cone(y));
+
+      const auto w = rplus.w(x, y);
+      REQUIRE(rplus.in_cone(w));
+      REQUIRE(rplus.in_dual_cone(w));
+
+      const auto Hw = rplus.H(x, y);
+      REQUIRE(l2(Hw.apply(zero)) < tol);
+
+      QuadraticRep<Matrixd<8, 8>, RplusCirc<Slack>> P(w);
+      REQUIRE(l2(x - P.apply(y)) < eps);
+      Slack w_inv{};
+      for (size_t j = 0; j < 8; ++j) w_inv(j) = 1.0 / w(j);
+      REQUIRE(l2(rplus.circ(w, w_inv) - rplus.e()) < eps);
+
+      QuadraticRep<Matrixd<8, 8>, RplusCirc<Slack>> P_inv(w_inv);
+      REQUIRE(l2(y - P_inv.apply(x)) < eps);
+
+      const auto hx = Hw.apply(x);
+      REQUIRE(l2(hx - y) <= eps);
+
+      const auto alpha = rplus.alpha_max(x, p);
+      const auto alpha_hit = alpha / eta;
+      REQUIRE(constexpr_abs(alpha_hit - 0.5) < tol);
+      REQUIRE(rplus.in_cone(x + alpha * p));
+      REQUIRE(!rplus.in_cone(x + (alpha_hit + boundary_eps) * p));
+    }
+  }
 }
 
 TEST_CASE("Test SOC", "[cone_test]") {
@@ -144,10 +198,13 @@ TEST_CASE("Test SOC", "[cone_test]") {
     std::mt19937 rng(0xC0FFEE);
     constexpr size_t trials = 512;
     constexpr double tol = 1e-5;
+    constexpr double eta = 0.99;
+    constexpr double boundary_eps = 1e-8;
 
     for (size_t i = 0; i < trials; ++i) {
       const auto x = make_soc_point(rng);
       const auto y = make_soc_point(rng);
+      const auto p = (-2.0) * x;
 
       REQUIRE(soc.in_cone(x));
       REQUIRE(soc.in_dual_cone(y));
@@ -176,6 +233,12 @@ TEST_CASE("Test SOC", "[cone_test]") {
 
       const auto hx = Hw.apply(x);
       REQUIRE(l2(hx - y) <= eps);
+
+      const auto alpha = soc.alpha_max(x, p);
+      const auto alpha_hit = alpha / eta;
+      REQUIRE(constexpr_abs(alpha_hit - 0.5) < tol);
+      REQUIRE(soc.in_cone(x + alpha * p));
+      REQUIRE(!soc.in_cone(x + (alpha_hit + boundary_eps) * p));
     }
   }
 }

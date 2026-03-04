@@ -104,7 +104,7 @@ struct SecondOrderCone
   constexpr bool in_cone_impl(const Slack& x) const {
     T res{};
     for (size_t i = 0; i < M - 1; ++i) res += x(i) * x(i);
-    res = linalg::constexpr_sqrt_safe(res, eps);
+    res = linalg::constexpr_sqrt_safe(res);
     return res < x(M - 1);
   }
 
@@ -166,23 +166,33 @@ struct SecondOrderCone
     else {
       const auto disc = b * b - T(4) * a * c;
       if (disc >= T(0)) {
-        const auto s = linalg::constexpr_sqrt_safe(disc, eps);
+        const auto s = linalg::constexpr_sqrt_safe(disc);
         const auto r1 = (T(-1) * b - s) / (T(2) * a);
         const auto r2 = (T(-1) * b + s) / (T(2) * a);
-        const auto r_min = std::min(r1, r2);
-        const auto r_max = std::max(r1, r2);
+        const auto low = std::min(r1, r2);
+        const auto high = std::max(r1, r2);
+
+        // Determine which root is the boundary you hit starting from alpha=0
+        T hit = T(1);
 
         if (a > T(0)) {
-          /// (dakre) convex case take smallest positive root
-          if (r_min > T(0))
-            alpha = std::min(alpha, r_min);
-          else if (r_max > T(0))
-            alpha = std::min(alpha, r_max);
-        } else {
-          /// (dakre) concave parabola r_max to -inf so take largest possible
-          /// root on this interval
-          alpha = std::min(alpha, r_max);
+          // feasible near 0 is outside the root interval; boundary is the
+          // smaller positive root
+          if (high <= T(0))
+            hit = T(1);  // both roots nonpositive -> no hit for alpha>0
+          else if (low > T(0))
+            hit = low;  // both positive -> first hit at low
+          else
+            hit = high;  // lo <= 0 < hi -> first hit at high
+        } else {         // a < 0
+          // feasible near 0 is between roots; hi should be positive boundary
+          if (high > T(0))
+            hit = high;
+          else
+            hit = T(1);
         }
+
+        alpha = std::min(alpha, hit);
       }
     }
 
@@ -333,9 +343,8 @@ struct SecondOrderCone
 
     const auto tr_xy = circ_impl(x, y)(M - 1);
 
-    return nu_impl() * linalg::constexpr_ln_safe(tr_xy, eps) -
-           linalg::constexpr_ln_safe(det_x, eps) -
-           linalg::constexpr_ln_safe(det_y, eps);
+    return nu_impl() * linalg::constexpr_ln_safe(tr_xy) -
+           linalg::constexpr_ln_safe(det_x) - linalg::constexpr_ln_safe(det_y);
   }
 
   /**
@@ -358,10 +367,10 @@ struct SecondOrderCone
     const auto lam1 = std::get<0>(lambdas);
     const auto lam2 = std::get<1>(lambdas);
 
-    const auto alpha = T(0.5) * (linalg::constexpr_sqrt_safe(lam1, eps) +
-                                 linalg::constexpr_sqrt_safe(lam2, eps));
-    const auto beta = T(0.5) * (linalg::constexpr_sqrt_safe(lam1, eps) -
-                                linalg::constexpr_sqrt_safe(lam2, eps));
+    const auto alpha = T(0.5) * (linalg::constexpr_sqrt_safe(lam1) +
+                                 linalg::constexpr_sqrt_safe(lam2));
+    const auto beta = T(0.5) * (linalg::constexpr_sqrt_safe(lam1) -
+                                linalg::constexpr_sqrt_safe(lam2));
 
     Slack v_zero{};
     for (size_t i = 0; i < M - 1; ++i) v_zero(i) = v(i);
