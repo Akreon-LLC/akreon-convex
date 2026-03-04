@@ -13,6 +13,7 @@
 #pragma once
 
 #include <array>
+#include <limits>
 #include <optional>
 
 #include "algebra_traits.hpp"
@@ -125,7 +126,7 @@ template <RealLike T>
 constexpr std::optional<T> constexpr_sqrt(const T& x, T g = 1e-10,
                                           T tol = 1e-10) {
   if (!(x >= T(0))) return std::nullopt;
-  if (x == T(0)) return T(1e-30);
+  if (x == T(0)) return std::numeric_limits<T>::min();
   if (!(g > T(0))) g = T(1);
 
   for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
@@ -153,7 +154,7 @@ template <RealLike T>
 constexpr std::optional<T> constexpr_nrt(T x, size_t root, T g = 1e-10,
                                          T tol = 1e-10) {
   if (root == 0) return std::nullopt;
-  if (x == T(0)) return T(1e-30);
+  if (x == T(0)) return std::numeric_limits<T>::min();
 
   T sign = T(1);
   if (x < T(0)) {
@@ -420,9 +421,10 @@ constexpr std::optional<T> constexpr_ln(const T& x_in, int terms = 16) {
  * @return ln(max(x, floor)) with NaN-safe clamping semantics
  */
 template <RealLike T>
-constexpr T constexpr_ln_safe(const T& x, const T& floor = T(1e-12),
+constexpr T constexpr_ln_safe(const T& x,
+                              const T& floor = std::numeric_limits<T>::min(),
                               int terms = 16) {
-  const T floor_safe = (floor > T(0)) ? floor : T(1e-12);
+  const T floor_safe = (floor > T(0)) ? floor : std::numeric_limits<T>::min();
   const T x_safe = (x > floor_safe) ? x : floor_safe;
   const auto l = constexpr_ln(x_safe, terms);
   if (l.has_value()) return *l;

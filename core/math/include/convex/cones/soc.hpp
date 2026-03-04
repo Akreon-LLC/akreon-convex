@@ -388,8 +388,8 @@ struct SecondOrderCone
     Slack adj_v;
     for (size_t i = 0; i < M - 1; ++i) adj_v(i) = T(-1) * v(i);
     adj_v(M - 1) = t;
-    auto det = t * t - linalg::dot(v, v);
-    AK_ASSERT(det > T(0) && "determinant must be pos");
+    auto det =
+        std::max(t * t - linalg::dot(v, v), std::numeric_limits<T>::min());
     return (T(1) / det) * adj_v;
   }
 
