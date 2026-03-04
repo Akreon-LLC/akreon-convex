@@ -122,23 +122,33 @@ struct SecondOrderCone
   /**
    * @brief fraction to boundary dK
    *
-   * sigma_x = \frac{1}{sup{alpha | x + alpha p in K}}
-   * p = [ delta x; delta t ]
-   * ||x + alpha delta(x)||_2^2 <= (t + alpha delta(t))^2
-   * 0 <= (t + alpha delta(t))^2 - ||x + alpha delta(x)||_2^2
-   * -inf(t^2 + 2 alpha t delta(t) + alpha^2 delta(t)^2 - x^2 - 2 alpha x
-   * delta(x) - alpha^2 delta(x)^2)
+   * let x = (v,t)
+   * let p = [ dv; dt ]
+   * sigma(\alpha) = \frac{1}{sup{alpha | (v + alpha p \in K, t + alpha dt)}}
+   * t(\alpha) >= ||v(\alpha)||
    *
-   * a alpha^2 + b alpha + c >= 0
+   * g(\alpha) = t(\alpha)^2 - ||v(\alpha)||^2 >= 0
+   * t(\alpha) >= 0
    *
-   * a = delta(t)^2 - delta(x)^2
-   * b = 2 (t delta(t) - x^T delta(x))
-   * c = t^2 - x^2 > 0
+   * g(\alpha) = (t + \alpha dt)^2 - ||v + \alpha dv||^2
+   * let a = dt^2 - ||dv||^2
+   * let b = 2(t dt - v^T dv)
+   * let c = t^2 - ||v||^2... x \in K & c > 0
+   * so g(\alpha) = a \alpha^2 + b \alpha + c
    *
-   * alpha_max = piecewise{
-   *  \frac{-b +- \sqrt(b^2 - 4 a c)}{2a}, a > 0,
-   *  \frac{-c}{b}, a = 0, b > 0,
-   *  max(root, 1), a < 0
+   * x = -b +- \sqrt(b^2 - 4 a c) / 2a
+   * \Delta = b^2 - 4 a c
+   * -> \Delta <= 0 ... g(alpha) >= 0 True... alpha = 1
+   * -> \Delta > 0 ... calculate roots
+   *  r1 = (-b - \sqrt(\Delta)) / 2a
+   *  r2 = -b + \sqrt(\Delta) / 2a
+   *  sort r_min <= r_max
+   *
+   * \alpha = \piecewise{
+   *   1, if x + p \in K
+   *   -c / b, if a == 0 and b < 0
+   *   min(r1, r2) if \Delta > 0
+   *   1, else
    * }
    *
    * @param x \in K
@@ -149,6 +159,10 @@ struct SecondOrderCone
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {
     constexpr T eta{0.99};
+
+    /// (dakre) take max step if update is in cone
+    if (in_cone_impl(x + p)) return eta;
+
     T alpha{1};
     T alpha_t{1};
 
@@ -161,36 +175,21 @@ struct SecondOrderCone
     const auto b = T(2) * (t * dt - linalg::dot(var, dvar));
     const auto c = t * t - linalg::dot(var, var);
 
-    if (linalg::constexpr_abs(a) <= eps)
-      alpha = b < T(0) ? -c / b : alpha;
-    else {
-      const auto disc = b * b - T(4) * a * c;
-      if (disc >= T(0)) {
-        const auto s = linalg::constexpr_sqrt_safe(disc);
-        const auto r1 = (T(-1) * b - s) / (T(2) * a);
-        const auto r2 = (T(-1) * b + s) / (T(2) * a);
-        const auto low = std::min(r1, r2);
-        const auto high = std::max(r1, r2);
+    if (linalg::constexpr_abs(a) <= eps) {
+      if (b < T(0)) alpha = std::min(alpha, -c / b);
+    } else {
+      const T disc = b * b - T(4) * a * c;
+      if (disc > T(0)) {
+        const T s = linalg::constexpr_sqrt_safe(disc);
+        const T inv2a = T(1) / (T(2) * a);
+        const T r1 = (-b - s) * inv2a;
+        const T r2 = (-b + s) * inv2a;
 
-        // Determine which root is the boundary you hit starting from alpha=0
+        /// (dakre) take smallest positive root (first boundary hit from
+        /// alpha=0)
         T hit = T(1);
-
-        if (a > T(0)) {
-          // feasible near 0 is outside the root interval; boundary is the
-          // smaller positive root
-          if (high <= T(0))
-            hit = T(1);  // both roots nonpositive -> no hit for alpha>0
-          else if (low > T(0))
-            hit = low;  // both positive -> first hit at low
-          else
-            hit = high;  // lo <= 0 < hi -> first hit at high
-        } else {         // a < 0
-          // feasible near 0 is between roots; hi should be positive boundary
-          if (high > T(0))
-            hit = high;
-          else
-            hit = T(1);
-        }
+        if (r1 > T(0)) hit = std::min(hit, r1);
+        if (r2 > T(0)) hit = std::min(hit, r2);
 
         alpha = std::min(alpha, hit);
       }
@@ -198,6 +197,9 @@ struct SecondOrderCone
 
     /// (dakre) ensure t + alpha dt > 0
     if (dt < T(0)) alpha_t = std::min(alpha_t, -t / dt);
+
+    /// (dakre) clamp alpha [0, 1]
+    alpha = std::max(T(0), std::min(T(1), alpha));
 
     return eta * std::min(alpha, alpha_t);
   }
