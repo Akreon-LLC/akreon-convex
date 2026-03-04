@@ -30,8 +30,7 @@ namespace linalg {
  * L(x) : J -> J... (linear op)
  * x \circ y -> J x J -> J... (bilinear map)
  */
-template <SquareMatrixLike JxJ, typename Circ,
-          DifferentialType = DifferentialType::PUSHFORWARD>
+template <SquareMatrixLike JxJ, typename Circ>
 struct QuadraticRep {
   /// @brief extract type & sizes
   using T = mat_type_t<JxJ>;
@@ -49,7 +48,8 @@ struct QuadraticRep {
    * @brief apply
    *
    * P(x)y = 2L(x)^2y - L(x^2)y
-   * P(x)y = 2 x circ (x circ y) - (x circ x) circ y
+   * = 2 L(x) L(x) y - L(x^2) y
+   * = 2 x circ (x circ y) - (x circ x) circ y
    *
    * @param y \in J
    *

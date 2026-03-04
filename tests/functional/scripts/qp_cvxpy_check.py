@@ -5,15 +5,20 @@ import numpy as np
 import cvxpy as cp
 
 
-def main() -> None:
-    # Matches tests/unit/pd_ipm_test.cpp "Minimal QP 2 Vars" setup:
-    # min [1,1]^T x  s.t. ||x - [3,1]||_2 <= 1
-    c_center = np.array([3.0, 1.0], dtype=float)
+def prob1() -> None:
+    """prob1
+    min. w^T x
+    s.t. ||x - c||_2 <= 1
+    w = [1, 1]
+    b = [3, 1]
+    """
+    print("***problem 1***")
+    c = np.array([3.0, 1.0], dtype=float)
     r = 1.0
     w = np.array([1.0, 1.0], dtype=float)
 
     x = cp.Variable(2)
-    soc = cp.SOC(r, x - c_center)
+    soc = cp.SOC(r, x - c)
     prob = cp.Problem(cp.Minimize(w @ x), [soc])
     obj = prob.solve(verbose=False)
 
@@ -22,7 +27,7 @@ def main() -> None:
     print(f"objective: {obj:.16g}")
     print(f"x*: {x.value}")
 
-    primal_violation = np.linalg.norm(x.value - c_center) - r
+    primal_violation = np.linalg.norm(x.value - c) - r
     print(f"primal_violation ||x-c||-r: {primal_violation:.3e}")
 
     # CVXPY SOC dual shape: [lambda_t, lambda_x]
@@ -38,8 +43,8 @@ def main() -> None:
     print(f"||rd||2: {np.linalg.norm(rd):.3e}")
 
     # Smooth KKT check for original norm-constraint form
-    norm_term = np.linalg.norm(x.value - c_center)
-    grad_norm = (x.value - c_center) / max(norm_term, 1e-15)
+    norm_term = np.linalg.norm(x.value - c)
+    grad_norm = (x.value - c) / max(norm_term, 1e-15)
     stationarity = w + lam_t * grad_norm
     complementarity = lam_t * (norm_term - r)
     print(f"lambda: {lam_t:.16g}")
@@ -48,5 +53,27 @@ def main() -> None:
     print(f"complementarity: {complementarity:.3e}")
 
 
+def prob2() -> None:
+    """prob1
+    min. c^T x
+    s.t. ||x||_2 <= 1
+    c = [1, 1]
+    """
+    print("***problem 2***")
+    r = 1.0
+    w = np.array([1.0, 1.0], dtype=float)
+
+    x = cp.Variable(2)
+    l2 = cp.norm(x, 2) <= r
+    prob = cp.Problem(cp.Minimize(w @ x), [l2])
+    obj = prob.solve(verbose=False)
+
+    print(f"status: {prob.status}")
+    print(f"solver: {prob.solver_stats.solver_name}")
+    print(f"objective: {obj:.16g}")
+    print(f"x*: {x.value}")
+
+
 if __name__ == "__main__":
-    main()
+    prob1()
+    prob2()

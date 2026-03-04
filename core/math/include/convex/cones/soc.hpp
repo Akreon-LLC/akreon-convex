@@ -208,7 +208,9 @@ struct SecondOrderCone
   /**
    * @brief hessian
    *
-   * F''(w) -> pushforward op same style as R^n_+
+   * w = X^{1/2} (X^{1/2} S X^{1/2})^{-1/2} X^{1/2}
+   * PSD congruence map X^{1/2} S X^{1/2} \equiv quad rep P(x^{1/2}) y for SOC
+   * then another congruence map X^{1/2} inner X^{1/2} \equiv same quad rep
    *
    * w = P(x^{1/2})(P(x^{-1/2})y)^{1/2}
    *
@@ -222,6 +224,10 @@ struct SecondOrderCone
    * F(w) = F(x,t) = -log det(w)
    * F'(w) = -w^{-1}
    * F''(w) = P(w^{-1})
+   *
+   * F''(w) x = P(w^{-1}) x
+   *
+   * P(w)y = x
    *
    * let z = w^{-1}
    * P(z) = 2L(z)^2 - L(z^2)
@@ -267,7 +273,7 @@ struct SecondOrderCone
   /**
    * @brief w (self-scaled point)
    *
-   * w = P(x^{1/2})(P(x^{-1/2})y)^{1/2}
+   * w = X^{1/2}(X^{1/2} S X^{1/2})^{−1/2} X^{1/2}
    *
    * Euclidean Jordan Algebra
    * P(x) = 2L(x)^2 - L(x^2)
@@ -279,12 +285,7 @@ struct SecondOrderCone
    * x = lam1 c1 + lam2 c2... c1 & c2 are idempotents (rank-1 dir updates)
    * where x^{1/2} = \sqrt{lam1}c1 + \sqrt{lam2}c2
    *
-   * let w = P(x^{1/2})z
-   * let z = (P(x^{-1/2})y)^{1/2}
-   *
-   * z = sqrt(2 x^{-1/2} \circ (x^{-1/2} \circ y) - (x^{-1/2} \circ x^{-1/2})
-   * \circ y)
-   * w = 2 x^{1/2} \circ (x^{1/2} \circ z) - (x^{1/2} \circ x^{1/2}) \circ z
+   * w = P(x^{1/2})(P(x^{1/2})y)^{-1/2}
    *
    * @param x \in K
    * @param y \in K^*
@@ -293,17 +294,12 @@ struct SecondOrderCone
    */
   constexpr auto w_impl(const Slack& x, const Slack& y) const {
     const auto x_sqrt = sqrt(x);
-    const auto x_sqrt_inv = inv(x_sqrt);
+    linalg::QuadraticRep<HessianMat, SOCCirc<Slack>> P(x_sqrt);
 
-    SOCCirc<Slack> circ;
+    const auto b = P.apply(y);
+    const auto inner = inv(sqrt(b));
 
-    const auto z = T(2) * circ(x_sqrt_inv, circ(x_sqrt_inv, y)) -
-                   circ(circ(x_sqrt_inv, x_sqrt_inv), y);
-    const auto z_sqrt = sqrt(z);
-
-    const auto w = T(2) * circ(x_sqrt, circ(x_sqrt, z_sqrt)) -
-                   circ(circ(x_sqrt, x_sqrt), z_sqrt);
-    return w;
+    return P.apply(inner);
   }
 
   /**
@@ -342,7 +338,6 @@ struct SecondOrderCone
            linalg::constexpr_ln_safe(det_y, eps);
   }
 
- private:
   /**
    * @brief sqrt
    *
@@ -393,8 +388,9 @@ struct SecondOrderCone
     Slack adj_v;
     for (size_t i = 0; i < M - 1; ++i) adj_v(i) = T(-1) * v(i);
     adj_v(M - 1) = t;
-    auto div = std::max(t * t - linalg::dot(v, v), eps);
-    return (T(1) / div) * adj_v;
+    auto det = t * t - linalg::dot(v, v);
+    AK_ASSERT(det > T(0) && "determinant must be pos");
+    return (T(1) / det) * adj_v;
   }
 
   /**

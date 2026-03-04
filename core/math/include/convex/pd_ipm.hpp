@@ -342,7 +342,7 @@ struct PrimalDualIPM {
       if (sigma < T(0) || std::isnan(sigma))
         sigma = T(1);
       else {
-        sigma = std::max(eps, std::min(sigma, T(1)));
+        sigma = std::max(T(0), std::min(sigma, T(1)));
         if (!(dual_feas && primal_feas)) sigma = std::min(sigma, sigma_floor);
       }
 

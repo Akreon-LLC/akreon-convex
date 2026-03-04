@@ -53,7 +53,7 @@ template <SquareMatrixLike Mat>
 struct LDL;
 
 /// @brief forward declaration of P(x) / P(x^{-1})
-template <SquareMatrixLike Mat, typename Circ, DifferentialType Type>
+template <SquareMatrixLike Mat, typename Circ>
 struct QuadraticRep;
 
 /// @brief type traits definition for linear operator (subspace of Rn)
@@ -117,8 +117,8 @@ struct space_traits<LDL<Mat>> {
 };
 
 /// @brief type traits definition for P(x) (subspace of J)
-template <SquareMatrixLike Mat, typename Circ, DifferentialType Type>
-struct space_traits<QuadraticRep<Mat, Circ, Type>> {
+template <SquareMatrixLike Mat, typename Circ>
+struct space_traits<QuadraticRep<Mat, Circ>> {
   using value_type = mat_type_t<Mat>;
   using Point = Mat;
 
@@ -181,8 +181,8 @@ struct mat_traits<LDL<Mat>> {
 };
 
 /// @brief mat type traits definition for P(x)
-template <SquareMatrixLike Mat, typename Circ, DifferentialType Type>
-struct mat_traits<QuadraticRep<Mat, Circ, Type>> {
+template <SquareMatrixLike Mat, typename Circ>
+struct mat_traits<QuadraticRep<Mat, Circ>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t ROWS = mat_rows_v<Mat>;
   static constexpr size_t COLS = mat_cols_v<Mat>;
@@ -244,8 +244,8 @@ struct vec_traits<LDL<Mat>> {
 };
 
 /// @brief vec type traits for quadratic rep matrices
-template <SquareMatrixLike Mat, typename Circ, DifferentialType Type>
-struct vec_traits<QuadraticRep<Mat, Circ, Type>> {
+template <SquareMatrixLike Mat, typename Circ>
+struct vec_traits<QuadraticRep<Mat, Circ>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t SIZE = N * N;

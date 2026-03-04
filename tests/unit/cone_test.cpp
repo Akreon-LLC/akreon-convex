@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
+#include <random>
 
 #include "math.hpp"
 #include "unit_test_helpers.hpp"
@@ -120,6 +121,62 @@ TEST_CASE("Test SOC", "[cone_test]") {
     STATIC_REQUIRE(circ(x, soc.e()) == x);
     STATIC_REQUIRE(soc.circ(x, soc.e()) == x);
     STATIC_REQUIRE(soc.circ(soc.e(), x) == x);
+  }
+
+  SECTION("Stress soc w/H on random interior points") {
+    using Slack = Vectord<4>;
+    constexpr SecondOrderCone<Slack> soc;
+    constexpr auto zero = Slack{};
+    constexpr auto l2 = L2<Slack>();
+
+    auto make_soc_point = [](std::mt19937& rng) {
+      std::uniform_real_distribution<double> coord_dist(-2.0, 2.0);
+      std::uniform_real_distribution<double> margin_dist(0.05, 2.0);
+
+      Slack x{};
+      for (size_t i = 0; i < 3; ++i) x(i) = coord_dist(rng);
+
+      Vectord<3> v{x(0), x(1), x(2)};
+      x(3) = L2<Vectord<3>>()(v) + margin_dist(rng);
+      return x;
+    };
+
+    std::mt19937 rng(0xC0FFEE);
+    constexpr size_t trials = 512;
+    constexpr double tol = 1e-5;
+
+    for (size_t i = 0; i < trials; ++i) {
+      const auto x = make_soc_point(rng);
+      const auto y = make_soc_point(rng);
+
+      REQUIRE(soc.in_cone(x));
+      REQUIRE(soc.in_dual_cone(y));
+
+      const auto w = soc.w(x, y);
+      REQUIRE(soc.in_cone(w));
+      REQUIRE(soc.in_dual_cone(w));
+
+      REQUIRE(l2(x - soc.inv(soc.inv(x))) < eps);
+      REQUIRE(l2(x - soc.circ(soc.sqrt(x), soc.sqrt(x))) < eps);
+      REQUIRE(l2(soc.circ(x, soc.inv(x)) - soc.e()) < eps);
+
+      const auto x_eigs = soc.eigs(x);
+      const auto det = std::get<0>(x_eigs) * std::get<1>(x_eigs);
+      const auto xv = std::get<0>(splice<3>(x));
+      REQUIRE(constexpr_abs(det - (x(3) * x(3) - dot(xv, xv))) < eps);
+
+      const auto Hw = soc.H(x, y);
+      REQUIRE(l2(Hw.apply(zero)) < tol);
+
+      QuadraticRep<Matrixd<4, 4>, SOCCirc<Slack>> P(w);
+      REQUIRE(l2(x - P.apply(y)) < eps);
+
+      QuadraticRep<Matrixd<4, 4>, SOCCirc<Slack>> P_inv(soc.inv(w));
+      REQUIRE(l2(y - P_inv.apply(x)) < eps);
+
+      const auto hx = Hw.apply(x);
+      REQUIRE(l2(hx - y) <= eps);
+    }
   }
 }
 

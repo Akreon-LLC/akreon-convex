@@ -199,15 +199,17 @@ class ConvexProblem {
     } else if constexpr (is_index_type_v<Atom>) {
       const auto cb = builder.cb;
       static constexpr size_t AugN =
-          linalg::mat_cols_v<decltype(builder.coord_map.linear_part())>;
+          linalg::mat_cols_v<decltype(cb.map.linear_part())>;
       linalg::Matrix<T, 1, AugN> c{};
       auto b = builder.coord_map.translation()(0) + atom.map.translation()(0);
-      static constexpr size_t N = linalg::space_dim_v<conic::builder_dom_t<Builder>>;
-      for (size_t i = 0; i < N; ++i) c(0)(i) = atom.map.linear_part()(0)(i);
+      static constexpr size_t N =
+          linalg::space_dim_v<conic::builder_dom_t<Builder>>;
+      constexpr size_t CopyN = (N < AugN) ? N : AugN;
+      for (size_t i = 0; i < CopyN; ++i) c(0)(i) = atom.map.linear_part()(0)(i);
       const affine::AffineMap<decltype(c)> new_map(c, b);
       const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<Builder>, decltype(new_map),
-                           decltype(cb)>(new_map, cb);
+          conic::ConeBlockBuilder<conic::builder_dom_t<Builder>,
+                                  decltype(new_map), decltype(cb)>(new_map, cb);
       return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
           new_builder);
     } else {
@@ -215,8 +217,23 @@ class ConvexProblem {
       if constexpr (Tag == CurvatureType::CONCAVE) {
         static_assert(false, "Attempting to minimize a concave function");
       } else {
-        const auto new_builder =
+        const auto obj_builder =
             atom.template canonicalize<AtomType::CAP>(builder);
+        static constexpr size_t FullN =
+            linalg::mat_cols_v<decltype(obj_builder.cb.map.linear_part())>;
+        static constexpr size_t ObjN =
+            linalg::mat_cols_v<decltype(obj_builder.coord_map.linear_part())>;
+
+        linalg::Matrix<T, 1, FullN> c{};
+        constexpr size_t CopyN = (ObjN < FullN) ? ObjN : FullN;
+        for (size_t i = 0; i < CopyN; ++i)
+          c(0)(i) = obj_builder.coord_map.linear_part()(0)(i);
+
+        const auto b = obj_builder.coord_map.translation()(0);
+        const auto obj_map = affine::AffineMap<decltype(c)>(c, b);
+        const auto new_builder = conic::ConeBlockBuilder<
+            conic::builder_dom_t<decltype(obj_builder)>, decltype(obj_map),
+            decltype(obj_builder.cb)>(obj_map, obj_builder.cb);
         return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
             new_builder);
       }

@@ -115,9 +115,8 @@ struct SchurKKT {
    * @return S
    */
   template <typename Circ>
-  constexpr auto make(
-      const QuadraticRep<HessianMat, Circ, DifferentialType::PUSHFORWARD>& P,
-      const EqualityMat& F) const {
+  constexpr auto make(const QuadraticRep<HessianMat, Circ>& P,
+                      const EqualityMat& F) const {
     linalg::Matrix<T, M, N> G{};
     for (size_t i = 0; i < N; ++i) {
       const auto g = P.apply(get_col(F, i));
