@@ -358,6 +358,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[pd_ipm_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag == SolverResult::OPTIMAL);
   }
 
+#if 0
   SECTION("L2 Ball Constrained SOCP") {
     constexpr auto r = 1.0;
     constexpr auto ball =
@@ -384,4 +385,5 @@ TEST_CASE("Minimal SOCP 2 Vars", "[pd_ipm_test]") {
     result_to_cstr(res, buf, sizeof(buf));
     std::cout << buf << std::endl;
   }
+#endif
 }

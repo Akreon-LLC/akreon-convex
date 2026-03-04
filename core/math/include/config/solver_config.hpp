@@ -13,6 +13,7 @@
 #pragma once
 
 #include "linalg/vector/algebra_traits.hpp"
+#include "linalg/vector/algebra_util.hpp"
 
 namespace config {
 /**
@@ -40,8 +41,9 @@ struct PrimalDualIPMConfig {
   T primal_feas_tol{1e-5};     ///< tolerance for primal feasbility
   T dual_feas_tol{1e-5};       ///< tolerance for dual feasbility
   T duality_gap_tol{1e-3};     ///< tolerance for complementarity
-  T Delta{5};  ///< marginal increase of neighborhood around central path
-               ///< (dimensinless
+  T Delta{linalg::constexpr_ln_safe(T(2)) *
+          10};  ///< marginal increase of neighborhood around central path
+                ///< (dimensinless
 };
 
 /**

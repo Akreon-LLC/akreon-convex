@@ -248,10 +248,10 @@ struct PrimalDualIPM {
   static constexpr T sigma_floor{0.1};
 
   /// @brief minimum acceptable mu predictor correct
-  static constexpr T eps{1e-12};
+  static constexpr T eps{std::numeric_limits<T>::min()};
 
   /// @brief beta F(\beta) neighborhood of central path (within feasibility)
-  static constexpr T beta{0.3};
+  static constexpr T beta{1 - linalg::constexpr_ln_safe(T(2))};
 
   /**
    * @brief CTOR
