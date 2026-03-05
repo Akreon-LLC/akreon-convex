@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "convex/convex_traits.hpp"
 #include "convex/cone_block_builder.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
 
@@ -100,9 +100,7 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
    *
    * @return result
    */
-  constexpr std::optional<T> operator()(const PointT& x) const {
-    return eval(x);
-  }
+  constexpr T operator()(const PointT& x) const { return eval(x); }
 
   /**
    * @brief eval impl
@@ -111,8 +109,9 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
    *
    * @return y \in R_++ or R_--
    */
-  constexpr std::optional<T> eval(const PointT& x) const {
-    if (x(0) < T(0) || x(1) < T(1)) return std::nullopt;
+  constexpr T eval(const PointT& x) const {
+    AK_ASSERT(x(0) >= T(0) && x(1) >= T(1) &&
+              "Invalid domain for harmonic mean");
 
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
@@ -223,7 +222,7 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                         decltype(coord_map_up), decltype(child_cb)>(
+                                decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
     const auto rsoc = conic::RotatedSecondOrderCone<linalg::Vector<T, N + 1>>();
     const auto cones = std::make_tuple(rsoc);

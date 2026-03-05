@@ -206,15 +206,15 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
  */
 TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
   using Space = Matrixd<1, 2>;
-  using Singleton = Matrixd<1, 1>;
   constexpr auto x = Variable<FreeVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto r = 1.0;
+  constexpr Vectord<2> c{3.0, 1.0};
 
   constexpr auto rel_tol = 2.5e-3;
+  constexpr Vectord<2> x_exp{2.29289322, 0.29289322};
 
   SECTION("Min c^T x s.t. L2 ball") {
-    constexpr Vectord<2> c{3.0, 1.0};
     constexpr auto ball =
         NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L2>(c, r, x);
     constexpr auto prob_constr = prob_init.in_set(ball);
@@ -251,17 +251,20 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    constexpr Vectord<2> x_exp{2.29289322, 0.29289322};
     STATIC_REQUIRE(constexpr_abs(res.z(0) - x_exp(0)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.z(1) - x_exp(1)) < rel_tol);
   }
 
+  using Singleton = Matrixd<1, 1>;
   SECTION("Min c^T x s.t. ||x||<=1") {
     constexpr Vectord<2> weights{1.0, 1.0};
+    constexpr auto x_trans = x.add(Vectord<2>{-c(0), -c(1)});
 
     constexpr auto norm =
-        Norm<NormMeta<Space, Singleton>, decltype(x), L2<Vectord<2>>>(x);
-    constexpr auto prob_constr = prob_init.leq(norm, r);
+        Norm<NormMeta<Space, Singleton>, decltype(x), L2<Vectord<2>>>(x_trans);
+    constexpr auto leq =
+        Inequality<InequalityType::LEQ, decltype(norm), decltype(r)>(norm, r);
+    constexpr auto prob_constr = prob_init.add_constraint(leq);
 
     constexpr auto cx = weighted_sum(weights, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
@@ -276,10 +279,10 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
 
     constexpr auto F_mat = mat_traits<Matrixd<4, 3>>();
     constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0);
+        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0);
     STATIC_REQUIRE(all_equal(F, F_exp));
 
-    constexpr Vectord<4> g_exp{0.0, 0.0, 0.0, 1.0};
+    constexpr Vectord<4> g_exp{-c(0), -c(1), 0.0, 1.0};
     constexpr auto g = prob_min.constraint_map().translation();
     STATIC_REQUIRE(vec_size_v<decltype(g)> == 4);
     STATIC_REQUIRE(g == g_exp);
@@ -288,13 +291,11 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
 
-    constexpr Vectord<2> x_exp{-0.70710678, -0.70710678};
     STATIC_REQUIRE(constexpr_abs(res.z(0) - x_exp(0)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.z(1) - x_exp(1)) < rel_tol);
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
-    std::cout << res.num_iter << std::endl;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);

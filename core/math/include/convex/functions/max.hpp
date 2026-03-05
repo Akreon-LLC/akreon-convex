@@ -98,7 +98,7 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
    *
    * @return result
    */
-  constexpr std::optional<T> operator()(const PointT& x) const {
+  constexpr T operator()(const PointT& x) const {
     return eval(x);
   }
 
@@ -109,7 +109,7 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
    *
    * @return y \in R
    */
-  constexpr std::optional<T> eval(const PointT& x) const {
+  constexpr T eval(const PointT& x) const {
     T mx(0);
     std::for_each(x.begin(), x.end(), [&mx](const auto& pt) {
       if (mx < pt) mx = pt;

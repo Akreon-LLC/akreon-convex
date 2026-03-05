@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "convex/convex_traits.hpp"
 #include "convex/cone_block_builder.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
 
@@ -98,9 +98,7 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
    *
    * @return result
    */
-  constexpr std::optional<T> operator()(const PointT& x) const {
-    return eval(x);
-  }
+  constexpr T operator()(const PointT& x) const { return eval(x); }
 
   /**
    * @brief evaluation impl
@@ -109,7 +107,7 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
    *
    * @return y \in R
    */
-  constexpr std::optional<T> eval(const PointT& x) const {
+  constexpr T eval(const PointT& x) const {
     T prod(1);
     std::for_each(x.begin(), x.end(), [&](const auto& pt) { prod *= pt; });
     const auto alpha = lift_map.linear_part()(0)(0);
@@ -209,7 +207,7 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                         decltype(coord_map_up), decltype(child_cb)>(
+                                decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
 
     const linalg::vec_traits<linalg::Vector<T, N>> vec_t;

@@ -26,7 +26,7 @@ template <typename T>
 using LiftedVarBias = linalg::Vector<T, 1>;
 
 /// @brief Atom category used by canonicalization and DCP checks.
-enum struct AtomType : uint8_t { VAR = 0, INDEX, FN, SET, ADD, CAP, INEQ };
+enum struct AtomType : uint8_t { VAR = 0, INDEX, FN, SET, ADD, CAP };
 
 /// @brief Sign annotation attached to domains/codomains.
 enum struct SignType : uint8_t {
@@ -47,8 +47,9 @@ enum struct CurvatureType : uint8_t { AFFINE = 0, CONVEX, CONCAVE };
 /// @brief Monotonicity annotation for function atoms.
 enum struct MonotonicityType : uint8_t { UNKNOWN = 0, NONDEC, NONINC };
 
-/// @brief Constraint operator kinds when building a problem.
-enum struct ConstraintType : uint8_t { EQ = 0, LEQ, GEQ, IN_SET };
+/// @brief InequalityType for inequality atom.
+enum struct InequalityType : uint8_t { EQ = 0, LEQ, GEQ };
+
 /// @brief Problem construction lifecycle stage.
 enum struct StageType : uint8_t { INIT = 0, IN_PROGRESS, PROBLEM_SET };
 
@@ -244,7 +245,7 @@ struct Intersection;
 
 /// @brief forward declaration of convex problem
 template <conic::BuilderLike Builder, StageType Stage>
-class ConvexProblem;
+struct ConvexProblem;
 
 /// @brief problem type traits
 template <typename Prob>
@@ -454,6 +455,7 @@ template <linalg::RnSpace Dom, linalg::RnSpace Codom>
 using SumMeta =
     ConvexAtomMeta<SumDom<Dom>, SumCodom<Codom>, CurvatureType::AFFINE>;
 
+/// @brief type traits for sum
 template <linalg::RnSpace Dom, linalg::RnSpace Codom, typename... Cs>
 struct atom_traits<Sum<SumMeta<Dom, Codom>, Cs...>> {
   using ConvexMeta = SumMeta<Dom, Codom>;
@@ -474,6 +476,7 @@ using IntersectionMeta =
     ConvexAtomMeta<IntersectionDom<Space>, IntersectionCodom<Space>,
                    CurvatureType::CONVEX>;
 
+/// @brief type traits for intersection
 template <linalg::RnSpace Space, typename... Cs>
 struct atom_traits<Intersection<IntersectionMeta<Space>, Cs...>> {
   using ConvexMeta = IntersectionMeta<Space>;
@@ -486,6 +489,10 @@ concept AtomLike = requires(const Atom& atom) {
   { atom.validate_domain() } -> std::convertible_to<void>;
   { atom.children };
 };
+
+/// @brief forward declaration of inequality
+template <InequalityType IType, AtomLike LHS, typename RHS>
+struct Inequality;
 
 /// @brief Extract metadata type from atom.
 template <AtomLike Atom>

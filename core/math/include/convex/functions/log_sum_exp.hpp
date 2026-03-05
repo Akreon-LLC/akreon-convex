@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "convex/convex_traits.hpp"
 #include "convex/cone_block_builder.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
 
@@ -96,9 +96,7 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
    *
    * @return result
    */
-  constexpr std::optional<T> operator()(const PointT& x) const {
-    return eval(x);
-  }
+  constexpr T operator()(const PointT& x) const { return eval(x); }
 
   /**
    * @brief eval impl
@@ -107,18 +105,17 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
    *
    * @return y \in R
    */
-  constexpr std::optional<T> eval(const PointT& x) const {
+  constexpr T eval(const PointT& x) const {
     T sum(0);
     std::for_each(x.begin(), x.end(),
                   [&](const auto& pt) { sum += linalg::constexpr_exp(pt); });
 
-    const auto res = linalg::constexpr_ln(sum);
+    const auto res = linalg::constexpr_ln_safe(sum);
 
     if constexpr (Tag == CurvatureType::CONVEX)
       return res;
     else {
-      if (!res.has_value()) return std::nullopt;
-      return T(-1) * res.value();
+      return T(-1) * res;
     }
   }
 
@@ -237,7 +234,7 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                         decltype(coord_map_up), decltype(child_cb)>(
+                                decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
 
     const auto exp_cone = conic::ExpCone<linalg::Vector<T, 3 * N>>();

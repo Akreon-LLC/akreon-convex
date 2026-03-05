@@ -13,9 +13,8 @@
 #pragma once
 
 #include "config/assert.hpp"
-
-#include "convex/convex_traits.hpp"
 #include "convex/cone_block_builder.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
 
@@ -69,7 +68,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
         lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
     for (const auto& x : p) {
       AK_ASSERT(x < T(0) &&
-             "KLDivergence expects each fixed p entry to satisfy x < 0");
+                "KLDivergence expects each fixed p entry to satisfy x < 0");
       (void)x;
     }
   }
@@ -87,7 +86,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
       : ConvexBase(child_in), p(p_in), lift_map(map_in) {
     for (const auto& x : p) {
       AK_ASSERT(x < T(0) &&
-             "KLDivergence expects each fixed p entry to satisfy x < 0");
+                "KLDivergence expects each fixed p entry to satisfy x < 0");
       (void)x;
     }
   }
@@ -109,9 +108,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
    *
    * @return result
    */
-  constexpr std::optional<T> operator()(const PointT& q) const {
-    return eval(q);
-  }
+  constexpr T operator()(const PointT& q) const { return eval(q); }
 
   /**
    * @brief eval impl
@@ -121,10 +118,10 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
    *
    * @return y \in R
    */
-  constexpr std::optional<T> eval(const PointT& q) const {
+  constexpr T eval(const PointT& q) const {
     T res(0);
     for (size_t i = 0; i < N; ++i) {
-      if (p(i) < T(0) || q(i) <= T(0)) return std::nullopt;
+      AK_ASSERT(p(i) >= T(0) && q(i) > T(0) && "Invalid domain for kl div");
       res += p(i) * linalg::constexpr_ln(p(i) / q(i)).value();
     }
 
@@ -241,7 +238,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                         decltype(coord_map_up), decltype(child_cb)>(
+                                decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
 
     const auto exp_cone = conic::ExpCone<linalg::Vector<T, 3 * N>>();

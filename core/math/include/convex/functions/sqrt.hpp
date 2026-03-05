@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "convex/convex_traits.hpp"
 #include "convex/cone_block_builder.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
 
@@ -98,7 +98,7 @@ struct Sqrt : Atom<Meta, Sqrt<Meta, Child>, Child> {
    *
    * @return result
    */
-  constexpr std::optional<T> operator()(const PointT& x) const {
+  constexpr T operator()(const PointT& x) const {
     return eval(x);
   }
 
@@ -109,10 +109,10 @@ struct Sqrt : Atom<Meta, Sqrt<Meta, Child>, Child> {
    *
    * @return sqrt(x)
    */
-  constexpr std::optional<T> eval(const PointT& x) const {
+  constexpr T eval(const PointT& x) const {
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
-    if (x(0) < T(0)) return std::nullopt;
+    AK_ASSERT(x(0) >= T(0) && "sqrt atom expects R+ input");
 
     if constexpr (Tag == CurvatureType::CONCAVE) {
       return alpha * linalg::constexpr_sqrt_safe(x(0)) + beta;
@@ -209,7 +209,7 @@ struct Sqrt : Atom<Meta, Sqrt<Meta, Child>, Child> {
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                         decltype(coord_map_up), decltype(child_cb)>(
+                                decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
     const auto rsoc = conic::RotatedSecondOrderCone<linalg::Vector<T, 3>>();
     const auto cones = std::make_tuple(rsoc);

@@ -101,7 +101,7 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
    *
    * @return result
    */
-  constexpr std::optional<T> operator()(const PointT& x) const {
+  constexpr T operator()(const PointT& x) const {
     return eval(x);
   }
 
@@ -112,7 +112,7 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
    *
    * @return log(1 + exp(x))
    */
-  constexpr std::optional<T> eval(const PointT& x) const {
+  constexpr T eval(const PointT& x) const {
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)

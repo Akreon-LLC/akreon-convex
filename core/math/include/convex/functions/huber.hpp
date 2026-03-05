@@ -13,9 +13,8 @@
 #pragma once
 
 #include "config/assert.hpp"
-
-#include "convex/convex_traits.hpp"
 #include "convex/cone_block_builder.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
 
@@ -117,9 +116,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
    *
    * @return result
    */
-  constexpr std::optional<T> operator()(const PointT& x) const {
-    return eval(x);
-  }
+  constexpr T operator()(const PointT& x) const { return eval(x); }
 
   /**
    * @brief eval impl
@@ -128,7 +125,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
    *
    * @return y (scalar \in R)
    */
-  constexpr std::optional<T> eval(const PointT& x) const {
+  constexpr T eval(const PointT& x) const {
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
     if (linalg::constexpr_abs(x(0)) <= delta) {
@@ -262,7 +259,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                         decltype(coord_map_up), decltype(child_cb)>(
+                                decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     const auto rsoc = conic::RotatedSecondOrderCone<linalg::Vector<T, 3>>();

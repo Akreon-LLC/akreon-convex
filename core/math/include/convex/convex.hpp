@@ -49,3 +49,4 @@
 #include "sets/polyhedron.hpp"
 #include "sets/simplex.hpp"
 #include "variable.hpp"
+#include "inequality.hpp"

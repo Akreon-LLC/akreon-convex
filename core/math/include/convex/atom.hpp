@@ -12,17 +12,20 @@
 
 #pragma once
 
-#include "config/assert.hpp"
-
-#include <cassert>
-
-#include "convex_traits.hpp"
 #include "cone_block_builder.hpp"
+#include "config/assert.hpp"
+#include "convex_traits.hpp"
 
 namespace convex {
 
+/**
+ * @brief Atom CRTP
+ *
+ * Valid convex atomic object
+ */
 template <typename Meta, typename Derived, typename... Cs>
 struct Atom {
+  /// @brief extract alias & types
   using Domain = meta_dom_t<Meta>;
   using Codomain = meta_codom_t<Meta>;
   using T = dom_type_t<Domain>;
@@ -34,8 +37,17 @@ struct Atom {
   static constexpr SignType DomSign = dom_sign_v<Domain>;
   static constexpr SignType CodomSign = dom_sign_v<Codomain>;
 
+  /**
+   * @brief CTOR
+   * (empty)
+   */
   constexpr explicit Atom() { validate_domain(); }
 
+  /**
+   * @brief CTOR
+   *
+   * @param children (tuple)
+   */
   constexpr explicit Atom(const std::tuple<Cs...> child_in)
       : children(std::move(child_in)) {
     validate_domain();
@@ -58,8 +70,8 @@ struct Atom {
     const CurvatureType parent_curv = meta_curv_v<Meta>;
 
     AK_ASSERT((self().monotonicity() != MonotonicityType::UNKNOWN ||
-            child_curv == CurvatureType::AFFINE) &&
-           "Function with unknown monotonicity requires affine child");
+               child_curv == CurvatureType::AFFINE) &&
+              "Function with unknown monotonicity requires affine child");
 
     if (child_curv == CurvatureType::AFFINE ||
         parent_curv == CurvatureType::AFFINE)
@@ -93,10 +105,15 @@ struct Atom {
           (self().monotonicity() == MonotonicityType::NONINC &&
            child_curv == CurvatureType::CONVEX)));
     AK_ASSERT(dcp_composition_valid &&
-           "Function composition fails DCP compliance");
+              "Function composition fails DCP compliance");
     (void)dcp_composition_valid;
   }
 
+  /**
+   * @brief validate domain
+   *
+   * @return void
+   */
   constexpr void validate_domain() const {
     size_t num_convex = 0, num_concave = 0, num_affine = 0;
     auto validate_child = [&](const auto& child) {
@@ -117,44 +134,48 @@ struct Atom {
         switch (dom_sign) {
           case SignType::POS: {
             AK_ASSERT(child_sign == SignType::POS &&
-                   "Parent positive domain expects positive child codomain");
+                      "Parent positive domain expects positive child codomain");
             break;
           }
           case SignType::NONNEG: {
             AK_ASSERT((child_sign == SignType::POS ||
-                    child_sign == SignType::NONNEG) &&
-                   "Parent non-negative domain expects positive/non-negative child codomain");
+                       child_sign == SignType::NONNEG) &&
+                      "Parent non-negative domain expects "
+                      "positive/non-negative child codomain");
             break;
           }
           case SignType::NEG: {
             AK_ASSERT(child_sign == SignType::NEG &&
-                   "Parent negative domain expects negative child codomain");
+                      "Parent negative domain expects negative child codomain");
             break;
           }
           case SignType::NONPOS: {
             AK_ASSERT((child_sign == SignType::NONPOS ||
-                    child_sign == SignType::NEG) &&
-                   "Parent non-positive domain expects non-positive/negative child codomain");
+                       child_sign == SignType::NEG) &&
+                      "Parent non-positive domain expects "
+                      "non-positive/negative child codomain");
             break;
           }
           case SignType::PD: {
             AK_ASSERT(child_sign == SignType::PD &&
-                   "Parent PD domain expects PD child codomain");
+                      "Parent PD domain expects PD child codomain");
             break;
           }
           case SignType::PSD: {
-            AK_ASSERT((child_sign == SignType::PSD || child_sign == SignType::PD) &&
-                   "Parent PSD domain expects PSD/PD child codomain");
+            AK_ASSERT(
+                (child_sign == SignType::PSD || child_sign == SignType::PD) &&
+                "Parent PSD domain expects PSD/PD child codomain");
             break;
           }
           case SignType::ND: {
             AK_ASSERT(child_sign == SignType::ND &&
-                   "Parent ND domain expects ND child codomain");
+                      "Parent ND domain expects ND child codomain");
             break;
           }
           case SignType::NSD: {
-            AK_ASSERT((child_sign == SignType::NSD || child_sign == SignType::ND) &&
-                   "Parent NSD domain expects NSD/ND child codomain");
+            AK_ASSERT(
+                (child_sign == SignType::NSD || child_sign == SignType::ND) &&
+                "Parent NSD domain expects NSD/ND child codomain");
             break;
           }
           case SignType::FREE:
@@ -166,13 +187,13 @@ struct Atom {
 
       if constexpr (is_cap_type_v<decltype(self())>) {
         AK_ASSERT(is_set_type_v<decltype(child)> &&
-               "Intersection expects each child to be a set");
+                  "Intersection expects each child to be a set");
       }
 
       if constexpr (is_add_type_v<decltype(self())>) {
         /// (dakre) TODO add in minkowski sum
         AK_ASSERT(!is_set_type_v<decltype(child)> &&
-               "Minkowski sum is not supported for set children");
+                  "Minkowski sum is not supported for set children");
       }
 
       const CurvatureType& child_curv =
@@ -198,22 +219,35 @@ struct Atom {
             ((num_concave == N || num_concave + num_affine == N) &&
              num_convex == 0);
         AK_ASSERT(dcp_sum_valid &&
-               "Not dcp valid to sum convex with concave atoms");
+                  "Not dcp valid to sum convex with concave atoms");
         (void)dcp_sum_valid;
       }
     }
   }
 
+  /**
+   * @brief canonicalize
+   *
+   * @param builder
+   *
+   * @return canonicalized atom
+   */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
     return self().template canonicalize_impl<Type>(builder);
   }
 
+  /**
+   * @brief self
+   *
+   * @return derived object
+   */
   constexpr const Derived& self() const {
     return static_cast<const Derived&>(*this);
   }
 
-  std::tuple<Cs...> children;
+  /** @brief member vars*/
+  std::tuple<Cs...> children; ///< tuple of children
 };
 
 }  // namespace convex
