@@ -242,16 +242,16 @@ struct PrimalDualIPM {
                 "Problem is not set therefore cannot be solved");
 
   /// @brief damping param using for alpha steps in predictor corrector
-  static constexpr T rho{linalg::constexpr_ln_safe(T(2))};
+  static constexpr T rho{linalg::ln2_v<T>};
 
   /// @brief sigma floor (infeasible dont overcorrect from predictor)
-  static constexpr T sigma_floor{0.1};
+  static constexpr T sigma_floor{T(0.1) * linalg::ln2_v<T>};
 
   /// @brief minimum acceptable mu predictor correct
   static constexpr T eps{std::numeric_limits<T>::min()};
 
   /// @brief beta F(\beta) neighborhood of central path (within feasibility)
-  static constexpr T beta{1 - linalg::constexpr_ln_safe(T(2))};
+  static constexpr T beta{1 - linalg::ln2_v<T>};
 
   /**
    * @brief CTOR
@@ -295,7 +295,7 @@ struct PrimalDualIPM {
     const auto F = prob.constraint_map().linear_part();
     const auto K = prob.constraint_cones();
 
-    if (!prob.validate()) return;
+    AK_ASSERT(prob.validate() && "submitted problem is not valid!");
 
     auto& z = res.z;
     auto& x = res.x;
@@ -337,14 +337,9 @@ struct PrimalDualIPM {
       const auto mu_curr = mu(x, y, nu);
       const auto mu_aff = mu(x_aff, y_aff, nu);
 
-      /// (dakre) TODO make this a separate function
       auto sigma = linalg::constexpr_pow(mu_aff / mu_curr, 3);
-      if (sigma < T(0) || std::isnan(sigma))
-        sigma = T(1);
-      else {
-        sigma = std::max(T(0), std::min(sigma, T(1)));
-        if (!(dual_feas && primal_feas)) sigma = std::min(sigma, sigma_floor);
-      }
+      sigma = sigma < 0 ? T(1) : sigma;
+      if (primal_feas && dual_feas) sigma = std::min(sigma, sigma_floor);
 
       const auto mu_tgt = std::max(sigma * mu_curr, eps);
       const auto aff_scale_sq = std::get<0>(alpha_xy) * std::get<1>(alpha_xy);

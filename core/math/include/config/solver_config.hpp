@@ -20,7 +20,7 @@ namespace config {
  * (dakre) note increase constexpr steps / depth for # steps to increase here
  * for constexpr usage
  */
-#define PD_IPM_STEPS 256
+#define PD_IPM_STEPS 512 
 
 /**
  * @brief FactorConfig
@@ -36,29 +36,27 @@ struct FactorConfig {
  */
 template <linalg::FieldLike T>
 struct PrimalDualIPMConfig {
-  size_t steps{PD_IPM_STEPS};  ///< total number of iter
-  size_t backtrack_steps{64};  ///< total number of backtracking steps
-  T primal_feas_tol{1e-5};     ///< tolerance for primal feasbility
-  T dual_feas_tol{1e-5};       ///< tolerance for dual feasbility
-  T duality_gap_tol{1e-3};     ///< tolerance for complementarity
-  T Delta{linalg::constexpr_ln_safe(T(2)) *
-          10};  ///< marginal increase of neighborhood around central path
-                ///< (dimensinless
+  size_t steps{PD_IPM_STEPS};         ///< total number of iter
+  size_t backtrack_steps{64};         ///< total number of backtracking steps
+  T primal_feas_tol{1e-5};            ///< tolerance for primal feasbility
+  T dual_feas_tol{1e-5};              ///< tolerance for dual feasbility
+  T duality_gap_tol{1e-3};            ///< tolerance for complementarity
+  T Delta{linalg::ln2_v<T> * T(10)};  ///< marginal increase of neighborhood
+                                      ///< around central path (dimensinless
 };
 
 /**
  * @brief SolverResult
  */
 enum struct SolverResult : uint8_t {
-  INVALID = 0,
+  INFEASIBLE_OR_UNBOUNDED = 0,
   OPTIMAL,
   PRIMAL_FEASIBLE,
   DUAL_FEASIBLE,
   PRIMAL_DUAL_FEASIBLE,
   PRIMAL_OPTIMAL,
   DUAL_OPTIMAL,
-  INFEASIBLE_OPTIMAL,
-  INFEASIBLE_OR_UNBOUNDED
+  INFEASIBLE_OPTIMAL
 };
 
 }  // namespace config

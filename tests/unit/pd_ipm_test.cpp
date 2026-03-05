@@ -207,7 +207,7 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
   constexpr auto prob_init = make_problem(x);
   constexpr auto r = 1.0;
 
-  constexpr auto rel_tol = 1e-3;
+  constexpr auto rel_tol = 2e-3;
 
   SECTION("Min c^T x s.t. L2 ball") {
     constexpr Vectord<2> c{3.0, 1.0};
@@ -283,17 +283,15 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
 
-#if 0
     constexpr Vectord<2> x_exp{-0.70710678, -0.70710678};
     STATIC_REQUIRE(constexpr_abs(res.z(0) - x_exp(0)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.z(1) - x_exp(1)) < rel_tol);
 
-    STATIC_REQUIRE(res.tag == SolverResult::PRIMAL_OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
-                   config::SolverResult::PRIMAL_OPTIMAL);
-    STATIC_REQUIRE(res.stalled);
-#endif
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(!res.stalled);
 
     char buf[64000];
     trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));

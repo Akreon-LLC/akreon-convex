@@ -486,4 +486,8 @@ constexpr auto argsort_desc(const Vec& x) {
   return p;
 }
 
+/// @brief useful constant ln(2)
+template <FieldLike T>
+inline constexpr T ln2_v{linalg::constexpr_ln_safe(T(2))};
+
 }  // namespace linalg
