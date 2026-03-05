@@ -244,8 +244,8 @@ struct PrimalDualIPM {
   /// @brief damping param using for alpha steps in predictor corrector
   static constexpr T rho{linalg::ln2_v<T>};
 
-  /// @brief sigma floor (infeasible dont overcorrect from predictor)
-  static constexpr T sigma_floor{T(0.1) * linalg::ln2_v<T>};
+  /// @brief sigma cap (feasible dont overcorrect from predictor)
+  static constexpr T sigma_cap{T(0.05) * linalg::ln2_v<T>};
 
   /// @brief minimum acceptable mu predictor correct
   static constexpr T eps{std::numeric_limits<T>::min()};
@@ -338,8 +338,7 @@ struct PrimalDualIPM {
       const auto mu_aff = mu(x_aff, y_aff, nu);
 
       auto sigma = linalg::constexpr_pow(mu_aff / mu_curr, 3);
-      sigma = sigma < 0 ? T(1) : sigma;
-      if (primal_feas && dual_feas) sigma = std::min(sigma, sigma_floor);
+      sigma = std::min(sigma_cap, std::max(T(1), sigma));
 
       const auto mu_tgt = std::max(sigma * mu_curr, eps);
       const auto aff_scale_sq = std::get<0>(alpha_xy) * std::get<1>(alpha_xy);

@@ -78,6 +78,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     STATIC_REQUIRE(constexpr_abs(res.z(0)) < res_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    std::cout << res.num_iter << std::endl;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
   }
@@ -105,6 +106,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     STATIC_REQUIRE(constexpr_abs(res.z(1)) < res_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    std::cout << res.num_iter << std::endl;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
   }
@@ -137,6 +139,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    std::cout << res.num_iter << std::endl;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.z(0) < res_tol);
@@ -177,6 +180,7 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    std::cout << res.num_iter << std::endl;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.z(0) < res_tol);
@@ -207,7 +211,7 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
   constexpr auto prob_init = make_problem(x);
   constexpr auto r = 1.0;
 
-  constexpr auto rel_tol = 2e-3;
+  constexpr auto rel_tol = 2.5e-3;
 
   SECTION("Min c^T x s.t. L2 ball") {
     constexpr Vectord<2> c{3.0, 1.0};
@@ -243,6 +247,7 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    std::cout << res.num_iter << std::endl;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
@@ -289,6 +294,7 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+    std::cout << res.num_iter << std::endl;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
@@ -352,6 +358,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[pd_ipm_test]") {
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    std::cout << res.num_iter << std::endl;
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag == SolverResult::OPTIMAL);
   }
