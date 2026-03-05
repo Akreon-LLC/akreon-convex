@@ -223,6 +223,23 @@ struct NonnegOrthantCone
   }
 
   /**
+   * @brief trace
+   *
+   * trace(x \circ y) = sum(x_i y_i)
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return x circ y
+   */
+  constexpr auto trace_impl(const Slack& x, const Slack& y) const {
+    const auto x_circ_y = circ_impl(x, y);
+    T res{};
+    for (size_t i = 0; i < M; ++i) res += x_circ_y(i);
+    return res;
+  }
+
+  /**
    * @brief gamma_F
    *
    * @param x \in K

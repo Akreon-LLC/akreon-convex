@@ -194,6 +194,21 @@ struct Cone {
   }
 
   /**
+   * @brief trace
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return tr(x \circ y)
+   */
+  constexpr auto trace(const Slack& x, const Slack& y) const {
+    static_assert(
+        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
+        "Nonsymmetric cone is not equipped with Jordan Algebras");
+    return self().trace_impl(x, y);
+  }
+
+  /**
    * @brief \gamma_F (functional proximity neighborhood metric)
    *
    * @param x \in K

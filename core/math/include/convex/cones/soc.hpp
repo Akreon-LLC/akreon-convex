@@ -329,6 +329,20 @@ struct SecondOrderCone
   }
 
   /**
+   * @brief trace
+   *
+   * trace(x \circ y) = last elem
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return (x circ y)(-1)
+   */
+  constexpr auto trace_impl(const Slack& x, const Slack& y) const {
+    return circ_impl(x, y)(M - 1);
+  }
+
+  /**
    * @brief gamma_F
    *
    * @param x \in K
@@ -343,7 +357,7 @@ struct SecondOrderCone
     const auto det_x = std::get<0>(lambdas_x) * std::get<1>(lambdas_x);
     const auto det_y = std::get<0>(lambdas_y) * std::get<1>(lambdas_y);
 
-    const auto tr_xy = circ_impl(x, y)(M - 1);
+    const auto tr_xy = trace_impl(x, y);
 
     return nu_impl() * linalg::constexpr_ln_safe(tr_xy) -
            linalg::constexpr_ln_safe(det_x) - linalg::constexpr_ln_safe(det_y);

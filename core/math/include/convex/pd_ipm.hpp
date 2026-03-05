@@ -158,7 +158,7 @@ struct PredictorCorrector {
    */
   template <size_t idx = 0, size_t Start = 0>
   constexpr Var corrector(Var&& pz_rhs, const T& mu_tgt, const T& aff_scale_sq,
-                          const ConeVar& dx_aff, const ConeVar& dy_aff,
+                          const ConeVar& px_aff, const ConeVar& py_aff,
                           const auto& K, const auto& S_inv, const Mat& F,
                           const ConeVar& rp, const Var& rd, const ConeVar& x,
                           const ConeVar& y, Var& pz, ConeVar& px,
@@ -173,17 +173,17 @@ struct PredictorCorrector {
 
       if (conic::is_zoc_v<decltype(Ki)>)
         return corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, aff_scale_sq,
-                                       dx_aff, dy_aff, K, S_inv, F, rp, rd, x,
+                                       px_aff, py_aff, K, S_inv, F, rp, rd, x,
                                        y, pz, px, py);
 
       using ConePoint = linalg::Vector<T, End - Start>;
-      ConePoint xk{}, yk{}, dx_aff_k{}, dy_aff_k{}, rpk{};
+      ConePoint xk{}, yk{}, px_aff_k{}, py_aff_k{}, rpk{};
 
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         xk(j) = x(i);
         yk(j) = y(i);
-        dx_aff_k(j) = dx_aff(i);
-        dy_aff_k(j) = dy_aff(i);
+        px_aff_k(j) = px_aff(i);
+        py_aff_k(j) = py_aff(i);
         rpk(j) = rp(i);
       }
 
@@ -192,12 +192,12 @@ struct PredictorCorrector {
       const auto F_blk_T = linalg::transpose(F_blk);
 
       ConePoint rhs_c =
-          aff_scale_sq * Ki.circ(dx_aff_k, dy_aff_k) - mu_tgt * Ki.e();
+          aff_scale_sq * Ki.circ(px_aff_k, py_aff_k) - mu_tgt * Ki.e();
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 
       const auto new_pz_rhs = corrector<idx + 1, End>(
-          std::move(pz_rhs), mu_tgt, aff_scale_sq, dx_aff, dy_aff, K, S_inv, F,
+          std::move(pz_rhs), mu_tgt, aff_scale_sq, px_aff, py_aff, K, S_inv, F,
           rp, rd, x, y, pz, px, py);
 
       if constexpr (idx + 1 == NumCones) pz = S_inv.solve(new_pz_rhs + rd);
@@ -246,9 +246,6 @@ struct PrimalDualIPM {
 
   /// @brief sigma cap (feasible dont overcorrect from predictor)
   static constexpr T sigma_cap{T(0.05) * linalg::ln2_v<T>};
-
-  /// @brief minimum acceptable mu predictor correct
-  static constexpr T eps{std::numeric_limits<T>::min()};
 
   /// @brief beta F(\beta) neighborhood of central path (within feasibility)
   static constexpr T beta{1 - linalg::ln2_v<T>};
@@ -327,8 +324,7 @@ struct PrimalDualIPM {
       auto rp_norm = linalg::L2<decltype(rp)>()(rp);
 
       /// (dakre) 3 - predictor step
-      pc.predictor(Var{}, K, ldl, F, T(0.5) * rp, T(0.5) * rd, x, y, pz_pred,
-                   px_pred, py_pred);
+      pc.predictor(Var{}, K, ldl, F, rp, rd, x, y, pz_pred, px_pred, py_pred);
 
       /// (dakre) 4 - mehrotra centering
       auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px_pred, py_pred);
@@ -338,14 +334,15 @@ struct PrimalDualIPM {
       const auto mu_aff = mu(x_aff, y_aff, nu);
 
       auto sigma = linalg::constexpr_pow(mu_aff / mu_curr, 3);
-      sigma = std::min(sigma_cap, std::max(T(1), sigma));
+      sigma = std::clamp(sigma, T(0), T(1));
+      if (primal_feas && dual_feas) sigma = std::min(sigma, sigma_cap);
 
-      const auto mu_tgt = std::max(sigma * mu_curr, eps);
+      const auto mu_tgt = sigma * mu_curr;
       const auto aff_scale_sq = std::get<0>(alpha_xy) * std::get<1>(alpha_xy);
 
       /// (dakre) 5 - corrector step
       pc.corrector(Var{}, mu_tgt, aff_scale_sq, px_pred, py_pred, K, ldl, F,
-                   T(0.5) * rp, T(0.5) * rd, x, y, pz_corr, px_corr, py_corr);
+                   ConeVar{}, Var{}, x, y, pz_corr, px_corr, py_corr);
 
       /// (dakre) 6 - newton step
       const auto px = px_pred + px_corr;
@@ -356,11 +353,23 @@ struct PrimalDualIPM {
       alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
 
       /// (dakre) 8 - backtrack line search to acquire next iterate
-      const auto good_iter =
-          backtrack_iterates(alpha_xy, K, pz, px, py, z, x, y);
-      if (!good_iter) {
-        res.stalled = true;
-        break;
+      const auto z_next = z + std::get<0>(alpha_xy) * pz;
+      const auto x_next = x + std::get<0>(alpha_xy) * px;
+      const auto y_next = y + std::get<1>(alpha_xy) * py;
+
+      const auto mu_next = mu(x_next, y_next, nu);
+      const auto mu_growth = mu_next - mu_curr;
+      if (mu_growth > config.delta_mu_eps) {
+        const auto good_iter =
+            backtrack_iterates(alpha_xy, K, pz, px, py, z, x, y);
+        if (!good_iter) {
+          res.stalled = true;
+          break;
+        }
+      } else {
+        x = x_next;
+        y = y_next;
+        z = z_next;
       }
 
 #ifdef AKREON_DEBUG
@@ -600,8 +609,9 @@ struct PrimalDualIPM {
       for (size_t i = Start, j = 0; i < End; ++i, ++j)
         xk(j) = x(i), yk(j) = y(i);
 
+      const auto beta_limit = beta + config.Delta;
       bool rv = Ki.in_cone(xk) && Ki.in_dual_cone(yk) &&
-                Ki.gamma_F(xk, yk) < beta + config.Delta;
+                Ki.gamma_F(xk, yk) < beta_limit;
       return rv && check_functional_proximity<idx + 1, End>(K, x, y);
     }
   }

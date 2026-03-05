@@ -20,7 +20,7 @@ namespace config {
  * (dakre) note increase constexpr steps / depth for # steps to increase here
  * for constexpr usage
  */
-#define PD_IPM_STEPS 512 
+#define PD_IPM_STEPS 512
 
 /**
  * @brief FactorConfig
@@ -36,13 +36,13 @@ struct FactorConfig {
  */
 template <linalg::FieldLike T>
 struct PrimalDualIPMConfig {
-  size_t steps{PD_IPM_STEPS};         ///< total number of iter
-  size_t backtrack_steps{64};         ///< total number of backtracking steps
-  T primal_feas_tol{1e-5};            ///< tolerance for primal feasbility
-  T dual_feas_tol{1e-5};              ///< tolerance for dual feasbility
-  T duality_gap_tol{1e-3};            ///< tolerance for complementarity
-  T Delta{linalg::ln2_v<T> * T(10)};  ///< marginal increase of neighborhood
-                                      ///< around central path (dimensinless
+  size_t steps{PD_IPM_STEPS};  ///< total number of iter
+  size_t backtrack_steps{64};  ///< total number of backtracking steps
+  T primal_feas_tol{1e-5};     ///< tolerance for primal feasbility
+  T dual_feas_tol{1e-5};       ///< tolerance for dual feasbility
+  T duality_gap_tol{1e-3};     ///< tolerance for complementarity
+  T delta_mu_eps{1e-4};        ///< absolute mu-growth trigger for backtracking
+  T Delta{10 * linalg::ln2_v<T>};  ///< relative neighborhood around F(\Beta)
 };
 
 /**

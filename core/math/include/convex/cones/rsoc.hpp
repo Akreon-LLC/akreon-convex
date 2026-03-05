@@ -60,8 +60,8 @@ struct RotatedSecondOrderCone
   constexpr explicit RotatedSecondOrderCone() {
     const auto I = linalg::make_identity<T, M - 2>();
     Mat A{};
-    A = linalg::set_block<0, M - 2, 0, M - 2>(A,
-                                              linalg::constexpr_sqrt_safe(T(2)) * I);
+    A = linalg::set_block<0, M - 2, 0, M - 2>(
+        A, linalg::constexpr_sqrt_safe(T(2)) * I);
     A(M - 2)(M - 2) = T(1);
     A(M - 2)(M - 1) = T(-1);
     A(M - 1)(M - 2) = T(1);
@@ -232,6 +232,22 @@ struct RotatedSecondOrderCone
     const auto x_soc = map(x);
     const auto y_soc = dual_map(y);
     return inv_map(soc.circ(x_soc, y_soc));
+  }
+
+  /**
+   * @brief trace
+   *
+   * trace(x \circ y) = last elem
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return (x circ y)(-1)
+   */
+  constexpr auto trace_impl(const Slack& x, const Slack& y) const {
+    const auto x_soc = map(x);
+    const auto y_soc = dual_map(y);
+    return soc.trace(x_soc, y_soc);
   }
 
   /**
