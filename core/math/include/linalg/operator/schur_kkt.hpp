@@ -31,8 +31,7 @@ constexpr auto regularize(Schur S, mat_type_t<Schur> eps = 1e-8) {
 
   const auto d = get_diag(S);
   T s{0};
-  for (const auto& x : d)
-    if (linalg::constexpr_abs(x) > s) s = linalg::constexpr_abs(x);
+  for (const auto& x : d) s = std::max(s, x);
 
   s = std::max(s, T(1));
   const auto delta = eps * s;

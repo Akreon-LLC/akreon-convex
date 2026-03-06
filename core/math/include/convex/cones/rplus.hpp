@@ -172,6 +172,24 @@ struct NonnegOrthantCone
   }
 
   /**
+   * @brief grad
+   *
+   * F'(x) = -(1/x)^{T}
+   *
+   * @param x \in K or y \in K^*
+   *
+   * @return F'(x)
+   */
+  constexpr auto grad_impl(const Slack& x) const {
+    Slack dx{};
+    for (size_t i = 0; i < M; ++i) {
+      const T xi_safe = std::max(x(i), eps);
+      dx(i) = T(-1) / xi_safe;
+    }
+    return dx;
+  }
+
+  /**
    * @brief barrier parameter
    *
    * @return nu
@@ -236,6 +254,19 @@ struct NonnegOrthantCone
     const auto x_circ_y = circ_impl(x, y);
     T res{};
     for (size_t i = 0; i < M; ++i) res += x_circ_y(i);
+    return res;
+  }
+
+  /**
+   * @brief jordan inverse
+   *
+   * @param x \in K or y \in K^*
+   *
+   * @return 1/x
+   */
+  constexpr auto inv_impl(const Slack& x) const {
+    Slack res{};
+    for (size_t i = 0; i < M; ++i) res(i) = T(1) / std::max(x(i), eps);
     return res;
   }
 

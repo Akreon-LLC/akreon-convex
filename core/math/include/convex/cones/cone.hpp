@@ -150,6 +150,17 @@ struct Cone {
   constexpr T nu() const { return self().nu_impl(); }
 
   /**
+   * @brief gradient
+   *
+   * F'(x)
+   *
+   * @param x \in K
+   *
+   * @return F'(x)
+   */
+  constexpr auto grad(const Slack& x) const { return self().grad_impl(x); }
+
+  /**
    * @brief e (jordan identity)
    *
    * x \circ e = x
@@ -206,6 +217,20 @@ struct Cone {
         ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
         "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().trace_impl(x, y);
+  }
+
+  /**
+   * @brief inv (jordan inverse element)
+   *
+   * @param x \in K or y \in K^*
+   *
+   * @return x^{-1}
+   */
+  constexpr auto inv(const Slack& x) const {
+    static_assert(
+        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
+        "Nonsymmetric cone is not equipped with Jordan Algebras");
+    return self().inv_impl(x);
   }
 
   /**

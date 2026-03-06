@@ -214,9 +214,9 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
     static_assert(Codom == 1,
                   "input affine map from cone block has invalid codom dim for "
                   "scalar fn domain (i.e., != 1");
-    linalg::Matrix<T, 3, Dom + 1> F;
+    linalg::Matrix<T, 3, Dom + 1> F{};
     F = linalg::set_block<0, 1, 0, Dom>(F, child_coord.linear_part());
-    linalg::Vector<T, 3> g;
+    linalg::Vector<T, 3> g{};
     g(0) = child_coord.translation()(0);
     g(1) = T(0.5);
 

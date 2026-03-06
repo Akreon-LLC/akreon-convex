@@ -250,9 +250,20 @@ struct SecondOrderCone
    * @return H
    */
   constexpr auto H_impl(const Slack& x, const Slack& y) const {
-    const auto w_inv = inv(w_impl(x, y));
+    const auto w_inv = inv_impl(w_impl(x, y));
     return linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(w_inv);
   }
+
+  /**
+   * @brief grad
+   *
+   * F'(x) = -x^{-1}
+   *
+   * @param x \in K or y \in K^*
+   *
+   * @return F'(x)
+   */
+  constexpr auto grad_impl(const Slack& x) const { return T(-1) * inv_impl(x); }
 
   /**
    * @brief barrier param
@@ -309,7 +320,7 @@ struct SecondOrderCone
     linalg::QuadraticRep<HessianMat, SOCCirc<Slack>> P(x_sqrt);
 
     const auto b = P.apply(y);
-    const auto inner = inv(sqrt(b));
+    const auto inner = inv_impl(sqrt(b));
 
     return P.apply(inner);
   }
@@ -339,7 +350,7 @@ struct SecondOrderCone
    * @return (x circ y)(-1)
    */
   constexpr auto trace_impl(const Slack& x, const Slack& y) const {
-    return circ_impl(x, y)(M - 1);
+    return nu_impl() * circ_impl(x, y)(M - 1);
   }
 
   /**
@@ -361,6 +372,28 @@ struct SecondOrderCone
 
     return nu_impl() * linalg::constexpr_ln_safe(tr_xy) -
            linalg::constexpr_ln_safe(det_x) - linalg::constexpr_ln_safe(det_y);
+  }
+
+  /**
+   * @brief inv
+   *
+   * Jordan Inverse of x where x = (v,t)
+   * x^{-1} = \frac{1}{t^2 - v^Tv}(-v,t)... \frac{1}{det(A)}*adj(A)
+   *
+   * @param x (slack vector)
+   *
+   * @return inv(x)
+   */
+  constexpr auto inv_impl(const Slack& x) const {
+    const auto v = std::get<0>(linalg::splice<M - 1>(x));
+    const auto t = x(M - 1);
+    Slack adj_v;
+    for (size_t i = 0; i < M - 1; ++i) adj_v(i) = T(-1) * v(i);
+    adj_v(M - 1) = t;
+
+    const auto det = t * t - linalg::dot(v, v);
+    if (std::isnan(det) || det == T(0)) return (T(1) / eps) * adj_v;
+    return (T(1) / det) * adj_v;
   }
 
   /**
@@ -395,27 +428,6 @@ struct SecondOrderCone
     if (v_norm > eps) x_sqrt = x_sqrt + beta * (T(1) / v_norm) * v_zero;
 
     return x_sqrt;
-  }
-
-  /**
-   * @brief inv
-   *
-   * Jordan Inverse of x where x = (v,t)
-   * x^{-1} = \frac{1}{t^2 - v^Tv}(-v,t)... \frac{1}{det(A)}*adj(A)
-   *
-   * @param x (slack vector)
-   *
-   * @return inv(x)
-   */
-  constexpr auto inv(const Slack& x) const {
-    const auto v = std::get<0>(linalg::splice<M - 1>(x));
-    const auto t = x(M - 1);
-    Slack adj_v;
-    for (size_t i = 0; i < M - 1; ++i) adj_v(i) = T(-1) * v(i);
-    adj_v(M - 1) = t;
-    auto det =
-        std::max(t * t - linalg::dot(v, v), std::numeric_limits<T>::min());
-    return (T(1) / det) * adj_v;
   }
 
   /**

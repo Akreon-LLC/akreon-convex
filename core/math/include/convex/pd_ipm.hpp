@@ -32,8 +32,8 @@ namespace convex {
  * @return mu
  */
 template <linalg::VectorLike ConeVar>
-constexpr auto mu(const ConeVar& x, const ConeVar& y,
-                  const linalg::vec_type_t<ConeVar>& nu) {
+constexpr auto mu_global(const ConeVar& x, const ConeVar& y,
+                         const linalg::vec_type_t<ConeVar>& nu) {
   return linalg::dot(x, y) / nu;
 }
 
@@ -116,7 +116,7 @@ struct PredictorCorrector {
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
-      ConePoint rhs_c = Ki.circ(xk, yk);
+      ConePoint rhs_c = yk;
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 
@@ -157,12 +157,11 @@ struct PredictorCorrector {
    * @return pz_rhs (ignore on return)
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr Var corrector(Var&& pz_rhs, const T& mu_tgt, const T& aff_scale_sq,
-                          const ConeVar& px_aff, const ConeVar& py_aff,
-                          const auto& K, const auto& S_inv, const Mat& F,
-                          const ConeVar& rp, const Var& rd, const ConeVar& x,
-                          const ConeVar& y, Var& pz, ConeVar& px,
-                          ConeVar& py) const {
+  constexpr Var corrector(Var&& pz_rhs, const T& mu_tgt, const ConeVar& px_aff,
+                          const ConeVar& py_aff, const auto& K,
+                          const auto& S_inv, const Mat& F, const ConeVar& rp,
+                          const Var& rd, const ConeVar& x, const ConeVar& y,
+                          Var& pz, ConeVar& px, ConeVar& py) const {
     if constexpr (idx >= NumCones)
       return pz_rhs;
     else {
@@ -172,9 +171,9 @@ struct PredictorCorrector {
       constexpr size_t End = Start + KiRows;
 
       if (conic::is_zoc_v<decltype(Ki)>)
-        return corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, aff_scale_sq,
-                                       px_aff, py_aff, K, S_inv, F, rp, rd, x,
-                                       y, pz, px, py);
+        return corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, px_aff,
+                                       py_aff, K, S_inv, F, rp, rd, x, y, pz,
+                                       px, py);
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{}, px_aff_k{}, py_aff_k{}, rpk{};
@@ -191,14 +190,16 @@ struct PredictorCorrector {
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
-      ConePoint rhs_c =
-          aff_scale_sq * Ki.circ(px_aff_k, py_aff_k) - mu_tgt * Ki.e();
+      const auto mu_k = Ki.trace(xk, yk) / Ki.nu();
+      ConePoint rhs_c = yk + mu_k * Ki.grad(xk) + Ki.circ(px_aff_k, py_aff_k);
+      // ConePoint rhs_c = yk + mu_tgt * Ki.grad(xk) + Ki.circ(px_aff_k,
+      // py_aff_k);
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 
-      const auto new_pz_rhs = corrector<idx + 1, End>(
-          std::move(pz_rhs), mu_tgt, aff_scale_sq, px_aff, py_aff, K, S_inv, F,
-          rp, rd, x, y, pz, px, py);
+      const auto new_pz_rhs =
+          corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, px_aff, py_aff, K,
+                                  S_inv, F, rp, rd, x, y, pz, px, py);
 
       if constexpr (idx + 1 == NumCones) pz = S_inv.solve(new_pz_rhs + rd);
 
@@ -243,9 +244,6 @@ struct PrimalDualIPM {
 
   /// @brief damping param using for alpha steps in predictor corrector
   static constexpr T rho{linalg::ln2_v<T>};
-
-  /// @brief sigma cap (feasible dont overcorrect from predictor)
-  static constexpr T sigma_cap{T(0.05) * linalg::ln2_v<T>};
 
   /// @brief beta F(\beta) neighborhood of central path (within feasibility)
   static constexpr T beta{1 - linalg::ln2_v<T>};
@@ -310,11 +308,8 @@ struct PrimalDualIPM {
       ConeVar px_pred{}, px_corr{}, py_pred{}, py_corr{};
       Var pz_pred{}, pz_corr{};
 
-      /// (dakre) 1 - accumulate and factor schur & nu
-      const auto params = accumulate_params(Schur{}, T(0), F, K, x, y);
-      const auto S = regularize(std::get<0>(params));
-      const auto nu = std::get<1>(params);
-
+      /// (dakre) 1 - accumulate and factor schur
+      const auto S = accumulate_schur(Schur{}, F, K, x, y);
       const auto ldl = linalg::LDL(S);
 
       /// (dakre) 2 - compute initial primal & dual residuals (negated)
@@ -330,19 +325,24 @@ struct PrimalDualIPM {
       auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px_pred, py_pred);
       const auto x_aff = x + std::get<0>(alpha_xy) * px_pred;
       const auto y_aff = y + std::get<1>(alpha_xy) * py_pred;
-      const auto mu_curr = mu(x, y, nu);
-      const auto mu_aff = mu(x_aff, y_aff, nu);
+
+      const auto mu_params = mu(K, x, y);
+      // const auto mu_curr = mu_global(x, y, std::get<1>(mu_params));
+      const auto mu_curr = std::get<0>(mu_params) / std::get<1>(mu_params);
+      const auto mu_aff_params = mu(K, x_aff, y_aff);
+      // const auto mu_aff = mu_global(x_aff, y_aff, std::get<1>(mu_params));
+      const auto mu_aff =
+          std::get<0>(mu_aff_params) / std::get<1>(mu_aff_params);
 
       auto sigma = linalg::constexpr_pow(mu_aff / mu_curr, 3);
       sigma = std::clamp(sigma, T(0), T(1));
-      if (primal_feas && dual_feas) sigma = std::min(sigma, sigma_cap);
+      // if (gap_min) sigma = std::min(sigma, T(0));
 
       const auto mu_tgt = sigma * mu_curr;
-      const auto aff_scale_sq = std::get<0>(alpha_xy) * std::get<1>(alpha_xy);
 
       /// (dakre) 5 - corrector step
-      pc.corrector(Var{}, mu_tgt, aff_scale_sq, px_pred, py_pred, K, ldl, F,
-                   ConeVar{}, Var{}, x, y, pz_corr, px_corr, py_corr);
+      pc.corrector(Var{}, mu_tgt, px_pred, py_pred, K, ldl, F, rp, rd, x, y,
+                   pz_corr, px_corr, py_corr);
 
       /// (dakre) 6 - newton step
       const auto px = px_pred + px_corr;
@@ -353,24 +353,10 @@ struct PrimalDualIPM {
       alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
 
       /// (dakre) 8 - backtrack line search to acquire next iterate
-      const auto z_next = z + std::get<0>(alpha_xy) * pz;
-      const auto x_next = x + std::get<0>(alpha_xy) * px;
-      const auto y_next = y + std::get<1>(alpha_xy) * py;
-
-      const auto mu_next = mu(x_next, y_next, nu);
-      const auto mu_growth = mu_next - mu_curr;
-      if (mu_growth > config.delta_mu_eps) {
-        const auto good_iter =
-            backtrack_iterates(alpha_xy, K, pz, px, py, z, x, y);
-        if (!good_iter) {
-          res.stalled = true;
-          break;
-        }
-      } else {
-        x = x_next;
-        y = y_next;
-        z = z_next;
-      }
+      backtrack_iterates(alpha_xy, K, pz, px, py, z, x, y);
+      // z = z + std::get<0>(alpha_xy) * pz;
+      // x = x + std::get<0>(alpha_xy) * px;
+      // y = y + std::get<1>(alpha_xy) * py;
 
 #ifdef AKREON_DEBUG
       trace[i].mu = mu_curr;
@@ -389,7 +375,9 @@ struct PrimalDualIPM {
       /// (dakre) 9 - compute residuals + mu again
       rd = dual_residual(F, c, y);
       rp = primal_residual(F, g, z, x);
-      res.mu = mu(x, y, nu);
+
+      const auto mu_next = mu(K, x, y);
+      res.mu = std::get<0>(mu_next) / std::get<1>(mu_next);
 
       rd_norm = linalg::L2<decltype(rd)>()(rd);
       rp_norm = linalg::L2<decltype(rp)>()(rp);
@@ -409,6 +397,46 @@ struct PrimalDualIPM {
   }
 
   /**
+   * @brief accumulate params
+   *
+   * @param K (cartesian product of cones)
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return (duality gap, nu)
+   */
+  template <size_t idx = 0, size_t Start = 0>
+  constexpr auto mu(const auto& K, const ConeVar& x, const ConeVar& y) const {
+    if constexpr (idx >= NumCones)
+      return std::tuple(T(0), T(0));
+    else {
+      const auto Ki = std::get<idx>(K);
+      using Slack = conic::cone_slack_t<decltype(Ki)>;
+
+      constexpr size_t KiRows = linalg::vec_size_v<Slack>;
+      constexpr size_t End = Start + KiRows;
+
+      if (conic::is_zoc_v<decltype(Ki)>) return mu<idx + 1, End>(K, x, y);
+
+      using ConePoint = linalg::Vector<T, End - Start>;
+      ConePoint xk{}, yk{};
+
+      for (size_t i = Start, j = 0; i < End; ++i, ++j)
+        xk(j) = x(i), yk(j) = y(i);
+
+      auto params = mu<idx + 1, End>(K, x, y);
+
+      auto gap = std::get<0>(params);
+      auto nu = std::get<1>(params);
+
+      gap += Ki.trace(xk, yk);
+      nu += Ki.nu();
+
+      return std::tuple(gap, nu);
+    }
+  }
+
+  /**
    * @brief accumulate params (Schur & nu)
    *
    * \tilde{KKT} = [ 0 F^T 0   ] [ pz; py; px ] = -[ rd; rp; rc ]
@@ -418,7 +446,6 @@ struct PrimalDualIPM {
    * S = F^T H_x F where S += S_i for each cone
    *
    * @param S Schur matrix
-   * @param nu \sum of barrier params across K
    * @param F mapping from R^n -> conic space
    * @param K cartesian product of cones
    * @param x \in K
@@ -427,11 +454,10 @@ struct PrimalDualIPM {
    * @return (S, nu)
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr auto accumulate_params(Schur&& S, T&& nu, const FMat& F,
-                                   const auto& K, const ConeVar& x,
-                                   const ConeVar& y) const {
+  constexpr auto accumulate_schur(Schur&& S, const FMat& F, const auto& K,
+                                  const ConeVar& x, const ConeVar& y) const {
     if constexpr (idx >= NumCones)
-      return std::tuple(S, nu);
+      return S;
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
@@ -440,8 +466,7 @@ struct PrimalDualIPM {
       constexpr size_t End = Start + KiRows;
 
       if (conic::is_zoc_v<decltype(Ki)>)
-        return accumulate_params<idx + 1, End>(std::move(S), std::move(nu), F,
-                                               K, x, y);
+        return accumulate_schur<idx + 1, End>(std::move(S), F, K, x, y);
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{};
@@ -458,10 +483,7 @@ struct PrimalDualIPM {
       const auto Si = kkt.make(Hes, F_blk);
       S = S + Si;
 
-      nu += Ki.nu();
-
-      return accumulate_params<idx + 1, End>(std::move(S), std::move(nu), F, K,
-                                             x, y);
+      return accumulate_schur<idx + 1, End>(std::move(S), F, K, x, y);
     }
   }
 
