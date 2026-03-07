@@ -14,6 +14,7 @@
 
 #include "config/assert.hpp"
 #include "convex/cone_block_builder.hpp"
+#include "convex/cones/soc.hpp"
 #include "convex/convex_traits.hpp"
 
 namespace convex {
@@ -256,13 +257,15 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
     g(3) = T(1);
     g(5) = delta * delta;
 
-    const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+    const auto rsoc_coords = affine::AffineMap<decltype(F)>(F, g);
+    const auto coord_map_up =
+        conic::Rotated2SOC<decltype(rsoc_coords)>()(rsoc_coords);
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
                                 decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-    const auto rsoc = conic::RotatedSecondOrderCone<linalg::Vector<T, 3>>();
+    const auto rsoc = conic::SecondOrderCone<linalg::Vector<T, 3>>();
     const auto cones = std::make_tuple(rplus, rplus, rsoc, rplus);
 
     return new_builder.template make<Type>(idx, lift_map, cones);

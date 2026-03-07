@@ -17,6 +17,72 @@
 namespace conic {
 
 /**
+ * @brief RSOC -> SOC
+ *
+ * K_rsoc = { (u, v, w) | ||u||_2^2 <= 2 v w, v >= 0, w >= 0 }
+ * K_soc = { (x, t) | ||x|| <= t, t >= 0 }
+ *
+ * SOC: x^T x <= t^2... 0 <= t^2 - x^T x
+ * RSOC: u^T u <= 2 v w... 0 <= 2 v w - u^T u
+ *
+ * id: (v + w)^2 - (v - w)^2 = 4 v w
+ * chang of vars: (x, x0, t) \in R^{n+1} x R
+ * t = v + w
+ * x0 = v - w
+ * x = sqrt(2) u
+ *
+ * SOC: (v - w)^2 + 2 u^T u <= (v + w)^2
+ * v^2 - 2vw + w^2 + 2 u^T u <= v^2 + 2 vw + w^2
+ * 2 u^T u <= 4 v w
+ * u^T u <= 2 v w (eq RSOC)
+ *
+ * A = [ sqrt(2)I 0  0 ] [ u; v; w ] = (x = sqrt(2)u, x0=v - w, t = v+w)
+ *     [ 0        1 -1 ]
+ *     [ 0        1  1 ]
+ *
+ * \hat{A} = 1/sqrt(2) A ... orthonormalized A... \hat{A}^T \hat{A} = I
+ */
+template <affine::AffineMapLike Map>
+struct Rotated2SOC {
+  /// @brief extract alias & types
+  using Mat = affine::affine_mat_t<Map>;
+  using T = linalg::mat_type_t<Mat>;
+  static constexpr size_t M = linalg::mat_rows_v<Mat>;
+  static constexpr size_t N = linalg::mat_cols_v<Mat>;
+
+  /**
+   * @brief transform native RSOC coord map to SOC map
+   *
+   * \hat{x} = (T F) x + T g \in R^n -> K
+   *
+   * F \in R^{m x n}, x \in R^n, g \in R^m
+   *
+   * @param map (F & g)
+   *
+   * @return transformed map (T F & T g)
+   */
+  constexpr auto operator()(const Map& map) {
+    static_assert(M >= 3,
+                  "Rotated2SOC requires RSOC coords with at least 3 entries "
+                  "(u, v, w)");
+
+    const auto I = linalg::make_identity<T, M - 2>();
+    const auto sqrt2 = linalg::constexpr_sqrt_safe(T(2));
+
+    linalg::Matrix<T, M, M> A{};
+
+    A = linalg::set_block<0, M - 2, 0, M - 2>(A, I);
+    A(M - 2)(M - 2) = T(1) / sqrt2;
+    A(M - 2)(M - 1) = T(-1) / sqrt2;
+    A(M - 1)(M - 2) = T(1) / sqrt2;
+    A(M - 1)(M - 1) = T(1) / sqrt2;
+
+    affine::AffineMap<decltype(A)> r2soc(A);
+    return r2soc.compose(map);
+  }
+};
+
+/**
  * @brief Circ - Jordan Map/Product for SOC
  *
  * x \circ y = JxJ -> J

@@ -178,8 +178,10 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{1.0}) == 1.0);
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}) == 0.5);
 
+    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
-    constexpr auto F = F_mat(0.0, 0.0, 1.0, 0.0, 0.0, 1.0);
+    constexpr auto F =
+        F_mat(0.0, 0.0, inv_sqrt2, -inv_sqrt2, inv_sqrt2, inv_sqrt2);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder = inv_pos_fn.canonicalize<AtomType::FN>(builder);
@@ -203,7 +205,8 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
     STATIC_REQUIRE(inv_pos_concave(Vectord<1>{2.0}) == -0.5);
 
     constexpr mat_traits<Matrix<double, 3, 2>> F1_mat;
-    constexpr auto F1 = F1_mat(0.0, 0.0, 1.0, 0.0, 0.0, -1.0);
+    constexpr auto F1 =
+        F1_mat(0.0, 0.0, inv_sqrt2, inv_sqrt2, inv_sqrt2, -inv_sqrt2);
 
     constexpr auto builder1 =
         inv_pos_concave.canonicalize<AtomType::FN>(builder);
@@ -469,8 +472,9 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(square_fn(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(square_fn(Vectord<1>{2.0}) == 4.0);
 
+    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
-    constexpr auto F = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    constexpr auto F = F_mat(1.0, 0.0, 0.0, -inv_sqrt2, 0.0, inv_sqrt2);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder = square_fn.canonicalize<AtomType::FN>(builder);
@@ -480,8 +484,9 @@ TEST_CASE("Test square function", "[convex_fn]") {
     constexpr linalg::Vector<double, 2> coord{0.0, 1.0};
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
 
-    STATIC_REQUIRE(canon_cb.map ==
-                   affine::AffineMap(F, Vectord<3>{0.0, 0.5, 0.0}));
+    STATIC_REQUIRE(canon_cb.map == affine::AffineMap(
+                                       F, Vectord<3>{0.0, 0.5 * inv_sqrt2,
+                                                     0.5 * inv_sqrt2}));
 
     constexpr auto cones = canon_cb.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -492,7 +497,7 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(square_concave(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(square_concave(Vectord<1>{1.0}) == -1.0);
 
-    constexpr auto F1 = F_mat(1.0, 0.0, 0.0, 0.0, 0.0, -1.0);
+    constexpr auto F1 = F_mat(1.0, 0.0, 0.0, inv_sqrt2, 0.0, -inv_sqrt2);
     constexpr auto builder1 =
         square_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
@@ -500,8 +505,9 @@ TEST_CASE("Test square function", "[convex_fn]") {
 
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
 
-    STATIC_REQUIRE(canon_cb1.map ==
-                   affine::AffineMap(F1, Vectord<3>{0.0, 0.5, 0.0}));
+    STATIC_REQUIRE(canon_cb1.map == affine::AffineMap(
+                                        F1, Vectord<3>{0.0, 0.5 * inv_sqrt2,
+                                                       0.5 * inv_sqrt2}));
 
     constexpr auto cones1 = canon_cb1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
@@ -586,8 +592,9 @@ TEST_CASE("Square Root Function", "[convex_fn]") {
     STATIC_REQUIRE(sqrt_fn(Vectord<1>{0.0}) == constexpr_sqrt_safe(0.0));
     STATIC_REQUIRE(sqrt_fn(Vectord<1>{2.0}) == constexpr_sqrt_safe(2.0));
 
+    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
-    constexpr auto F = F_mat(0.0, 1.0, 0.0, 0.0, 1.0, 0.0);
+    constexpr auto F = F_mat(0.0, 1.0, -inv_sqrt2, 0.0, inv_sqrt2, 0.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder = sqrt_fn.canonicalize<AtomType::FN>(builder);
@@ -597,8 +604,9 @@ TEST_CASE("Square Root Function", "[convex_fn]") {
     constexpr linalg::Vector<double, 2> coord{0.0, 1.0};
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
 
-    STATIC_REQUIRE(canon_cb.map ==
-                   affine::AffineMap(F, Vectord<3>{0.0, 0.5, 0.0}));
+    STATIC_REQUIRE(canon_cb.map == affine::AffineMap(
+                                       F, Vectord<3>{0.0, 0.5 * inv_sqrt2,
+                                                     0.5 * inv_sqrt2}));
 
     constexpr auto cones = canon_cb.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -611,15 +619,16 @@ TEST_CASE("Square Root Function", "[convex_fn]") {
     STATIC_REQUIRE(sqrt_concave(Vectord<1>{1.0}) ==
                    -1.0 * constexpr_sqrt_safe(1.0));
 
-    constexpr auto F1 = F_mat(0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
+    constexpr auto F1 = F_mat(0.0, -1.0, -inv_sqrt2, 0.0, inv_sqrt2, 0.0);
     constexpr auto builder1 = sqrt_concave.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map1 = builder1.coord_map;
     constexpr auto canon_cb1 = builder1.cb;
 
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
 
-    STATIC_REQUIRE(canon_cb1.map ==
-                   affine::AffineMap(F1, Vectord<3>{0.0, 0.5, 0.0}));
+    STATIC_REQUIRE(canon_cb1.map == affine::AffineMap(
+                                        F1, Vectord<3>{0.0, 0.5 * inv_sqrt2,
+                                                       0.5 * inv_sqrt2}));
 
     constexpr auto cones1 = canon_cb1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
@@ -696,9 +705,11 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
     constexpr auto canon_cb = new_builder.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 1);
 
+    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
     constexpr mat_traits<Matrix<double, 3, 3>> F_mat;
-    constexpr auto F = F_mat(0.0, 0.0, 1.0 / linalg::constexpr_sqrt_safe(2.0),
-                             1.0, 0.0, -0.5, 0.0, 1.0, -0.5);
+    constexpr auto F =
+        F_mat(0.0, 0.0, inv_sqrt2, inv_sqrt2, -inv_sqrt2, 0.0, inv_sqrt2,
+              inv_sqrt2, -inv_sqrt2);
     STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() == Vectord<3>{});
 
@@ -713,8 +724,9 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
     constexpr auto canon_cb1 = new_builder1.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb1.cones)>::value == 1);
 
-    constexpr auto F1 = F_mat(0.0, 0.0, -1.0 / linalg::constexpr_sqrt_safe(2.0),
-                              1.0, 0.0, 0.5, 0.0, 1.0, 0.5);
+    constexpr auto F1 =
+        F_mat(0.0, 0.0, -inv_sqrt2, inv_sqrt2, -inv_sqrt2, 0.0, inv_sqrt2,
+              inv_sqrt2, inv_sqrt2);
     STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() == Vectord<3>{});
   }
@@ -800,12 +812,15 @@ TEST_CASE("Huber Function", "[convex_fn]") {
     constexpr auto canon_cb = new_builder.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 4);
 
+    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
     constexpr mat_traits<Matrix<double, 6, 3>> F_mat;
-    constexpr auto F = F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-                             0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 1.0);
+    constexpr auto F =
+        F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, inv_sqrt2, 0.0, 0.0, -inv_sqrt2, sqrt2);
     STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() ==
-                   Vectord<6>{0.0, 0.0, 0.0, 1.0, 0.0, 1.0});
+                   Vectord<6>{0.0, 0.0, 0.0, 1.0, -inv_sqrt2, inv_sqrt2});
 
     constexpr auto huber_concave = huber_fn.mul<-1.0>().add(0.0);
     STATIC_REQUIRE(huber_concave(Vectord<1>{0.0}) == 0.0);
@@ -817,10 +832,11 @@ TEST_CASE("Huber Function", "[convex_fn]") {
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
 
     constexpr auto canon_cb1 = new_builder1.cb;
-    constexpr auto F1 = F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -1.0, -1.0);
+    constexpr auto F1 =
+        F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, inv_sqrt2, 0.0, 0.0, -inv_sqrt2, -sqrt2);
     STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() ==
-                   Vectord<6>{0.0, 0.0, 0.0, 1.0, 0.0, 1.0});
+                   Vectord<6>{0.0, 0.0, 0.0, 1.0, -inv_sqrt2, inv_sqrt2});
   }
 }

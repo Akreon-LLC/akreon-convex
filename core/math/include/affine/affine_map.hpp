@@ -129,8 +129,14 @@ class AffineMap {
    *
    * @return new affine map object with the new applied mapping
    */
-  constexpr auto compose(const AffineMap<Mat>& other) const {
-    return AffineMap(U * other.U, U * other.c + c);
+  template <linalg::MatrixLike OtherMat>
+    requires(std::same_as<T, linalg::mat_type_t<OtherMat>> &&
+             linalg::mat_rows_v<OtherMat> == N)
+  constexpr auto compose(const AffineMap<OtherMat>& other) const {
+    constexpr size_t P = linalg::mat_cols_v<OtherMat>;
+    const auto U_comp = U * other.linear_part();
+    const auto c_comp = U * other.translation() + c;
+    return AffineMap<linalg::Matrix<T, M, P>>(U_comp, c_comp);
   }
 
   /**

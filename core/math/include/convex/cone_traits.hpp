@@ -47,10 +47,6 @@ struct ExpCone;
 template <linalg::VectorLike Vec>
 struct PowerCone;
 
-/// @brief forward decl for rsoc
-template <linalg::VectorLike Vec>
-struct RotatedSecondOrderCone;
-
 /// @brief forward decl for log det cone
 template <linalg::VectorLike Vec>
 struct LogDetCone;
@@ -110,15 +106,6 @@ struct cone_traits<PowerCone<Vec>> : std::false_type {
   using SlackT = Vec;
   using T = linalg::vec_type_t<Vec>;
   static constexpr ConeType CT = ConeType::ASYMMETRIC;
-  static constexpr size_t N = linalg::vec_size_v<Vec>;
-};
-
-/// @brief Cone traits for RotatedSecondOrderCone.
-template <linalg::VectorLike Vec>
-struct cone_traits<RotatedSecondOrderCone<Vec>> : std::false_type {
-  using SlackT = Vec;
-  using T = linalg::vec_type_t<Vec>;
-  static constexpr ConeType CT = ConeType::SYMMETRIC_WRAPPER;
   static constexpr size_t N = linalg::vec_size_v<Vec>;
 };
 

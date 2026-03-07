@@ -204,7 +204,6 @@ TEST_CASE("Minimal LP 2 Vars", "[pd_ipm_test]") {
   }
 }
 
-
 /**
  * @brief Simple QP
  *
@@ -317,16 +316,16 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
   }
 }
 
-#if 0
 TEST_CASE("Minimal QP 1 Var (RSOC)", "[pd_ipm_test]") {
   using Space = Matrixd<1, 1>;
   using Singleton = Matrixd<1, 1>;
   constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0).value();
-  //constexpr auto rel_tol = 1e-3;
+  // constexpr auto rel_tol = 1e-3;
 
   constexpr auto F_mat = mat_traits<Matrixd<5, 2>>();
+  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
   SECTION("Min c^T x s.t. (x - 1)^2 <= 5") {
     constexpr auto sq =
         Square<SquareMeta<Singleton>, decltype(x0)>(x0.add(-1.0));
@@ -341,7 +340,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[pd_ipm_test]") {
         std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
 
     constexpr auto F_exp =
-        F_mat(1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0);
+        F_mat(1.0, 0.0, 1.0, 0.0, 0.0, -inv_sqrt2, 0.0, inv_sqrt2, 0.0, -1.0);
     constexpr auto F = prob_min.constraint_map().linear_part();
     STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
@@ -350,7 +349,8 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[pd_ipm_test]") {
     constexpr auto g = prob_min.constraint_map().translation();
     STATIC_REQUIRE(vec_size_v<decltype(g)> == 5);
 
-    STATIC_REQUIRE(g == Vectord<5>{-1e-8, -1.0, 0.5, 0.0, 5.0});
+    STATIC_REQUIRE(
+        g == Vectord<5>{-1e-8, -1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2, 5.0});
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(prob_min.validate());
@@ -378,7 +378,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[pd_ipm_test]") {
                                                                    1.0);
     constexpr auto prob_constr = prob_init.add_constraint(leq);
 
-    constexpr auto prob_min = prob_constr.minimize(x0);
+    constexpr auto prob_min = prob_constr.minimize(x0.mul(0.0));
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
@@ -388,8 +388,8 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[pd_ipm_test]") {
     STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
 
-    constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, -1.0);
+    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 0.0, inv_sqrt2, -inv_sqrt2,
+                                 inv_sqrt2, inv_sqrt2, 0.0, -1.0);
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
@@ -416,7 +416,6 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[pd_ipm_test]") {
     log(res, trace);
   }
 }
-#endif
 
 #if 0
 /// (dakre) TODO square needs to handle free var case

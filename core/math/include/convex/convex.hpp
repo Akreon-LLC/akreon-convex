@@ -18,7 +18,6 @@
 #include "cones/power_cone.hpp"
 #include "cones/psd_cone.hpp"
 #include "cones/rplus.hpp"
-#include "cones/rsoc.hpp"
 #include "cones/soc.hpp"
 #include "cones/zoc.hpp"
 #include "intersection.hpp"
