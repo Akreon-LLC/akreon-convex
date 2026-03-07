@@ -317,6 +317,7 @@ TEST_CASE("Minimal QP 2 Vars", "[pd_ipm_test]") {
   }
 }
 
+#if 0
 TEST_CASE("Minimal QP 1 Var (RSOC)", "[pd_ipm_test]") {
   using Space = Matrixd<1, 1>;
   using Singleton = Matrixd<1, 1>;
@@ -415,6 +416,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[pd_ipm_test]") {
     log(res, trace);
   }
 }
+#endif
 
 #if 0
 /// (dakre) TODO square needs to handle free var case

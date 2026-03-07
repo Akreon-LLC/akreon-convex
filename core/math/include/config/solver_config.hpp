@@ -38,9 +38,9 @@ template <linalg::FieldLike T>
 struct PrimalDualIPMConfig {
   size_t steps{PD_IPM_STEPS};     ///< total number of iter
   size_t backtrack_steps{64};     ///< total number of backtracking steps
-  T primal_feas_tol{1e-4};        ///< tolerance for primal feasbility
-  T dual_feas_tol{1e-4};          ///< tolerance for dual feasbility
-  T duality_gap_tol{1e-4};        ///< tolerance for complementarity
+  T primal_feas_tol{1e-5};        ///< tolerance for primal feasbility
+  T dual_feas_tol{1e-5};          ///< tolerance for dual feasbility
+  T duality_gap_tol{1e-5};        ///< tolerance for complementarity
   T Delta{2 * linalg::ln2_v<T>};  ///< relative neighborhood around F(\Beta)
 };
 

@@ -345,9 +345,9 @@ struct PrimalDualIPM {
                    pz_corr, px_corr, py_corr);
 
       /// (dakre) 6 - newton step
-      const auto px = px_pred + px_corr;
-      const auto py = py_pred + py_corr;
-      const auto pz = pz_pred + pz_corr;
+      const auto px = px_pred + rho * px_corr;
+      const auto py = py_pred + rho * py_corr;
+      const auto pz = pz_pred + rho * pz_corr;
 
       /// (dakre) 7 - alpha max
       alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
