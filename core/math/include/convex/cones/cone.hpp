@@ -92,18 +92,6 @@ struct Cone {
   }
 
   /**
-   * @brief hessian inverse
-   *
-   * @param x \in K
-   * @param s \in K^*
-   *
-   * @return H
-   */
-  constexpr auto H_inv(const Slack& x, const Slack& y) const {
-    return self().H_inv_impl(x, y);
-  }
-
-  /**
    * @brief fraction to boundary dk
    *
    * \sigma_x(p) = \frac{1}{\sup{\alpha | x - \alpha p \in k }}

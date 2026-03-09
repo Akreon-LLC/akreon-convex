@@ -111,11 +111,23 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(cone_test PRIVATE ../math/include)
   target_compile_options(cone_test PRIVATE ${UNIT_COMPILE_OPTS})
 
-  add_executable(pd_ipm_test unit/pd_ipm_test.cpp)
-  add_test(NAME pd_ipm_test COMMAND pd_ipm_test)
-  target_link_libraries(pd_ipm_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(pd_ipm_test PRIVATE ../math/include)
-  target_compile_options(pd_ipm_test PRIVATE ${UNIT_COMPILE_OPTS})
+  add_executable(lp_test unit/lp_test.cpp)
+  add_test(NAME lp_test COMMAND lp_test)
+  target_link_libraries(lp_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(lp_test PRIVATE ../math/include)
+  target_compile_options(lp_test PRIVATE ${UNIT_COMPILE_OPTS})
+
+  add_executable(qp_test unit/qp_test.cpp)
+  add_test(NAME qp_test COMMAND qp_test)
+  target_link_libraries(qp_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(qp_test PRIVATE ../math/include)
+  target_compile_options(qp_test PRIVATE ${UNIT_COMPILE_OPTS})
+
+  add_executable(socp_test unit/socp_test.cpp)
+  add_test(NAME socp_test COMMAND socp_test)
+  target_link_libraries(socp_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(socp_test PRIVATE ../math/include)
+  target_compile_options(socp_test PRIVATE ${UNIT_COMPILE_OPTS})
 endif()
 
 if(BUILD_FUNCTIONAL_TESTS)
@@ -139,7 +151,9 @@ set(AKREON_TEST_TARGETS
   convex_fn_test
   convex_prob_test
   cone_test
-  pd_ipm_test
+  lp_test
+  qp_test
+  socp_test
   linalg_fuzz_test
   convex_fuzz_test
 )

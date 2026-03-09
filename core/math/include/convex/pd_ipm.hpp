@@ -88,7 +88,12 @@ struct PredictorCorrector {
   constexpr Var predictor(Var&& pz_rhs, const auto& K, const auto& S_inv,
                           const Mat& F, const ConeVar& rp, const Var& rd,
                           const ConeVar& x, const ConeVar& y, Var& pz,
-                          ConeVar& px, ConeVar& py) const {
+                          ConeVar& px, ConeVar& py
+#ifdef AKREON_DEBUG
+                          ,
+                          IterState<T, NumCones>* trace_state = nullptr
+#endif
+                          ) const {
     if constexpr (idx >= NumCones)
       return pz_rhs;
     else {
@@ -99,7 +104,12 @@ struct PredictorCorrector {
 
       if (conic::is_zoc_v<decltype(Ki)>)
         return predictor<idx + 1, End>(std::move(pz_rhs), K, S_inv, F, rp, rd,
-                                       x, y, pz, px, py);
+                                       x, y, pz, px, py
+#ifdef AKREON_DEBUG
+                                       ,
+                                       trace_state
+#endif
+        );
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{}, pxk{}, pyk{}, rpk{};
@@ -119,9 +129,24 @@ struct PredictorCorrector {
       ConePoint rhs_c = yk;
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
+#ifdef AKREON_DEBUG
+      if (trace_state != nullptr) {
+        auto& cone_trace = trace_state->predictor[idx];
+        cone_trace.mu = Ki.trace(xk, yk) / Ki.nu();
+        cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
+        cone_trace.pz_rhs = linalg::L2<Var>()(pz_rhs);
+        cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
+        cone_trace.active = true;
+      }
+#endif
 
       const auto new_pz_rhs = predictor<idx + 1, End>(
-          std::move(pz_rhs), K, S_inv, F, rp, rd, x, y, pz, px, py);
+          std::move(pz_rhs), K, S_inv, F, rp, rd, x, y, pz, px, py
+#ifdef AKREON_DEBUG
+          ,
+          trace_state
+#endif
+      );
 
       if constexpr (idx + 1 == NumCones) pz = S_inv.solve(new_pz_rhs + rd);
 
@@ -161,7 +186,12 @@ struct PredictorCorrector {
                           const ConeVar& py_aff, const auto& K,
                           const auto& S_inv, const Mat& F, const ConeVar& rp,
                           const Var& rd, const ConeVar& x, const ConeVar& y,
-                          Var& pz, ConeVar& px, ConeVar& py) const {
+                          Var& pz, ConeVar& px, ConeVar& py
+#ifdef AKREON_DEBUG
+                          ,
+                          IterState<T, NumCones>* trace_state = nullptr
+#endif
+                          ) const {
     if constexpr (idx >= NumCones)
       return pz_rhs;
     else {
@@ -173,7 +203,12 @@ struct PredictorCorrector {
       if (conic::is_zoc_v<decltype(Ki)>)
         return corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, px_aff,
                                        py_aff, K, S_inv, F, rp, rd, x, y, pz,
-                                       px, py);
+                                       px, py
+#ifdef AKREON_DEBUG
+                                       ,
+                                       trace_state
+#endif
+        );
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{}, px_aff_k{}, py_aff_k{}, rpk{};
@@ -196,10 +231,25 @@ struct PredictorCorrector {
       // py_aff_k);
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
+#ifdef AKREON_DEBUG
+      if (trace_state != nullptr) {
+        auto& cone_trace = trace_state->corrector[idx];
+        cone_trace.mu = mu_k;
+        cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
+        cone_trace.pz_rhs = linalg::L2<Var>()(pz_rhs);
+        cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
+        cone_trace.active = true;
+      }
+#endif
 
       const auto new_pz_rhs =
           corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, px_aff, py_aff, K,
-                                  S_inv, F, rp, rd, x, y, pz, px, py);
+                                  S_inv, F, rp, rd, x, y, pz, px, py
+#ifdef AKREON_DEBUG
+                                  ,
+                                  trace_state
+#endif
+          );
 
       if constexpr (idx + 1 == NumCones) pz = S_inv.solve(new_pz_rhs + rd);
 
@@ -273,7 +323,7 @@ struct PrimalDualIPM {
   bool primal_feas{false};             ///< status flag for primal feasibility
   bool gap_min{false};  ///< status flag for duality gap minimized
 #ifdef AKREON_DEBUG
-  std::array<IterState<T>, PD_IPM_STEPS> trace;  ///< debug iteration trace
+  std::array<IterState<T, NumCones>, PD_IPM_STEPS> trace;  ///< debug iteration trace
 #endif
 
  private:
@@ -307,6 +357,10 @@ struct PrimalDualIPM {
     for (i = 0; i < config.steps && tag != config::SolverResult::OPTIMAL; ++i) {
       ConeVar px_pred{}, px_corr{}, py_pred{}, py_corr{};
       Var pz_pred{}, pz_corr{};
+#ifdef AKREON_DEBUG
+      trace[i].reset_pc_trace();
+      auto* iter_trace = &trace[i];
+#endif
 
       /// (dakre) 1 - accumulate and factor schur
       const auto S = accumulate_schur(Schur{}, F, K, x, y);
@@ -319,7 +373,12 @@ struct PrimalDualIPM {
       auto rp_norm = linalg::L2<decltype(rp)>()(rp);
 
       /// (dakre) 3 - predictor step
-      pc.predictor(Var{}, K, ldl, F, rp, rd, x, y, pz_pred, px_pred, py_pred);
+      pc.predictor(Var{}, K, ldl, F, rp, rd, x, y, pz_pred, px_pred, py_pred
+#ifdef AKREON_DEBUG
+                   ,
+                   iter_trace
+#endif
+      );
 
       /// (dakre) 4 - mehrotra centering
       auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px_pred, py_pred);
@@ -342,7 +401,12 @@ struct PrimalDualIPM {
 
       /// (dakre) 5 - corrector step
       pc.corrector(Var{}, mu_tgt, px_pred, py_pred, K, ldl, F, rp, rd, x, y,
-                   pz_corr, px_corr, py_corr);
+                   pz_corr, px_corr, py_corr
+#ifdef AKREON_DEBUG
+                   ,
+                   iter_trace
+#endif
+      );
 
       /// (dakre) 6 - newton step
       const auto px = px_pred + rho * px_corr;
@@ -360,9 +424,6 @@ struct PrimalDualIPM {
 
 #ifdef AKREON_DEBUG
       trace[i].mu = mu_curr;
-      trace[i].mu_aff = mu_aff;
-      trace[i].sigma = sigma;
-      trace[i].mu_tgt = mu_tgt;
       trace[i].rd_norm = rd_norm;
       trace[i].rp_norm = rp_norm;
       trace[i].alpha_x = std::get<0>(alpha_xy);

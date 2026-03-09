@@ -19,6 +19,49 @@
 
 #include "config/solver_config.hpp"
 
+namespace detail {
+
+template <typename Cone>
+struct ConeTypeName {
+  static constexpr const char* value = "CONE";
+};
+
+template <linalg::VectorLike Vec>
+struct ConeTypeName<conic::ZeroOrderCone<Vec>> {
+  static constexpr const char* value = "ZOC";
+};
+
+template <linalg::VectorLike Vec>
+struct ConeTypeName<conic::NonnegOrthantCone<Vec>> {
+  static constexpr const char* value = "RPLUS";
+};
+
+template <linalg::VectorLike Vec>
+struct ConeTypeName<conic::SecondOrderCone<Vec>> {
+  static constexpr const char* value = "SOC";
+};
+
+template <linalg::VectorLike Vec, size_t N>
+struct ConeTypeName<conic::PositiveSemidefiniteCone<Vec, N>> {
+  static constexpr const char* value = "PSD";
+};
+
+template <linalg::VectorLike Vec>
+struct ConeTypeName<conic::ExpCone<Vec>> {
+  static constexpr const char* value = "EXP";
+};
+
+template <linalg::VectorLike Vec>
+struct ConeTypeName<conic::PowerCone<Vec>> {
+  static constexpr const char* value = "POW";
+};
+
+template <typename Cone>
+constexpr const char* cone_type_name_v =
+    ConeTypeName<linalg::remove_cvref_t<Cone>>::value;
+
+}  // namespace detail
+
 namespace convex {
 
 /// @brief forward declaration of pd result
@@ -29,19 +72,37 @@ struct PrimalDualResult;
  * @brief IterState
  */
 template <linalg::FieldLike T>
+struct PredictorCorrectorConeTrace {
+  T mu{};      ///< local normalized duality gap (per cone)
+  T rhs_c{};   ///< ||rhs_c||_2 in local cone block
+  T pz_rhs{};  ///< ||pz_rhs||_2 after cone contribution
+  const char* cone_type{"unknown"};
+  bool active{false};
+};
+
+/**
+ * @brief IterState
+ */
+template <linalg::FieldLike T, size_t NumCones>
 struct IterState {
-  T mu{};                      ///< normalized duality gap
-  T mu_aff{};                  ///< duality gap of affine-scaling step
-  T sigma{};                   ///< mehrotra centering correction
-  T mu_tgt{};                  ///< mehrotra mu target for centering
-  T alpha_x{};                 ///< max step to dK size
-  T alpha_y{};                 ///< max step to dK^* size
-  T rd_norm{};                 ///< dual norm residual size
-  T rp_norm{};                 ///< primal norm residual size
-  T pz_norm{};                 ///< newton step in z \in R^n size
-  T px_norm{};                 ///< newton step in x \in K size
-  T py_norm{};                 ///< newton step in y \in K^* size
+  T mu{};       ///< normalized duality gap
+  T alpha_x{};  ///< max step to dK size
+  T alpha_y{};  ///< max step to dK^* size
+  T rd_norm{};  ///< dual norm residual size
+  T rp_norm{};  ///< primal norm residual size
+  T pz_norm{};  ///< newton step in z \in R^n size
+  T px_norm{};  ///< newton step in x \in K size
+  T py_norm{};  ///< newton step in y \in K^* size
+  std::array<PredictorCorrectorConeTrace<T>, NumCones> predictor{};
+  std::array<PredictorCorrectorConeTrace<T>, NumCones> corrector{};
   config::SolverResult tag{};  ///< tag of current iterate
+
+  constexpr void reset_pc_trace() {
+    for (size_t i = 0; i < NumCones; ++i) {
+      predictor[i] = PredictorCorrectorConeTrace<T>{};
+      corrector[i] = PredictorCorrectorConeTrace<T>{};
+    }
+  }
 };
 
 /**
@@ -53,34 +114,60 @@ struct IterState {
  *
  * @return write position
  */
-template <linalg::FieldLike T>
-inline size_t iter_state_to_cstr(const IterState<T>& state, char* out,
+template <linalg::FieldLike T, size_t NumCones>
+inline size_t iter_state_to_cstr(const IterState<T, NumCones>& state, char* out,
                                  const size_t out_size) {
   AK_ASSERT(out != nullptr && "iter_state_to_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
 
-  const int bytes = std::snprintf(
-      out, out_size,
-      "mu=%g mu_aff=%g sigma=%g mu_tgt=%g ax=%g ay=%g rd=%g rp=%g pz=%g px=%g "
-      "py=%g tag=%hhX",
-      static_cast<double>(state.mu), static_cast<double>(state.mu_aff),
-      static_cast<double>(state.sigma), static_cast<double>(state.mu_tgt),
-      static_cast<double>(state.alpha_x), static_cast<double>(state.alpha_y),
-      static_cast<double>(state.rd_norm), static_cast<double>(state.rp_norm),
-      static_cast<double>(state.pz_norm), static_cast<double>(state.px_norm),
-      static_cast<double>(state.py_norm), static_cast<uint8_t>(state.tag));
+  size_t write_pos{0};
+  const auto appendf = [&](const char* fmt, auto... xs) -> bool {
+    const int bytes =
+        std::snprintf(out + write_pos, out_size - write_pos, fmt, xs...);
+    if (bytes < 0) {
+      out[0] = '\0';
+      return false;
+    }
+    if (static_cast<size_t>(bytes) >= out_size - write_pos) {
+      out[out_size - 1] = '\0';
+      write_pos = out_size - 1;
+      return false;
+    }
+    write_pos += static_cast<size_t>(bytes);
+    return true;
+  };
 
-  if (bytes < 0) {
-    out[0] = '\0';
-    return 0;
+  if (!appendf(
+          "mu=%g ax=%g ay=%g rd=%g rp=%g pz=%g px=%g py=%g tag=%hhX",
+          static_cast<double>(state.mu), static_cast<double>(state.alpha_x),
+          static_cast<double>(state.alpha_y),
+          static_cast<double>(state.rd_norm),
+          static_cast<double>(state.rp_norm),
+          static_cast<double>(state.pz_norm),
+          static_cast<double>(state.px_norm),
+          static_cast<double>(state.py_norm), static_cast<uint8_t>(state.tag)))
+    return write_pos;
+
+  for (size_t i = 0; i < NumCones; ++i) {
+    if (!state.predictor[i].active && !state.corrector[i].active) continue;
+
+    const auto& pred = state.predictor[i];
+    const auto& corr = state.corrector[i];
+    const char* cone_type = pred.active ? pred.cone_type : corr.cone_type;
+    if (!appendf("\n  cone[%zu:%s]", i, cone_type)) return write_pos;
+    if (!appendf("\n    pred: mu=%g rhs_c=%g pz_rhs=%g%s",
+                 static_cast<double>(pred.mu), static_cast<double>(pred.rhs_c),
+                 static_cast<double>(pred.pz_rhs),
+                 pred.active ? "" : " (inactive)"))
+      return write_pos;
+    if (!appendf("\n    corr: mu=%g rhs_c=%g pz_rhs=%g%s",
+                 static_cast<double>(corr.mu), static_cast<double>(corr.rhs_c),
+                 static_cast<double>(corr.pz_rhs),
+                 corr.active ? "" : " (inactive)"))
+      return write_pos;
   }
 
-  if (static_cast<size_t>(bytes) >= out_size) {
-    out[out_size - 1] = '\0';
-    return out_size - 1;
-  }
-
-  return static_cast<size_t>(bytes);
+  return write_pos;
 }
 
 /**
@@ -93,10 +180,10 @@ inline size_t iter_state_to_cstr(const IterState<T>& state, char* out,
  *
  * @return write position (in case buffer to small)
  */
-template <linalg::FieldLike T, size_t N>
+template <linalg::FieldLike T, size_t NumCones, size_t N>
 inline size_t trace_to_cstr(const size_t& num_iter,
-                            const std::array<IterState<T>, N>& trace, char* out,
-                            const size_t& out_size) {
+                            const std::array<IterState<T, NumCones>, N>& trace,
+                            char* out, const size_t& out_size) {
   AK_ASSERT(out != nullptr && "trace_to_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
 
