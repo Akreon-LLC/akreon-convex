@@ -27,11 +27,6 @@ struct ConeTypeName {
 };
 
 template <linalg::VectorLike Vec>
-struct ConeTypeName<conic::ZeroOrderCone<Vec>> {
-  static constexpr const char* value = "ZOC";
-};
-
-template <linalg::VectorLike Vec>
 struct ConeTypeName<conic::NonnegOrthantCone<Vec>> {
   static constexpr const char* value = "RPLUS";
 };

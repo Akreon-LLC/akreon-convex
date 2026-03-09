@@ -39,8 +39,10 @@ TEST_CASE("Test affine subspace", "[convex_sets]") {
         affine_set.template canonicalize<AtomType::SET>(builder);
     constexpr auto cone_block = new_builder.cb;
 
-    constexpr auto A = make_identity<double, 3>();
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<3>{}));
+    constexpr mat_traits<Matrix<double, 6, 3>> A_mat;
+    constexpr auto A = A_mat(-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0,
+                             1.0,  0.0, 0.0, 0.0, 1.0,  0.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<6>{}));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 1);
@@ -99,10 +101,13 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
         hyperplane.template canonicalize<AtomType::SET>(builder).cb;
-    constexpr mat_traits<Matrix<double, 1, 3>> A_mat;
-    constexpr auto A = A_mat(point(0), point(1), point(2));
+    constexpr mat_traits<Matrix<double, 2, 3>> A_mat;
+    constexpr auto A =
+        A_mat(-1 * point(0), -1 * point(1), -1 * point(2), point(0), point(1),
+              point(2));
 
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<1>{-1 * b}));
+    STATIC_REQUIRE(
+        cone_block.map == affine::AffineMap(A, Vectord<2>{b, -1 * b}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -247,7 +252,7 @@ TEST_CASE("Test Simplex", "[convex_sets]") {
     constexpr auto cone_block1 =
         res.template canonicalize<AtomType::CAP>(builder).cb;
     STATIC_REQUIRE(mat_cols_v<decltype(cone_block1.map.linear_part())> == 3);
-    STATIC_REQUIRE(mat_rows_v<decltype(cone_block1.map.linear_part())> == 4);
+    STATIC_REQUIRE(mat_rows_v<decltype(cone_block1.map.linear_part())> == 5);
 
     constexpr auto cones1 = cone_block1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;

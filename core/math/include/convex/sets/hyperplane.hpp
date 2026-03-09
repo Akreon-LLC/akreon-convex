@@ -122,6 +122,12 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * [A x - b t; t], where Ax - bt = 0, t >= 0
    *
+   * The current PD-IPM path does not handle zero cones as equality blocks in
+   * the KKT system, so encode the hyperplane as paired inequalities:
+   *
+   *   a^T x <= b
+   *  -a^T x <= -b
+   *
    * @return cone block
    */
   template <AtomType Type, conic::BuilderLike Builder>
@@ -138,12 +144,13 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, 1, N> F;
-    F = linalg::set_block<0, 1, 0, N>(F, linalg::as_row_vector(a));
-    linalg::Vector<T, 1> g{T(-1) * b};
+    linalg::Matrix<T, 2, N> F;
+    F = linalg::set_block<0, 1, 0, N>(F, T(-1) * linalg::as_row_vector(a));
+    F = linalg::set_block<1, 2, 0, N>(F, linalg::as_row_vector(a));
+    linalg::Vector<T, 2> g{b, T(-1) * b};
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, 1>>();
-    const auto cones = std::make_tuple(zoc);
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 2>>();
+    const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),

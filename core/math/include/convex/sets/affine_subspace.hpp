@@ -130,6 +130,12 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    *
    * [A x - b t; t], where Ax - bt = 0, t >= 0
    *
+   * The current PD-IPM path handles equality sets more robustly when they are
+   * expressed as paired inequalities:
+   *
+   *   A x <= b
+   *  -A x <= -b
+   *
    * @return cone block
    */
   template <AtomType Type, conic::BuilderLike Builder>
@@ -146,19 +152,25 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, M, N> F;
-    linalg::Vector<T, M> g;
+    linalg::Matrix<T, 2 * M, N> F;
+    linalg::Vector<T, 2 * M> g;
     const auto composed_map = affine::AffineMap<Mat>(A, b).compose(child_coord);
-    F = linalg::set_block<0, M, 0, N>(F, composed_map.linear_part());
-    for (size_t i = 0; i < M; ++i) g(i) = T(-1) * composed_map.translation()(i);
+    const auto F_eq = composed_map.linear_part();
+    const auto g_eq = T(-1) * composed_map.translation();
+    F = linalg::set_block<0, M, 0, N>(F, T(-1) * F_eq);
+    F = linalg::set_block<M, 2 * M, 0, N>(F, F_eq);
+    for (size_t i = 0; i < M; ++i) {
+      g(i) = T(-1) * g_eq(i);
+      g(M + i) = g_eq(i);
+    }
 
     const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto zoc = conic::ZeroOrderCone<linalg::Vector<T, M>>();
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 2 * M>>();
 
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
                          decltype(child_cb)>(map, child_cb);
-    const auto cones = std::make_tuple(zoc);
+    const auto cones = std::make_tuple(rplus);
     return new_builder.template make<Type>(cones);
   }
 

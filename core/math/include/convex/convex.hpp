@@ -19,7 +19,6 @@
 #include "cones/psd_cone.hpp"
 #include "cones/rplus.hpp"
 #include "cones/soc.hpp"
-#include "cones/zoc.hpp"
 #include "intersection.hpp"
 #include "sum.hpp"
 #include "convex_problem.hpp"

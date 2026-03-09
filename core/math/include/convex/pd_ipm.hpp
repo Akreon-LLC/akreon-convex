@@ -93,7 +93,7 @@ struct PredictorCorrector {
                           ,
                           IterState<T, NumCones>* trace_state = nullptr
 #endif
-                          ) const {
+  ) const {
     if constexpr (idx >= NumCones)
       return pz_rhs;
     else {
@@ -101,15 +101,6 @@ struct PredictorCorrector {
       using Slack = conic::cone_slack_t<decltype(Ki)>;
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;
       constexpr size_t End = Start + KiRows;
-
-      if (conic::is_zoc_v<decltype(Ki)>)
-        return predictor<idx + 1, End>(std::move(pz_rhs), K, S_inv, F, rp, rd,
-                                       x, y, pz, px, py
-#ifdef AKREON_DEBUG
-                                       ,
-                                       trace_state
-#endif
-        );
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{}, pxk{}, pyk{}, rpk{};
@@ -165,7 +156,6 @@ struct PredictorCorrector {
    * @brief corrector (centering) direction
    *
    * @param pz_rhs (forward pass accumulate)
-   * @param mu_tgt (mu target for mehrotra centering)
    * @param px_pred (newton step affine scaling dir x)
    * @param py_pred (newton step affine scaling dir y)
    * @param K (cartesian product of cones)
@@ -182,7 +172,7 @@ struct PredictorCorrector {
    * @return pz_rhs (ignore on return)
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr Var corrector(Var&& pz_rhs, const T& mu_tgt, const ConeVar& px_aff,
+  constexpr Var corrector(Var&& pz_rhs, const ConeVar& px_aff,
                           const ConeVar& py_aff, const auto& K,
                           const auto& S_inv, const Mat& F, const ConeVar& rp,
                           const Var& rd, const ConeVar& x, const ConeVar& y,
@@ -191,7 +181,7 @@ struct PredictorCorrector {
                           ,
                           IterState<T, NumCones>* trace_state = nullptr
 #endif
-                          ) const {
+  ) const {
     if constexpr (idx >= NumCones)
       return pz_rhs;
     else {
@@ -199,16 +189,6 @@ struct PredictorCorrector {
       using Slack = conic::cone_slack_t<decltype(Ki)>;
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;
       constexpr size_t End = Start + KiRows;
-
-      if (conic::is_zoc_v<decltype(Ki)>)
-        return corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, px_aff,
-                                       py_aff, K, S_inv, F, rp, rd, x, y, pz,
-                                       px, py
-#ifdef AKREON_DEBUG
-                                       ,
-                                       trace_state
-#endif
-        );
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{}, px_aff_k{}, py_aff_k{}, rpk{};
@@ -225,10 +205,8 @@ struct PredictorCorrector {
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
-      const auto mu_k = Ki.trace(xk, yk) / Ki.nu();
+      T mu_k = Ki.trace(xk, yk) / Ki.nu();
       ConePoint rhs_c = yk + mu_k * Ki.grad(xk) + Ki.circ(px_aff_k, py_aff_k);
-      // ConePoint rhs_c = yk + mu_tgt * Ki.grad(xk) + Ki.circ(px_aff_k,
-      // py_aff_k);
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_DEBUG
@@ -243,8 +221,8 @@ struct PredictorCorrector {
 #endif
 
       const auto new_pz_rhs =
-          corrector<idx + 1, End>(std::move(pz_rhs), mu_tgt, px_aff, py_aff, K,
-                                  S_inv, F, rp, rd, x, y, pz, px, py
+          corrector<idx + 1, End>(std::move(pz_rhs), px_aff, py_aff, K, S_inv,
+                                  F, rp, rd, x, y, pz, px, py
 #ifdef AKREON_DEBUG
                                   ,
                                   trace_state
@@ -323,7 +301,8 @@ struct PrimalDualIPM {
   bool primal_feas{false};             ///< status flag for primal feasibility
   bool gap_min{false};  ///< status flag for duality gap minimized
 #ifdef AKREON_DEBUG
-  std::array<IterState<T, NumCones>, PD_IPM_STEPS> trace;  ///< debug iteration trace
+  std::array<IterState<T, NumCones>, PD_IPM_STEPS>
+      trace;  ///< debug iteration trace
 #endif
 
  private:
@@ -380,50 +359,30 @@ struct PrimalDualIPM {
 #endif
       );
 
-      /// (dakre) 4 - mehrotra centering
-      auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px_pred, py_pred);
-      const auto x_aff = x + std::get<0>(alpha_xy) * px_pred;
-      const auto y_aff = y + std::get<1>(alpha_xy) * py_pred;
-
-      const auto mu_params = mu(K, x, y);
-      // const auto mu_curr = mu_global(x, y, std::get<1>(mu_params));
-      const auto mu_curr = std::get<0>(mu_params) / std::get<1>(mu_params);
-      const auto mu_aff_params = mu(K, x_aff, y_aff);
-      // const auto mu_aff = mu_global(x_aff, y_aff, std::get<1>(mu_params));
-      const auto mu_aff =
-          std::get<0>(mu_aff_params) / std::get<1>(mu_aff_params);
-
-      auto sigma = linalg::constexpr_pow(mu_aff / mu_curr, 3);
-      sigma = std::clamp(sigma, T(0), T(1));
-      // if (gap_min) sigma = std::min(sigma, T(0));
-
-      const auto mu_tgt = sigma * mu_curr;
-
-      /// (dakre) 5 - corrector step
-      pc.corrector(Var{}, mu_tgt, px_pred, py_pred, K, ldl, F, rp, rd, x, y,
-                   pz_corr, px_corr, py_corr
+      /// (dakre) 4 - corrector step
+      pc.corrector(Var{}, px_pred, py_pred, K, ldl, F, rp, rd, x, y, pz_corr,
+                   px_corr, py_corr
 #ifdef AKREON_DEBUG
                    ,
                    iter_trace
 #endif
       );
 
-      /// (dakre) 6 - newton step
+      /// (dakre) 5 - newton step
       const auto px = px_pred + rho * px_corr;
       const auto py = py_pred + rho * py_corr;
       const auto pz = pz_pred + rho * pz_corr;
 
-      /// (dakre) 7 - alpha max
-      alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
+      /// (dakre) 6 - alpha max
+      auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
 
-      /// (dakre) 8 - backtrack line search to acquire next iterate
+      /// (dakre) 7 - backtrack line search to acquire next iterate
       backtrack_iterates(alpha_xy, K, pz, px, py, z, x, y);
-      // z = z + std::get<0>(alpha_xy) * pz;
-      // x = x + std::get<0>(alpha_xy) * px;
-      // y = y + std::get<1>(alpha_xy) * py;
 
+      const auto mu_next = mu(K, x, y);
+      res.mu = std::get<0>(mu_next) / std::get<1>(mu_next);
 #ifdef AKREON_DEBUG
-      trace[i].mu = mu_curr;
+      trace[i].mu = res.mu;
       trace[i].rd_norm = rd_norm;
       trace[i].rp_norm = rp_norm;
       trace[i].alpha_x = std::get<0>(alpha_xy);
@@ -433,12 +392,9 @@ struct PrimalDualIPM {
       trace[i].py_norm = linalg::L2<decltype(py)>()(py);
 #endif
 
-      /// (dakre) 9 - compute residuals + mu again
+      /// (dakre) 8 - compute residuals + mu again
       rd = dual_residual(F, c, y);
       rp = primal_residual(F, g, z, x);
-
-      const auto mu_next = mu(K, x, y);
-      res.mu = std::get<0>(mu_next) / std::get<1>(mu_next);
 
       rd_norm = linalg::L2<decltype(rd)>()(rd);
       rp_norm = linalg::L2<decltype(rp)>()(rp);
@@ -476,8 +432,6 @@ struct PrimalDualIPM {
 
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;
       constexpr size_t End = Start + KiRows;
-
-      if (conic::is_zoc_v<decltype(Ki)>) return mu<idx + 1, End>(K, x, y);
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{};
@@ -526,9 +480,6 @@ struct PrimalDualIPM {
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;
       constexpr size_t End = Start + KiRows;
 
-      if (conic::is_zoc_v<decltype(Ki)>)
-        return accumulate_schur<idx + 1, End>(std::move(S), F, K, x, y);
-
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{};
 
@@ -571,9 +522,6 @@ struct PrimalDualIPM {
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;
       constexpr size_t End = Start + KiRows;
 
-      if (conic::is_zoc_v<decltype(Ki)>)
-        return seed_cone_vars<idx + 1, End>(K, x, y);
-
       const auto x0 = Ki.x0(), y0 = Ki.y0();
       for (size_t i = Start, j = 0; i < End; ++i, ++j)
         x(i) = x0(j), y(i) = y0(j);
@@ -610,10 +558,6 @@ struct PrimalDualIPM {
       using Slack = conic::cone_slack_t<decltype(Ki)>;
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;
       constexpr size_t End = Start + KiRows;
-
-      if (conic::is_zoc_v<decltype(Ki)>)
-        return alpha_max<idx + 1, End>(std::move(alpha_x), std::move(alpha_y),
-                                       K, x, y, px, py);
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{}, pxk{}, pyk{};
@@ -683,9 +627,6 @@ struct PrimalDualIPM {
       using Slack = conic::cone_slack_t<decltype(Ki)>;
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;
       constexpr size_t End = Start + KiRows;
-
-      if (conic::is_zoc_v<decltype(Ki)>)
-        return check_functional_proximity<idx + 1, End>(K, x, y);
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{};

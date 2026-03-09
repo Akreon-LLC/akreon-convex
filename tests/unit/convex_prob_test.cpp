@@ -479,7 +479,7 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
         intersection.template canonicalize<AtomType::CAP>(builder);
     constexpr auto canon_cb = new_builder.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 2);
-    STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 5);
+    STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 6);
     STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 3);
   }
 }
@@ -545,9 +545,12 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{0.0, 1.0, 0.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
                    1);
-    STATIC_REQUIRE(all_equal(make_identity<double, 3>(),
-                             prob3.constraint_map().linear_part()));
-    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<3>{});
+    constexpr mat_traits<Matrix<double, 6, 3>> F_mat;
+    constexpr auto F =
+        F_mat(-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(all_equal(F, prob3.constraint_map().linear_part()));
+    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<6>{});
   }
 
   SECTION("Intersection of sets min. Linf prob") {
@@ -575,7 +578,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
 
     STATIC_REQUIRE(
         linalg::mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
-        11);
+        12);
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
         4);
@@ -689,6 +692,27 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(
         prob5.constraint_map().translation() ==
         Vectord<10>{0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0});
+  }
+
+  SECTION("Simple eq min. prob") {
+    constexpr auto x0 = var(0).value();
+    constexpr auto x1 = var(1).value();
+    constexpr auto x2 = var(2).value();
+
+    constexpr auto eq =
+        Inequality<InequalityType::EQ, decltype(x0), decltype(x1)>(x0, x1);
+    constexpr auto prob2 = prob.add_constraint(eq);
+    constexpr auto prob3 = prob2.minimize(x2);
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{0.0, 0.0, 1.0});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   1);
+
+    constexpr mat_traits<Matrix<double, 2, 3>> F_mat;
+    constexpr auto F = F_mat(-1.0, 1.0, 0.0, 1.0, -1.0, 0.0);
+    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
+    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<2>{});
   }
 }
 

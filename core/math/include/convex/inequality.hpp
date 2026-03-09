@@ -22,7 +22,7 @@ namespace convex {
  *
  * lhs <= rhs... 0 <= rhs - lhs (rplus)
  * lhs >= rhs... 0 <= lhs - rhs (rplus)
- * lhs == rhs... 0 == lhs - rhs (zoc)
+ * lhs == rhs... paired inequalities on rhs - lhs and lhs - rhs
  */
 template <InequalityType IType, AtomLike LHS, typename RHS>
 struct Inequality {
@@ -54,14 +54,6 @@ struct Inequality {
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
-    auto get_cone = []() {
-      if constexpr (IType == InequalityType::EQ) {
-        return conic::ZeroOrderCone<linalg::Vector<T, 1>>();
-      } else {
-        return conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
-      }
-    };
-
     if constexpr (linalg::FieldLike<RHS>) {
       const auto child_builder =
           lhs.template canonicalize<AtomType::FN>(builder);
@@ -70,23 +62,44 @@ struct Inequality {
 
       using ChildMat = decltype(child_coord.linear_part());
 
-      ChildMat F{child_coord.linear_part()};
-      linalg::Vector<T, 1> g{child_coord.translation()};
       if constexpr (IType == InequalityType::LEQ) {
-        F = T(-1) * F;
-        g = linalg::Vector<T, 1>{rhs} - g;
+        ChildMat F{T(-1) * child_coord.linear_part()};
+        linalg::Vector<T, 1> g{linalg::Vector<T, 1>{rhs} -
+                               child_coord.translation()};
+        const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+        const auto new_builder =
+            conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                    decltype(coord_map_up), decltype(child_cb)>(
+                coord_map_up, child_cb);
+        return new_builder.template make<AtomType::CAP>(std::make_tuple(
+            conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
+      } else if constexpr (IType == InequalityType::GEQ) {
+        ChildMat F{child_coord.linear_part()};
+        linalg::Vector<T, 1> g{child_coord.translation() -
+                               linalg::Vector<T, 1>{rhs}};
+        const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+        const auto new_builder =
+            conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                    decltype(coord_map_up), decltype(child_cb)>(
+                coord_map_up, child_cb);
+        return new_builder.template make<AtomType::CAP>(std::make_tuple(
+            conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
       } else {
-        g = g - linalg::Vector<T, 1>{rhs};
+        linalg::Matrix<T, 2, linalg::mat_cols_v<ChildMat>> F{};
+        const auto F_eq = child_coord.linear_part();
+        const auto g_eq = child_coord.translation() - linalg::Vector<T, 1>{rhs};
+        F = linalg::set_block<0, 1, 0, linalg::mat_cols_v<ChildMat>>(
+            F, T(-1) * F_eq);
+        F = linalg::set_block<1, 2, 0, linalg::mat_cols_v<ChildMat>>(F, F_eq);
+        linalg::Vector<T, 2> g{-1 * g_eq(0), g_eq(0)};
+        const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+        const auto new_builder =
+            conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                    decltype(coord_map_up), decltype(child_cb)>(
+                coord_map_up, child_cb);
+        return new_builder.template make<AtomType::CAP>(std::make_tuple(
+            conic::NonnegOrthantCone<linalg::Vector<T, 2>>()));
       }
-
-      const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-      const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                  decltype(coord_map_up), decltype(child_cb)>(
-              coord_map_up, child_cb);
-
-      return new_builder.template make<AtomType::CAP>(
-          std::make_tuple(get_cone()));
     } else {
       static_assert(is_fn_type_v<RHS> || is_index_type_v<LHS>,
                     "RHS Atom must be fn, index, or scalar type");
@@ -109,15 +122,40 @@ struct Inequality {
         const auto new_builder =
             sum.template canonicalize<AtomType::ADD>(builder);
         return new_builder.template make<AtomType::CAP>(
-            std::make_tuple(get_cone()));
-      } else {
+            std::make_tuple(conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
+      } else if constexpr (IType == InequalityType::GEQ) {
         const auto new_rhs = negate_atom(rhs);
         const Sum<SumMeta<SumDom, SumCodom>, decltype(lhs), decltype(new_rhs)>
             sum(lhs, new_rhs);
         const auto new_builder =
             sum.template canonicalize<AtomType::ADD>(builder);
         return new_builder.template make<AtomType::CAP>(
-            std::make_tuple(get_cone()));
+            std::make_tuple(conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
+      } else {
+        const auto new_rhs = negate_atom(rhs);
+        const Sum<SumMeta<SumDom, SumCodom>, decltype(lhs), decltype(new_rhs)>
+            sum(lhs, new_rhs);
+        const auto child_builder =
+            sum.template canonicalize<AtomType::ADD>(builder);
+        const auto child_coord = child_builder.coord_map;
+        const auto child_cb = child_builder.cb;
+
+        using ChildMat = decltype(child_coord.linear_part());
+        linalg::Matrix<T, 2, linalg::mat_cols_v<ChildMat>> F{};
+        F = linalg::set_block<0, 1, 0, linalg::mat_cols_v<ChildMat>>(
+            F, T(-1) * child_coord.linear_part());
+        F = linalg::set_block<1, 2, 0, linalg::mat_cols_v<ChildMat>>(
+            F, child_coord.linear_part());
+        linalg::Vector<T, 2> g{-1 * child_coord.translation()(0),
+                               child_coord.translation()(0)};
+
+        const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+        const auto new_builder =
+            conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                    decltype(coord_map_up), decltype(child_cb)>(
+                coord_map_up, child_cb);
+        return new_builder.template make<AtomType::CAP>(std::make_tuple(
+            conic::NonnegOrthantCone<linalg::Vector<T, 2>>()));
       }
     }
   }

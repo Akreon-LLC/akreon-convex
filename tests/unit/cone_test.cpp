@@ -47,11 +47,6 @@ TEST_CASE("Test cone formations", "[cone_test]") {
     STATIC_REQUIRE(psd.in_cone(psd.x0()));
   }
 
-  SECTION("Test zoc") {
-    using Slack = Vectord<5>;
-    constexpr ZeroOrderCone<Slack> zoc;
-    STATIC_REQUIRE(!zoc.in_cone(zoc.x0()));
-  }
 }
 
 TEST_CASE("Test R^n_+ cone", "[cone_test]") {

@@ -23,10 +23,6 @@ enum struct ConeType : uint8_t { SYMMETRIC = 0, ASYMMETRIC, SYMMETRIC_WRAPPER };
 template <linalg::VectorLike Vec, typename Derived, ConeType Type>
 struct Cone;
 
-/// @brief forward decl for zero order cone
-template <linalg::VectorLike Vec>
-struct ZeroOrderCone;
-
 /// @brief forward decl for nonneg orthant cone
 template <linalg::VectorLike Vec>
 struct NonnegOrthantCone;
@@ -54,15 +50,6 @@ struct LogDetCone;
 /// @brief Base cone traits.
 template <typename Cone>
 struct cone_traits;
-
-/// @brief Cone traits for ZeroOrderCone.
-template <linalg::VectorLike Vec>
-struct cone_traits<ZeroOrderCone<Vec>> : std::true_type {
-  using SlackT = Vec;
-  using T = linalg::vec_type_t<Vec>;
-  static constexpr ConeType CT = ConeType::SYMMETRIC;
-  static constexpr size_t N = linalg::vec_size_v<Vec>;
-};
 
 /// @brief Cone traits for NonnegOrthantCone.
 template <linalg::VectorLike Vec>
@@ -128,10 +115,6 @@ inline constexpr bool is_cone_symmetric_v =
 template <class Cone>
 inline constexpr size_t cone_dim_t =
     cone_traits<linalg::remove_cvref_t<Cone>>::N;
-
-/// @brief helper for checking if its zero order cone
-template <class Cone>
-inline constexpr bool is_zoc_v = cone_traits<linalg::remove_cvref_t<Cone>>{};
 
 /// @brief helper for symmetric wrapped
 template <class Cone>
