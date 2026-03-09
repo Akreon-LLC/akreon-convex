@@ -85,13 +85,13 @@ struct PredictorCorrector {
    * @return pz_rhs (ignore on return)
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr Var predictor(Var&& pz_rhs, const auto& K, const auto& S_inv,
-                          const Mat& F, const ConeVar& rp, const Var& rd,
-                          const ConeVar& x, const ConeVar& y, Var& pz,
-                          ConeVar& px, ConeVar& py
+  constexpr Var predictor(
+      Var&& pz_rhs, const auto& K, const auto& S_inv, const Mat& F,
+      const ConeVar& rp, const Var& rd, const ConeVar& x, const ConeVar& y,
+      Var& pz, ConeVar& px, ConeVar& py
 #ifdef AKREON_DEBUG
-                          ,
-                          IterState<T, NumCones>* trace_state = nullptr
+      ,
+      IterState<T, NumCones, linalg::mat_rows_v<Mat>, N>& trace_state
 #endif
   ) const {
     if constexpr (idx >= NumCones)
@@ -121,14 +121,18 @@ struct PredictorCorrector {
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_DEBUG
-      if (trace_state != nullptr) {
-        auto& cone_trace = trace_state->predictor[idx];
-        cone_trace.mu = Ki.trace(xk, yk) / Ki.nu();
-        cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
-        cone_trace.pz_rhs = linalg::L2<Var>()(pz_rhs);
-        cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
-        cone_trace.active = true;
+      auto& cone_trace = trace_state.predictor[idx];
+      cone_trace.mu = Ki.trace(xk, yk) / Ki.nu();
+      cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
+      cone_trace.pz_rhs = linalg::L2<Var>()(pz_rhs);
+      cone_trace.cone_dim = End - Start;
+      for (size_t j = 0; j < End - Start; ++j) {
+        cone_trace.xk[j] = xk(j);
+        cone_trace.yk[j] = yk(j);
+        cone_trace.rhs_c_vec[j] = rhs_c(j);
       }
+      cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
+      cone_trace.active = true;
 #endif
 
       const auto new_pz_rhs = predictor<idx + 1, End>(
@@ -147,6 +151,13 @@ struct PredictorCorrector {
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         px(i) = px_local(j), py(i) = py_local(j);
       }
+#ifdef AKREON_DEBUG
+      for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = pz(j);
+      for (size_t j = 0; j < End - Start; ++j) {
+        cone_trace.px[j] = px_local(j);
+        cone_trace.py[j] = py_local(j);
+      }
+#endif
 
       return new_pz_rhs;
     }
@@ -172,14 +183,13 @@ struct PredictorCorrector {
    * @return pz_rhs (ignore on return)
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr Var corrector(Var&& pz_rhs, const ConeVar& px_aff,
-                          const ConeVar& py_aff, const auto& K,
-                          const auto& S_inv, const Mat& F, const ConeVar& rp,
-                          const Var& rd, const ConeVar& x, const ConeVar& y,
-                          Var& pz, ConeVar& px, ConeVar& py
+  constexpr Var corrector(
+      Var&& pz_rhs, const ConeVar& px_aff, const ConeVar& py_aff, const auto& K,
+      const auto& S_inv, const Mat& F, const ConeVar& rp, const Var& rd,
+      const ConeVar& x, const ConeVar& y, Var& pz, ConeVar& px, ConeVar& py
 #ifdef AKREON_DEBUG
-                          ,
-                          IterState<T, NumCones>* trace_state = nullptr
+      ,
+      IterState<T, NumCones, linalg::mat_rows_v<Mat>, N>& trace_state
 #endif
   ) const {
     if constexpr (idx >= NumCones)
@@ -210,14 +220,18 @@ struct PredictorCorrector {
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_DEBUG
-      if (trace_state != nullptr) {
-        auto& cone_trace = trace_state->corrector[idx];
-        cone_trace.mu = mu_k;
-        cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
-        cone_trace.pz_rhs = linalg::L2<Var>()(pz_rhs);
-        cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
-        cone_trace.active = true;
+      auto& cone_trace = trace_state.corrector[idx];
+      cone_trace.mu = mu_k;
+      cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
+      cone_trace.pz_rhs = linalg::L2<Var>()(pz_rhs);
+      cone_trace.cone_dim = End - Start;
+      for (size_t j = 0; j < End - Start; ++j) {
+        cone_trace.xk[j] = xk(j);
+        cone_trace.yk[j] = yk(j);
+        cone_trace.rhs_c_vec[j] = rhs_c(j);
       }
+      cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
+      cone_trace.active = true;
 #endif
 
       const auto new_pz_rhs =
@@ -237,6 +251,13 @@ struct PredictorCorrector {
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         px(i) = px_local(j), py(i) = py_local(j);
       }
+#ifdef AKREON_DEBUG
+      for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = pz(j);
+      for (size_t j = 0; j < End - Start; ++j) {
+        cone_trace.px[j] = px_local(j);
+        cone_trace.py[j] = py_local(j);
+      }
+#endif
 
       return new_pz_rhs;
     }
@@ -301,7 +322,7 @@ struct PrimalDualIPM {
   bool primal_feas{false};             ///< status flag for primal feasibility
   bool gap_min{false};  ///< status flag for duality gap minimized
 #ifdef AKREON_DEBUG
-  std::array<IterState<T, NumCones>, PD_IPM_STEPS>
+  std::array<IterState<T, NumCones, M, N>, PD_IPM_STEPS>
       trace;  ///< debug iteration trace
 #endif
 
@@ -338,7 +359,6 @@ struct PrimalDualIPM {
       Var pz_pred{}, pz_corr{};
 #ifdef AKREON_DEBUG
       trace[i].reset_pc_trace();
-      auto* iter_trace = &trace[i];
 #endif
 
       /// (dakre) 1 - accumulate and factor schur
@@ -355,7 +375,7 @@ struct PrimalDualIPM {
       pc.predictor(Var{}, K, ldl, F, rp, rd, x, y, pz_pred, px_pred, py_pred
 #ifdef AKREON_DEBUG
                    ,
-                   iter_trace
+                   trace[i]
 #endif
       );
 
@@ -364,7 +384,7 @@ struct PrimalDualIPM {
                    px_corr, py_corr
 #ifdef AKREON_DEBUG
                    ,
-                   iter_trace
+                   trace[i]
 #endif
       );
 

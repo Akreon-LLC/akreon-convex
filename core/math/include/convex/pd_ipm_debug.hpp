@@ -66,11 +66,18 @@ struct PrimalDualResult;
 /**
  * @brief IterState
  */
-template <linalg::FieldLike T>
+template <linalg::FieldLike T, size_t MaxConeDim, size_t VarDim>
 struct PredictorCorrectorConeTrace {
   T mu{};      ///< local normalized duality gap (per cone)
   T rhs_c{};   ///< ||rhs_c||_2 in local cone block
   T pz_rhs{};  ///< ||pz_rhs||_2 after cone contribution
+  std::array<T, MaxConeDim> xk{};
+  std::array<T, MaxConeDim> yk{};
+  std::array<T, MaxConeDim> rhs_c_vec{};
+  std::array<T, MaxConeDim> px{};
+  std::array<T, MaxConeDim> py{};
+  std::array<T, VarDim> pz{};
+  size_t cone_dim{};
   const char* cone_type{"unknown"};
   bool active{false};
 };
@@ -78,7 +85,7 @@ struct PredictorCorrectorConeTrace {
 /**
  * @brief IterState
  */
-template <linalg::FieldLike T, size_t NumCones>
+template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim, size_t VarDim>
 struct IterState {
   T mu{};       ///< normalized duality gap
   T alpha_x{};  ///< max step to dK size
@@ -88,17 +95,65 @@ struct IterState {
   T pz_norm{};  ///< newton step in z \in R^n size
   T px_norm{};  ///< newton step in x \in K size
   T py_norm{};  ///< newton step in y \in K^* size
-  std::array<PredictorCorrectorConeTrace<T>, NumCones> predictor{};
-  std::array<PredictorCorrectorConeTrace<T>, NumCones> corrector{};
+  std::array<PredictorCorrectorConeTrace<T, MaxConeDim, VarDim>, NumCones>
+      predictor{};
+  std::array<PredictorCorrectorConeTrace<T, MaxConeDim, VarDim>, NumCones>
+      corrector{};
   config::SolverResult tag{};  ///< tag of current iterate
 
   constexpr void reset_pc_trace() {
     for (size_t i = 0; i < NumCones; ++i) {
-      predictor[i] = PredictorCorrectorConeTrace<T>{};
-      corrector[i] = PredictorCorrectorConeTrace<T>{};
+      predictor[i] = PredictorCorrectorConeTrace<T, MaxConeDim, VarDim>{};
+      corrector[i] = PredictorCorrectorConeTrace<T, MaxConeDim, VarDim>{};
     }
   }
 };
+
+template <linalg::FieldLike T, size_t N>
+inline size_t array_slice_to_cstr(const std::array<T, N>& v, const size_t size,
+                                  char* out, const size_t out_size) {
+  AK_ASSERT(out != nullptr && "array_slice_to_cstr requires non-null output");
+  if (out == nullptr || out_size == 0) return 0;
+
+  size_t write_pos{0};
+  const int open = std::snprintf(out + write_pos, out_size - write_pos, "[");
+  if (open < 0) {
+    out[0] = '\0';
+    return 0;
+  }
+  if (static_cast<size_t>(open) >= out_size - write_pos) {
+    out[out_size - 1] = '\0';
+    return out_size - 1;
+  }
+  write_pos += static_cast<size_t>(open);
+
+  for (size_t i = 0; i < size; ++i) {
+    const char* fmt = (i + 1 == size) ? "%g" : "%g, ";
+    const int bytes = std::snprintf(out + write_pos, out_size - write_pos, fmt,
+                                    static_cast<double>(v[i]));
+    if (bytes < 0) {
+      out[0] = '\0';
+      return 0;
+    }
+    if (static_cast<size_t>(bytes) >= out_size - write_pos) {
+      out[out_size - 1] = '\0';
+      return out_size - 1;
+    }
+    write_pos += static_cast<size_t>(bytes);
+  }
+
+  const int close = std::snprintf(out + write_pos, out_size - write_pos, "]");
+  if (close < 0) {
+    out[0] = '\0';
+    return 0;
+  }
+  if (static_cast<size_t>(close) >= out_size - write_pos) {
+    out[out_size - 1] = '\0';
+    return out_size - 1;
+  }
+  write_pos += static_cast<size_t>(close);
+  return write_pos;
+}
 
 /**
  * @brief iter state to c string
@@ -109,9 +164,10 @@ struct IterState {
  *
  * @return write position
  */
-template <linalg::FieldLike T, size_t NumCones>
-inline size_t iter_state_to_cstr(const IterState<T, NumCones>& state, char* out,
-                                 const size_t out_size) {
+template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim, size_t VarDim>
+inline size_t iter_state_to_cstr(
+    const IterState<T, NumCones, MaxConeDim, VarDim>& state, char* out,
+    const size_t out_size) {
   AK_ASSERT(out != nullptr && "iter_state_to_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
 
@@ -155,11 +211,41 @@ inline size_t iter_state_to_cstr(const IterState<T, NumCones>& state, char* out,
                  static_cast<double>(pred.pz_rhs),
                  pred.active ? "" : " (inactive)"))
       return write_pos;
+    if (pred.active) {
+      char buf[1024];
+      const auto append_vec = [&](const char* label, const auto& vec,
+                                  const size_t size) -> bool {
+        const size_t len = array_slice_to_cstr(vec, size, buf, sizeof(buf));
+        if (len >= sizeof(buf)) return false;
+        return appendf("\n      -> %s: %s", label, buf);
+      };
+      if (!append_vec("xk", pred.xk, pred.cone_dim)) return write_pos;
+      if (!append_vec("yk", pred.yk, pred.cone_dim)) return write_pos;
+      if (!append_vec("rhs_c", pred.rhs_c_vec, pred.cone_dim)) return write_pos;
+      if (!append_vec("pz", pred.pz, VarDim)) return write_pos;
+      if (!append_vec("px", pred.px, pred.cone_dim)) return write_pos;
+      if (!append_vec("py", pred.py, pred.cone_dim)) return write_pos;
+    }
     if (!appendf("\n    corr: mu=%g rhs_c=%g pz_rhs=%g%s",
                  static_cast<double>(corr.mu), static_cast<double>(corr.rhs_c),
                  static_cast<double>(corr.pz_rhs),
                  corr.active ? "" : " (inactive)"))
       return write_pos;
+    if (corr.active) {
+      char buf[1024];
+      const auto append_vec = [&](const char* label, const auto& vec,
+                                  const size_t size) -> bool {
+        const size_t len = array_slice_to_cstr(vec, size, buf, sizeof(buf));
+        if (len >= sizeof(buf)) return false;
+        return appendf("\n      -> %s: %s", label, buf);
+      };
+      if (!append_vec("xk", corr.xk, corr.cone_dim)) return write_pos;
+      if (!append_vec("yk", corr.yk, corr.cone_dim)) return write_pos;
+      if (!append_vec("rhs_c", corr.rhs_c_vec, corr.cone_dim)) return write_pos;
+      if (!append_vec("pz", corr.pz, VarDim)) return write_pos;
+      if (!append_vec("px", corr.px, corr.cone_dim)) return write_pos;
+      if (!append_vec("py", corr.py, corr.cone_dim)) return write_pos;
+    }
   }
 
   return write_pos;
@@ -175,9 +261,12 @@ inline size_t iter_state_to_cstr(const IterState<T, NumCones>& state, char* out,
  *
  * @return write position (in case buffer to small)
  */
-template <linalg::FieldLike T, size_t NumCones, size_t N>
+template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim, size_t VarDim,
+          size_t N>
 inline size_t trace_to_cstr(const size_t& num_iter,
-                            const std::array<IterState<T, NumCones>, N>& trace,
+                            const std::array<
+                                IterState<T, NumCones, MaxConeDim, VarDim>, N>&
+                                trace,
                             char* out, const size_t& out_size) {
   AK_ASSERT(out != nullptr && "trace_to_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
