@@ -214,53 +214,6 @@ TEST_CASE("Test LMI", "[convex_sets]") {
   }
 }
 
-TEST_CASE("Test Simplex", "[convex_sets]") {
-  SECTION("Test Simplex", "[{ x | x >= 0, sum_i x_i = 1}]") {
-    using Space = Matrixd<1, 3>;
-    constexpr auto x = Variable<NonnegVarMeta<Space>>();
-    constexpr Simplex<SimplexMeta<Space>, decltype(x)> simplex(x);
-    STATIC_REQUIRE(simplex.is_well_formed());
-    STATIC_REQUIRE(simplex == simplex);
-    STATIC_REQUIRE(simplex.contains(Vectord<3>{0.8, 0.1, 0.1}));
-    STATIC_REQUIRE(!simplex.contains(Vectord<3>{-0.8, 0.1, 0.1}));
-    STATIC_REQUIRE(!simplex.contains(Vectord<3>{0.8, 0.1, 0.0}));
-
-    constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto cone_block =
-        simplex.template canonicalize<AtomType::SET>(builder).cb;
-    constexpr mat_traits<Matrix<double, 1, 3>> A_mat;
-    constexpr auto A = A_mat(-1.0, -1.0, -1.0);
-
-    STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<1>{1.0}));
-
-    constexpr auto cones = cone_block.cones;
-    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    /// (dakre) TODO note nonneg var not canonicalized here (add_var explicitly
-    /// adds cone block) which doesnt occur in this test... possible fix when
-    /// refactoring full cone block builder
-    STATIC_REQUIRE(sz == 1);
-    STATIC_REQUIRE(cone_block.validate());
-
-    constexpr auto I = make_identity<double, 3>();
-    constexpr auto res =
-        simplex.transform(AffineMap<Matrixd<3, 3>>(I, Vectord<3>{}));
-    STATIC_REQUIRE(is_cap_type_v<decltype(res)>);
-    STATIC_REQUIRE(res.contains(Vectord<3>{0.8, 0.1, 0.1}));
-    STATIC_REQUIRE(!res.contains(Vectord<3>{-0.8, 0.1, 0.1}));
-    STATIC_REQUIRE(!res.contains(Vectord<3>{0.8, 0.1, 0.0}));
-
-    constexpr auto cone_block1 =
-        res.template canonicalize<AtomType::CAP>(builder).cb;
-    STATIC_REQUIRE(mat_cols_v<decltype(cone_block1.map.linear_part())> == 3);
-    STATIC_REQUIRE(mat_rows_v<decltype(cone_block1.map.linear_part())> == 5);
-
-    constexpr auto cones1 = cone_block1.cones;
-    constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
-    STATIC_REQUIRE(sz1 == 2);
-    STATIC_REQUIRE(cone_block1.validate());
-  }
-}
-
 TEST_CASE("Polyhedron", "[convex_sets]") {
   SECTION("Test Closed Polyhedron", "[A x <= b]") {
     using Space = Matrix<double, 1, 3>;

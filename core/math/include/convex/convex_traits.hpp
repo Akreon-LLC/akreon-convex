@@ -224,10 +224,6 @@ struct Hyperplane;
 template <typename Meta, typename Child>
 struct LMI;
 
-/// @brief forward declaration of simplex set
-template <typename Meta, typename Child>
-struct Simplex;
-
 /// @brief simple enum to describe ball type
 enum struct NormBallType : uint8_t { L2 = 0, L1, Linf };
 
@@ -419,12 +415,6 @@ struct atom_traits<Hyperplane<Meta, Child>> {
 
 template <typename Meta, typename Child>
 struct atom_traits<LMI<Meta, Child>> {
-  using ConvexMeta = Meta;
-  static constexpr AtomType Type = AtomType::SET;
-};
-
-template <typename Meta, typename Child>
-struct atom_traits<Simplex<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::SET;
 };

@@ -45,6 +45,5 @@
 #include "sets/lmi.hpp"
 #include "sets/norm_ball.hpp"
 #include "sets/polyhedron.hpp"
-#include "sets/simplex.hpp"
 #include "variable.hpp"
 #include "inequality.hpp"
