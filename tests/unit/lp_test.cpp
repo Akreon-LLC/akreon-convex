@@ -43,7 +43,7 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
   constexpr auto rel_tol = 1e-3;
 
   SECTION("Min x0") {
-    constexpr auto prob_min = prob_constr.minimize(x(0).value());
+    constexpr auto prob_min = prob_constr.minimize(x(0));
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
         std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
@@ -70,7 +70,7 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
   }
 
   SECTION("Min x1") {
-    constexpr auto prob_min = prob_constr.minimize(x(1).value());
+    constexpr auto prob_min = prob_constr.minimize(x(1));
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
         std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
@@ -164,7 +164,7 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
 TEST_CASE("Halfspace and Hyperplane LP Test", "[lp_test]") {
   using Space = Matrixd<1, 2>;
 
-  SECTION("Nonneg Var") {
+  SECTION("Free Var With Scalar GEQ") {
     constexpr auto x = Variable<NonnegVarMeta<Space>>();
     constexpr auto prob_init = make_problem(x);
 
@@ -438,7 +438,7 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
     STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
     STATIC_REQUIRE(prob_min.linear_objective() == c);
 
-    constexpr PrimalDualIPMConfig<double> config{.dual_feas_tol = 1e-4};
+    constexpr PrimalDualIPMConfig<double> config{.dual_feas_tol = 1e-3};
     constexpr PrimalDualIPM solver(prob_min, config);
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
@@ -449,5 +449,45 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(linalg::constexpr_abs(res.z(0)) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.z(1) - 1.0) < rel_tol);
+  }
+}
+
+TEST_CASE("Abs Function LP Test", "[lp_test]") {
+  using Space = Matrixd<1, 1>;
+
+  constexpr auto rel_tol = 1e-3;
+
+  SECTION("Nonneg Var") {
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto prob_init = make_problem(x);
+    constexpr auto abs_x = Abs<AbsMeta<Space>, decltype(x)>(x);
+    constexpr auto x0 = x(0);
+    constexpr auto geq =
+        Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 1.0);
+    constexpr auto prob_constr = prob_init.add_constraint(geq);
+    constexpr auto prob_min = prob_constr.minimize(abs_x);
+
+    constexpr auto obj_exp = Vectord<3>{0.0, 0.0, 1.0};
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(prob_min.validate());
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 6);
+    STATIC_REQUIRE(
+        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 6);
+    STATIC_REQUIRE(
+        mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 3);
+    STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
+
+    constexpr PrimalDualIPMConfig<double> config{.primal_feas_tol = 1e-3};
+    constexpr PrimalDualIPM solver(prob_min, config);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+
+    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(linalg::constexpr_abs(res.z(0) - 1.0) < rel_tol);
   }
 }

@@ -59,7 +59,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(canon1_map.translation() == Vectord<1>{2.0});
     STATIC_REQUIRE(std::tuple_size<decltype(canon1_cb.cones)>::value == 0);
 
-    constexpr auto x0 = x(0).value();
+    constexpr auto x0 = x(0);
     STATIC_REQUIRE(is_index_type_v<decltype(x0)>);
     STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x0)>>> ==
                    SignType::FREE);
@@ -69,8 +69,6 @@ TEST_CASE("Test var setup", "[convex_vars]") {
                    CurvatureType::AFFINE);
 
     STATIC_REQUIRE(std::tuple_size<decltype(x0.children)>::value == 1);
-    STATIC_REQUIRE(!x(1).has_value());
-
     constexpr auto two_x0 = x0.mul(2.0);
     STATIC_REQUIRE(two_x0.map.linear_part() == mat(2.0));
 
@@ -128,7 +126,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(three_x.map.linear_part() == three_I);
     STATIC_REQUIRE(three_x.map.translation() == Vectord<5>{});
 
-    constexpr auto x3 = three_x(3).value();
+    constexpr auto x3 = three_x(3);
     STATIC_REQUIRE(is_index_type_v<decltype(x3)>);
     STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x3)>>> ==
                    SignType::FREE);
@@ -151,7 +149,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     using Space = Matrixd<1, 3>;
     using Scalar = Matrixd<1, 1>;
     constexpr auto x = Variable<FreeVarMeta<Space>>();
-    constexpr auto x1 = x(1).value().mul(1.5).add(-1.0);
+    constexpr auto x1 = x(1).mul(1.5).add(-1.0);
     constexpr auto abs_fn = Abs<AbsMeta<Scalar>, decltype(x1)>(x1);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
@@ -400,8 +398,8 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
     constexpr auto x = Variable<NegVarMeta<MatT>>();
-    constexpr auto x0 = x(0).value();
-    constexpr auto x1 = x(1).value();
+    constexpr auto x0 = x(0);
+    constexpr auto x1 = x(1);
     using Mat1T = Matrixd<1, 1>;
     constexpr auto sum =
         Sum<SumMeta<MatT, Mat1T>, decltype(x0), decltype(x1)>(x0, x1);
@@ -512,7 +510,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(ball.is_well_formed());
 
     constexpr auto prob2 = prob.in_set(ball);
-    constexpr auto prob3 = prob2.minimize(var(0).value());
+    constexpr auto prob3 = prob2.minimize(var(0));
     STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
     STATIC_REQUIRE(prob3.validate());
     STATIC_REQUIRE(prob3.linear_objective() ==
@@ -539,7 +537,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
         AffineSubspace<AffineMeta<Dom, Dom>, decltype(var)>(I, Vectord<3>{},
                                                             var);
     constexpr auto prob2 = prob.in_set(subspace);
-    constexpr auto prob3 = prob2.minimize(var(1).value());
+    constexpr auto prob3 = prob2.minimize(var(1));
     STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
     STATIC_REQUIRE(prob3.validate());
     STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{0.0, 1.0, 0.0});
@@ -585,9 +583,9 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
   }
 
   SECTION("Sum square min. prob") {
-    constexpr auto x0 = var(0).value();
-    constexpr auto x1 = var(1).value();
-    constexpr auto x2 = var(2).value();
+    constexpr auto x0 = var(0);
+    constexpr auto x1 = var(1);
+    constexpr auto x2 = var(2);
     constexpr auto sq0 = Square<SquareMeta<Codom>, decltype(x0)>(x0);
     constexpr auto sq1 = Square<SquareMeta<Codom>, decltype(x1)>(x1);
     constexpr auto sq2 = Square<SquareMeta<Codom>, decltype(x2)>(x2);
@@ -624,9 +622,9 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
   }
 
   SECTION("Simple leq & geq min. prob") {
-    constexpr auto x0 = var(0).value();
-    constexpr auto x1 = var(1).value();
-    constexpr auto x2 = var(2).value();
+    constexpr auto x0 = var(0);
+    constexpr auto x1 = var(1);
+    constexpr auto x2 = var(2);
     constexpr auto exp0 =
         Exp<ExpMeta<Codom>, decltype(x0)>(x0).template mul<-1.0>();
     constexpr auto exp1 = Exp<ExpMeta<Codom>, decltype(x1)>(x1);
@@ -695,9 +693,9 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
   }
 
   SECTION("Simple eq min. prob") {
-    constexpr auto x0 = var(0).value();
-    constexpr auto x1 = var(1).value();
-    constexpr auto x2 = var(2).value();
+    constexpr auto x0 = var(0);
+    constexpr auto x1 = var(1);
+    constexpr auto x2 = var(2);
 
     constexpr auto eq =
         Inequality<InequalityType::EQ, decltype(x0), decltype(x1)>(x0, x1);
@@ -750,8 +748,8 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
     constexpr auto prob = make_problem(var);
 
     using Codom = Matrixd<1, 1>;
-    constexpr auto x0 = var(0).value();
-    constexpr auto x1 = var(1).value();
+    constexpr auto x0 = var(0);
+    constexpr auto x1 = var(1);
     constexpr auto sqrt0 = Sqrt<SqrtMeta<Codom>, decltype(x0)>(x0);
     constexpr auto sqrt1 = Sqrt<SqrtMeta<Codom>, decltype(x1)>(x1);
     constexpr auto sum_sqrt =

@@ -127,7 +127,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
   using Singleton = Matrixd<1, 1>;
   constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
-  constexpr auto x0 = x(0).value();
+  constexpr auto x0 = x(0);
 
   constexpr auto F_mat = mat_traits<Matrixd<5, 2>>();
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);

@@ -12,7 +12,6 @@
 
 #pragma once
 
-#include <optional>
 #include <tuple>
 
 #include "cone_block_builder.hpp"
@@ -232,8 +231,8 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    *
    * @return ScalarView of var at index
    */
-  constexpr std::optional<ScalarViewT> operator()(const size_t& idx) const {
-    if (idx >= N) return std::nullopt;
+  constexpr ScalarViewT operator()(const size_t& idx) const {
+    AK_ASSERT(idx < N && "Variable index out of bounds");
     affine::AffineMap<linalg::Matrix<T, 1, N>> scalar_map(
         this->map.linear_part()(idx), this->map.translation()(idx));
     return ScalarViewT(idx, *this, scalar_map);
@@ -303,7 +302,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    */
   constexpr auto split() const {
     auto form_tup = [this]<size_t... Is>(std::index_sequence<Is...>) {
-      return std::make_tuple(((*this)(Is).value())...);
+      return std::make_tuple(((*this)(Is))...);
     };
     return form_tup(std::make_index_sequence<N>{});
   }
