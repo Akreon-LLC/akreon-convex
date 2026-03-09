@@ -20,17 +20,17 @@ namespace convex {
 /// @brief alias for domain on softplus function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using SoftplusDom = ConvexDomain<Space, SignType::FREE>;
+using SoftplusDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on softplus function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using SoftplusCodom = ConvexDomain<Space, SignType::FREE>;
+using SoftplusCodom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for concave codomain on softplus function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using SoftplusConcaveCodom = ConvexDomain<Space, SignType::FREE>;
+using SoftplusConcaveCodom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for meta for softplus function
 template <linalg::RnSpace Space>

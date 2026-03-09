@@ -34,8 +34,8 @@ struct Atom {
   static constexpr size_t N = dom_size_v<Domain>;
   static constexpr size_t M = dom_size_v<Codomain>;
   static constexpr CurvatureType Curvature = meta_curv_v<Meta>;
-  static constexpr SignType DomSign = dom_sign_v<Domain>;
-  static constexpr SignType CodomSign = dom_sign_v<Codomain>;
+  static constexpr VarType DomSign = dom_vartype_v<Domain>;
+  static constexpr VarType CodomSign = dom_vartype_v<Codomain>;
 
   /**
    * @brief CTOR
@@ -126,59 +126,59 @@ struct Atom {
                       "Set expects child to be a variable type");
       }
 
-      const SignType& dom_sign =
-          dom_sign_v<meta_dom_t<atom_meta_t<decltype(self())>>>;
-      if (dom_sign != SignType::FREE) {
-        const SignType& child_sign =
-            dom_sign_v<meta_codom_t<atom_meta_t<decltype(child)>>>;
+      const VarType& dom_sign =
+          dom_vartype_v<meta_dom_t<atom_meta_t<decltype(self())>>>;
+      if (dom_sign != VarType::FREE) {
+        const VarType& child_sign =
+            dom_vartype_v<meta_codom_t<atom_meta_t<decltype(child)>>>;
         switch (dom_sign) {
-          case SignType::POS: {
-            AK_ASSERT(child_sign == SignType::POS &&
+          case VarType::POS: {
+            AK_ASSERT(child_sign == VarType::POS &&
                       "Parent positive domain expects positive child codomain");
             break;
           }
-          case SignType::NONNEG: {
-            AK_ASSERT((child_sign == SignType::POS ||
-                       child_sign == SignType::NONNEG) &&
+          case VarType::NONNEG: {
+            AK_ASSERT((child_sign == VarType::POS ||
+                       child_sign == VarType::NONNEG) &&
                       "Parent non-negative domain expects "
                       "positive/non-negative child codomain");
             break;
           }
-          case SignType::NEG: {
-            AK_ASSERT(child_sign == SignType::NEG &&
+          case VarType::NEG: {
+            AK_ASSERT(child_sign == VarType::NEG &&
                       "Parent negative domain expects negative child codomain");
             break;
           }
-          case SignType::NONPOS: {
-            AK_ASSERT((child_sign == SignType::NONPOS ||
-                       child_sign == SignType::NEG) &&
+          case VarType::NONPOS: {
+            AK_ASSERT((child_sign == VarType::NONPOS ||
+                       child_sign == VarType::NEG) &&
                       "Parent non-positive domain expects "
                       "non-positive/negative child codomain");
             break;
           }
-          case SignType::PD: {
-            AK_ASSERT(child_sign == SignType::PD &&
+          case VarType::PD: {
+            AK_ASSERT(child_sign == VarType::PD &&
                       "Parent PD domain expects PD child codomain");
             break;
           }
-          case SignType::PSD: {
+          case VarType::PSD: {
             AK_ASSERT(
-                (child_sign == SignType::PSD || child_sign == SignType::PD) &&
+                (child_sign == VarType::PSD || child_sign == VarType::PD) &&
                 "Parent PSD domain expects PSD/PD child codomain");
             break;
           }
-          case SignType::ND: {
-            AK_ASSERT(child_sign == SignType::ND &&
+          case VarType::ND: {
+            AK_ASSERT(child_sign == VarType::ND &&
                       "Parent ND domain expects ND child codomain");
             break;
           }
-          case SignType::NSD: {
+          case VarType::NSD: {
             AK_ASSERT(
-                (child_sign == SignType::NSD || child_sign == SignType::ND) &&
+                (child_sign == VarType::NSD || child_sign == VarType::ND) &&
                 "Parent NSD domain expects NSD/ND child codomain");
             break;
           }
-          case SignType::FREE:
+          case VarType::FREE:
           default:
             break;
         }

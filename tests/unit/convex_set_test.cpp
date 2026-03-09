@@ -25,7 +25,7 @@ using namespace conic;
 TEST_CASE("Test affine subspace", "[convex_sets]") {
   SECTION("Test affine subspace") {
     using Space = Matrixd<1, 3>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto I = make_identity<double, 3>();
     constexpr auto affine_set =
         AffineSubspace<AffineMeta<Space, Space>, decltype(x)>(I, Vectord<3>{},
@@ -55,7 +55,7 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     using Space = Matrixd<1, 2>;
     constexpr auto c = Vector<double, 2>{1.5, 2.0};
     constexpr auto P = make_identity<double, 2>();
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto ellipsoid =
         Ellipsoid<EllipsoidMeta<Space>, decltype(x)>(c, P, x);
     REQUIRE(ellipsoid.is_well_formed());
@@ -84,7 +84,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   SECTION("Test hyperplane") {
     using Space = Matrixd<1, 3>;
     constexpr Vector<double, 3> point{0.1, 0.2, 0.3};
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr double b = 0.6;
     constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> hyperplane(point,
                                                                         b, x);
@@ -118,7 +118,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   SECTION("Test closed lower halfspace") {
     using Space = Matrixd<1, 2>;
     constexpr Vector<double, 2> point{1.0, 2.0};
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr double b = 1.0;
     constexpr Halfspace<HalfspaceMeta<Space>, decltype(x), HalfspaceType::LH>
         halfspace(point, b, x);
@@ -147,7 +147,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   SECTION("Test closed upper halfspace") {
     using Space = Matrixd<1, 3>;
     constexpr Vector<double, 3> point{1.0, 2.0, 1.0};
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr double b = 2.0;
     constexpr Halfspace<HalfspaceMeta<Space>, decltype(x), HalfspaceType::UH>
         halfspace(point, b, x);
@@ -186,7 +186,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
   SECTION("Test LMI", "[A(x) <= B]") {
     using Space = linalg::Matrixd<1, 3>;
     constexpr auto I = make_identity<double, 3>();
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr linalg::Vector<linalg::Matrixd<3, 3>, 3> A{I, I, I};
     constexpr LMI<LMIMeta<Space>, decltype(x)> set(A, I, x);
     STATIC_REQUIRE(set.is_well_formed());
@@ -225,7 +225,7 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
     STATIC_REQUIRE(mat_cols_v<decltype(A)> == 3);
     using Dom = Matrixd<1, 3>;
     using Codom = Matrixd<1, 7>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr Vector<double, 7> b{1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 2.0};
     constexpr Polyhedron<PolyhedronMeta<Dom, Codom>, decltype(x)> poly(A, b, x);
 
@@ -258,7 +258,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     using Space = Matrixf<1, 2>;
     constexpr auto c = Vector<float, 2>{1.f, 3.f};
     constexpr auto r = 2.f;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto ball =
         NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L2>(c, r, x);
     STATIC_REQUIRE(ball.is_well_formed());
@@ -295,7 +295,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     using Space = Matrixd<1, 4>;
     constexpr auto c = Vector<double, 4>{0.0, 1.2, -0.8, 2.0};
     constexpr auto r = 1.0;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto ball =
         NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L1>(c, r, x);
     STATIC_REQUIRE(ball.is_well_formed());
@@ -344,7 +344,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     using Space = Matrixf<1, 3>;
     constexpr auto c = Vector<float, 3>{1.f, 2.f, 3.f};
     constexpr auto r = 2.f;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto ball =
         NormBall<NormBallMeta<Space>, decltype(x), NormBallType::Linf>(c, r, x);
     STATIC_REQUIRE(ball.is_well_formed());

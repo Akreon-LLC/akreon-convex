@@ -20,7 +20,7 @@ namespace convex {
 
 /// @brief alias for domain on ellipsoid
 template <linalg::RnSpace Space>
-using NormBallDom = ConvexDomain<Space, SignType::FREE>;
+using NormBallDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for domain on ellipsoid
 template <linalg::RnSpace Space>

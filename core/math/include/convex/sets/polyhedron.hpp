@@ -19,11 +19,11 @@ namespace convex {
 
 /// @brief alias for domain on poly
 template <linalg::RnSpace Space>
-using PolyhedronDom = ConvexDomain<Space, SignType::FREE>;
+using PolyhedronDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on poly
 template <linalg::RnSpace Space>
-using PolyhedronCodom = ConvexDomain<Space, SignType::FREE>;
+using PolyhedronCodom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for meta on poly
 template <linalg::RnSpace Dom, linalg::RnSpace Codom>

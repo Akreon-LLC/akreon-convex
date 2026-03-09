@@ -25,7 +25,7 @@ using namespace config;
 
 TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
   using Space = Matrixd<1, 2>;
-  constexpr auto x = Variable<FreeVarMeta<Space>>();
+  constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto r = 1.0;
   constexpr Vectord<2> c{3.0, 1.0};
@@ -125,11 +125,10 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
 TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
   using Space = Matrixd<1, 1>;
   using Singleton = Matrixd<1, 1>;
-  constexpr auto x = Variable<PosVarMeta<Space>>();
+  constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
 
-  constexpr auto F_mat = mat_traits<Matrixd<5, 2>>();
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
 
   SECTION("Min c^T x s.t. (x - 1)^2 <= 5") {
@@ -143,19 +142,20 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
 
+    constexpr mat_traits<Matrixd<4, 2>> F1_mat;
     constexpr auto F_exp =
-        F_mat(1.0, 0.0, 1.0, 0.0, 0.0, -inv_sqrt2, 0.0, inv_sqrt2, 0.0, -1.0);
+        F1_mat(1.0, 0.0, 0.0, -inv_sqrt2, 0.0, inv_sqrt2, 0.0, -1.0);
     constexpr auto F = prob_min.constraint_map().linear_part();
-    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 4);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 5);
-    STATIC_REQUIRE(
-        g == Vectord<5>{-1e-8, -1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2, 5.0});
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 4);
+    STATIC_REQUIRE(g == Vectord<4>{-1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2,
+                                   5.0});
     STATIC_REQUIRE(prob_min.validate());
 
     constexpr PrimalDualIPM solver(prob_min);
@@ -185,20 +185,21 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
 
     constexpr auto F = prob_min.constraint_map().linear_part();
-    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 4);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
 
-    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 0.0, inv_sqrt2, -inv_sqrt2,
-                                 inv_sqrt2, inv_sqrt2, 0.0, -1.0);
+    constexpr mat_traits<Matrixd<4, 2>> F2_mat;
+    constexpr auto F_exp = F2_mat(0.0, 0.0, inv_sqrt2, -inv_sqrt2,
+                                  inv_sqrt2, inv_sqrt2, 0.0, -1.0);
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 5);
-    STATIC_REQUIRE(g ==
-                   Vectord<5>{-1e-8, constexpr_sqrt_safe(2.0), 0.0, 0.0, 1.0});
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 4);
+    STATIC_REQUIRE(
+        g == Vectord<4>{constexpr_sqrt_safe(2.0), 0.0, 0.0, 1.0});
     STATIC_REQUIRE(prob_min.validate());
 
     constexpr PrimalDualIPM solver(prob_min);

@@ -20,17 +20,17 @@ namespace convex {
 
 /// @brief alias for domain on kl div function (q \in R_++)
 template <linalg::RnSpace Space>
-using KLDivDom = ConvexDomain<Space, SignType::POS>;
+using KLDivDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on kl div function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using KLDivCodom = ConvexDomain<Space, SignType::NONNEG>;
+using KLDivCodom = ConvexDomain<Space, VarType::NONNEG>;
 
 /// @brief alias for concave codomain on kl div function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using KLDivConcaveCodom = ConvexDomain<Space, SignType::NEG>;
+using KLDivConcaveCodom = ConvexDomain<Space, VarType::NEG>;
 
 /// @brief alias for meta for kl div function
 template <linalg::RnSpace Dom, linalg::RnSpace Codom>

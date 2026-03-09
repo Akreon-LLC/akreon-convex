@@ -24,14 +24,13 @@ using namespace conic;
 using namespace unit_test;
 
 TEST_CASE("Test var setup", "[convex_vars]") {
-  constexpr double var_eps{1e-8};
   SECTION("Free var") {
     using MatT = Matrixd<1, 1>;
-    constexpr auto x = Variable<FreeVarMeta<MatT>>();
-    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x)>>> ==
-                   SignType::FREE);
-    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x)>>> ==
-                   SignType::FREE);
+    constexpr auto x = Variable<VarMeta<MatT>>();
+    STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(x)>>> ==
+                   VarType::FREE);
+    STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(x)>>> ==
+                   VarType::FREE);
     STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(x)>> ==
                    CurvatureType::AFFINE);
     STATIC_REQUIRE(is_var_type_v<decltype(x)>);
@@ -61,10 +60,10 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 
     constexpr auto x0 = x(0);
     STATIC_REQUIRE(is_index_type_v<decltype(x0)>);
-    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x0)>>> ==
-                   SignType::FREE);
-    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x0)>>> ==
-                   SignType::FREE);
+    STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(x0)>>> ==
+                   VarType::FREE);
+    STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(x0)>>> ==
+                   VarType::FREE);
     STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(x0)>> ==
                    CurvatureType::AFFINE);
 
@@ -103,11 +102,11 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     using MatT = Matrixd<1, 5>;
     constexpr auto mat = mat_traits<MatT>();
 
-    constexpr auto x = Variable<FreeVarMeta<MatT>>();
-    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x)>>> ==
-                   SignType::FREE);
-    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x)>>> ==
-                   SignType::FREE);
+    constexpr auto x = Variable<VarMeta<MatT>>();
+    STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(x)>>> ==
+                   VarType::FREE);
+    STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(x)>>> ==
+                   VarType::FREE);
     STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(x)>> ==
                    CurvatureType::AFFINE);
     STATIC_REQUIRE(is_var_type_v<decltype(x)>);
@@ -128,10 +127,10 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 
     constexpr auto x3 = three_x(3);
     STATIC_REQUIRE(is_index_type_v<decltype(x3)>);
-    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(x3)>>> ==
-                   SignType::FREE);
-    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(x3)>>> ==
-                   SignType::FREE);
+    STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(x3)>>> ==
+                   VarType::FREE);
+    STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(x3)>>> ==
+                   VarType::FREE);
     STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(x3)>> ==
                    CurvatureType::AFFINE);
 
@@ -148,7 +147,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
   SECTION("Var -> Scalar View -> Abs") {
     using Space = Matrixd<1, 3>;
     using Scalar = Matrixd<1, 1>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto x1 = x(1).mul(1.5).add(-1.0);
     constexpr auto abs_fn = Abs<AbsMeta<Scalar>, decltype(x1)>(x1);
 
@@ -181,7 +180,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 
   SECTION("Var -> cones") {
     using Space = Matrixd<1, 5>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto builder2 = x.add_var_block<AtomType::VAR>(builder);
     constexpr auto I = linalg::make_identity<double, 5>();
@@ -189,90 +188,49 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(builder2.cb.map.linear_part() == Matrixd<0, 0>{});
     STATIC_REQUIRE(builder2.coord_map.linear_part() == I);
 
-    constexpr auto x_nonneg = Variable<NonnegVarMeta<Space>>();
-    constexpr auto builder3 = x_nonneg.add_var_block<AtomType::VAR>(builder);
-    STATIC_REQUIRE(std::tuple_size<decltype(builder3.cb.cones)>::value == 1);
-    STATIC_REQUIRE(all_equal(builder3.cb.map.linear_part(), I));
-    STATIC_REQUIRE(builder3.cb.map.translation() == Vectord<5>{});
-
-    constexpr auto x_pos = Variable<PosVarMeta<Space>>();
-    constexpr auto builder4 = x_pos.add_var_block<AtomType::VAR>(builder);
-    STATIC_REQUIRE(std::tuple_size<decltype(builder4.cb.cones)>::value == 1);
-    STATIC_REQUIRE(all_equal(builder4.cb.map.linear_part(), I));
-    STATIC_REQUIRE(
-        builder4.cb.map.translation() ==
-        Vectord<5>{-var_eps, -var_eps, -var_eps, -var_eps, -var_eps});
-
-    constexpr auto x_nonpos = Variable<NonposVarMeta<Space>>();
-    constexpr auto builder5 = x_nonpos.add_var_block<AtomType::VAR>(builder);
-    STATIC_REQUIRE(std::tuple_size<decltype(builder5.cb.cones)>::value == 1);
-    STATIC_REQUIRE(builder5.coord_map.linear_part() == -1.0 * I);
-    STATIC_REQUIRE(builder3.cb.map.translation() == Vectord<5>{});
-
-    constexpr auto x_neg = Variable<NegVarMeta<Space>>();
-    constexpr auto builder6 = x_neg.add_var_block<AtomType::VAR>(builder);
-    STATIC_REQUIRE(std::tuple_size<decltype(builder6.cb.cones)>::value == 1);
-    STATIC_REQUIRE(all_equal(builder6.cb.map.linear_part(), -1.0 * I));
-    STATIC_REQUIRE(
-        builder6.cb.map.translation() ==
-        Vectord<5>{-var_eps, -var_eps, -var_eps, -var_eps, -var_eps});
-
     constexpr auto x_psd = Variable<PSDVarMeta<Space>>();
     constexpr auto builder7 = x_psd.add_var_block<AtomType::VAR>(builder);
     STATIC_REQUIRE(std::tuple_size<decltype(builder7.cb.cones)>::value == 1);
     STATIC_REQUIRE(all_equal(builder7.cb.map.linear_part(), I));
     STATIC_REQUIRE(builder7.cb.map.translation() == Vectord<5>{});
 
-    constexpr auto x_nsd = Variable<NSDVarMeta<Space>>();
-    constexpr auto builder8 = x_nsd.add_var_block<AtomType::VAR>(builder);
+    constexpr auto x_pd = Variable<PDVarMeta<Space>>();
+    constexpr auto builder8 = x_pd.add_var_block<AtomType::VAR>(builder);
     STATIC_REQUIRE(std::tuple_size<decltype(builder8.cb.cones)>::value == 1);
     STATIC_REQUIRE(all_equal(builder8.cb.map.linear_part(), I));
     STATIC_REQUIRE(builder8.cb.map.translation() == Vectord<5>{});
-
-    constexpr auto x_pd = Variable<PDVarMeta<Space>>();
-    constexpr auto builder9 = x_pd.add_var_block<AtomType::VAR>(builder);
-    STATIC_REQUIRE(std::tuple_size<decltype(builder9.cb.cones)>::value == 1);
-    STATIC_REQUIRE(all_equal(builder9.cb.map.linear_part(), I));
-    STATIC_REQUIRE(builder9.cb.map.translation() == Vectord<5>{});
-
-    constexpr auto x_nd = Variable<NDVarMeta<Space>>();
-    constexpr auto builder10 = x_nd.add_var_block<AtomType::VAR>(builder);
-    STATIC_REQUIRE(std::tuple_size<decltype(builder10.cb.cones)>::value == 1);
-    STATIC_REQUIRE(all_equal(builder10.cb.map.linear_part(), I));
-    STATIC_REQUIRE(builder10.cb.map.translation() == Vectord<5>{});
   }
 
   SECTION("Var + Fn -> Cones") {
     using Space = Matrixd<1, 2>;
     using Codom = Matrixd<1, 1>;
-    constexpr auto x = Variable<NonnegVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto builder2 = x.add_var_block<AtomType::VAR>(builder);
     constexpr auto I = linalg::make_identity<double, 2>();
-    STATIC_REQUIRE(std::tuple_size<decltype(builder2.cb.cones)>::value == 1);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder2.cb.cones)>::value == 0);
     STATIC_REQUIRE(builder2.coord_map.linear_part() == I);
     STATIC_REQUIRE(builder2.coord_map.translation() == Vectord<2>{});
 
     constexpr auto max_fn = Max<MaxMeta<Space, Codom>, decltype(x)>(x);
     constexpr auto builder3 =
         max_fn.template canonicalize<AtomType::FN>(builder2);
-    STATIC_REQUIRE(std::tuple_size<decltype(builder3.cb.cones)>::value == 3);
-    STATIC_REQUIRE(mat_rows_v<decltype(builder3.cb.map.linear_part())> == 4);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder3.cb.cones)>::value == 2);
+    STATIC_REQUIRE(mat_rows_v<decltype(builder3.cb.map.linear_part())> == 2);
     STATIC_REQUIRE(mat_cols_v<decltype(builder3.cb.map.linear_part())> == 3);
-    STATIC_REQUIRE(vec_size_v<decltype(builder3.cb.map.translation())> == 4);
+    STATIC_REQUIRE(vec_size_v<decltype(builder3.cb.map.translation())> == 2);
 
-    constexpr mat_traits<Matrix<double, 4, 3>> F_mat;
-    constexpr auto F =
-        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
+    constexpr mat_traits<Matrix<double, 2, 3>> F_mat;
+    constexpr auto F = F_mat(-1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
     STATIC_REQUIRE(all_equal(F, builder3.cb.map.linear_part()));
-    STATIC_REQUIRE(builder3.cb.map.translation() == Vectord<4>{});
+    STATIC_REQUIRE(builder3.cb.map.translation() == Vectord<2>{});
   }
 
   SECTION("Split var") {
     using Space = Matrixd<1, 3>;
     using Scalar = Matrixd<1, 1>;
     using Pair = Matrixd<1, 2>;
-    constexpr auto x = Variable<NonnegVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto x_tup = x.split();
     STATIC_REQUIRE(std::tuple_size<decltype(x_tup)>::value == 3);
 
@@ -318,7 +276,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 
   SECTION("Weighted sum") {
     using MatT = Matrixd<1, 5>;
-    constexpr auto x = Variable<FreeVarMeta<MatT>>();
+    constexpr auto x = Variable<VarMeta<MatT>>();
     constexpr Vectord<5> c{1.0, 1.0, 1.0, 1.0, 1.0};
     constexpr auto sum = weighted_sum(c, x);
 
@@ -353,14 +311,16 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 TEST_CASE("Simple function ops", "[convex_ops]") {
   SECTION("Composed abs") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto abs_x = Abs<AbsMeta<Space>, decltype(x)>(x);
     constexpr auto abs_abs_x = Abs<AbsMeta<Space>, decltype(abs_x)>(abs_x);
 
-    STATIC_REQUIRE(dom_sign_v<meta_dom_t<atom_meta_t<decltype(abs_abs_x)>>> ==
-                   SignType::FREE);
-    STATIC_REQUIRE(dom_sign_v<meta_codom_t<atom_meta_t<decltype(abs_abs_x)>>> ==
-                   SignType::NONNEG);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(abs_abs_x)>>> ==
+        VarType::FREE);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(abs_abs_x)>>> ==
+        VarType::NONNEG);
     STATIC_REQUIRE(meta_curv_v<atom_meta_t<decltype(abs_abs_x)>> ==
                    CurvatureType::CONVEX);
     STATIC_REQUIRE(is_fn_type_v<decltype(abs_abs_x)>);
@@ -397,7 +357,7 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
 
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
-    constexpr auto x = Variable<NegVarMeta<MatT>>();
+    constexpr auto x = Variable<VarMeta<MatT>>();
     constexpr auto x0 = x(0);
     constexpr auto x1 = x(1);
     using Mat1T = Matrixd<1, 1>;
@@ -457,7 +417,7 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
     using Space = Matrixd<1, 3>;
     constexpr Vector<double, 3> point{1.0, 2.0, 3.0};
     constexpr auto b = 0.6;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> hyperplane(point,
                                                                         b, x);
     STATIC_REQUIRE(hyperplane.is_well_formed());
@@ -485,7 +445,7 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
 TEST_CASE("Convex Problem Formation", "[convex_problem]") {
   using Dom = Matrixd<1, 3>;
   using Codom = Matrixd<1, 1>;
-  constexpr auto var = Variable<FreeVarMeta<Dom>>();
+  constexpr auto var = Variable<VarMeta<Dom>>();
   constexpr auto prob = make_problem(var);
 
   SECTION("Simple L2 min. problem") {
@@ -544,9 +504,8 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
                    1);
     constexpr mat_traits<Matrix<double, 6, 3>> F_mat;
-    constexpr auto F =
-        F_mat(-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0, 0.0,
-              0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    constexpr auto F = F_mat(-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0,
+                             1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(F, prob3.constraint_map().linear_part()));
     STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<6>{});
   }
@@ -608,12 +567,12 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
         6);
     constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
     constexpr mat_traits<Matrix<double, 9, 6>> F_mat;
-    constexpr auto F = F_mat(
-        1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0, 0.0,
-        0.0, 0.0, 0.0, inv_sqrt2, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-        0.0, 0.0, 0.0, -inv_sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0, inv_sqrt2, 0.0,
-        0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0,
-        0.0, 0.0, 0.0, 0.0, inv_sqrt2);
+    constexpr auto F =
+        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0, 0.0,
+              0.0, 0.0, 0.0, inv_sqrt2, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0,
+              inv_sqrt2, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, -inv_sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0, inv_sqrt2);
     STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(), F));
     STATIC_REQUIRE(prob2.constraint_map().translation() ==
                    Vectord<9>{0.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2, 0.0,
@@ -717,7 +676,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
 TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
   SECTION("Simple log max. problem") {
     using Space = Matrixd<1, 1>;
-    constexpr auto var = Variable<PosVarMeta<Space>>();
+    constexpr auto var = Variable<VarMeta<Space>>();
     constexpr auto prob = make_problem(var);
 
     constexpr auto log = Log<LogMeta<Space>, decltype(var)>(var);
@@ -726,25 +685,25 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
     STATIC_REQUIRE(prob2.validate());
     STATIC_REQUIRE(prob2.linear_objective() == Vectord<2>{0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob2.constraint_cones())>::value ==
-                   2);
+                   1);
 
     STATIC_REQUIRE(
         linalg::mat_rows_v<decltype(prob2.constraint_map().linear_part())> ==
-        4);
+        3);
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob2.constraint_map().linear_part())> ==
         2);
 
-    constexpr mat_traits<Matrix<double, 4, 2>> F_mat;
-    constexpr auto F = F_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
+    constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
+    constexpr auto F = F_mat(0.0, -1.0, 0.0, 0.0, 1.0, 0.0);
     STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(), F));
     STATIC_REQUIRE(prob2.constraint_map().translation() ==
-                   Vectord<4>{-1 * eps, 0.0, 1.0, 0.0});
+                   Vectord<3>{0.0, 1.0, 0.0});
   }
 
   SECTION("Simple sum sqrt max. problem") {
     using Dom = Matrixd<1, 2>;
-    constexpr auto var = Variable<PosVarMeta<Dom>>();
+    constexpr auto var = Variable<VarMeta<Dom>>();
     constexpr auto prob = make_problem(var);
 
     using Codom = Matrixd<1, 1>;
@@ -761,27 +720,25 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
     STATIC_REQUIRE(prob2.validate());
 
     STATIC_REQUIRE(std::tuple_size<decltype(prob2.constraint_cones())>::value ==
-                   3);
+                   2);
     STATIC_REQUIRE(prob2.linear_objective() ==
                    Vectord<4>{0.0, 0.0, -1.0, -1.0});
 
     STATIC_REQUIRE(
         linalg::mat_rows_v<decltype(prob2.constraint_map().linear_part())> ==
-        8);
+        6);
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob2.constraint_map().linear_part())> ==
         4);
 
     constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
-    constexpr mat_traits<Matrix<double, 8, 4>> F_mat;
-    constexpr auto F =
-        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
-              -inv_sqrt2, 0.0, 0.0, 0.0, inv_sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 1.0, 0.0, -inv_sqrt2, 0.0, 0.0, 0.0, inv_sqrt2, 0.0, 0.0);
+    constexpr mat_traits<Matrix<double, 6, 4>> F_mat;
+    constexpr auto F = F_mat(0.0, 0.0, 1.0, 0.0, -inv_sqrt2, 0.0, 0.0, 0.0,
+                             inv_sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+                             -inv_sqrt2, 0.0, 0.0, 0.0, inv_sqrt2, 0.0, 0.0);
     STATIC_REQUIRE(all_equal(prob2.constraint_map().linear_part(), F));
-    STATIC_REQUIRE(
-        prob2.constraint_map().translation() ==
-        Vectord<8>{-1 * eps, -1 * eps, 0.0, 0.5 * inv_sqrt2,
-                   0.5 * inv_sqrt2, 0.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
+    STATIC_REQUIRE(prob2.constraint_map().translation() ==
+                   Vectord<6>{0.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2, 0.0,
+                              0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
   }
 }

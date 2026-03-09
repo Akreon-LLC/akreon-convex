@@ -21,12 +21,12 @@ namespace convex {
 /// @brief alias for domain on sqrt function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using SqrtDom = ConvexDomain<Space, SignType::NONNEG>;
+using SqrtDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for convex codomain on sqrt function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using SqrtConvexCodom = ConvexDomain<Space, SignType::NONPOS>;
+using SqrtConvexCodom = ConvexDomain<Space, VarType::NONPOS>;
 
 /// @brief alias for meta for sqrt function
 template <linalg::RnSpace Space>

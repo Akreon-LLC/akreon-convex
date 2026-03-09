@@ -20,17 +20,17 @@ namespace convex {
 /// @brief alias for domain on exp function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using ExpDom = ConvexDomain<Space, SignType::FREE>;
+using ExpDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on exp function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using ExpCodom = ConvexDomain<Space, SignType::NONNEG>;
+using ExpCodom = ConvexDomain<Space, VarType::NONNEG>;
 
 /// @brief alias for concave codomain on exp function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using ExpConcaveCodom = ConvexDomain<Space, SignType::NONPOS>;
+using ExpConcaveCodom = ConvexDomain<Space, VarType::NONPOS>;
 
 /// @brief alias for meta for exp function
 template <linalg::RnSpace Space>

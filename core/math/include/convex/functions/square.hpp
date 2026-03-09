@@ -21,17 +21,17 @@ namespace convex {
 /// @brief alias for domain on abs function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using SquareDom = ConvexDomain<Space, SignType::FREE>;
+using SquareDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on abs function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using SquareCodom = ConvexDomain<Space, SignType::NONNEG>;
+using SquareCodom = ConvexDomain<Space, VarType::NONNEG>;
 
 /// @brief alias for concave codomain on abs function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using SquareConcaveCodom = ConvexDomain<Space, SignType::NONPOS>;
+using SquareConcaveCodom = ConvexDomain<Space, VarType::NONPOS>;
 
 /// @brief alias for meta for abs function
 template <linalg::RnSpace Space>
@@ -89,20 +89,20 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    static constexpr SignType sign =
-        dom_sign_v<meta_codom_t<atom_meta_t<Child>>>;
+    static constexpr VarType sign =
+        dom_vartype_v<meta_codom_t<atom_meta_t<Child>>>;
     if constexpr (Tag == CurvatureType::CONVEX) {
-      if constexpr (sign == SignType::NONNEG) {
+      if constexpr (sign == VarType::NONNEG) {
         return MonotonicityType::NONDEC;
-      } else if constexpr (sign == SignType::NONPOS) {
+      } else if constexpr (sign == VarType::NONPOS) {
         return MonotonicityType::NONINC;
       } else {
         return MonotonicityType::UNKNOWN;
       }
     } else {
-      if constexpr (sign == SignType::NONNEG) {
+      if constexpr (sign == VarType::NONNEG) {
         return MonotonicityType::NONINC;
-      } else if constexpr (sign == SignType::NONPOS) {
+      } else if constexpr (sign == VarType::NONPOS) {
         return MonotonicityType::NONDEC;
       } else {
         return MonotonicityType::UNKNOWN;

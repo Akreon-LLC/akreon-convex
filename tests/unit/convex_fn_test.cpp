@@ -26,7 +26,7 @@ using namespace unit_test;
 TEST_CASE("Test abs function", "[convex_fn]") {
   SECTION("Test abs function") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto abs_fn = Abs<AbsMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(abs_fn(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(abs_fn(Vectord<1>{-2.0}) == 2.0);
@@ -77,7 +77,7 @@ TEST_CASE("Test abs function", "[convex_fn]") {
 TEST_CASE("Test exp fn", "[convex_fn]") {
   SECTION("Test exp fn") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto exp_fn = Exp<ExpMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}) == 1.0);
 
@@ -122,7 +122,7 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
 TEST_CASE("Test geometric mean fn", "[concave_fn]") {
   SECTION("Test geometric mean fn") {
     using Space = Matrixd<1, 4>;
-    constexpr auto x = Variable<PosVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     using Codom = Matrixd<1, 1>;
     constexpr auto geo_mean =
         GeoMean<GeoMeanMeta<Space, Codom>, decltype(x)>(x);
@@ -173,7 +173,7 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
 TEST_CASE("Test inv pos function", "[convex_fn]") {
   SECTION("Test inv pos fn") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<PosVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto inv_pos_fn = InvPos<InvPosMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{1.0}) == 1.0);
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}) == 0.5);
@@ -229,7 +229,7 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
 TEST_CASE("Test log function", "[convex_fn]") {
   SECTION("Test log fn") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<PosVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto log_fn = Log<LogMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(log_fn(Vectord<1>{1.0}) == 0.0);
 
@@ -276,7 +276,7 @@ TEST_CASE("Test log function", "[convex_fn]") {
 TEST_CASE("Test max fn") {
   SECTION("Test max fn") {
     using Space = Matrixd<1, 5>;
-    constexpr auto var = Variable<FreeVarMeta<Space>>();
+    constexpr auto var = Variable<VarMeta<Space>>();
     using Codom = Matrixd<1, 1>;
     constexpr auto x = Vectord<5>{-1.0, 4.5, 2.0, 3.0, 5.0};
     constexpr auto max_fn = Max<MaxMeta<Space, Codom>, decltype(var)>(var);
@@ -330,7 +330,7 @@ TEST_CASE("Test max fn") {
 
 TEST_CASE("Test norm fn", "[convex_fn]") {
   using Space = Matrixd<1, 2>;
-  constexpr auto var = Variable<FreeVarMeta<Space>>();
+  constexpr auto var = Variable<VarMeta<Space>>();
   using Codom = Matrixd<1, 1>;
 
   SECTION("Test L2 fn") {
@@ -467,7 +467,7 @@ TEST_CASE("Test norm fn", "[convex_fn]") {
 TEST_CASE("Test square function", "[convex_fn]") {
   SECTION("Test square function") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto square_fn = Square<SquareMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(square_fn(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(square_fn(Vectord<1>{2.0}) == 4.0);
@@ -484,9 +484,9 @@ TEST_CASE("Test square function", "[convex_fn]") {
     constexpr linalg::Vector<double, 2> coord{0.0, 1.0};
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
 
-    STATIC_REQUIRE(canon_cb.map == affine::AffineMap(
-                                       F, Vectord<3>{0.0, 0.5 * inv_sqrt2,
-                                                     0.5 * inv_sqrt2}));
+    STATIC_REQUIRE(canon_cb.map ==
+                   affine::AffineMap(
+                       F, Vectord<3>{0.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2}));
 
     constexpr auto cones = canon_cb.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -505,9 +505,9 @@ TEST_CASE("Test square function", "[convex_fn]") {
 
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
 
-    STATIC_REQUIRE(canon_cb1.map == affine::AffineMap(
-                                        F1, Vectord<3>{0.0, 0.5 * inv_sqrt2,
-                                                       0.5 * inv_sqrt2}));
+    STATIC_REQUIRE(canon_cb1.map ==
+                   affine::AffineMap(
+                       F1, Vectord<3>{0.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2}));
 
     constexpr auto cones1 = canon_cb1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
@@ -519,7 +519,7 @@ TEST_CASE("Test square function", "[convex_fn]") {
 TEST_CASE("Test log sum exp", "[convex_fn]") {
   SECTION("Test log sum exp") {
     using Space = Matrixd<1, 4>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     using Codom = Matrixd<1, 1>;
     constexpr auto lse = LogSumExp<LogSumExpMeta<Space, Codom>, decltype(x)>(x);
     STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{}) - 1.38629436112) < eps);
@@ -587,7 +587,7 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
 TEST_CASE("Square Root Function", "[convex_fn]") {
   SECTION("Test sqrt function") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<PosVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto sqrt_fn = Sqrt<SqrtMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(sqrt_fn(Vectord<1>{0.0}) == constexpr_sqrt_safe(0.0));
     STATIC_REQUIRE(sqrt_fn(Vectord<1>{2.0}) == constexpr_sqrt_safe(2.0));
@@ -604,9 +604,9 @@ TEST_CASE("Square Root Function", "[convex_fn]") {
     constexpr linalg::Vector<double, 2> coord{0.0, 1.0};
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
 
-    STATIC_REQUIRE(canon_cb.map == affine::AffineMap(
-                                       F, Vectord<3>{0.0, 0.5 * inv_sqrt2,
-                                                     0.5 * inv_sqrt2}));
+    STATIC_REQUIRE(canon_cb.map ==
+                   affine::AffineMap(
+                       F, Vectord<3>{0.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2}));
 
     constexpr auto cones = canon_cb.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -626,9 +626,9 @@ TEST_CASE("Square Root Function", "[convex_fn]") {
 
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map1.linear_part()));
 
-    STATIC_REQUIRE(canon_cb1.map == affine::AffineMap(
-                                        F1, Vectord<3>{0.0, 0.5 * inv_sqrt2,
-                                                       0.5 * inv_sqrt2}));
+    STATIC_REQUIRE(canon_cb1.map ==
+                   affine::AffineMap(
+                       F1, Vectord<3>{0.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2}));
 
     constexpr auto cones1 = canon_cb1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
@@ -640,7 +640,7 @@ TEST_CASE("Square Root Function", "[convex_fn]") {
 TEST_CASE("Softplus Function", "[convex_fn]") {
   SECTION("Test softplus") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto softplus_fn = Softplus<SoftplusMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(softplus_fn(Vectord<1>{0.0}) ==
                    constexpr_ln_safe(1 + constexpr_exp(0.0)));
@@ -690,7 +690,7 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
     using Dom = Matrixd<1, 2>;
     using Codom = Matrixd<1, 1>;
 
-    constexpr auto x = Variable<PosVarMeta<Dom>>();
+    constexpr auto x = Variable<VarMeta<Dom>>();
     constexpr auto hmean_fn =
         HarmonicMean<HarmonicMeanMeta<Dom, Codom>, decltype(x)>(x);
     STATIC_REQUIRE(hmean_fn(Vectord<2>{1.0, 1.0}) == 1.0);
@@ -707,9 +707,8 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
 
     constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
     constexpr mat_traits<Matrix<double, 3, 3>> F_mat;
-    constexpr auto F =
-        F_mat(0.0, 0.0, inv_sqrt2, inv_sqrt2, -inv_sqrt2, 0.0, inv_sqrt2,
-              inv_sqrt2, -inv_sqrt2);
+    constexpr auto F = F_mat(0.0, 0.0, inv_sqrt2, inv_sqrt2, -inv_sqrt2, 0.0,
+                             inv_sqrt2, inv_sqrt2, -inv_sqrt2);
     STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() == Vectord<3>{});
 
@@ -724,9 +723,8 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
     constexpr auto canon_cb1 = new_builder1.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb1.cones)>::value == 1);
 
-    constexpr auto F1 =
-        F_mat(0.0, 0.0, -inv_sqrt2, inv_sqrt2, -inv_sqrt2, 0.0, inv_sqrt2,
-              inv_sqrt2, inv_sqrt2);
+    constexpr auto F1 = F_mat(0.0, 0.0, -inv_sqrt2, inv_sqrt2, -inv_sqrt2, 0.0,
+                              inv_sqrt2, inv_sqrt2, inv_sqrt2);
     STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() == Vectord<3>{});
   }
@@ -738,7 +736,7 @@ TEST_CASE("KL Div Function", "[convex_fn]") {
     using Codom = Matrixd<1, 1>;
 
     constexpr auto ones = Vectord<3>{1.0, 1.0, 1.0};
-    constexpr auto q = Variable<PosVarMeta<Dom>>();
+    constexpr auto q = Variable<VarMeta<Dom>>();
 
     constexpr auto kldiv_fn =
         KLDivergence<KLDivMeta<Dom, Codom>, decltype(q)>(ones, q);
@@ -796,7 +794,7 @@ TEST_CASE("KL Div Function", "[convex_fn]") {
 TEST_CASE("Huber Function", "[convex_fn]") {
   SECTION("Test huber") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<FreeVarMeta<Space>>();
+    constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto delta = 1.0;
     constexpr auto huber_fn = Huber<HuberMeta<Space>, decltype(x)>(delta, x);
     STATIC_REQUIRE(huber_fn(Vectord<1>{0.0}) == 0.0);
@@ -816,8 +814,8 @@ TEST_CASE("Huber Function", "[convex_fn]") {
     constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
     constexpr mat_traits<Matrix<double, 6, 3>> F_mat;
     constexpr auto F =
-        F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, inv_sqrt2, 0.0, 0.0, -inv_sqrt2, sqrt2);
+        F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              inv_sqrt2, 0.0, 0.0, -inv_sqrt2, sqrt2);
     STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() ==
                    Vectord<6>{0.0, 0.0, 0.0, 1.0, -inv_sqrt2, inv_sqrt2});
@@ -833,8 +831,8 @@ TEST_CASE("Huber Function", "[convex_fn]") {
 
     constexpr auto canon_cb1 = new_builder1.cb;
     constexpr auto F1 =
-        F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, inv_sqrt2, 0.0, 0.0, -inv_sqrt2, -sqrt2);
+        F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              inv_sqrt2, 0.0, 0.0, -inv_sqrt2, -sqrt2);
     STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() ==
                    Vectord<6>{0.0, 0.0, 0.0, 1.0, -inv_sqrt2, inv_sqrt2});

@@ -19,17 +19,17 @@ namespace convex {
 
 /// @brief alias for domain on geo mean function
 template <linalg::RnSpace Space>
-using GeoMeanDom = ConvexDomain<Space, SignType::POS>;
+using GeoMeanDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on geo mean function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using GeoMeanCodom = ConvexDomain<Space, SignType::POS>;
+using GeoMeanCodom = ConvexDomain<Space, VarType::POS>;
 
 /// @brief alias for convex codomain on geo mean function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using GeoMeanConvexCodom = ConvexDomain<Space, SignType::NEG>;
+using GeoMeanConvexCodom = ConvexDomain<Space, VarType::NEG>;
 
 /// @brief alias for meta for geo mean function
 template <linalg::RnSpace Dom, linalg::RnSpace Codom>

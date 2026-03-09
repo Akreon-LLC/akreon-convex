@@ -19,17 +19,17 @@ namespace convex {
 
 /// @brief alias for domain on abs function
 template <linalg::RnSpace Space>
-using MaxDom = ConvexDomain<Space, SignType::FREE>;
+using MaxDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on abs function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using MaxCodom = ConvexDomain<Space, SignType::FREE>;
+using MaxCodom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for concave codomain on abs function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using MaxConcaveCodom = ConvexDomain<Space, SignType::FREE>;
+using MaxConcaveCodom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for meta for abs function
 template <linalg::RnSpace Dom, linalg::RnSpace Codom>

@@ -18,7 +18,7 @@ namespace convex {
 
 /// @brief alias for domain on halfspace
 template <linalg::RnSpace Space>
-using HalfspaceDom = ConvexDomain<Space, SignType::FREE>;
+using HalfspaceDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on halfspace
 template <linalg::RnSpace Space>

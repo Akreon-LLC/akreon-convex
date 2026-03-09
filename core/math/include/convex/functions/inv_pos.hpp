@@ -21,17 +21,17 @@ namespace convex {
 /// @brief alias for domain on inv pos function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using InvPosDom = ConvexDomain<Space, SignType::POS>;
+using InvPosDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on inv pos function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using InvPosCodom = ConvexDomain<Space, SignType::POS>;
+using InvPosCodom = ConvexDomain<Space, VarType::POS>;
 
 /// @brief alias for concave codomain on inv pos function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using InvPosConcaveCodom = ConvexDomain<Space, SignType::NEG>;
+using InvPosConcaveCodom = ConvexDomain<Space, VarType::NEG>;
 
 /// @brief alias for meta for inv pos function
 template <linalg::RnSpace Space>

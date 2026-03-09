@@ -28,8 +28,8 @@ using LiftedVarBias = linalg::Vector<T, 1>;
 /// @brief Atom category used by canonicalization and DCP checks.
 enum struct AtomType : uint8_t { VAR = 0, INDEX, FN, SET, ADD, CAP };
 
-/// @brief Sign annotation attached to domains/codomains.
-enum struct SignType : uint8_t {
+/// @brief Domain/variable annotation attached to domains/codomains.
+enum struct VarType : uint8_t {
   FREE = 0,
   NONNEG,
   NONPOS,
@@ -54,20 +54,20 @@ enum struct InequalityType : uint8_t { EQ = 0, LEQ, GEQ };
 enum struct StageType : uint8_t { INIT = 0, IN_PROGRESS, PROBLEM_SET };
 
 /// @brief Domain wrapper with a static sign label.
-template <linalg::RnSpace Space, SignType Sign>
+template <linalg::RnSpace Space, VarType Sign>
 struct ConvexDomain {};
 
 /// @brief Base domain traits.
 template <typename Dom>
 struct dom_traits {};
 
-template <linalg::RnSpace SpaceIn, SignType Sign>
+template <linalg::RnSpace SpaceIn, VarType Sign>
 struct dom_traits<ConvexDomain<SpaceIn, Sign>> {
   using Space = SpaceIn;
   using T = linalg::space_type_t<Space>;
   using Point = linalg::space_point_t<Space>;
   static constexpr size_t N = linalg::space_dim_v<Space>;
-  static constexpr SignType sign = Sign;
+  static constexpr VarType sign = Sign;
 };
 
 template <typename Dom>
@@ -83,7 +83,7 @@ template <typename Dom>
 inline constexpr size_t dom_size_v = dom_traits<linalg::remove_cvref_t<Dom>>::N;
 
 template <typename Dom>
-inline constexpr SignType dom_sign_v =
+inline constexpr VarType dom_vartype_v =
     dom_traits<linalg::remove_cvref_t<Dom>>::sign;
 
 /// @brief Atom metadata bundling domain, codomain, and curvature.
@@ -433,12 +433,12 @@ struct atom_traits<Polyhedron<Meta, Child>> {
 
 /// @brief Domain alias for sum atom.
 template <linalg::RnSpace Dom>
-using SumDom = ConvexDomain<Dom, SignType::FREE>;
+using SumDom = ConvexDomain<Dom, VarType::FREE>;
 
 /// @brief Codomain alias for sum atom (scalar).
 template <linalg::RnSpace Codom>
   requires(linalg::space_dim_v<Codom> == 1)
-using SumCodom = ConvexDomain<Codom, SignType::FREE>;
+using SumCodom = ConvexDomain<Codom, VarType::FREE>;
 
 /// @brief Meta alias for sum atom.
 template <linalg::RnSpace Dom, linalg::RnSpace Codom>
@@ -454,7 +454,7 @@ struct atom_traits<Sum<SumMeta<Dom, Codom>, Cs...>> {
 
 /// @brief Domain alias for intersection atom.
 template <linalg::RnSpace Space>
-using IntersectionDom = ConvexDomain<Space, SignType::FREE>;
+using IntersectionDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief Codomain alias for intersection atom.
 template <linalg::RnSpace Space>

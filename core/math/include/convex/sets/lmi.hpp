@@ -18,11 +18,11 @@ namespace convex {
 
 /// @brief alias for domain on affine subspace
 template <linalg::RnSpace Space>
-using LMIDom = ConvexDomain<Space, SignType::FREE>;
+using LMIDom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for codomain on affine subspace
 template <linalg::RnSpace Space>
-using LMICodom = ConvexDomain<Space, SignType::FREE>;
+using LMICodom = ConvexDomain<Space, VarType::FREE>;
 
 /// @brief alias for meta on affine subspace
 template <linalg::RnSpace Space>

@@ -26,7 +26,7 @@ using namespace config;
 TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
   using Space = Matrixd<1, 2>;
   using Singleton = Matrixd<1, 1>;
-  constexpr auto x = Variable<FreeVarMeta<Space>>();
+  constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto x_trans = x.add(Vectord<2>{-1.0, 2.0});
   constexpr auto prob_init = make_problem(x_trans);
   constexpr auto norm =

@@ -19,7 +19,7 @@ int main() {
   static constexpr size_t N = 100;
   using Dom = Matrixd<1, N>;
   using Codom = Matrixd<1, 1>;
-  constexpr auto var = Variable<FreeVarMeta<Dom>>();
+  constexpr auto var = Variable<VarMeta<Dom>>();
   constexpr auto prob = make_problem(var);
 
   constexpr auto norm =
