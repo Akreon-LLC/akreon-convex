@@ -468,8 +468,8 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
   using Space = Matrixd<1, 2>;
   using Codom = Matrixd<1, 1>;
 
-  SECTION("Nonneg Var With Scalar GEQs") {
-    constexpr auto x = Variable<NonnegVarMeta<Space>>();
+  SECTION("Free Var With Scalar GEQs") {
+    constexpr auto x = Variable<FreeVarMeta<Space>>();
     constexpr auto prob_init = make_problem(x);
     constexpr auto x0 = x(0);
     constexpr auto x1 = x(1);
@@ -483,18 +483,18 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
     constexpr auto mx = Max<MaxMeta<Space, Codom>, decltype(x)>(x);
     constexpr auto prob_min = prob_constr.minimize(mx);
 
-    constexpr mat_traits<Matrixd<6, 3>> F_mat;
-    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0,
-                                 0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
-    constexpr auto g_exp = Vectord<6>{0.0, 0.0, -1.5, -1.5, 0.0, 0.0};
+    constexpr mat_traits<Matrixd<4, 3>> F_mat;
+    constexpr auto F_exp =
+        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
+    constexpr auto g_exp = Vectord<4>{-1.5, -1.5, 0.0, 0.0};
     constexpr auto obj_exp = Vectord<3>{0.0, 0.0, 1.0};
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(prob_min.validate());
     STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 5);
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 4);
     STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 6);
+        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 4);
     STATIC_REQUIRE(
         mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 3);
     STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
