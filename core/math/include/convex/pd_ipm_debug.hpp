@@ -79,13 +79,13 @@ struct PredictorCorrectorConeTrace {
   std::array<T, VarDim> pz{};
   size_t cone_dim{};
   const char* cone_type{"unknown"};
-  bool active{false};
 };
 
 /**
  * @brief IterState
  */
-template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim, size_t VarDim>
+template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
+          size_t VarDim>
 struct IterState {
   T mu{};       ///< normalized duality gap
   T alpha_x{};  ///< max step to dK size
@@ -164,7 +164,8 @@ inline size_t array_slice_to_cstr(const std::array<T, N>& v, const size_t size,
  *
  * @return write position
  */
-template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim, size_t VarDim>
+template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
+          size_t VarDim>
 inline size_t iter_state_to_cstr(
     const IterState<T, NumCones, MaxConeDim, VarDim>& state, char* out,
     const size_t out_size) {
@@ -200,19 +201,21 @@ inline size_t iter_state_to_cstr(
     return write_pos;
 
   for (size_t i = 0; i < NumCones; ++i) {
-    if (!state.predictor[i].active && !state.corrector[i].active) continue;
-
     const auto& pred = state.predictor[i];
     const auto& corr = state.corrector[i];
-    const char* cone_type = pred.active ? pred.cone_type : corr.cone_type;
+    const bool has_pred = pred.cone_dim != 0;
+    const bool has_corr = corr.cone_dim != 0;
+    if (!has_pred && !has_corr) continue;
+
+    const char* cone_type = has_pred ? pred.cone_type : corr.cone_type;
     if (!appendf("\n  cone[%zu:%s]", i, cone_type)) return write_pos;
     if (!appendf("\n    pred: mu=%g rhs_c=%g pz_rhs=%g%s",
                  static_cast<double>(pred.mu), static_cast<double>(pred.rhs_c),
                  static_cast<double>(pred.pz_rhs),
-                 pred.active ? "" : " (inactive)"))
+                 has_pred ? "" : " (inactive)"))
       return write_pos;
-    if (pred.active) {
-      char buf[1024];
+    if (has_pred) {
+      char buf[2048];
       const auto append_vec = [&](const char* label, const auto& vec,
                                   const size_t size) -> bool {
         const size_t len = array_slice_to_cstr(vec, size, buf, sizeof(buf));
@@ -229,10 +232,10 @@ inline size_t iter_state_to_cstr(
     if (!appendf("\n    corr: mu=%g rhs_c=%g pz_rhs=%g%s",
                  static_cast<double>(corr.mu), static_cast<double>(corr.rhs_c),
                  static_cast<double>(corr.pz_rhs),
-                 corr.active ? "" : " (inactive)"))
+                 has_corr ? "" : " (inactive)"))
       return write_pos;
-    if (corr.active) {
-      char buf[1024];
+    if (has_corr) {
+      char buf[2048];
       const auto append_vec = [&](const char* label, const auto& vec,
                                   const size_t size) -> bool {
         const size_t len = array_slice_to_cstr(vec, size, buf, sizeof(buf));
@@ -261,13 +264,12 @@ inline size_t iter_state_to_cstr(
  *
  * @return write position (in case buffer to small)
  */
-template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim, size_t VarDim,
-          size_t N>
-inline size_t trace_to_cstr(const size_t& num_iter,
-                            const std::array<
-                                IterState<T, NumCones, MaxConeDim, VarDim>, N>&
-                                trace,
-                            char* out, const size_t& out_size) {
+template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
+          size_t VarDim, size_t N>
+inline size_t trace_to_cstr(
+    const size_t& num_iter,
+    const std::array<IterState<T, NumCones, MaxConeDim, VarDim>, N>& trace,
+    char* out, const size_t& out_size) {
   AK_ASSERT(out != nullptr && "trace_to_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
 

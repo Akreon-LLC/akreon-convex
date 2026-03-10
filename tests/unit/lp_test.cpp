@@ -489,7 +489,7 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(prob_min.validate());
     STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 4);
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
     STATIC_REQUIRE(
         mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 4);
     STATIC_REQUIRE(
@@ -509,6 +509,8 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(linalg::constexpr_abs(res.z(0) - 1.5) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.z(1) - 1.5) < rel_tol);
+
+    // log(res, trace);
   }
 }
 

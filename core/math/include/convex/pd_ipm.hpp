@@ -132,7 +132,6 @@ struct PredictorCorrector {
         cone_trace.rhs_c_vec[j] = rhs_c(j);
       }
       cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
-      cone_trace.active = true;
 #endif
 
       const auto new_pz_rhs = predictor<idx + 1, End>(
@@ -231,7 +230,6 @@ struct PredictorCorrector {
         cone_trace.rhs_c_vec[j] = rhs_c(j);
       }
       cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
-      cone_trace.active = true;
 #endif
 
       const auto new_pz_rhs =

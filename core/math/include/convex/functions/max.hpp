@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include "convex/convex_traits.hpp"
 #include "convex/cone_block_builder.hpp"
+#include "convex/convex_traits.hpp"
 
 namespace convex {
 
@@ -98,9 +98,7 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
    *
    * @return result
    */
-  constexpr T operator()(const PointT& x) const {
-    return eval(x);
-  }
+  constexpr T operator()(const PointT& x) const { return eval(x); }
 
   /**
    * @brief eval impl
@@ -214,13 +212,13 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                         decltype(coord_map_up), decltype(child_cb)>(
+                                decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
 
-    std::array<conic::NonnegOrthantCone<linalg::Vector<T, 1>>, N> arr;
-    const auto rpluses = linalg::array_to_tuple(arr);
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
+    const auto cones = std::make_tuple(rplus);
 
-    return new_builder.template make<Type>(idx, lift_map, rpluses);
+    return new_builder.template make<Type>(idx, lift_map, cones);
   }
 
   /** @brief member vars */

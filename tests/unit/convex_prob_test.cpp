@@ -215,7 +215,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     constexpr auto max_fn = Max<MaxMeta<Space, Codom>, decltype(x)>(x);
     constexpr auto builder3 =
         max_fn.template canonicalize<AtomType::FN>(builder2);
-    STATIC_REQUIRE(std::tuple_size<decltype(builder3.cb.cones)>::value == 2);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder3.cb.cones)>::value == 1);
     STATIC_REQUIRE(mat_rows_v<decltype(builder3.cb.map.linear_part())> == 2);
     STATIC_REQUIRE(mat_cols_v<decltype(builder3.cb.map.linear_part())> == 3);
     STATIC_REQUIRE(vec_size_v<decltype(builder3.cb.map.translation())> == 2);

@@ -300,7 +300,7 @@ TEST_CASE("Test max fn") {
 
     constexpr auto cones = canon_cb.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 5);
+    STATIC_REQUIRE(sz == 1);
     STATIC_REQUIRE(canon_cb.validate());
 
     constexpr auto max_concave = max_fn.mul<-1.0>().add(0.0);
@@ -323,7 +323,7 @@ TEST_CASE("Test max fn") {
 
     constexpr auto cones1 = canon_cb1.cones;
     constexpr auto sz1 = std::tuple_size<decltype(cones1)>::value;
-    STATIC_REQUIRE(sz1 == 5);
+    STATIC_REQUIRE(sz1 == 1);
     STATIC_REQUIRE(canon_cb1.validate());
   }
 }
