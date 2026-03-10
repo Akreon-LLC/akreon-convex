@@ -160,6 +160,61 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
   }
 }
 
+TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
+  using Space = Matrixd<1, 2>;
+  using Singleton = Matrixd<1, 1>;
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+  constexpr auto x0 = x(0);
+  constexpr auto x1 = x(1);
+  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+
+  SECTION("Min square(x0 - 1) s.t. x0 >= 0, x1 == 0") {
+    constexpr auto x0_geq =
+        Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 0.0);
+    constexpr auto x1_eq =
+        Inequality<InequalityType::EQ, decltype(x1), double>(x1, 0.0);
+    constexpr auto prob_constr =
+        prob_init.add_constraint(x0_geq).add_constraint(x1_eq);
+    constexpr auto sq =
+        Square<SquareMeta<Singleton>, decltype(x0)>(x0.add(-1.0));
+    constexpr auto prob_min = prob_constr.minimize(sq);
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(prob_min.validate());
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+
+    constexpr mat_traits<Matrixd<6, 3>> F_mat;
+    constexpr auto F_exp =
+        F_mat(1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, -inv_sqrt2, 0.0, 0.0, inv_sqrt2);
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 6);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 3);
+    STATIC_REQUIRE(all_equal(F, F_exp));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 6);
+    STATIC_REQUIRE(
+        g == Vectord<6>{0.0, 0.0, 0.0, -1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
+    STATIC_REQUIRE(prob_min.linear_objective() == Vectord<3>{0.0, 0.0, 1.0});
+
+    constexpr PrimalDualIPM solver(prob_min);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+
+    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(!res.stalled);
+    STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.z(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.z(2)) < rel_tol);
+  }
+}
+
 TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
   using Space = Matrixd<1, 1>;
   using Singleton = Matrixd<1, 1>;
@@ -169,7 +224,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
 
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
 
-  SECTION("Min c^T x s.t. (x - 1)^2 <= 5") {
+  SECTION("Feasibility min c^T x s.t. (x - 1)^2 <= 5") {
     constexpr auto sq =
         Square<SquareMeta<Singleton>, decltype(x0)>(x0.add(-1.0));
     constexpr auto leq =
@@ -208,47 +263,45 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
     STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
   }
 
-#if 0
-  SECTION("Min c^T x s.t. 1/x <= 1") {
+  SECTION("Min x0 s.t. 1/x <= 1, x >= 0") {
     constexpr auto inv_pos = InvPos<InvPosMeta<Singleton>, decltype(x0)>(x0);
     constexpr auto leq =
         Inequality<InequalityType::LEQ, decltype(inv_pos), double>(inv_pos,
                                                                    1.0);
-    constexpr auto prob_constr = prob_init.add_constraint(leq);
-
-    constexpr auto prob_min = prob_constr.minimize(x0.mul(0.0));
+    constexpr auto geq =
+        Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 0.0);
+    constexpr auto prob_constr =
+        prob_init.add_constraint(leq).add_constraint(geq);
+    constexpr auto prob_min = prob_constr.minimize(x0);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
 
     constexpr auto F = prob_min.constraint_map().linear_part();
-    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 4);
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
 
-    constexpr mat_traits<Matrixd<4, 2>> F2_mat;
-    constexpr auto F_exp = F2_mat(0.0, 0.0, inv_sqrt2, -inv_sqrt2,
-                                  inv_sqrt2, inv_sqrt2, 0.0, -1.0);
+    constexpr mat_traits<Matrixd<5, 2>> F2_mat;
+    constexpr auto F_exp = F2_mat(0.0, 0.0, inv_sqrt2, -inv_sqrt2, inv_sqrt2,
+                                  inv_sqrt2, 0.0, -1.0, 1.0, 0.0);
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 4);
-    STATIC_REQUIRE(
-        g == Vectord<4>{constexpr_sqrt_safe(2.0), 0.0, 0.0, 1.0});
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 5);
+    STATIC_REQUIRE(g ==
+                   Vectord<5>{constexpr_sqrt_safe(2.0), 0.0, 0.0, 1.0, 0.0});
     STATIC_REQUIRE(prob_min.validate());
+    STATIC_REQUIRE(prob_min.linear_objective() == Vectord<2>{1.0, 0.0});
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
-#if 0
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
-#endif
-    log(res, trace);
   }
-#endif
 }
