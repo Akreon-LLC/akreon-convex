@@ -73,6 +73,47 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     STATIC_REQUIRE(constexpr_abs(res.z(1) - x_exp(1)) < rel_tol);
   }
 
+  SECTION("Min c^T x s.t. ellipsoid") {
+    constexpr auto P = r * r * make_identity<double, 2>();
+    constexpr auto ellipsoid =
+        Ellipsoid<EllipsoidMeta<Space>, decltype(x)>(c, P, x);
+    constexpr auto prob_constr = prob_init.in_set(ellipsoid);
+
+    constexpr Vectord<3> g_exp{-c(0), -c(1), r};
+
+    constexpr auto F_mat = mat_traits<Matrixd<3, 2>>();
+    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+
+    constexpr Vectord<2> weights{1.0, 1.0};
+    constexpr auto cx = weighted_sum(weights, x);
+    constexpr auto prob_min = prob_constr.minimize(cx);
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 1);
+
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 3);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
+    STATIC_REQUIRE(all_equal(F, F_exp));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 3);
+    STATIC_REQUIRE(g_exp == g);
+
+    constexpr PrimalDualIPM solver(prob_min);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+
+    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(!res.stalled);
+    STATIC_REQUIRE(constexpr_abs(res.z(0) - x_exp(0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.z(1) - x_exp(1)) < rel_tol);
+  }
+
   using Singleton = Matrixd<1, 1>;
   SECTION("Min c^T x s.t. ||x|| <= 1") {
     constexpr Vectord<2> weights{1.0, 1.0};
