@@ -498,8 +498,7 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
     STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
     STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
 
-    constexpr PrimalDualIPMConfig<double> config{.primal_feas_tol = 1e-3};
-    constexpr PrimalDualIPM solver(prob_min, config);
+    constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
 
@@ -509,8 +508,6 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(linalg::constexpr_abs(res.z(0) - 1.5) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.z(1) - 1.5) < rel_tol);
-
-    // log(res, trace);
   }
 }
 
@@ -556,8 +553,7 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
     STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
     STATIC_REQUIRE(prob_min.linear_objective() == c);
 
-    constexpr PrimalDualIPMConfig<double> config{.dual_feas_tol = 2e-3};
-    constexpr PrimalDualIPM solver(prob_min, config);
+    constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
 
@@ -637,8 +633,7 @@ TEST_CASE("Abs Function LP Test", "[lp_test]") {
         mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 3);
     STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
 
-    constexpr PrimalDualIPMConfig<double> config{.primal_feas_tol = 1e-3};
-    constexpr PrimalDualIPM solver(prob_min, config);
+    constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
 
@@ -648,6 +643,6 @@ TEST_CASE("Abs Function LP Test", "[lp_test]") {
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(linalg::constexpr_abs(res.z(0) - 1.0) < rel_tol);
 
-    log(res, trace);
+    // log(res, trace);
   }
 }
