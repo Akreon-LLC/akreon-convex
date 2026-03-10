@@ -156,9 +156,8 @@ struct Cone {
    * @return e
    */
   constexpr auto e() const {
-    static_assert(
-        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
-        "Nonsymmetric cone is not equipped with Jordan Algebras");
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().e_impl();
   }
 
@@ -171,9 +170,8 @@ struct Cone {
    * @return w
    */
   constexpr auto w(const Slack& x, const Slack& y) const {
-    static_assert(
-        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
-        "Nonsymmetric cone is not equipped with Jordan Algebras");
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().w_impl(x, y);
   }
 
@@ -186,9 +184,8 @@ struct Cone {
    * @return x \circ y
    */
   constexpr auto circ(const Slack& x, const Slack& y) const {
-    static_assert(
-        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
-        "Nonsymmetric cone is not equipped with Jordan Algebras");
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().circ_impl(x, y);
   }
 
@@ -201,9 +198,8 @@ struct Cone {
    * @return tr(x \circ y)
    */
   constexpr auto trace(const Slack& x, const Slack& y) const {
-    static_assert(
-        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
-        "Nonsymmetric cone is not equipped with Jordan Algebras");
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().trace_impl(x, y);
   }
 
@@ -215,9 +211,8 @@ struct Cone {
    * @return x^{-1}
    */
   constexpr auto inv(const Slack& x) const {
-    static_assert(
-        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
-        "Nonsymmetric cone is not equipped with Jordan Algebras");
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().inv_impl(x);
   }
 
@@ -230,9 +225,8 @@ struct Cone {
    * @return \gamma_F
    */
   constexpr auto gamma_F(const Slack& x, const Slack& y) const {
-    static_assert(
-        ConeType::SYMMETRIC == CType || ConeType::SYMMETRIC_WRAPPER == CType,
-        "Nonsymmetric cone is not equipped with Jordan Algebras");
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().gamma_F_impl(x, y);
   }
 
