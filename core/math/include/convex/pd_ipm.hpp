@@ -32,8 +32,8 @@ namespace convex {
  * @return mu
  */
 template <linalg::VectorLike ConeVar>
-constexpr auto mu_global(const ConeVar& x, const ConeVar& y,
-                         const linalg::vec_type_t<ConeVar>& nu) {
+constexpr auto mu(const ConeVar& x, const ConeVar& y,
+                  const linalg::vec_type_t<ConeVar>& nu) {
   return linalg::dot(x, y) / nu;
 }
 
@@ -352,7 +352,7 @@ struct PrimalDualIPM {
 
     PredictorCorrector<NumCones, decltype(F), Var, ConeVar> pc;
 
-    seed_cone_vars(K, x, y);
+    const auto nu = setup_prob(K, x, y);
 
     for (i = 0; i < config.steps && tag != config::SolverResult::OPTIMAL; ++i) {
       ConeVar px_pred{}, px_corr{}, py_pred{}, py_corr{};
@@ -397,10 +397,9 @@ struct PrimalDualIPM {
       auto alpha_xy = alpha_max(T(1), T(1), K, x, y, px, py);
 
       /// (dakre) 7 - backtrack line search to acquire next iterate
-      backtrack_iterates(alpha_xy, K, pz, px, py, z, x, y);
+      backtrack_iterates(alpha_xy, K, F, g, c, pz, px, py, z, x, y);
 
-      const auto mu_next = mu(K, x, y);
-      res.mu = std::get<0>(mu_next) / std::get<1>(mu_next);
+      res.mu = mu(x, y, nu);
 #ifdef AKREON_DEBUG
       trace[i].mu = res.mu;
       trace[i].rd_norm = rd_norm;
@@ -431,44 +430,6 @@ struct PrimalDualIPM {
 
     res.convex_obj = linalg::dot(c, z);
     res.dual_obj = -linalg::dot(g, y);
-  }
-
-  /**
-   * @brief accumulate params
-   *
-   * @param K (cartesian product of cones)
-   * @param x \in K
-   * @param y \in K^*
-   *
-   * @return (duality gap, nu)
-   */
-  template <size_t idx = 0, size_t Start = 0>
-  constexpr auto mu(const auto& K, const ConeVar& x, const ConeVar& y) const {
-    if constexpr (idx >= NumCones)
-      return std::tuple(T(0), T(0));
-    else {
-      const auto Ki = std::get<idx>(K);
-      using Slack = conic::cone_slack_t<decltype(Ki)>;
-
-      constexpr size_t KiRows = linalg::vec_size_v<Slack>;
-      constexpr size_t End = Start + KiRows;
-
-      using ConePoint = linalg::Vector<T, End - Start>;
-      ConePoint xk{}, yk{};
-
-      for (size_t i = Start, j = 0; i < End; ++i, ++j)
-        xk(j) = x(i), yk(j) = y(i);
-
-      auto params = mu<idx + 1, End>(K, x, y);
-
-      auto gap = std::get<0>(params);
-      auto nu = std::get<1>(params);
-
-      gap += Ki.trace(xk, yk);
-      nu += Ki.nu();
-
-      return std::tuple(gap, nu);
-    }
   }
 
   /**
@@ -520,7 +481,7 @@ struct PrimalDualIPM {
   }
 
   /**
-   * @brief seed cone vars
+   * @brief setup problem
    *
    * Initialize x \in K and y \in K^* with initial primal & dual points in
    * each cone
@@ -532,9 +493,9 @@ struct PrimalDualIPM {
    * @return (void)
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr void seed_cone_vars(const auto& K, ConeVar& x, ConeVar& y) const {
+  constexpr T setup_prob(const auto& K, ConeVar& x, ConeVar& y) const {
     if constexpr (idx >= NumCones)
-      return;
+      return T(0);
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
@@ -546,7 +507,7 @@ struct PrimalDualIPM {
       for (size_t i = Start, j = 0; i < End; ++i, ++j)
         x(i) = x0(j), y(i) = y0(j);
 
-      seed_cone_vars<idx + 1, End>(K, x, y);
+      return Ki.nu() + setup_prob<idx + 1, End>(K, x, y);
     }
   }
 
@@ -594,39 +555,6 @@ struct PrimalDualIPM {
   }
 
   /**
-   * @brief dual residual
-   *
-   * F^T y - c = rd
-   *
-   * @param F (global map)
-   * @param c (linear objective)
-   * @param y (dual var slack)
-   *
-   * @return rd
-   */
-  static constexpr auto dual_residual(const FMat& F, const Var& c,
-                                      const ConeVar& y) {
-    return linalg::transpose(F) * y - c;
-  }
-
-  /**
-   * @brief primal residual
-   *
-   * rp = F z + g - x
-   *
-   * @param F (global map)
-   * @param g (dual objective / bias)
-   * @param z (dec var)
-   * @param x (primal var slack)
-   *
-   * @return rp
-   */
-  static constexpr auto primal_residual(const FMat& F, const ConeVar& g,
-                                        const Var& z, const ConeVar& x) {
-    return F * z + g - x;
-  }
-
-  /**
    * @brief in cones membership check
    *
    * check x \in K and y \in K^*
@@ -665,6 +593,9 @@ struct PrimalDualIPM {
    *
    * @param alpha_xy (tuple alpha step in x & y dir)
    * @param K (cartesian product of cones)
+   * @param F (cone map)
+   * @param g (bias)
+   * @param c (linear objective)
    * @param pz (newton step in z)
    * @param px (newton step in x)
    * @param pz (newton step in y)
@@ -675,19 +606,31 @@ struct PrimalDualIPM {
    * @return T/F (indicates if backtracking found valid alpha)
    */
   constexpr bool backtrack_iterates(std::tuple<T, T>& alpha_xy, const auto& K,
-                                    const Var& pz, const ConeVar& px,
-                                    const ConeVar& py, Var& z, ConeVar& x,
-                                    ConeVar& y) {
+                                    const FMat& F, const ConeVar& g,
+                                    const Var& c, const Var& pz,
+                                    const ConeVar& px, const ConeVar& py,
+                                    Var& z, ConeVar& x, ConeVar& y) {
     T& ax = std::get<0>(alpha_xy);
     T& ay = std::get<1>(alpha_xy);
     ax = std::max(T(0), ax);
     ay = std::max(T(0), ay);
+
+    const auto rd_curr = linalg::L2<Var>()(dual_residual(F, c, y));
+    const auto rp_curr = linalg::L2<ConeVar>()(primal_residual(F, g, z, x));
+
+    constexpr auto zeta{1.05};
+
     for (size_t i = 0; i < config.backtrack_steps; ++i) {
       const auto z_tmp = z + ax * pz;
       const auto x_tmp = x + ax * px;
       const auto y_tmp = y + ay * py;
 
-      if (check_functional_proximity(K, x_tmp, y_tmp)) {
+      const auto rd_tmp = linalg::L2<Var>()(dual_residual(F, c, y_tmp));
+      const auto rp_tmp =
+          linalg::L2<ConeVar>()(primal_residual(F, g, z_tmp, x_tmp));
+
+      if (check_functional_proximity(K, x_tmp, y_tmp) &&
+          rd_tmp <= zeta * rd_curr && rp_tmp <= zeta * rp_curr) {
         x = x_tmp;
         y = y_tmp;
         z = z_tmp;
@@ -698,6 +641,39 @@ struct PrimalDualIPM {
       ay *= rho;
     }
     return false;
+  }
+
+  /**
+   * @brief dual residual
+   *
+   * F^T y - c = rd
+   *
+   * @param F (global map)
+   * @param c (linear objective)
+   * @param y (dual var slack)
+   *
+   * @return rd
+   */
+  static constexpr auto dual_residual(const FMat& F, const Var& c,
+                                      const ConeVar& y) {
+    return linalg::transpose(F) * y - c;
+  }
+
+  /**
+   * @brief primal residual
+   *
+   * rp = F z + g - x
+   *
+   * @param F (global map)
+   * @param g (dual objective / bias)
+   * @param z (dec var)
+   * @param x (primal var slack)
+   *
+   * @return rp
+   */
+  static constexpr auto primal_residual(const FMat& F, const ConeVar& g,
+                                        const Var& z, const ConeVar& x) {
+    return F * z + g - x;
   }
 
   /**

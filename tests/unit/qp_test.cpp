@@ -23,13 +23,14 @@ using namespace conic;
 using namespace unit_test;
 using namespace config;
 
+static constexpr auto rel_tol{1e-3};
+
 TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
   using Space = Matrixd<1, 2>;
   constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto r = 1.0;
   constexpr Vectord<2> c{3.0, 1.0};
-  constexpr auto rel_tol = 1e-3;
   constexpr Vectord<2> x_exp{2.29289322, 0.29289322};
 
   SECTION("Min c^T x s.t. L2 ball") {
@@ -70,8 +71,6 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.z(0) - x_exp(0)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.z(1) - x_exp(1)) < rel_tol);
-
-    log(res, trace);
   }
 
   using Singleton = Matrixd<1, 1>;
@@ -117,8 +116,6 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-
-    log(res, trace);
   }
 }
 
@@ -154,8 +151,8 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
 
     constexpr auto g = prob_min.constraint_map().translation();
     STATIC_REQUIRE(vec_size_v<decltype(g)> == 4);
-    STATIC_REQUIRE(g == Vectord<4>{-1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2,
-                                   5.0});
+    STATIC_REQUIRE(g ==
+                   Vectord<4>{-1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2, 5.0});
     STATIC_REQUIRE(prob_min.validate());
 
     constexpr PrimalDualIPM solver(prob_min);
@@ -167,13 +164,10 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-#if 0
-    STATIC_REQUIRE(constexpr_abs(res.z(0)) < rel_tol);
-#endif
-
-    log(res, trace);
+    STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
   }
 
+#if 0
   SECTION("Min c^T x s.t. 1/x <= 1") {
     constexpr auto inv_pos = InvPos<InvPosMeta<Singleton>, decltype(x0)>(x0);
     constexpr auto leq =
@@ -215,4 +209,5 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
 #endif
     log(res, trace);
   }
+#endif
 }
