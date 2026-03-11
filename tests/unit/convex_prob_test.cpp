@@ -355,6 +355,79 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     STATIC_REQUIRE(map.translation() == Vectord<10>{});
   }
 
+  SECTION("Restricted domain and codomain metadata") {
+    using Scalar = Matrixd<1, 1>;
+    using Pair = Matrixd<1, 2>;
+
+    constexpr auto x_free = Variable<VarMeta<Scalar>>();
+    constexpr auto x_nonneg = Variable<NonnegVarMeta<Scalar>>();
+    constexpr auto x_pos = Variable<PosVarMeta<Scalar>>();
+    constexpr auto pair_pos = Variable<PosVarMeta<Pair>>();
+
+    constexpr auto exp_fn = Exp<ExpMeta<Scalar>, decltype(x_free)>(x_free);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(exp_fn)>>> ==
+        VarType::FREE);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(exp_fn)>>> ==
+        VarType::NONNEG);
+
+    constexpr auto sqrt_fn =
+        Sqrt<SqrtMeta<Scalar>, decltype(x_nonneg)>(x_nonneg);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(sqrt_fn)>>> ==
+        VarType::NONNEG);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(sqrt_fn)>>> ==
+        VarType::NONNEG);
+
+    constexpr auto log_fn = Log<LogMeta<Scalar>, decltype(x_pos)>(x_pos);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(log_fn)>>> ==
+        VarType::POS);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(log_fn)>>> ==
+        VarType::FREE);
+
+    constexpr auto inv_pos_fn =
+        InvPos<InvPosMeta<Scalar>, decltype(x_pos)>(x_pos);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(inv_pos_fn)>>> ==
+        VarType::POS);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(inv_pos_fn)>>> ==
+        VarType::POS);
+
+    constexpr auto geo_mean_fn =
+        GeoMean<GeoMeanMeta<Pair, Scalar>, decltype(pair_pos)>(pair_pos);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(geo_mean_fn)>>> ==
+        VarType::POS);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(geo_mean_fn)>>> ==
+        VarType::POS);
+
+    constexpr auto harmonic_mean_fn =
+        HarmonicMean<HarmonicMeanMeta<Pair, Scalar>, decltype(pair_pos)>(
+            pair_pos);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(harmonic_mean_fn)>>> ==
+        VarType::POS);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(harmonic_mean_fn)>>> ==
+        VarType::POS);
+
+    constexpr auto sqrt_convex = sqrt_fn.mul<-1.0>().add(0.0);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(sqrt_convex)>>> ==
+        VarType::NONPOS);
+
+    constexpr auto geo_mean_convex = geo_mean_fn.mul<-1.0>().add(0.0);
+    STATIC_REQUIRE(
+        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(geo_mean_convex)>>> ==
+        VarType::NEG);
+  }
+
   SECTION("Sum of abs") {
     using MatT = Matrixd<1, 2>;
     constexpr auto x = Variable<VarMeta<MatT>>();
@@ -676,7 +749,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
 TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
   SECTION("Simple log max. problem") {
     using Space = Matrixd<1, 1>;
-    constexpr auto var = Variable<VarMeta<Space>>();
+    constexpr auto var = Variable<PosVarMeta<Space>>();
     constexpr auto prob = make_problem(var);
 
     constexpr auto log = Log<LogMeta<Space>, decltype(var)>(var);
@@ -703,7 +776,7 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
 
   SECTION("Simple sum sqrt max. problem") {
     using Dom = Matrixd<1, 2>;
-    constexpr auto var = Variable<VarMeta<Dom>>();
+    constexpr auto var = Variable<NonnegVarMeta<Dom>>();
     constexpr auto prob = make_problem(var);
 
     using Codom = Matrixd<1, 1>;

@@ -39,7 +39,7 @@ using ExpMeta =
 
 /// @brief alias for meta for exp function
 template <linalg::RnSpace Space>
-using ExpConcaveMeta = ConvexAtomMeta<AbsDom<Space>, ExpConcaveCodom<Space>,
+using ExpConcaveMeta = ConvexAtomMeta<ExpDom<Space>, ExpConcaveCodom<Space>,
                                       CurvatureType::CONCAVE>;
 
 /**

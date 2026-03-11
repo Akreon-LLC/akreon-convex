@@ -30,6 +30,44 @@ template <linalg::RnSpace Dom>
 using VarMeta =
     ConvexAtomMeta<VarDom<Dom>, VarDom<Dom>, CurvatureType::AFFINE>;
 
+/// @brief alias for nominal nonnegative vector/matrix variable domain
+template <linalg::RnSpace Dom>
+using NonnegVarDom = ConvexDomain<Dom, VarType::NONNEG>;
+
+/// @brief alias for nominal nonnegative vector/matrix variable meta
+template <linalg::RnSpace Dom>
+using NonnegVarMeta =
+    ConvexAtomMeta<NonnegVarDom<Dom>, NonnegVarDom<Dom>,
+                   CurvatureType::AFFINE>;
+
+/// @brief alias for nominal positive vector/matrix variable domain
+template <linalg::RnSpace Dom>
+using PosVarDom = ConvexDomain<Dom, VarType::POS>;
+
+/// @brief alias for nominal positive vector/matrix variable meta
+template <linalg::RnSpace Dom>
+using PosVarMeta =
+    ConvexAtomMeta<PosVarDom<Dom>, PosVarDom<Dom>, CurvatureType::AFFINE>;
+
+/// @brief alias for nominal nonpositive vector/matrix variable domain
+template <linalg::RnSpace Dom>
+using NonposVarDom = ConvexDomain<Dom, VarType::NONPOS>;
+
+/// @brief alias for nominal nonpositive vector/matrix variable meta
+template <linalg::RnSpace Dom>
+using NonposVarMeta =
+    ConvexAtomMeta<NonposVarDom<Dom>, NonposVarDom<Dom>,
+                   CurvatureType::AFFINE>;
+
+/// @brief alias for nominal negative vector/matrix variable domain
+template <linalg::RnSpace Dom>
+using NegVarDom = ConvexDomain<Dom, VarType::NEG>;
+
+/// @brief alias for nominal negative vector/matrix variable meta
+template <linalg::RnSpace Dom>
+using NegVarMeta =
+    ConvexAtomMeta<NegVarDom<Dom>, NegVarDom<Dom>, CurvatureType::AFFINE>;
+
 /// @brief alias for psd var domain
 template <linalg::RnSpace Dom>
 using PSDVarDom = ConvexDomain<Dom, VarType::PSD>;

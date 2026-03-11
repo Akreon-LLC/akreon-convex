@@ -21,7 +21,7 @@ namespace convex {
 /// @brief alias for domain on inv pos function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using InvPosDom = ConvexDomain<Space, VarType::FREE>;
+using InvPosDom = ConvexDomain<Space, VarType::POS>;
 
 /// @brief alias for codomain on inv pos function
 template <linalg::RnSpace Space>

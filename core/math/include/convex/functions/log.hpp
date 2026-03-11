@@ -20,7 +20,7 @@ namespace convex {
 /// @brief alias for domain on log function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
-using LogDom = ConvexDomain<Space, VarType::FREE>;
+using LogDom = ConvexDomain<Space, VarType::POS>;
 
 /// @brief alias for codomain on abs function
 template <linalg::RnSpace Space>

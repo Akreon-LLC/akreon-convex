@@ -26,7 +26,7 @@ using namespace unit_test;
 TEST_CASE("Test abs function", "[convex_fn]") {
   SECTION("Test abs function") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<VarMeta<Space>>();
+    constexpr auto x = Variable<PosVarMeta<Space>>();
     constexpr auto abs_fn = Abs<AbsMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(abs_fn(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(abs_fn(Vectord<1>{-2.0}) == 2.0);
@@ -77,7 +77,7 @@ TEST_CASE("Test abs function", "[convex_fn]") {
 TEST_CASE("Test exp fn", "[convex_fn]") {
   SECTION("Test exp fn") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<VarMeta<Space>>();
+    constexpr auto x = Variable<PosVarMeta<Space>>();
     constexpr auto exp_fn = Exp<ExpMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}) == 1.0);
 
@@ -122,7 +122,7 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
 TEST_CASE("Test geometric mean fn", "[concave_fn]") {
   SECTION("Test geometric mean fn") {
     using Space = Matrixd<1, 4>;
-    constexpr auto x = Variable<VarMeta<Space>>();
+    constexpr auto x = Variable<PosVarMeta<Space>>();
     using Codom = Matrixd<1, 1>;
     constexpr auto geo_mean =
         GeoMean<GeoMeanMeta<Space, Codom>, decltype(x)>(x);
@@ -173,7 +173,7 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
 TEST_CASE("Test inv pos function", "[convex_fn]") {
   SECTION("Test inv pos fn") {
     using Space = Matrixd<1, 1>;
-    constexpr auto x = Variable<VarMeta<Space>>();
+    constexpr auto x = Variable<NonnegVarMeta<Space>>();
     constexpr auto inv_pos_fn = InvPos<InvPosMeta<Space>, decltype(x)>(x);
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{1.0}) == 1.0);
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}) == 0.5);
@@ -690,7 +690,7 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
     using Dom = Matrixd<1, 2>;
     using Codom = Matrixd<1, 1>;
 
-    constexpr auto x = Variable<VarMeta<Dom>>();
+    constexpr auto x = Variable<PosVarMeta<Dom>>();
     constexpr auto hmean_fn =
         HarmonicMean<HarmonicMeanMeta<Dom, Codom>, decltype(x)>(x);
     STATIC_REQUIRE(hmean_fn(Vectord<2>{1.0, 1.0}) == 1.0);
@@ -736,7 +736,7 @@ TEST_CASE("KL Div Function", "[convex_fn]") {
     using Codom = Matrixd<1, 1>;
 
     constexpr auto ones = Vectord<3>{1.0, 1.0, 1.0};
-    constexpr auto q = Variable<VarMeta<Dom>>();
+    constexpr auto q = Variable<PosVarMeta<Dom>>();
 
     constexpr auto kldiv_fn =
         KLDivergence<KLDivMeta<Dom, Codom>, decltype(q)>(ones, q);
@@ -804,7 +804,7 @@ TEST_CASE("Huber Function", "[convex_fn]") {
     constexpr auto new_builder = huber_fn.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
 
-    constexpr linalg::Vector<double, 3> coord{0.0, 0.0, 1.0};
+    constexpr linalg::Vector<double, 5> coord{0.0, 0.0, 0.0, 0.0, 1.0};
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
 
     constexpr auto canon_cb = new_builder.cb;
@@ -812,13 +812,15 @@ TEST_CASE("Huber Function", "[convex_fn]") {
 
     constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
     constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
-    constexpr mat_traits<Matrix<double, 6, 3>> F_mat;
+    constexpr mat_traits<Matrix<double, 6, 5>> F_mat;
     constexpr auto F =
-        F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              inv_sqrt2, 0.0, 0.0, -inv_sqrt2, sqrt2);
+        F_mat(-1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, inv_sqrt2, sqrt2,
+              inv_sqrt2, -inv_sqrt2, 0.0, -inv_sqrt2, -sqrt2, inv_sqrt2,
+              inv_sqrt2);
     STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() ==
-                   Vectord<6>{0.0, 0.0, 0.0, 1.0, -inv_sqrt2, inv_sqrt2});
+                   Vectord<6>{0.0, 0.0, 0.0, 0.5, 0.0, 0.0});
 
     constexpr auto huber_concave = huber_fn.mul<-1.0>().add(0.0);
     STATIC_REQUIRE(huber_concave(Vectord<1>{0.0}) == 0.0);
@@ -831,10 +833,12 @@ TEST_CASE("Huber Function", "[convex_fn]") {
 
     constexpr auto canon_cb1 = new_builder1.cb;
     constexpr auto F1 =
-        F_mat(1.0, 1.0, 0.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              inv_sqrt2, 0.0, 0.0, -inv_sqrt2, -sqrt2);
+        F_mat(-1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, inv_sqrt2, sqrt2,
+              inv_sqrt2, inv_sqrt2, 0.0, -inv_sqrt2, -sqrt2, inv_sqrt2,
+              -inv_sqrt2);
     STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
-    STATIC_REQUIRE(canon_cb.map.translation() ==
-                   Vectord<6>{0.0, 0.0, 0.0, 1.0, -inv_sqrt2, inv_sqrt2});
+    STATIC_REQUIRE(canon_cb1.map.translation() ==
+                   Vectord<6>{0.0, 0.0, 0.0, 0.5, 0.0, 0.0});
   }
 }

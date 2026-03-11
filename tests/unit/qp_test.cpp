@@ -27,7 +27,7 @@ static constexpr auto rel_tol{1e-3};
 
 TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
   using Space = Matrixd<1, 2>;
-  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto x = Variable<NonnegVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto r = 1.0;
   constexpr Vectord<2> c{3.0, 1.0};
@@ -163,7 +163,7 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
 TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
   using Space = Matrixd<1, 2>;
   using Singleton = Matrixd<1, 1>;
-  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
   constexpr auto x1 = x(1);
@@ -218,7 +218,7 @@ TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
 TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
   using Space = Matrixd<1, 1>;
   using Singleton = Matrixd<1, 1>;
-  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
@@ -263,6 +263,43 @@ TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.z(1) + 1.0) < rel_tol);
+  }
+}
+
+TEST_CASE("Minimal QP 1 Var (Huber Objective)", "[qp_test]") {
+  using Space = Matrixd<1, 1>;
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+  constexpr auto x0 = x(0);
+  constexpr auto delta = 1.0;
+  constexpr auto huber_x0 = Huber<HuberMeta<Space>, decltype(x0)>(delta, x0);
+
+  SECTION("Min huber(x0) s.t. x0 >= 0") {
+    constexpr auto x0_geq =
+        Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 0.0);
+    constexpr auto prob_constr = prob_init.add_constraint(x0_geq);
+    constexpr auto prob_min = prob_constr.minimize(huber_x0);
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(prob_min.validate());
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 5);
+
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 7);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 5);
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 7);
+    STATIC_REQUIRE(prob_min.linear_objective() ==
+                   as_row_vector(Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0}));
+
+    constexpr PrimalDualIPMConfig config{.duality_gap_tol = 1e-4};
+    constexpr PrimalDualIPM solver(prob_min, config);
+    constexpr auto res = solver.res;
+
+    STATIC_REQUIRE(res.num_iter > 0);
+    STATIC_REQUIRE(!res.stalled);
   }
 }
 

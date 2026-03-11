@@ -184,38 +184,42 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
   /**
    * @brief canonicalize impl
    *
-   * (1) f(x) = 0.5 x^2 if abs(x) <= delta else delta * (abs(x) - 0.5 delta)
-   * Piecewise function implictly casted as max(a,b) \equiv epi(max(fn)) \equiv
-   * intersections of epigraph of the functions in the piecewise function
+   * L_\delta(a) = \piecewise{
+   *    0.5 a^2, for |a| <= \delta,
+   *    \delta(|a| - 0.5 \delta) otherwise
+   * }
    *
-   * C = { (x,t) | phi(x) <= t }... lift conditional abs(x) <= delta to:
-   * (a) -x <= s... 0 <= s + x \in R+
-   * (b) x <= s... 0 <= s - x \in R+
+   * Variational Form: huber(x, \delta)
+   * = min_u u^2 + 2 \delta |x - u|
    *
-   * huber = max(0.5 s^2, delta * s - 0.5 * delta^2)
-   * (i) { (s,t) | 0.5 s^2 <= t }... { (s, 1, t) | s^2 <= t } \in RSOC
-   * (ii) { (s,t) | delta * s - 0.5 * delta^2 <= t } \in R+
-   * 0 <= t - delta * s + 0.5 delta^2
+   * Epi(huber(x,\delta))
+   * t >= min_u u^2 + 2 \delta |x - u|... epi lift
+   * let s >= |x - u| ... aux lift #1
+   * t >= u^2 + 2\delta s
+   * \exists u,s s.t. s >= |x - u| & t >= u^2 + 2 \delta s
+   * let q = u^2 s.t. t >= q + 2 \delta s... aux lift #2
    *
-   * [ a  1     0 ] [ x; s; t ] + [ b; -b; 0; 1; 0; delta^2 ]
-   * [ -a 1     0 ]
-   * [ 0  1     0 ]
-   * [ 0  0     0 ]
-   * [ 0  0     1 ]
-   * [ 0 -delta 1 ]
+   * Cones
+   * 0 <= s - x + u \in rplus
+   * 0 <= s + x - u \in rplus
+   * (q, 1/2, u) \in rsoc
+   * 0 <= t - q - 2 \delta s \in rplus
    *
-   * (2) -f(x) = -0.5 x^2 if abs(x) <= delta else -delta * (abs(x) - 0.5 delta)
-   * same (a) & (b)
+   * Convex (F \hat{x} + g)
+   * [ -a 0  1          1 0 ] [ x; q; s; u; t ] + [ -b; b; 0; 0.5; 0; 0 ]
+   * [  a 0  1         -1 0 ]
+   * [  0 1  0          0 0 ]
+   * [  0 0  0          0 0 ]
+   * [  0 0  0          1 0 ]
+   * [  0 -1 -2 \delta  0 1 ]
    *
-   * (i) { (s,t) | 0.5 s^2 <= -t }... (s, 1, -t) \in RSOC
-   * (ii) { (s,t) | delta * s - 0.5 delta^2 <= -t } \in R+
-   *
-   * [ a  1      0 ] [ x; s; t ] + [ b; -b; 0; 1; 0; delta^2 ]
-   * [ -a 1      0 ]
-   * [ 0  1      0 ]
-   * [ 0  0      0 ]
-   * [ 0  0     -1 ]
-   * [ 0 -delta -1 ]
+   * Concave
+   * [ -a 0  1          1  0 ] [ x; q; s; u; t ] + [ -b; b; 0; 0.5; 0; 0 ]
+   * [  a 0  1         -1  0 ]
+   * [  0 1  0          0  0 ]
+   * [  0 0  0          0  0 ]
+   * [  0 0  0          1  0 ]
+   * [  0 -1 -2 \delta  0 -1 ]
    *
    * @param builder
    *
@@ -236,26 +240,24 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
                   "input affine map from cone block has invalid codom dim for "
                   "scalar fn domain (i.e., != 1");
 
-    linalg::Matrix<T, 6, Dom + 2> F;
-    linalg::Vector<T, 6> g;
-    F = linalg::set_block<0, 1, 0, Dom>(F, child_coord.linear_part());
-    F(0)(Dom) = T(1);
-    F = linalg::set_block<1, 2, 0, Dom>(F, T(-1) * child_coord.linear_part());
-    F(1)(Dom) = T(1);
-    F(2)(Dom) = T(1);
+    linalg::Matrix<T, 6, Dom + 4> F{};
+    const auto a = child_coord.linear_part();
+    const auto b = child_coord.translation();
+    F(0)(0) = -a(0)(0), F(0)(2) = T(1), F(0)(3) = T(1);
+    F(1)(0) = a(0)(0), F(1)(2) = T(1), F(1)(3) = T(-1);
+    F(2)(1) = T(1);
+    F(4)(3) = T(1);
+    F(5)(1) = T(-1), F(5)(2) = T(-2) * delta;
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F(4)(Dom + 1) = T(1);
-      F(5)(Dom + 1) = T(1);
+      F(5)(4) = T(1);
     } else {
-      F(4)(Dom + 1) = T(-1);
-      F(5)(Dom + 1) = T(-1);
+      F(5)(4) = T(-1);
     }
-    F(5)(Dom) = T(-1) * delta;
 
-    g(0) = child_coord.translation()(0);
-    g(1) = T(-1) * child_coord.translation()(0);
-    g(3) = T(1);
-    g(5) = delta * delta;
+    linalg::Vector<T, 6> g{};
+    g(0) = -b(0);
+    g(1) = b(0);
+    g(3) = T(0.5);
 
     const auto rsoc_coords = affine::AffineMap<decltype(F)>(F, g);
     const auto coord_map_up =

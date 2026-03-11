@@ -21,7 +21,7 @@ namespace convex {
 /// @brief alias for domain on harmonic mean function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 2)
-using HarmonicMeanDom = ConvexDomain<Space, VarType::FREE>;
+using HarmonicMeanDom = ConvexDomain<Space, VarType::POS>;
 
 /// @brief alias for codomain on harmonic mean function
 template <linalg::RnSpace Space>
