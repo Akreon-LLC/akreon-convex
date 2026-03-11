@@ -20,7 +20,7 @@ namespace config {
  * (dakre) note increase constexpr steps / depth for # steps to increase here
  * for constexpr usage
  */
-#define PD_IPM_STEPS 32
+#define PD_IPM_STEPS 16
 
 /**
  * @brief FactorConfig
