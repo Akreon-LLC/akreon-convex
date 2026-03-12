@@ -266,43 +266,6 @@ TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
   }
 }
 
-TEST_CASE("Minimal QP 1 Var (Huber Objective)", "[qp_test]") {
-  using Space = Matrixd<1, 1>;
-  constexpr auto x = Variable<VarMeta<Space>>();
-  constexpr auto prob_init = make_problem(x);
-  constexpr auto x0 = x(0);
-  constexpr auto delta = 1.0;
-  constexpr auto huber_x0 = Huber<HuberMeta<Space>, decltype(x0)>(delta, x0);
-
-  SECTION("Min huber(x0) s.t. x0 >= 0") {
-    constexpr auto x0_geq =
-        Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 0.0);
-    constexpr auto prob_constr = prob_init.add_constraint(x0_geq);
-    constexpr auto prob_min = prob_constr.minimize(huber_x0);
-
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(prob_min.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 5);
-
-    constexpr auto F = prob_min.constraint_map().linear_part();
-    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 7);
-    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 5);
-
-    constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 7);
-    STATIC_REQUIRE(prob_min.linear_objective() ==
-                   as_row_vector(Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0}));
-
-    constexpr PrimalDualIPMConfig config{.duality_gap_tol = 1e-4};
-    constexpr PrimalDualIPM solver(prob_min, config);
-    constexpr auto res = solver.res;
-
-    STATIC_REQUIRE(res.num_iter > 0);
-    STATIC_REQUIRE(!res.stalled);
-  }
-}
-
 TEST_CASE("Minimal QP 2 Vars (Harmonic Mean Objective)", "[qp_test]") {
   using Space = Matrixd<1, 2>;
   using Singleton = Matrixd<1, 1>;
@@ -450,5 +413,58 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
+  }
+}
+
+TEST_CASE("Minimal QP 1 Var (Huber Objective)", "[qp_test]") {
+  using Space = Matrixd<1, 1>;
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+  constexpr auto x0 = x(0);
+  constexpr auto delta = 2.0;
+  constexpr auto huber_x0 = Huber<HuberMeta<Space>, decltype(x0)>(delta, x0);
+  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+
+  SECTION("Min huber(x0) s.t. x0 >= 0") {
+    constexpr auto x0_geq =
+        Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 0.0);
+    constexpr auto prob_constr = prob_init.add_constraint(x0_geq);
+    constexpr auto prob_min = prob_constr.minimize(huber_x0);
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(prob_min.validate());
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+
+    constexpr mat_traits<Matrixd<10, 6>> F_mat;
+    constexpr auto F_exp =
+        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, -1.0, -1.0, 0.0, 0.0, 0.0,
+              -1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, -2.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, -inv_sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0, inv_sqrt2, 0.0);
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 10);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 6);
+    STATIC_REQUIRE(all_equal(F, F_exp));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 10);
+    STATIC_REQUIRE(g == Vectord<10>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                    0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
+    STATIC_REQUIRE(prob_min.linear_objective() ==
+                   as_row_vector(Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0}));
+
+    constexpr PrimalDualIPMConfig config{.duality_gap_tol = 1e-4};
+    constexpr PrimalDualIPM solver(prob_min, config);
+    constexpr auto res = solver.res;
+    constexpr auto trace = solver.trace;
+
+    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(!res.stalled);
+    STATIC_REQUIRE(constexpr_abs(res.z(0)) < 2e-2);
   }
 }

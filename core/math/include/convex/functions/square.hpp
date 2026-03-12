@@ -138,7 +138,7 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
   /**
    * @brief mul
    *
-   * @return abs fn (updated map)
+   * @return square fn (updated map)
    */
   template <T Scalar>
   constexpr auto mul() const {
@@ -165,7 +165,7 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
    *
    * @param scalar
    *
-   * @return abs fn (updated map)
+   * @return square fn (updated map)
    */
   constexpr auto add(const T& beta) const {
     LiftedVarBias<T> bias{beta + lift_map.translation()(0)};

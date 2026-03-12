@@ -68,7 +68,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
       : ConvexBase(child_in),
         delta(delta_in),
         lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
-    AK_ASSERT(delta_in <= T(0) && "Huber expects delta <= 0");
+    AK_ASSERT(delta_in >= T(0) && "Huber expects delta >= 0");
   }
 
   /**
@@ -80,7 +80,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
   constexpr explicit Huber(const T& delta_in, const Child& child_in,
                            const affine::AffineMap<LiftedVarMat<T>>& map_in)
       : ConvexBase(child_in), delta(delta_in), lift_map(map_in) {
-    AK_ASSERT(delta_in <= T(0) && "Huber expects delta <= 0");
+    AK_ASSERT(delta_in >= T(0) && "Huber expects delta >= 0");
   }
 
   /**
@@ -136,9 +136,12 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
         return T(-0.5) * alpha * x(0) * x(0) + beta;
     } else {
       if constexpr (Tag == CurvatureType::CONVEX)
-        return delta * (linalg::constexpr_abs(x(0)) - T(0.5) * delta);
+        return alpha * delta * (linalg::constexpr_abs(x(0)) - T(0.5) * delta) +
+               beta;
       else
-        return T(-1) * delta * (linalg::constexpr_abs(x(0)) - T(0.5) * delta);
+        return T(-1) * alpha * delta *
+                   (linalg::constexpr_abs(x(0)) - T(0.5) * delta) +
+               beta;
     }
   }
 
@@ -189,37 +192,25 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
    *    \delta(|a| - 0.5 \delta) otherwise
    * }
    *
-   * Variational Form: huber(x, \delta)
-   * = min_u u^2 + 2 \delta |x - u|
+   * Variational Form
+   * h(x, \delta) = min_{u, v, \gamma, q, t} t
+   * s.t. x = u + v, \gamma >= |v|, q >= u^2, t >= q + \delta \gamma
    *
-   * Epi(huber(x,\delta))
-   * t >= min_u u^2 + 2 \delta |x - u|... epi lift
-   * let s >= |x - u| ... aux lift #1
-   * t >= u^2 + 2\delta s
-   * \exists u,s s.t. s >= |x - u| & t >= u^2 + 2 \delta s
-   * let q = u^2 s.t. t >= q + 2 \delta s... aux lift #2
-   *
-   * Cones
-   * 0 <= s - x + u \in rplus
-   * 0 <= s + x - u \in rplus
-   * (q, 1/2, u) \in rsoc
-   * 0 <= t - q - 2 \delta s \in rplus
-   *
-   * Convex (F \hat{x} + g)
-   * [ -a 0  1          1 0 ] [ x; q; s; u; t ] + [ -b; b; 0; 0.5; 0; 0 ]
-   * [  a 0  1         -1 0 ]
-   * [  0 1  0          0 0 ]
-   * [  0 0  0          0 0 ]
-   * [  0 0  0          1 0 ]
-   * [  0 -1 -2 \delta  0 1 ]
+   * Convex
+   * [  a -1 -1  0      0  0 ] \hat{x} + [  b ]
+   * [ -a  1  1  0      0  0 ]          [ -b ]
+   * [  0  1  0  1      0  0 ]          [  0 ]
+   * [  0 -1  0  1      0  0 ]          [  0 ]
+   * [  0  0  0  1      0  0 ]          [  0 ]
+   * [  0  0  0 -\delta -1 1 ]          [  0 ]
+   * [  0  0  1  0      0  0 ]          [  0 ]
+   * [  0  0  0  0      0  0 ]          [ 1/2 ]
+   * [  0  0  0  0      1  0 ]          [  0 ]
    *
    * Concave
-   * [ -a 0  1          1  0 ] [ x; q; s; u; t ] + [ -b; b; 0; 0.5; 0; 0 ]
-   * [  a 0  1         -1  0 ]
-   * [  0 1  0          0  0 ]
-   * [  0 0  0          0  0 ]
-   * [  0 0  0          1  0 ]
-   * [  0 -1 -2 \delta  0 -1 ]
+   * row 5 becomes [ 0 0 0 -\delta -1 -1 ] so t <= -(q + \delta \gamma)
+   *
+   * \hat{x} = [ x; v; u; \gamma; q; t ]
    *
    * @param builder
    *
@@ -240,35 +231,52 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
                   "input affine map from cone block has invalid codom dim for "
                   "scalar fn domain (i.e., != 1");
 
-    linalg::Matrix<T, 6, Dom + 4> F{};
+    linalg::Matrix<T, 9, Dom + 5> F{};
+    linalg::Vector<T, 9> g{};
     const auto a = child_coord.linear_part();
     const auto b = child_coord.translation();
-    F(0)(0) = -a(0)(0), F(0)(2) = T(1), F(0)(3) = T(1);
-    F(1)(0) = a(0)(0), F(1)(2) = T(1), F(1)(3) = T(-1);
-    F(2)(1) = T(1);
-    F(4)(3) = T(1);
-    F(5)(1) = T(-1), F(5)(2) = T(-2) * delta;
+    F = linalg::set_block<0, 1, 0, Dom>(F, a);
+    F = linalg::set_block<1, 2, 0, Dom>(F, T(-1) * a);
+    F(0)(Dom) = T(-1), F(0)(Dom + 1) = T(-1);
+    F(1)(Dom) = T(1), F(1)(Dom + 1) = T(1);
+    F(2)(Dom) = T(1), F(2)(Dom + 2) = T(1);
+    F(3)(Dom) = T(-1), F(3)(Dom + 2) = T(1);
+    F(4)(Dom + 2) = T(1);
+    F(5)(Dom + 2) = T(-1) * delta;
+    F(5)(Dom + 3) = T(-1);
+    g(0) = b(0);
+    g(1) = T(-1) * b(0);
+
+    linalg::Matrix<T, 3, Dom + 5> F_rsoc{};
+    F_rsoc(0)(Dom + 1) = T(1);
+    F_rsoc(2)(Dom + 3) = T(1);
+
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F(5)(4) = T(1);
+      F(5)(Dom + 4) = T(1);
     } else {
-      F(5)(4) = T(-1);
+      F(5)(Dom + 4) = T(-1);
     }
 
-    linalg::Vector<T, 6> g{};
-    g(0) = -b(0);
-    g(1) = b(0);
-    g(3) = T(0.5);
+    linalg::Vector<T, 3> g_rsoc{T(0), T(0.5), T(0)};
 
-    const auto rsoc_coords = affine::AffineMap<decltype(F)>(F, g);
-    const auto coord_map_up =
+    const auto rsoc_coords =
+        affine::AffineMap<decltype(F_rsoc)>(F_rsoc, g_rsoc);
+    const auto soc_coords =
         conic::Rotated2SOC<decltype(rsoc_coords)>()(rsoc_coords);
+    F = linalg::set_block<6, 9, 0, Dom + 5>(F, soc_coords.linear_part());
+    const auto g_hat = soc_coords.translation();
+    g(6) = g_hat(0);
+    g(7) = g_hat(1);
+    g(8) = g_hat(2);
+
+    const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
     const auto new_builder =
         conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
                                 decltype(coord_map_up), decltype(child_cb)>(
             coord_map_up, child_cb);
-    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
+    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 6>>();
     const auto rsoc = conic::SecondOrderCone<linalg::Vector<T, 3>>();
-    const auto cones = std::make_tuple(rplus, rplus, rsoc, rplus);
+    const auto cones = std::make_tuple(rplus, rsoc);
 
     return new_builder.template make<Type>(idx, lift_map, cones);
   }

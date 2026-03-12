@@ -795,36 +795,43 @@ TEST_CASE("Huber Function", "[convex_fn]") {
   SECTION("Test huber") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto delta = 1.0;
+    constexpr auto delta = 2.0;
     constexpr auto huber_fn = Huber<HuberMeta<Space>, decltype(x)>(delta, x);
     STATIC_REQUIRE(huber_fn(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(huber_fn(Vectord<1>{1.0}) == 0.5);
+    STATIC_REQUIRE(huber_fn(Vectord<1>{3.0}) == 4.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder = huber_fn.canonicalize<AtomType::FN>(builder);
     constexpr auto canon_map = new_builder.coord_map;
 
-    constexpr linalg::Vector<double, 5> coord{0.0, 0.0, 0.0, 0.0, 1.0};
+    constexpr linalg::Vector<double, 6> coord{0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
     STATIC_REQUIRE(all_equal(as_row_vector(coord), canon_map.linear_part()));
 
     constexpr auto canon_cb = new_builder.cb;
-    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 4);
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 2);
 
     constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
-    constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
-    constexpr mat_traits<Matrix<double, 6, 5>> F_mat;
+    constexpr mat_traits<Matrix<double, 9, 6>> F_mat;
     constexpr auto F =
-        F_mat(-1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, inv_sqrt2, sqrt2,
-              inv_sqrt2, -inv_sqrt2, 0.0, -inv_sqrt2, -sqrt2, inv_sqrt2,
-              inv_sqrt2);
+        F_mat(1.0, -1.0, -1.0, 0.0, 0.0, 0.0,
+              -1.0, 1.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, -1.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, -2.0, -1.0, 1.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0,
+              0.0, 0.0, 0.0, 0.0, inv_sqrt2, 0.0);
     STATIC_REQUIRE(all_equal(F, canon_cb.map.linear_part()));
     STATIC_REQUIRE(canon_cb.map.translation() ==
-                   Vectord<6>{0.0, 0.0, 0.0, 0.5, 0.0, 0.0});
+                   Vectord<9>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
 
     constexpr auto huber_concave = huber_fn.mul<-1.0>().add(0.0);
     STATIC_REQUIRE(huber_concave(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(huber_concave(Vectord<1>{1.0}) == -0.5);
+    STATIC_REQUIRE(huber_concave(Vectord<1>{3.0}) == -4.0);
 
     constexpr auto new_builder1 =
         huber_concave.canonicalize<AtomType::FN>(builder);
@@ -833,12 +840,18 @@ TEST_CASE("Huber Function", "[convex_fn]") {
 
     constexpr auto canon_cb1 = new_builder1.cb;
     constexpr auto F1 =
-        F_mat(-1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, inv_sqrt2, sqrt2,
-              inv_sqrt2, inv_sqrt2, 0.0, -inv_sqrt2, -sqrt2, inv_sqrt2,
-              -inv_sqrt2);
+        F_mat(1.0, -1.0, -1.0, 0.0, 0.0, 0.0,
+              -1.0, 1.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, -1.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, -2.0, -1.0, -1.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0,
+              0.0, 0.0, 0.0, 0.0, inv_sqrt2, 0.0);
     STATIC_REQUIRE(all_equal(F1, canon_cb1.map.linear_part()));
     STATIC_REQUIRE(canon_cb1.map.translation() ==
-                   Vectord<6>{0.0, 0.0, 0.0, 0.5, 0.0, 0.0});
+                   Vectord<9>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
   }
 }
