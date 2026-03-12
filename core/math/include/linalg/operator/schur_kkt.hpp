@@ -25,13 +25,15 @@ namespace linalg {
  * @return regularized
  */
 template <SquareMatrixLike Schur>
-constexpr auto regularize(Schur S, mat_type_t<Schur> eps = 1e-8) {
+constexpr auto regularize(Schur S) {
   using T = mat_type_t<Schur>;
   constexpr size_t N = mat_cols_v<Schur>;
 
+  constexpr T eps{1e-12};
+
   const auto d = get_diag(S);
   T s{0};
-  for (const auto& x : d) s = std::max(s, x);
+  for (const auto& x : d) s = std::max(s, linalg::constexpr_abs(x));
 
   s = std::max(s, T(1));
   const auto delta = eps * s;

@@ -361,7 +361,7 @@ struct PrimalDualIPM {
 
       /// (dakre) 1 - accumulate and factor schur
       const auto S = accumulate_schur(Schur{}, F, K, x, y);
-      const auto ldl = linalg::LDL(S);
+      const auto ldl = linalg::LDL(linalg::regularize(S));
 
       /// (dakre) 2 - compute initial primal & dual residuals (negated)
       rd = dual_residual(F, c, y);

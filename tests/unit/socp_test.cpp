@@ -68,20 +68,19 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     constexpr auto c = prob_min.linear_objective();
     STATIC_REQUIRE(c == Vectord<4>{0.0, 0.0, 0.0, 0.5});
 
-    constexpr PrimalDualIPM solver(prob_min);
+    constexpr PrimalDualIPMConfig config{.duality_gap_tol = 1e-4};
+    constexpr PrimalDualIPM solver(prob_min, config);
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
 
-    STATIC_REQUIRE(res.tag == SolverResult::DUAL_FEASIBLE);
+    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
-                   config::SolverResult::DUAL_FEASIBLE);
+                   config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.z(0) - x_unconstrained_exp(0)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.z(1) - x_unconstrained_exp(1)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.convex_obj) < 1e-2);
-
-    // log(res, trace);
   }
 
   SECTION("L2 Ball Constrained SOCP") {
