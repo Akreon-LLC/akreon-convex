@@ -23,6 +23,8 @@ using namespace conic;
 using namespace unit_test;
 using namespace config;
 
+static constexpr auto rel_tol{1e-3};
+
 TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
   using Space = Matrixd<1, 2>;
   using Singleton = Matrixd<1, 1>;
@@ -35,19 +37,22 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
   constexpr auto square = Square<SquareMeta<Singleton>, decltype(norm)>(norm);
   constexpr auto half_square = square.mul<0.5>();
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+  constexpr auto sqrt5 = constexpr_sqrt_safe(5.0);
 
   constexpr auto F_mat = mat_traits<Matrixd<6, 4>>();
   constexpr auto F_exp =
       F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0, 0.0, 0.0,
-            inv_sqrt2);
-  constexpr Vectord<6> g_exp{-1.0, 2.0, 0.0, 0.0, 0.5 * inv_sqrt2,
+            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0, 0.0, 0.0, inv_sqrt2);
+  constexpr Vectord<6> g_exp{-1.0,           2.0, 0.0, 0.0, 0.5 * inv_sqrt2,
                              0.5 * inv_sqrt2};
+  constexpr Vectord<2> x_unconstrained_exp{1.0, -2.0};
+  constexpr Vectord<2> x_ball_exp{1.0 / sqrt5, -2.0 / sqrt5};
 
   SECTION("Unconstrained SOCP") {
     constexpr auto prob_min = prob_init.minimize(half_square);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(prob_min.validate());
     STATIC_REQUIRE(
         std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
 
@@ -67,10 +72,18 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
 
-    log(res, trace);
+    STATIC_REQUIRE(res.tag == SolverResult::DUAL_FEASIBLE);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
+                   config::SolverResult::DUAL_FEASIBLE);
+    STATIC_REQUIRE(!res.stalled);
+    STATIC_REQUIRE(constexpr_abs(res.z(0) - x_unconstrained_exp(0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.z(1) - x_unconstrained_exp(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.convex_obj) < 1e-2);
+
+    // log(res, trace);
   }
 
-#if 0
   SECTION("L2 Ball Constrained SOCP") {
     constexpr auto r = 1.0;
     constexpr auto ball =
@@ -80,6 +93,25 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     constexpr auto prob_min = prob.minimize(half_square);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(prob_min.validate());
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 9);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 4);
+
+    constexpr auto F_ball_mat = mat_traits<Matrixd<9, 4>>();
+    constexpr auto F_ball_exp = F_ball_mat(
+        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, -inv_sqrt2, 0.0, 0.0, 0.0, inv_sqrt2);
+    STATIC_REQUIRE(all_equal(F, F_ball_exp));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 9);
+    STATIC_REQUIRE(g == Vectord<9>{0.0, 0.0, 1.0, -1.0, 2.0, 0.0, 0.0,
+                                   0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
 
     constexpr auto c = prob_min.linear_objective();
     STATIC_REQUIRE(c == Vectord<4>{0.0, 0.0, 0.0, 0.5});
@@ -87,7 +119,15 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
-    log(res, trace);
+
+    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(!res.stalled);
+    STATIC_REQUIRE(constexpr_abs(res.z(0) - x_ball_exp(0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.z(1) - x_ball_exp(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.z(2) - (sqrt5 - 1.0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.z(3) - (6.0 - 2.0 * sqrt5)) < rel_tol);
   }
-#endif
 }
