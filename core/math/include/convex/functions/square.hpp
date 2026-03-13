@@ -18,27 +18,27 @@
 
 namespace convex {
 
-/// @brief alias for domain on abs function
+/// @brief alias for domain on square function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
 using SquareDom = ConvexDomain<Space, VarType::FREE>;
 
-/// @brief alias for codomain on abs function
+/// @brief alias for codomain on square function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
 using SquareCodom = ConvexDomain<Space, VarType::NONNEG>;
 
-/// @brief alias for concave codomain on abs function
+/// @brief alias for concave codomain on square function
 template <linalg::RnSpace Space>
   requires(linalg::space_dim_v<Space> == 1)
 using SquareConcaveCodom = ConvexDomain<Space, VarType::NONPOS>;
 
-/// @brief alias for meta for abs function
+/// @brief alias for meta for square function
 template <linalg::RnSpace Space>
 using SquareMeta =
     ConvexAtomMeta<SquareDom<Space>, SquareCodom<Space>, CurvatureType::CONVEX>;
 
-/// @brief alias for meta for abs function
+/// @brief alias for meta for square function
 template <linalg::RnSpace Space>
 using SquareConcaveMeta =
     ConvexAtomMeta<SquareDom<Space>, SquareConcaveCodom<Space>,
@@ -47,7 +47,7 @@ using SquareConcaveMeta =
 /**
  * @brief square function
  *
- * f(x) = x*x, x \in R
+ * f(x) = x*x, x \in R_+
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)

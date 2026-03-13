@@ -278,7 +278,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     using MatT = Matrixd<1, 5>;
     constexpr auto x = Variable<VarMeta<MatT>>();
     constexpr Vectord<5> c{1.0, 1.0, 1.0, 1.0, 1.0};
-    constexpr auto sum = weighted_sum(c, x);
+    constexpr auto sum = WeightedSum<MatT>()(c, x);
 
     constexpr auto builder = create_empty_cblk_builder<MatT>();
     constexpr auto new_builder =
@@ -293,7 +293,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 0);
 
     constexpr Vectord<5> c2{1.0, 2.0, -1.0, 4.0, 0.0};
-    constexpr auto sum2 = weighted_sum(c2, x);
+    constexpr auto sum2 = WeightedSum<MatT>()(c2, x);
 
     constexpr auto new_builder2 =
         sum2.template canonicalize<AtomType::ADD>(builder);
@@ -365,29 +365,24 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     constexpr auto pair_pos = Variable<PosVarMeta<Pair>>();
 
     constexpr auto exp_fn = Exp<ExpMeta<Scalar>, decltype(x_free)>(x_free);
-    STATIC_REQUIRE(
-        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(exp_fn)>>> ==
-        VarType::FREE);
-    STATIC_REQUIRE(
-        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(exp_fn)>>> ==
-        VarType::NONNEG);
+    STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(exp_fn)>>> ==
+                   VarType::FREE);
+    STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(exp_fn)>>> ==
+                   VarType::NONNEG);
 
     constexpr auto sqrt_fn =
         Sqrt<SqrtMeta<Scalar>, decltype(x_nonneg)>(x_nonneg);
-    STATIC_REQUIRE(
-        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(sqrt_fn)>>> ==
-        VarType::NONNEG);
+    STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(sqrt_fn)>>> ==
+                   VarType::NONNEG);
     STATIC_REQUIRE(
         dom_vartype_v<meta_codom_t<atom_meta_t<decltype(sqrt_fn)>>> ==
         VarType::NONNEG);
 
     constexpr auto log_fn = Log<LogMeta<Scalar>, decltype(x_pos)>(x_pos);
-    STATIC_REQUIRE(
-        dom_vartype_v<meta_dom_t<atom_meta_t<decltype(log_fn)>>> ==
-        VarType::POS);
-    STATIC_REQUIRE(
-        dom_vartype_v<meta_codom_t<atom_meta_t<decltype(log_fn)>>> ==
-        VarType::FREE);
+    STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(log_fn)>>> ==
+                   VarType::POS);
+    STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(log_fn)>>> ==
+                   VarType::FREE);
 
     constexpr auto inv_pos_fn =
         InvPos<InvPosMeta<Scalar>, decltype(x_pos)>(x_pos);

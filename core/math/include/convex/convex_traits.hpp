@@ -188,11 +188,6 @@ struct KLDivergence;
 template <typename Meta, typename Child>
 struct Huber;
 
-/// @brief forward declaration - log det
-template <typename Meta, typename Child>
-  requires(linalg::SquareMatrixLike<dom_point_t<meta_dom_t<Meta>>>)
-struct LogDet;
-
 /// @brief forward declaration - sum op
 template <typename Meta, typename... Cs>
 struct Sum;
@@ -373,12 +368,6 @@ struct atom_traits<KLDivergence<Meta, Child>> {
 
 template <typename Meta, typename Child>
 struct atom_traits<Huber<Meta, Child>> {
-  using ConvexMeta = Meta;
-  static constexpr AtomType Type = AtomType::FN;
-};
-
-template <typename Meta, typename Child>
-struct atom_traits<LogDet<Meta, Child>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::FN;
 };

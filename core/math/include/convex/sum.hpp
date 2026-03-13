@@ -12,8 +12,6 @@
 
 #pragma once
 
-#include <optional>
-
 #include "cone_traits.hpp"
 #include "convex_traits.hpp"
 
@@ -172,31 +170,5 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   /** @brief member var */
   affine::AffineMap<MatT> map;
 };
-
-/**
- * @brief weighted sum
- *
- * @param c (weights)
- * @param x (var)
- *
- * @return weighted sum atom
- */
-template <linalg::VectorLike Vec, AtomLike Var>
-constexpr auto weighted_sum(const Vec& c, const Var& x) {
-  using T = linalg::vec_type_t<Vec>;
-  constexpr size_t N = linalg::vec_size_v<Vec>;
-  using VecMat = linalg::Matrix<T, 1, N>;
-  using Mat1T = linalg::Matrix<T, 1, 1>;
-
-  auto make_sum = [&]<typename... Cs>(const std::tuple<Cs...>& vars) {
-    return std::make_from_tuple<Sum<SumMeta<VecMat, Mat1T>, Cs...>>(vars);
-  };
-
-  const auto W = linalg::make_diag(c);
-  const auto weighted_x = x.mul(W);
-  const auto vars = weighted_x.split();
-
-  return make_sum(vars);
-}
 
 }  // namespace convex

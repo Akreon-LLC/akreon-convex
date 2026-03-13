@@ -44,7 +44,7 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
 
     constexpr Vectord<2> weights{1.0, 1.0};
-    constexpr auto cx = weighted_sum(weights, x);
+    constexpr auto cx = WeightedSum<Space>()(weights, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
@@ -85,7 +85,7 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
 
     constexpr Vectord<2> weights{1.0, 1.0};
-    constexpr auto cx = weighted_sum(weights, x);
+    constexpr auto cx = WeightedSum<Space>()(weights, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
@@ -125,7 +125,7 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
         Inequality<InequalityType::LEQ, decltype(norm), decltype(r)>(norm, r);
     constexpr auto prob_constr = prob_init.add_constraint(leq);
 
-    constexpr auto cx = weighted_sum(weights, x);
+    constexpr auto cx = WeightedSum<Space>()(weights, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
@@ -234,8 +234,7 @@ TEST_CASE("Minimal QP 1 Var (Square Objective Free Var)", "[qp_test]") {
         std::tuple_size<decltype(prob_min.constraint_cones())>::value == 1);
 
     constexpr mat_traits<Matrixd<3, 2>> F_mat;
-    constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, -inv_sqrt2, 0.0, inv_sqrt2);
+    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, -inv_sqrt2, 0.0, inv_sqrt2);
     constexpr auto F = prob_min.constraint_map().linear_part();
     STATIC_REQUIRE(mat_rows_v<decltype(F)> == 3);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
@@ -243,8 +242,7 @@ TEST_CASE("Minimal QP 1 Var (Square Objective Free Var)", "[qp_test]") {
 
     constexpr auto g = prob_min.constraint_map().translation();
     STATIC_REQUIRE(vec_size_v<decltype(g)> == 3);
-    STATIC_REQUIRE(
-        g == Vectord<3>{-1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
+    STATIC_REQUIRE(g == Vectord<3>{-1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
     STATIC_REQUIRE(prob_min.linear_objective() == Vectord<2>{0.0, 1.0});
 
     constexpr PrimalDualIPM solver(prob_min);

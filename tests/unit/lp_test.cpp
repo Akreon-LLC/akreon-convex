@@ -133,7 +133,7 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
 
   SECTION("Min c^T x") {
     constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = weighted_sum(c, x);
+    constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
@@ -187,7 +187,7 @@ TEST_CASE("Halfspace and Hyperplane LP Test", "[lp_test]") {
     constexpr auto prob_constr = prob_init.in_set(feasible_set);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = weighted_sum(c, x);
+    constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
     constexpr mat_traits<Matrixd<5, 2>> F_mat;
@@ -233,7 +233,7 @@ TEST_CASE("Polyhedron and Affine Subspace LP Test", "[lp_test]") {
     constexpr auto prob_constr = prob_init.in_set(feasible_set);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = weighted_sum(c, x);
+    constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
     constexpr mat_traits<Matrixd<7, 2>> F_mat;
@@ -281,7 +281,7 @@ TEST_CASE("L1 Ball LP Test", "[lp_test]") {
     constexpr auto prob_constr = prob_init.in_set(ball);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = weighted_sum(c, x);
+    constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
     constexpr mat_traits<Matrixd<7, 4>> F_mat;
@@ -331,7 +331,7 @@ TEST_CASE("Linf Ball LP Test", "[lp_test]") {
     constexpr auto prob_constr = prob_init.in_set(ball);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = weighted_sum(c, x);
+    constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
     constexpr mat_traits<Matrixd<4, 2>> F_mat;
@@ -534,7 +534,7 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
     constexpr auto prob_constr = prob_init.in_set(feasible_set);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = weighted_sum(c, x);
+    constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
     constexpr mat_traits<Matrixd<4, 2>> F_mat;
@@ -576,7 +576,7 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
     constexpr auto prob_constr = prob_init.in_set(poly);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = weighted_sum(c, x);
+    constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
     constexpr mat_traits<Matrixd<3, 2>> F_mat;
