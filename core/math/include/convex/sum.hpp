@@ -18,6 +18,19 @@
 namespace convex {
 
 /**
+ * @brief validate sum child
+ *
+ * @return void
+ */
+template <typename SumCodomain, typename Child>
+constexpr void validate_sum_child_codomain() {
+  using ChildCodomain = meta_codom_t<atom_meta_t<Child>>;
+  static_assert(
+      std::same_as<dom_space_t<SumCodomain>, dom_space_t<ChildCodomain>>,
+      "Sum child codomain must match the sum codomain space");
+}
+
+/**
  * @brief update selector
  *
  * @param previous map
@@ -26,7 +39,9 @@ namespace convex {
  * @return new map
  */
 template <affine::AffineMapLike PrevMap, affine::AffineMapLike NextMap>
-constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
+constexpr auto update_selector(const PrevMap& prev, const NextMap& next)
+    -> affine::AffineMap<
+        linalg::remove_cvref_t<affine::affine_mat_t<NextMap>>> {
   using PrevMatT = affine::affine_mat_t<PrevMap>;
   using NextMatT = affine::affine_mat_t<NextMap>;
   using T = linalg::mat_type_t<PrevMatT>;
@@ -37,7 +52,12 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
   static constexpr size_t NextDom = linalg::mat_cols_v<NextMatT>;
   static constexpr size_t NextCodom = linalg::mat_rows_v<NextMatT>;
 
-  if constexpr (PrevCodom == 1 && NextCodom == 1) {
+  /// (dakre) first step is seeding the selector map from first child then
+  /// accumulate selector thereafter
+  if constexpr (PrevCodom != NextCodom) {
+    return affine::AffineMap<linalg::remove_cvref_t<NextMatT>>(
+        next.linear_part(), next.translation());
+  } else {
     linalg::Matrix<T, PrevCodom, NextDom> F;
     for (size_t i = 0; i < PrevCodom; ++i) {
       for (size_t j = 0; j < PrevDom; ++j)
@@ -45,10 +65,8 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
       for (size_t j = PrevDom; j < NextDom; ++j)
         F(i)(j) = next.linear_part()(i)(j);
     }
-
-    return affine::AffineMap<decltype(F)>(F, prev.translation());
-  } else {
-    return next;
+    return affine::AffineMap<linalg::remove_cvref_t<NextMatT>>(
+        F, prev.translation());
   }
 }
 
@@ -86,6 +104,7 @@ template <typename Meta, typename... Cs>
 struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   /// @brief base type alias
   using BaseT = Atom<Meta, Sum<Meta, Cs...>, Cs...>;
+  using typename BaseT::Codomain;
   using typename BaseT::Domain;
   using typename BaseT::PointT;
   using typename BaseT::T;
@@ -101,7 +120,9 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
    * @param children param pack
    */
   constexpr explicit Sum(const Cs&... cs)
-      : BaseT(std::forward_as_tuple(cs...)), map(affine::make_map_id<MatT>()) {}
+      : BaseT(std::forward_as_tuple(cs...)), map(affine::make_map_id<MatT>()) {
+    (validate_sum_child_codomain<Codomain, Cs>(), ...);
+  }
 
   /**
    * @brief CTOR
@@ -111,7 +132,9 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
    */
   constexpr explicit Sum(const affine::AffineMap<MatT>& map_in,
                          const std::tuple<Cs...>& cs)
-      : BaseT(cs), map(map_in) {}
+      : BaseT(cs), map(map_in) {
+    (validate_sum_child_codomain<Codomain, Cs>(), ...);
+  }
 
   /**
    * @brief multiply
@@ -156,7 +179,8 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
                                     builder.coord_map);
     const auto selector = std::get<0>(res);
     const auto F = map.linear_part()(0)(0) * selector.linear_part();
-    const auto g = map.translation() + selector.translation();
+    const auto g =
+        map.linear_part()(0)(0) * selector.translation() + map.translation();
     const auto new_selector =
         affine::AffineMap<decltype(selector.linear_part())>(F, g);
 
