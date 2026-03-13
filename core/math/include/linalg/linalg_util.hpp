@@ -495,7 +495,7 @@ constexpr auto get_lower_triangle(const Mat& A) {
 }
 
 /**
- * @brief make lower triangle
+ * @brief make unit lower triangle
  *
  * @param vector x
  *
@@ -514,6 +514,27 @@ constexpr auto make_unit_lower_triangle(const Vec& x) {
     for (; j < i; ++j, ++k) L(i)(j) = x(k);
     if (i == j) L(i)(j) = T(1);
   }
+
+  return L;
+}
+
+/**
+ * @brief make lower triangle
+ *
+ * @param x (vector)
+ *
+ * @return L (matrix)
+ */
+template <SquareMatrixLike Mat, VectorLike Vec>
+  requires(std::same_as<mat_type_t<Mat>, vec_type_t<Vec>>)
+constexpr auto make_lower_triangle(const Vec& x) {
+  constexpr size_t N = mat_rows_v<Mat>;
+  static_assert(N * (N + 1) / 2 == vec_size_v<Vec>,
+                "Invalid vector size to make lower triangle of square matrix");
+
+  Mat L{};
+  for (size_t i = 0, k = 0; i < N; ++i)
+    for (size_t j = 0; j < i + 1; ++j, ++k) L(i)(j) = x(k);
 
   return L;
 }

@@ -56,6 +56,10 @@ struct LDL;
 template <SquareMatrixLike Mat, typename Circ>
 struct QuadraticRep;
 
+/// @brief forward declaration of cholesky
+template <SquareMatrixLike Mat>
+struct Cholesky;
+
 /// @brief type traits definition for linear operator (subspace of Rn)
 template <SquareMatrixLike Mat, typename Derived>
 struct space_traits<Endomorphism<Mat, Derived>> {
@@ -126,6 +130,16 @@ struct space_traits<QuadraticRep<Mat, Circ>> {
   static constexpr size_t DIM = N * N;
 };
 
+/// @brief type traits definition for LDL (subspace of R^n)
+template <SquareMatrixLike Mat>
+struct space_traits<Cholesky<Mat>> {
+  using value_type = mat_type_t<Mat>;
+  using Point = Mat;
+
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t DIM = N * (N + 1) / 2;
+};
+
 /// @brief mat type traits definition for linear operator
 template <SquareMatrixLike Mat, typename Derived>
 struct mat_traits<Endomorphism<Mat, Derived>> {
@@ -183,6 +197,15 @@ struct mat_traits<LDL<Mat>> {
 /// @brief mat type traits definition for P(x)
 template <SquareMatrixLike Mat, typename Circ>
 struct mat_traits<QuadraticRep<Mat, Circ>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t ROWS = mat_rows_v<Mat>;
+  static constexpr size_t COLS = mat_cols_v<Mat>;
+  using MatT = Mat;
+};
+
+/// @brief mat type traits definition for Cholesky
+template <SquareMatrixLike Mat>
+struct mat_traits<Cholesky<Mat>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t ROWS = mat_rows_v<Mat>;
   static constexpr size_t COLS = mat_cols_v<Mat>;
@@ -249,6 +272,15 @@ struct vec_traits<QuadraticRep<Mat, Circ>> {
   using value_type = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
   static constexpr size_t SIZE = N * N;
+  using Vec = Vector<value_type, N>;
+};
+
+/// @brief vec type traits for cholesky matrices
+template <SquareMatrixLike Mat>
+struct vec_traits<Cholesky<Mat>> {
+  using value_type = mat_type_t<Mat>;
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t SIZE = N * (N + 1) / 2;
   using Vec = Vector<value_type, N>;
 };
 

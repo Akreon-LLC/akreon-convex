@@ -38,14 +38,14 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   /**
    * @brief CTOR
    *
-   * @param matrix A
+   * @param A (matrix)
    */
   constexpr explicit LDL(const Mat& A) : SymmetricBase(A) { factor(A); }
 
   /**
    * @brief CTOR
    *
-   * @param matrix A
+   * @param A (matrix)
    * @param config (FactorConfig)
    */
   constexpr explicit LDL(const Mat& A, const config::FactorConfig<T>& config_in)
@@ -91,56 +91,52 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   /**
    * @brief LDL^T of a square matrix
    *
-   * @param Matrix A
+   * @param A (matrix)
    *
    * @return void
    */
   constexpr void factor(Mat A) {
     const auto& tol = config.tol;
-    auto ldl_t = [&]<size_t j = 0>(this auto&& self,
-                                   const bool& status) -> bool {
+    auto ldl_t = [&]<size_t j = 0>(this auto&& self) -> bool {
       /// (dakre) base case for recursion
       if constexpr (j >= SymmetricBase::N)
-        return status;
+        return true;
       else {
         /// (dakre) handle j = 0 iteration separately (don't have prior intertia
         /// build up, only need to scale first col by first diag elem)
         constexpr size_t next = j + 1;
         if constexpr (j == 0) {
-          if (linalg::constexpr_abs(A(0)(0)) < tol) return false;
+          if (constexpr_abs(A(0)(0)) < tol) return false;
 
-          const auto A_col =
-              linalg::get_block<next, SymmetricBase::N, 0, next>(A);
+          const auto A_col = get_block<next, SymmetricBase::N, 0, next>(A);
           const auto col_up = (T(1) / A(0)(0)) * A_col;
 
-          A = linalg::set_block<next, SymmetricBase::N, 0, next>(A, col_up);
+          A = set_block<next, SymmetricBase::N, 0, next>(A, col_up);
         } else {
           /// (dakre) nominal LDL^T algo denoted in Golub & Van Load p. 158
-          linalg::Vector<T, j> v{};
+          Vector<T, j> v{};
           for (size_t k = 0; k < j; ++k) v(k) = A(j)(k) * A(k)(k);
 
-          const auto A_row = linalg::get_block<j, next, 0, j>(A);
+          const auto A_row = get_block<j, next, 0, j>(A);
           A(j)(j) = A(j)(j) - (A_row * v)(0);
 
-          if (linalg::constexpr_abs(A(j)(j)) < tol) return false;
+          if (constexpr_abs(A(j)(j)) < tol) return false;
 
           if constexpr (next < SymmetricBase::N) {
-            const auto A_col =
-                linalg::get_block<next, SymmetricBase::N, j, next>(A);
-            const auto A_blk =
-                linalg::get_block<next, SymmetricBase::N, 0, j>(A);
+            const auto A_col = get_block<next, SymmetricBase::N, j, next>(A);
+            const auto A_blk = get_block<next, SymmetricBase::N, 0, j>(A);
 
             const auto col_up =
-                T(1) / A(j)(j) * (A_col - linalg::as_col_vector(A_blk * v));
+                T(1) / A(j)(j) * (A_col - as_col_vector(A_blk * v));
 
-            A = linalg::set_block<next, SymmetricBase::N, j, next>(A, col_up);
+            A = set_block<next, SymmetricBase::N, j, next>(A, col_up);
           }
         }
-        return self.template operator()<next>(status);
+        return self.template operator()<next>();
       }
     };
 
-    if (!ldl_t(true)) {
+    if (!ldl_t()) {
       this->type = SymmetricOperatorType::INV;
       return;
     }

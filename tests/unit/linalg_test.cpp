@@ -35,8 +35,8 @@ TEST_CASE("Test constexpr math", "[math]") {
   STATIC_REQUIRE(res1 < eps);
 
   STATIC_REQUIRE(constexpr_abs(constexpr_nrt_safe<double>(1.0, 3) - 1.0) < eps);
-  STATIC_REQUIRE(constexpr_abs(constexpr_nrt_safe<double>(3.0, 3) - 1.44224957031) <
-                 eps);
+  STATIC_REQUIRE(
+      constexpr_abs(constexpr_nrt_safe<double>(3.0, 3) - 1.44224957031) < eps);
 
   STATIC_REQUIRE(constexpr_abs(-2.0) == 2.0);
 
@@ -282,7 +282,8 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 
     STATIC_REQUIRE(I * I == I);
 
-    STATIC_REQUIRE(Fro<Matrix<double, 3, 3>>()(I) == constexpr_sqrt_safe<double>(3));
+    STATIC_REQUIRE(Fro<Matrix<double, 3, 3>>()(I) ==
+                   constexpr_sqrt_safe<double>(3));
   }
 }
 
@@ -551,5 +552,63 @@ TEST_CASE("LDL^T Factorization") {
         A_mat(1.0, 0.999999, 0.0, 0.999999, 0.999998, 0.0, 0.0, 0.0, 1.0);
     constexpr auto ldl = LDL(A);
     STATIC_REQUIRE(!ldl.is_valid());
+  }
+}
+
+TEST_CASE("Cholesky Factorization") {
+  SECTION("Simple I") {
+    constexpr auto I = make_identity<double, 5>();
+    constexpr auto chol = Cholesky(I);
+    STATIC_REQUIRE(chol.is_valid());
+    STATIC_REQUIRE(chol.is_psd());
+    STATIC_REQUIRE(all_equal(chol.G(), make_identity<double, 5>()));
+    STATIC_REQUIRE(all_equal(I, chol.G() * transpose(chol.G())));
+  }
+
+  SECTION("2x2 SPD") {
+    constexpr auto A_mat = mat_traits<Matrixd<2, 2>>();
+    constexpr auto A = A_mat(4.0, 2.0, 2.0, 3.0);
+    constexpr auto chol = Cholesky(A);
+    constexpr auto G_exp = A_mat(2.0, 0.0, 1.0, constexpr_sqrt_safe(2.0));
+
+    STATIC_REQUIRE(chol.is_valid());
+    STATIC_REQUIRE(chol.is_psd());
+    STATIC_REQUIRE(all_equal(chol.G(), G_exp));
+    STATIC_REQUIRE(all_equal(A, chol.G() * transpose(chol.G())));
+  }
+
+  SECTION("4x4 SPD") {
+    constexpr auto A_mat = mat_traits<Matrixd<4, 4>>();
+    constexpr auto A = A_mat(6.0, 2.0, 1.0, 0.0, 2.0, 5.0, 2.0, 1.0, 1.0, 2.0,
+                             5.0, 2.0, 0.0, 1.0, 2.0, 6.0);
+    constexpr auto chol = Cholesky(A);
+    constexpr auto G_exp =
+        A_mat(constexpr_sqrt_safe(6.0), 0.0, 0.0, 0.0, 0.8164965809,
+              2.0816659995, 0.0, 0.0, 0.4082482905, 0.8006407690,
+              2.0475125622, 0.0, 0.0, 0.4803844614, 0.7889497946,
+              2.2686535634);
+
+    STATIC_REQUIRE(chol.is_valid());
+    STATIC_REQUIRE(chol.is_psd());
+    STATIC_REQUIRE(all_equal(chol.G(), G_exp, 1e-6));
+    STATIC_REQUIRE(all_equal(A, chol.G() * transpose(chol.G()), 1e-6));
+  }
+
+  SECTION("Banded SPD") {
+    constexpr auto A_mat = mat_traits<Matrixd<5, 5>>();
+    constexpr auto A = A_mat(2.0, -1.0, 0.0, 0.0, 0.0, -1.0, 2.0, -1.0, 0.0,
+                             0.0, 0.0, -1.0, 2.0, -1.0, 0.0, 0.0, 0.0, -1.0,
+                             2.0, -1.0, 0.0, 0.0, 0.0, -1.0, 2.0);
+    constexpr auto chol = Cholesky(A);
+    constexpr auto G_exp = A_mat(
+        constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 0.0, -0.7071067812,
+        1.2247448714, 0.0, 0.0, 0.0, 0.0, -0.8164965809, 1.1547005384, 0.0,
+        0.0, 0.0, 0.0, -0.8660254038, 1.1180339887, 0.0, 0.0, 0.0, 0.0,
+        -0.8944271910, 1.0954451150);
+
+    STATIC_REQUIRE(chol.is_valid());
+    STATIC_REQUIRE(chol.is_psd());
+    STATIC_REQUIRE(all_equal(chol.G(), G_exp, 1e-6));
+    STATIC_REQUIRE(all_equal(A, chol.G() * transpose(chol.G()), 1e-6));
   }
 }

@@ -11,6 +11,7 @@
 
 #pragma once
 
+#include "operator/cholesky.hpp"
 #include "operator/ldl.hpp"
 #include "operator/matrix_inverse.hpp"
 #include "operator/schur_kkt.hpp"
