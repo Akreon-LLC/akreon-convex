@@ -38,6 +38,16 @@ constexpr auto mu(const ConeVar& x, const ConeVar& y,
 }
 
 /**
+ * @brief PrimalDualIterate
+ */
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar>
+struct PrimalDualIterate {
+  Var z{};      ///< decision var \in Rn + aux lifts
+  ConeVar x{};  ///< primal cone var \in K
+  ConeVar y{};  ///< dual cone var \in K^*
+};
+
+/**
  * @brief PrimalDualResult
  */
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar>
@@ -51,10 +61,8 @@ struct PrimalDualResult {
   T dual_obj{};                ///< dual objective value -g^T y
   Var rd{};                    ///< dual residuals
   ConeVar rp{};                ///< primal residuals
-  Var z{};                     ///< decision var \in Rn + aux lifts
-  ConeVar x{};                 ///< primal cone var \in K
-  ConeVar y{};                 ///< dual cone var \in K^*
-  size_t num_iter{};           ///< total number of iter
+  PrimalDualIterate<Var, ConeVar> iterate;  ///< primal dual iterate
+  size_t num_iter{};                        ///< total number of iter
 };
 
 /**
@@ -306,12 +314,39 @@ struct PrimalDualIPM {
    * @brief CTOR
    *
    * @param prob (ConvexProblem)
-   * @param config (PrimalDualIPM Config)
+   * @param config (PrimalDualIPMConfig)
    */
   constexpr explicit PrimalDualIPM(
       const Problem& prob, const config::PrimalDualIPMConfig<T>& config_in)
       : config(config_in) {
     solve(prob);
+  }
+
+  /**
+   * @brief CTOR (warm start)
+   *
+   * @param prob (ConvexProblem)
+   * @param iterate (PrimalDualIterate)
+   */
+  constexpr explicit PrimalDualIPM(
+      const Problem& prob, const PrimalDualIterate<Var, ConeVar>& iterate) {
+    res.iterate = iterate;
+    solve(prob, true);
+  }
+
+  /**
+   * @brief CTOR (warm start)
+   *
+   * @param prob (ConvexProblem)
+   * @param iterate (PrimalDualIterate)
+   * @param config (PrimalDualIPMConfig)
+   */
+  constexpr explicit PrimalDualIPM(
+      const Problem& prob, const PrimalDualIterate<Var, ConeVar>& iterate,
+      const config::PrimalDualIPMConfig<T>& config_in)
+      : config(config_in) {
+    res.iterate = iterate;
+    solve(prob, true);
   }
 
   /** @brief member vars */
@@ -328,11 +363,12 @@ struct PrimalDualIPM {
   /**
    * @brief solve
    *
-   * @param prob ConvexProblem
+   * @param prob (ConvexProblem)
+   * @param warm_start (bool)
    *
    * @return result
    */
-  constexpr void solve(const Problem& prob) {
+  constexpr void solve(const Problem& prob, bool warm_start = false) {
     const auto c = linalg::as_vector(prob.linear_objective());
     const auto g = prob.constraint_map().translation();
     const auto F = prob.constraint_map().linear_part();
@@ -340,9 +376,9 @@ struct PrimalDualIPM {
 
     AK_ASSERT(prob.validate() && "submitted problem is not valid!");
 
-    auto& z = res.z;
-    auto& x = res.x;
-    auto& y = res.y;
+    auto& z = res.iterate.z;
+    auto& x = res.iterate.x;
+    auto& y = res.iterate.y;
     auto& rp = res.rp;
     auto& rd = res.rd;
     auto& tag = res.tag;
@@ -350,7 +386,7 @@ struct PrimalDualIPM {
 
     PredictorCorrector<NumCones, decltype(F), Var, ConeVar> pc;
 
-    const auto nu = setup_prob(K, x, y);
+    const auto nu = seed_prob(K, x, y, warm_start);
 
     for (i = 0; i < config.steps && tag != config::SolverResult::OPTIMAL; ++i) {
       ConeVar px_pred{}, px_corr{}, py_pred{}, py_corr{};
@@ -479,7 +515,7 @@ struct PrimalDualIPM {
   }
 
   /**
-   * @brief setup problem
+   * @brief seed problem
    *
    * Initialize x \in K and y \in K^* with initial primal & dual points in
    * each cone
@@ -487,11 +523,13 @@ struct PrimalDualIPM {
    * @param K cartesian product of cones
    * @param x \in K
    * @param y \in K^*
+   * @param warm_start (bool)
    *
-   * @return (void)
+   * @return nu
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr T setup_prob(const auto& K, ConeVar& x, ConeVar& y) const {
+  constexpr T seed_prob(const auto& K, ConeVar& x, ConeVar& y,
+                        const bool& warm_start) const {
     if constexpr (idx >= NumCones)
       return T(0);
     else {
@@ -501,11 +539,21 @@ struct PrimalDualIPM {
       constexpr size_t KiRows = linalg::vec_size_v<Slack>;
       constexpr size_t End = Start + KiRows;
 
+      if (warm_start) {
+        using ConePoint = linalg::Vector<T, End - Start>;
+        ConePoint xk{}, yk{};
+        for (size_t i = Start, j = 0; i < End; ++i, ++j)
+          xk(j) = x(i), yk(j) = y(i);
+
+        if (Ki.in_cone(xk) && Ki.in_dual_cone(yk))
+          return Ki.nu() + seed_prob<idx + 1, End>(K, x, y, warm_start);
+      }
+
       const auto x0 = Ki.x0(), y0 = Ki.y0();
       for (size_t i = Start, j = 0; i < End; ++i, ++j)
         x(i) = x0(j), y(i) = y0(j);
 
-      return Ki.nu() + setup_prob<idx + 1, End>(K, x, y);
+      return Ki.nu() + seed_prob<idx + 1, End>(K, x, y, warm_start);
     }
   }
 

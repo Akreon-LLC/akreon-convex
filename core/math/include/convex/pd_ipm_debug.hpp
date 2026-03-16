@@ -21,6 +21,7 @@
 
 namespace detail {
 
+/// @brief debugging information
 template <typename Cone>
 struct ConeTypeName {
   static constexpr const char* value = "CONE";
@@ -109,6 +110,16 @@ struct IterState {
   }
 };
 
+/**
+ * @brief array slice to string
+ *
+ * @param v (vector)
+ * @param size
+ * @param out (buffer)
+ * @param out_size
+ *
+ * @return pointer
+ */
 template <linalg::FieldLike T, size_t N>
 inline size_t array_slice_to_cstr(const std::array<T, N>& v, const size_t size,
                                   char* out, const size_t out_size) {
@@ -408,19 +419,22 @@ inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar>& res,
   write_pos += static_cast<size_t>(header);
 
   if (!append_text("z=")) return write_pos;
-  write_pos += vec_to_cstr(res.z, out + write_pos, out_size - write_pos);
+  write_pos +=
+      vec_to_cstr(res.iterate.z, out + write_pos, out_size - write_pos);
   if (write_pos >= out_size - 1) return out_size - 1;
   out[write_pos++] = '\n';
   out[write_pos] = '\0';
 
   if (!append_text("x=")) return write_pos;
-  write_pos += vec_to_cstr(res.x, out + write_pos, out_size - write_pos);
+  write_pos +=
+      vec_to_cstr(res.iterate.x, out + write_pos, out_size - write_pos);
   if (write_pos >= out_size - 1) return out_size - 1;
   out[write_pos++] = '\n';
   out[write_pos] = '\0';
 
   if (!append_text("y=")) return write_pos;
-  write_pos += vec_to_cstr(res.y, out + write_pos, out_size - write_pos);
+  write_pos +=
+      vec_to_cstr(res.iterate.y, out + write_pos, out_size - write_pos);
   if (write_pos >= out_size - 1) return out_size - 1;
   out[write_pos++] = '\n';
   out[write_pos] = '\0';

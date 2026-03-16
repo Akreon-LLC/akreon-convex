@@ -69,8 +69,8 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - x_exp(0)) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(1) - x_exp(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - x_exp(0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - x_exp(1)) < rel_tol);
   }
 
   SECTION("Min c^T x s.t. ellipsoid") {
@@ -110,8 +110,8 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - x_exp(0)) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(1) - x_exp(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - x_exp(0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - x_exp(1)) < rel_tol);
   }
 
   using Singleton = Matrixd<1, 1>;
@@ -150,8 +150,8 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     constexpr auto res = solver.res;
     constexpr auto trace = solver.trace;
 
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - x_exp(0)) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(1) - x_exp(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - x_exp(0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - x_exp(1)) < rel_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
@@ -209,9 +209,9 @@ TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(1)) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(2)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(2)) < rel_tol);
   }
 }
 
@@ -254,8 +254,8 @@ TEST_CASE("Minimal QP 1 Var (Square Objective Free Var)", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
   }
 }
 
@@ -305,8 +305,8 @@ TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(1) + 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) + 1.0) < rel_tol);
   }
 }
 
@@ -363,9 +363,9 @@ TEST_CASE("Minimal QP 2 Vars (Harmonic Mean Objective)", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(1) - 1.0) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(2) + 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(2) + 1.0) < rel_tol);
   }
 }
 
@@ -414,7 +414,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
   }
 
   SECTION("Min x0 s.t. 1/x <= 1, x >= 0") {
@@ -456,7 +456,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - 1.0) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
   }
 }
 
@@ -509,6 +509,50 @@ TEST_CASE("Minimal QP 1 Var (Huber Objective)", "[qp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0)) < 2e-2);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0)) < 2e-2);
+  }
+}
+
+TEST_CASE("Warm Start QP Test", "[qp_test]") {
+  using Space = Matrixd<1, 2>;
+
+  SECTION("Warm start reuses QP iterate on L2 ball problem") {
+    constexpr auto x = Variable<NonnegVarMeta<Space>>();
+    constexpr auto prob_init = make_problem(x);
+    constexpr auto center = Vectord<2>{3.0, 1.0};
+    constexpr auto r = 1.0;
+    constexpr auto x_exp = Vectord<2>{2.29289322, 0.29289322};
+
+    constexpr auto ball = NormBall<NormBallMeta<Space>, decltype(x),
+                                   NormBallType::L2>(center, r, x);
+    constexpr auto prob_constr = prob_init.in_set(ball);
+
+    constexpr auto weights = Vectord<2>{1.0, 1.0};
+    constexpr auto cx = WeightedSum<Space>()(weights, x);
+    constexpr auto prob_min = prob_constr.minimize(cx);
+
+    constexpr PrimalDualIPM cold_solver(prob_min);
+    constexpr auto cold_res = cold_solver.res;
+    constexpr auto cold_trace = cold_solver.trace;
+
+    constexpr PrimalDualIPM warm_solver(prob_min, cold_res.iterate);
+    constexpr auto warm_res = warm_solver.res;
+    constexpr auto warm_trace = warm_solver.trace;
+
+    STATIC_REQUIRE(cold_res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(warm_res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(cold_trace[cold_res.num_iter - 1].tag ==
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(warm_trace[warm_res.num_iter - 1].tag ==
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(!warm_res.stalled);
+    STATIC_REQUIRE(warm_res.num_iter > 0 && warm_res.num_iter < PD_IPM_STEPS);
+    STATIC_REQUIRE(warm_res.num_iter <= cold_res.num_iter);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0) - x_exp(0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - x_exp(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0) - cold_res.iterate.z(0)) <
+                   rel_tol);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - cold_res.iterate.z(1)) <
+                   rel_tol);
   }
 }

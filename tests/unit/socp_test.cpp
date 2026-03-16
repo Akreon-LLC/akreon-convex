@@ -78,8 +78,10 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - x_unconstrained_exp(0)) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(1) - x_unconstrained_exp(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - x_unconstrained_exp(0)) <
+                   rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - x_unconstrained_exp(1)) <
+                   rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.convex_obj) < 1e-2);
   }
 
@@ -124,9 +126,62 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(!res.stalled);
-    STATIC_REQUIRE(constexpr_abs(res.z(0) - x_ball_exp(0)) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(1) - x_ball_exp(1)) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(2) - (sqrt5 - 1.0)) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(res.z(3) - (6.0 - 2.0 * sqrt5)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - x_ball_exp(0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - x_ball_exp(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(2) - (sqrt5 - 1.0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(res.iterate.z(3) - (6.0 - 2.0 * sqrt5)) <
+                   rel_tol);
+  }
+}
+
+TEST_CASE("Warm Start SOCP Test", "[socp_test]") {
+  using Space = Matrixd<1, 2>;
+  using Singleton = Matrixd<1, 1>;
+
+  SECTION("Warm start reuses SOCP iterate on L2 ball constrained problem") {
+    constexpr auto x = Variable<VarMeta<Space>>();
+    constexpr auto x_trans = x.add(Vectord<2>{-1.0, 2.0});
+    constexpr auto prob_init = make_problem(x_trans);
+    constexpr auto norm =
+        Norm<NormMeta<Space, Singleton>, decltype(x_trans), L2<Vectord<2>>>(
+            x_trans);
+    constexpr auto square = Square<SquareMeta<Singleton>, decltype(norm)>(norm);
+    constexpr auto half_square = square.mul<0.5>();
+    constexpr auto sqrt5 = constexpr_sqrt_safe(5.0);
+    constexpr auto x_exp = Vectord<2>{1.0 / sqrt5, -2.0 / sqrt5};
+
+    constexpr auto ball =
+        NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L2>(
+            Vectord<2>{}, 1.0, x);
+    constexpr auto prob = prob_init.in_set(ball);
+    constexpr auto prob_min = prob.minimize(half_square);
+
+    constexpr PrimalDualIPM cold_solver(prob_min);
+    constexpr auto cold_res = cold_solver.res;
+    constexpr auto cold_trace = cold_solver.trace;
+
+    constexpr PrimalDualIPM warm_solver(prob_min, cold_res.iterate);
+    constexpr auto warm_res = warm_solver.res;
+    constexpr auto warm_trace = warm_solver.trace;
+
+    STATIC_REQUIRE(cold_res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(warm_res.tag == SolverResult::OPTIMAL);
+    STATIC_REQUIRE(cold_trace[cold_res.num_iter - 1].tag ==
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(warm_trace[warm_res.num_iter - 1].tag ==
+                   config::SolverResult::OPTIMAL);
+    STATIC_REQUIRE(!warm_res.stalled);
+    STATIC_REQUIRE(warm_res.num_iter > 0 && warm_res.num_iter <= PD_IPM_STEPS);
+    STATIC_REQUIRE(warm_res.num_iter <= cold_res.num_iter);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0) - x_exp(0)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - x_exp(1)) < rel_tol);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(2) - (sqrt5 - 1.0)) <
+                   rel_tol);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(3) - (6.0 - 2.0 * sqrt5)) <
+                   rel_tol);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0) - cold_res.iterate.z(0)) <
+                   rel_tol);
+    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - cold_res.iterate.z(1)) <
+                   rel_tol);
   }
 }
