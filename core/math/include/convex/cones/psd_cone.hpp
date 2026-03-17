@@ -17,32 +17,9 @@
 
 namespace conic {
 
-/// @brief Log Det Functor
-template <linalg::RnSpace Domain>
-  requires(linalg::SquareMatrixLike<linalg::space_point_t<Domain>>)
-struct LogDet {
-  using T = linalg::space_type_t<Domain>;
-  using Point = linalg::space_point_t<Domain>;
-
-  /**
-   * @brief compute the log det of a symmetric matrix
-   *
-   * @param X \in S^n_++
-   *
-   * @return optional scalar \in R
-   */
-  constexpr std::optional<T> operator()(const Point& X) const {
-    linalg::SymmetricMatrix S(X);
-    if (S.type != linalg::SymmetricOperatorType::PD) return std::nullopt;
-    if (!S.det.has_value()) return std::nullopt;
-    if (!linalg::is_real(S.det.value())) return std::nullopt;
-    return linalg::constexpr_ln(S.det.value().real());
-  }
-};
-
 /** @brief psd cone class
  *
- * X \in S^n_+, tr(X) >= 0
+ * svec(X) \in S^k_+
  */
 template <linalg::VectorLike Slack, size_t N>
 struct PositiveSemidefiniteCone
@@ -53,59 +30,200 @@ struct PositiveSemidefiniteCone
       Cone<Slack, PositiveSemidefiniteCone<Slack, N>, ConeType::SYMMETRIC>;
 
   /// @brief helpers to get T and M
+  using ConeBase::eps;
   using ConeBase::M;
+  using typename ConeBase::HessianMat;
   using typename ConeBase::T;
 
   static_assert(M == N * (N + 1) / 2,
                 "Encoded dim for PSD Cone does not align with slack dim");
 
   /**
-   * @brief default interior point
+   * @brief default x \in K
    *
-   * @return vector
+   * @return x
    */
   constexpr Slack x0_impl() const {
-    const auto I = linalg::make_identity<T, N>();
-    return linalg::get_lower_triangle_with_diag(I);
+    Slack x{};
+    size_t k{0};
+    for (size_t i = 0; i < N; ++i)
+      for (size_t j = 0; j <= i; ++j, ++k)
+        if (i == j) x(k) = T(1);
+    return x;
   }
 
   /**
-   * @brief in interior of K
+   * @brief default y \in K^*
    *
-   * @param slack vector
+   * @return y
+   */
+  constexpr Slack y0_impl() const { return x0_impl(); }
+
+  /**
+   * @brief x \in K check
    *
-   * @return bool
+   * @param x \in K
+   *
+   * @return T/F
    */
   constexpr bool in_cone_impl(const Slack& x) const {
     const auto X = linalg::make_smat<N, Slack>(x);
-    const auto SymMat = linalg::SymmetricMatrix(X);
-    return SymMat.is_psd();
+    const linalg::LDL ldl(X);
+    return ldl.is_psd();
   }
 
   /**
-   * @brief fraction to boundary dK
+   * @brief y \in K^* check
    *
-   * (dakre) TODO - review further
+   * @param y \in K^*
    *
-   * sigma_x = \frac{1}{sup{alpha | X - alpha P in K}}
-   * let M = L^{-1} P L^{-T} ... cholesky factorization
-   * X - alpha P \equiv L (I - alpha M) L^{T}
-   * I - alpha M >= 0... PSD \equiv alpha <= 1 / eig_max(M)
+   * @return T/F
+   */
+  constexpr bool in_dual_cone_impl(const Slack& y) const {
+    return in_cone_impl(y);
+  }
+
+  /**
+   * @brief alpha_max (fraction to boundary)
    *
-   * alpha_max = 1 / eig_max(M) if eig_max(M) > 0 else inf
-   *
-   * However this is another decomposition cost so we can step
-   * by unit length and then backtrack with the IPM algo
+   * TODO - impl
    *
    * @param x \in K
-   * @param p \in E (delta dir)
+   * @param p \in E
    *
    * @return \alpha_max
    */
-  constexpr std::optional<T> alpha_max_impl(
-      const Slack& /*x*/, const linalg::Vector<T, M>& /*p*/) const {
-    return T(1);
+  constexpr T alpha_max_impl(const Slack& /*x*/,
+                             const linalg::Vector<T, M>& /*p*/) const {
+    constexpr T eta{0.99};
+    return eta;
   }
+
+  /**
+   * @brief alpha_max dual (fraction to dK^*)
+   *
+   * @param y \in K^*
+   * @param p \in E^*
+   *
+   *
+   * @return \alpha_max (dual)
+   */
+  constexpr T alpha_max_dual_impl(const Slack& y,
+                                  const linalg::Vector<T, M>& p) const {
+    return alpha_max_dual_impl(y, p);
+  }
+
+  /**
+   * @brief hessian
+   *
+   * TODO - impl
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return H
+   */
+  constexpr auto H_impl(const Slack& /* x */, const Slack& /* y */) const {
+    return HessianMat{};
+  }
+
+  /**
+   * @brief grad (jacobian)
+   *
+   * TODO - impl
+   *
+   * @param x \in K or y \in K^*
+   *
+   * @return F'(x)
+   */
+  constexpr auto grad_impl(const Slack& x) const { return x; }
+
+  /**
+   * @brief barrier param
+   *
+   * @return nu (M)
+   */
+  constexpr T nu_impl() const { return static_cast<T>(M); }
+
+  /**
+   * @brief e (jordan identity)
+   *
+   * TODO - impl
+   *
+   * @return e
+   */
+  constexpr auto e_impl() const { return Slack{}; }
+
+  /**
+   * @brief w (self-scaled point)
+   *
+   * TODO - impl
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return w
+   */
+  constexpr auto w_impl(const Slack& /* x */, const Slack& /* y */) const {
+    return Slack{};
+  }
+
+  /**
+   * @brief circ
+   *
+   * TODO - impl
+   *
+   * x \circ y
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return x circ y
+   */
+  constexpr auto circ_impl(const Slack& /* x */, const Slack& /* y */) const {
+    return Slack{};
+  }
+
+  /**
+   * @brief trace
+   *
+   * TODO - impl
+   *
+   * tr(XY)
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return tr(XY)
+   */
+  constexpr T trace_impl(const Slack& /* x */, const Slack& /* y */) const {
+    return T(0);
+  }
+
+  /**
+   * @brief gamma_F
+   *
+   * TODO - impl
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return gamma_F
+   */
+  constexpr T gamma_F_impl(const Slack& /* x */, const Slack& /* y */) const {
+    return T(0);
+  }
+
+  /**
+   * @brief inv
+   *
+   * TODO - impl
+   *
+   * @param x \in K
+   *
+   * @return inv(x)
+   */
+  constexpr auto inv_impl(const Slack& /* x */) const { return Slack{}; }
 };
 
 }  // namespace conic

@@ -415,7 +415,7 @@ struct SecondOrderCone
    *
    * @return (x circ y)(-1)
    */
-  constexpr auto trace_impl(const Slack& x, const Slack& y) const {
+  constexpr T trace_impl(const Slack& x, const Slack& y) const {
     return nu_impl() * circ_impl(x, y)(M - 1);
   }
 
@@ -427,7 +427,7 @@ struct SecondOrderCone
    *
    * @return gamma_F
    */
-  constexpr auto gamma_F_impl(const Slack& x, const Slack& y) const {
+  constexpr T gamma_F_impl(const Slack& x, const Slack& y) const {
     const auto lambdas_x = eigs(x);
     const auto lambdas_y = eigs(y);
 
