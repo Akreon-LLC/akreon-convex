@@ -41,7 +41,7 @@ TEST_CASE("Test affine subspace", "[convex_sets]") {
 
     constexpr mat_traits<Matrix<double, 6, 3>> A_mat;
     constexpr auto A = A_mat(-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0,
-                             1.0,  0.0, 0.0, 0.0, 1.0,  0.0, 0.0, 0.0, 1.0);
+                             1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(cone_block.map == affine::AffineMap(A, Vectord<6>{}));
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -102,12 +102,11 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto cone_block =
         hyperplane.template canonicalize<AtomType::SET>(builder).cb;
     constexpr mat_traits<Matrix<double, 2, 3>> A_mat;
-    constexpr auto A =
-        A_mat(-1 * point(0), -1 * point(1), -1 * point(2), point(0), point(1),
-              point(2));
+    constexpr auto A = A_mat(-1 * point(0), -1 * point(1), -1 * point(2),
+                             point(0), point(1), point(2));
 
-    STATIC_REQUIRE(
-        cone_block.map == affine::AffineMap(A, Vectord<2>{b, -1 * b}));
+    STATIC_REQUIRE(cone_block.map ==
+                   affine::AffineMap(A, Vectord<2>{b, -1 * b}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -184,28 +183,30 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
 
 TEST_CASE("Test LMI", "[convex_sets]") {
   SECTION("Test LMI", "[A(x) <= B]") {
-    using Space = linalg::Matrixd<1, 3>;
-    constexpr auto I = make_identity<double, 3>();
+    using Space = linalg::Matrixd<1, 2>;
+    constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
+    constexpr auto A0 = mat_traits<linalg::Matrixd<2, 2>>()(1.0, 0.5, 0.5, 2.0);
+    constexpr auto A1 =
+        mat_traits<linalg::Matrixd<2, 2>>()(2.0, -0.25, -0.25, 1.5);
+    constexpr auto B = mat_traits<linalg::Matrixd<2, 2>>()(3.0, 1.0, 1.0, 4.0);
     constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr linalg::Vector<linalg::Matrixd<3, 3>, 3> A{I, I, I};
-    constexpr LMI<LMIMeta<Space>, decltype(x)> set(A, I, x);
+    constexpr linalg::Vector<linalg::Matrixd<2, 2>, 2> A{A0, A1};
+    constexpr LMI<LMIMeta<Space>, decltype(x)> set(A, B, x);
     STATIC_REQUIRE(set.is_well_formed());
-    STATIC_REQUIRE(!set.contains(Vectord<3>{1.0, 2.0, 3.0}));
-    STATIC_REQUIRE(set.contains(Vectord<3>{}));
-    STATIC_REQUIRE(set.contains(Vectord<3>{0.2, 0.5, 0.1}));
-    // TODO - revist / refactor LMI
-    // STATIC_REQUIRE(set.contains(Vectord<3>{1. / 3., 1. / 3., 1. / 3.}));
+    STATIC_REQUIRE(!set.contains(Vectord<2>{1.0, 1.0}));
+    STATIC_REQUIRE(set.contains(Vectord<2>{}));
+    STATIC_REQUIRE(set.contains(Vectord<2>{0.5, 0.5}));
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
         set.template canonicalize<AtomType::SET>(builder).cb;
 
-    constexpr mat_traits<Matrix<double, 6, 3>> F_mat;
-    constexpr auto F = F_mat(-1.0, -1.0, -1.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0,
-                             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0);
+    constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
+    constexpr auto F =
+        F_mat(-1.0, -2.0, -0.5 * sqrt2, 0.25 * sqrt2, -2.0, -1.5);
     STATIC_REQUIRE(
         cone_block.map ==
-        affine::AffineMap(F, Vectord<6>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0}));
+        affine::AffineMap(F, Vectord<3>{3.0, sqrt2, 4.0}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;

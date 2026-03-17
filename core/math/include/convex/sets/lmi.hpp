@@ -150,14 +150,37 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
                   "linear map's codomain in size");
 
     static constexpr size_t K = N * (N + 1) / 2;
-    linalg::Matrix<T, K, N> F;
-    for (size_t i = 0; i < N; ++i) {
-      linalg::LDL ldl(A(i));
-      for (size_t j = 0; j < K; ++j) F(j)(i) = T(-1) * ldl.svec(j);
-    }
-    linalg::LDL ldl(B);
+    linalg::Matrix<T, K, N> F{};
     linalg::Vector<T, K> g{};
-    for (size_t i = 0; i < K; ++i) g(i) = ldl.svec(i);
+
+    auto update_F = [&F](const auto& i, const auto&& ldl) {
+      size_t row_idx{0};
+      for (size_t j = 0; j < N; ++j) {
+        for (size_t k = j; k < N; ++k, ++row_idx) {
+          if (k == j)
+            F(row_idx)(i) = T(-1) * ldl(k, j);
+          else
+            F(row_idx)(i) =
+                T(-1) * linalg::constexpr_sqrt_safe(T(2)) * ldl(k, j);
+        }
+      }
+    };
+
+    auto update_g = [&g](const auto& ldl) {
+      size_t row_idx{0};
+      for (size_t j = 0; j < N; ++j) {
+        for (size_t k = j; k < N; ++k, ++row_idx) {
+          if (k == j)
+            g(row_idx) = ldl(k, j);
+          else
+            g(row_idx) = linalg::constexpr_sqrt_safe(T(2)) * ldl(k, j);
+        }
+      }
+    };
+
+    for (size_t i = 0; i < N; ++i) update_F(i, std::move(linalg::LDL(A(i))));
+    update_g(std::move(linalg::LDL(B)));
+
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto psd_cone =
         conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, N>();
