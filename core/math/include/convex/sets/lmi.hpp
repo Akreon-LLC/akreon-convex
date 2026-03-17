@@ -32,17 +32,8 @@ using LMIMeta =
 /**
  * @brief LMI (linear matrix inequality)
  *
- * A(x) = x_1 A_1 + ... _ x_n A_n <= B
  *
- * A, B \in S^n
- *
- * Solution set of LMI is convex:
- *
- * LMI = { x | A(x) <= B } AKA P(PsdCone) = LMI (P is a valid perspective
- * func)... f(x) = B - A(x)
- *
- * Transformed to pre-image of PsdCone
- * F(x) = F_0 + \sum_i F(x) >= 0... F_0 = B, F_i = -A_i
+ * LMI solution set: 0 \succeq B - \sum(x_i A_i)
  */
 template <typename Meta, typename Child>
 struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
@@ -81,8 +72,8 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
   constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
     auto res = B;
     for (size_t i = 0; i < N; ++i) res = res - (x(i) * A(i));
-    linalg::SymmetricMatrix S(res);
-    return S.is_psd();
+    linalg::LDL ldl(res);
+    return ldl.is_psd();
   }
 
   /**
@@ -91,12 +82,9 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
    * @return T/F
    */
   constexpr bool is_well_formed() const {
-    if (linalg::SymmetricMatrix(B).type == linalg::SymmetricOperatorType::INV)
-      return false;
+    if (!linalg::LDL(B).is_valid()) return false;
     for (size_t i = 0; i < N; ++i)
-      if (linalg::SymmetricMatrix(A(i)).type ==
-          linalg::SymmetricOperatorType::INV)
-        return false;
+      if (!linalg::LDL(A(i)).is_valid()) return false;
     return true;
   }
 
@@ -164,8 +152,9 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
     const auto cones = std::make_tuple(psd_cone);
 
     const auto new_builder =
-        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
-                         decltype(child_cb)>(map, child_cb);
+        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                decltype(map), decltype(child_cb)>(map,
+                                                                   child_cb);
     return new_builder.template make<Type>(cones);
   }
 
