@@ -152,12 +152,12 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
     static constexpr size_t K = N * (N + 1) / 2;
     linalg::Matrix<T, K, N> F;
     for (size_t i = 0; i < N; ++i) {
-      linalg::SymmetricMatrix S(A(i));
-      for (size_t j = 0; j < K; ++j) F(j)(i) = T(-1) * S.svec(j);
+      linalg::LDL ldl(A(i));
+      for (size_t j = 0; j < K; ++j) F(j)(i) = T(-1) * ldl.svec(j);
     }
-    linalg::SymmetricMatrix S(B);
+    linalg::LDL ldl(B);
     linalg::Vector<T, K> g{};
-    for (size_t i = 0; i < K; ++i) g(i) = S.svec(i);
+    for (size_t i = 0; i < K; ++i) g(i) = ldl.svec(i);
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto psd_cone =
         conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, N>();
