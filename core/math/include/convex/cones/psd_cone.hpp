@@ -17,6 +17,33 @@
 
 namespace conic {
 
+/**
+ * @brief Circ - Jordan map/product for the PSD cone
+ *
+ * X \circ Y = 0.5 (X Y + Y X)
+ */
+template <linalg::VectorLike Vec, size_t N>
+struct PSDCirc {
+  /// @brief types and size extraction
+  using T = linalg::vec_type_t<Vec>;
+
+  /**
+   * @brief circ (jordan map/product)
+   *
+   * X \circ Y = 0.5 (X Y + Y X)
+   *
+   * @param x \in K
+   * @param y \in K^*
+   *
+   * @return x \circ y (vector)
+   */
+  constexpr auto operator()(const Vec& x, const Vec& y) const {
+    const auto X = linalg::make_smat<N, Vec>(x);
+    const auto Y = linalg::make_smat<N, Vec>(y);
+    return linalg::get_lower_triangle_with_diag(T(0.5) * (X * Y + Y * X));
+  }
+};
+
 /** @brief psd cone class
  *
  * svec(X) \in S^k_+
@@ -43,21 +70,14 @@ struct PositiveSemidefiniteCone
    *
    * @return x
    */
-  constexpr Slack x0_impl() const {
-    Slack x{};
-    size_t k{0};
-    for (size_t i = 0; i < N; ++i)
-      for (size_t j = 0; j <= i; ++j, ++k)
-        if (i == j) x(k) = T(1);
-    return x;
-  }
+  constexpr Slack x0_impl() const { return e_impl(); }
 
   /**
    * @brief default y \in K^*
    *
    * @return y
    */
-  constexpr Slack y0_impl() const { return x0_impl(); }
+  constexpr Slack y0_impl() const { return e_impl(); }
 
   /**
    * @brief x \in K check
@@ -148,11 +168,18 @@ struct PositiveSemidefiniteCone
   /**
    * @brief e (jordan identity)
    *
-   * TODO - impl
+   * e = I
    *
    * @return e
    */
-  constexpr auto e_impl() const { return Slack{}; }
+  constexpr auto e_impl() const {
+    Slack x{};
+    size_t k{0};
+    for (size_t i = 0; i < N; ++i)
+      for (size_t j = 0; j <= i; ++j, ++k)
+        if (i == j) x(k) = T(1);
+    return x;
+  }
 
   /**
    * @brief w (self-scaled point)
@@ -171,8 +198,6 @@ struct PositiveSemidefiniteCone
   /**
    * @brief circ
    *
-   * TODO - impl
-   *
    * x \circ y
    *
    * @param x \in K
@@ -180,8 +205,8 @@ struct PositiveSemidefiniteCone
    *
    * @return x circ y
    */
-  constexpr auto circ_impl(const Slack& /* x */, const Slack& /* y */) const {
-    return Slack{};
+  constexpr auto circ_impl(const Slack& x, const Slack& y) const {
+    return PSDCirc<Slack, N>()(x, y);
   }
 
   /**

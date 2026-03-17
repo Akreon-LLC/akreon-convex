@@ -40,13 +40,6 @@ TEST_CASE("Test cone formations", "[cone_test]") {
     constexpr PowerCone<Slack> pcone(vec_t.fill(1.0 / 3.0));
     STATIC_REQUIRE(pcone.in_cone(pcone.x0()));
   }
-
-  SECTION("Test psd cone") {
-    using Slack = Vectord<36>;
-    constexpr PositiveSemidefiniteCone<Slack, 8> psd;
-    STATIC_REQUIRE(psd.in_cone(psd.x0()));
-  }
-
 }
 
 TEST_CASE("Test R^n_+ cone", "[cone_test]") {
@@ -235,5 +228,22 @@ TEST_CASE("Test SOC", "[cone_test]") {
       REQUIRE(soc.in_cone(x + alpha * p));
       REQUIRE(!soc.in_cone(x + (alpha_hit + boundary_eps) * p));
     }
+  }
+}
+
+TEST_CASE("Test PSD Cone", "[cone_test]") {
+  SECTION("Test psd cone api") {
+    using Slack = Vectord<3>;
+    constexpr PositiveSemidefiniteCone<Slack, 2> psd;
+    STATIC_REQUIRE(psd.in_cone(psd.x0()));
+    STATIC_REQUIRE(psd.in_dual_cone(psd.y0()));
+
+    constexpr auto x = Slack{2.0, 3.0, 5.0};
+    constexpr auto y = Slack{7.0, 0.0, 11.0};
+    constexpr auto expected = Slack{14.0, 27.0, 55.0};
+
+    STATIC_REQUIRE(psd.circ(x, y) == expected);
+    STATIC_REQUIRE(psd.circ(x, psd.e()) == x);
+    STATIC_REQUIRE(psd.circ(psd.e(), x) == x);
   }
 }
