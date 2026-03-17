@@ -127,11 +127,6 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
    * @return const reference to the derived object
    */
   constexpr auto self() const { return static_cast<const Derived&>(*this); }
-
-  /** @brief member vars */
-  static constexpr affine::AffineMap<LiftedVarMat<T>> lift_map{
-      affine::make_map_id<LiftedVarMat<T>>()};
-  const int idx{-1};
 };
 
 }  // namespace convex

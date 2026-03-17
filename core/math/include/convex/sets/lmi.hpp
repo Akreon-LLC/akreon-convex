@@ -103,6 +103,18 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
   }
 
   /**
+   * @brief transform impl
+   *
+   * @param map
+   *
+   * @return new set
+   */
+  template <linalg::MatrixLike Mat>
+  constexpr auto transform_impl(const affine::AffineMap<Mat>& /* map */) const {
+    AK_ASSERT(false && "LMI does not support transformations");
+  }
+
+  /**
    * @brief canonicalize impl
    *
    * Apply P^{-1}(C) -> K and map K to cone block
