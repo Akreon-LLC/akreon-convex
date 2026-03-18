@@ -117,7 +117,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
     const auto& U = map.linear_part();
     const auto& trans = map.translation();
 
-    const auto U_inv = linalg::inverse(U);
+    const auto U_inv = linalg::Inverse<Mat>()(U);
     const auto A_new = A * U_inv;
     const auto b_new = b + A_new * trans;
 
@@ -175,8 +175,9 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
     const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
-        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
-                         decltype(child_cb)>(map, child_cb);
+        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                decltype(map), decltype(child_cb)>(map,
+                                                                   child_cb);
     return new_builder.template make<Type>(cones);
   }
 

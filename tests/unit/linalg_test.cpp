@@ -176,7 +176,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(arg_min(A) == 0);
     STATIC_REQUIRE(arg_max(A) == 1);
 
-    constexpr auto B_inv = inverse(B);
+    constexpr auto B_inv = Inverse<decltype(B)>()(B);
     constexpr auto B_B_inv = B * B_inv;
     // (dakre) this case is acting like pseudoinverse since B is degenerate
     STATIC_REQUIRE(B_B_inv(0)(0) == 0.5);
@@ -187,9 +187,19 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     // (dakre) this case acts like true inverse where Z is unique
     constexpr auto Z =
         Matrixd<2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{3.0, 4.0}};
-    constexpr auto Z_inv = inverse(Z);
+    constexpr auto Z_inv = Inverse<decltype(Z)>()(Z);
     constexpr auto Z_Z_inv = Z * Z_inv;
     STATIC_REQUIRE(all_equal(Z_Z_inv, make_identity<double, 2>()));
+
+    constexpr auto S =
+        Matrixd<2, 2>{Vectord<2>{4.0, 2.0}, Vectord<2>{2.0, 3.0}};
+    constexpr auto S_inv = SymmetricInverse<decltype(S)>()(S);
+    constexpr auto S_inv_exp =
+        Matrixd<2, 2>{Vectord<2>{0.375, -0.25}, Vectord<2>{-0.25, 0.5}};
+    STATIC_REQUIRE(all_equal(S_inv, S_inv_exp));
+    STATIC_REQUIRE(all_equal(S * S_inv, make_identity<double, 2>()));
+    STATIC_REQUIRE(all_equal(S_inv * S, make_identity<double, 2>()));
+    STATIC_REQUIRE(all_equal(S_inv, transpose(S_inv)));
 
     constexpr auto B_11 = get_block<0, 1, 0, 1>(B);
     STATIC_REQUIRE(B_11(0)(0) == 1.0);
@@ -441,6 +451,22 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
   }
 }
 
+TEST_CASE("PSD cone Jordan trace", "[symmetric_matrices]") {
+  SECTION("2x2 trace matches matrix product trace") {
+    using Slack = Vectord<3>;
+    constexpr conic::PositiveSemidefiniteCone<Slack, 2> psd;
+    constexpr auto x = Slack{2.0, 3.0, 5.0};
+    constexpr auto y = Slack{7.0, 0.0, 11.0};
+
+    constexpr auto X = make_smat<2>(x);
+    constexpr auto Y = make_smat<2>(y);
+
+    STATIC_REQUIRE(psd.trace(x, y) == 69.0);
+    STATIC_REQUIRE(psd.trace(x, y) == trace(X * Y));
+    STATIC_REQUIRE(psd.trace(x, psd.e()) == trace(X));
+  }
+}
+
 TEST_CASE("LDL^T Factorization") {
   SECTION("Simple I") {
     constexpr auto I = make_identity<double, 10>();
@@ -504,6 +530,17 @@ TEST_CASE("LDL^T Factorization") {
     constexpr auto x = ldl.solve(b);
     constexpr auto y = A * x;
     STATIC_REQUIRE(y == b);
+  }
+
+  SECTION("Determinant from LDL diagonal") {
+    constexpr auto A_mat = mat_traits<Matrixd<4, 4>>();
+    constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0,
+                             -3.0, 0.0, 0.0, 0.0, 0.0, 4.0);
+    constexpr auto ldl = LDL(A);
+
+    STATIC_REQUIRE(ldl.is_valid());
+    STATIC_REQUIRE(get_diag(ldl.D()) == Vectord<4>{1.0, 2.0, -3.0, 4.0});
+    STATIC_REQUIRE(ldl.det() == -24.0);
   }
 
   SECTION("Banded SPD") {
@@ -584,9 +621,8 @@ TEST_CASE("Cholesky Factorization") {
     constexpr auto chol = Cholesky(A);
     constexpr auto G_exp =
         A_mat(constexpr_sqrt_safe(6.0), 0.0, 0.0, 0.0, 0.8164965809,
-              2.0816659995, 0.0, 0.0, 0.4082482905, 0.8006407690,
-              2.0475125622, 0.0, 0.0, 0.4803844614, 0.7889497946,
-              2.2686535634);
+              2.0816659995, 0.0, 0.0, 0.4082482905, 0.8006407690, 2.0475125622,
+              0.0, 0.0, 0.4803844614, 0.7889497946, 2.2686535634);
 
     STATIC_REQUIRE(chol.is_valid());
     STATIC_REQUIRE(chol.is_psd());
@@ -600,11 +636,11 @@ TEST_CASE("Cholesky Factorization") {
                              0.0, 0.0, -1.0, 2.0, -1.0, 0.0, 0.0, 0.0, -1.0,
                              2.0, -1.0, 0.0, 0.0, 0.0, -1.0, 2.0);
     constexpr auto chol = Cholesky(A);
-    constexpr auto G_exp = A_mat(
-        constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 0.0, -0.7071067812,
-        1.2247448714, 0.0, 0.0, 0.0, 0.0, -0.8164965809, 1.1547005384, 0.0,
-        0.0, 0.0, 0.0, -0.8660254038, 1.1180339887, 0.0, 0.0, 0.0, 0.0,
-        -0.8944271910, 1.0954451150);
+    constexpr auto G_exp =
+        A_mat(constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 0.0, -0.7071067812,
+              1.2247448714, 0.0, 0.0, 0.0, 0.0, -0.8164965809, 1.1547005384,
+              0.0, 0.0, 0.0, 0.0, -0.8660254038, 1.1180339887, 0.0, 0.0, 0.0,
+              0.0, -0.8944271910, 1.0954451150);
 
     STATIC_REQUIRE(chol.is_valid());
     STATIC_REQUIRE(chol.is_psd());

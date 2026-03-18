@@ -62,27 +62,14 @@ struct EigenDecomposition {
   constexpr auto spectral_radius() const {
     Complex rho(0.0);
     for (size_t i = 0; i < N; ++i) {
-      const auto mag_rho =
-          constexpr_sqrt_safe(rho.real() * rho.real() + rho.imag() * rho.imag());
+      const auto mag_rho = constexpr_sqrt_safe(rho.real() * rho.real() +
+                                               rho.imag() * rho.imag());
       const auto mag_lambda =
           constexpr_sqrt_safe(lambda(i).real() * lambda(i).real() +
-                         lambda(i).imag() * lambda(i).imag());
+                              lambda(i).imag() * lambda(i).imag());
       rho = mag_lambda > mag_rho ? lambda(i) : rho;
     }
     return rho;
-  }
-
-  /**
-   * @brief get determinant
-   *
-   * \product \lambda_i = det(A)
-   *
-   * @return det (T)
-   */
-  constexpr auto determinant() const {
-    Complex det(1);
-    for (const auto& lam : lambda) det *= lam;
-    return det;
   }
 
   /** @brief eigendecomposition member variables */
@@ -430,7 +417,7 @@ struct EigenDecomposition {
       z1 = Complex(c);
     }
     Real s = constexpr_sqrt_safe(L2<Vector<Complex, 1>>()(z0) +
-                            L2<Vector<Complex, 1>>()(z1));
+                                 L2<Vector<Complex, 1>>()(z1));
     if (s > Real(0)) {
       z0 /= s;
       z1 /= s;

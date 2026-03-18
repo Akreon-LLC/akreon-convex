@@ -177,7 +177,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       linalg::Vector<T, 3 * N + 1> b;
       b(0) = r;
 
-      const auto U_inv = linalg::inverse(U);
+      const auto U_inv = linalg::Inverse<decltype(U)>()(U);
       const auto c_plus_U_inv_t = c + U_inv * t;
       for (size_t i = 1; i < 2 * N + 1; ++i) {
         const size_t idx = (i - 1) % N;
@@ -229,7 +229,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       linalg::Matrix<T, 2 * N, N> A;
       linalg::Vector<T, 2 * N> b;
 
-      const auto U_inv = linalg::inverse(U);
+      const auto U_inv = linalg::Inverse<decltype(U)>()(U);
       const auto c_plus_U_inv_t = c + U_inv * t;
       for (size_t i = 0; i < 2 * N; ++i) {
         const auto idx = i % N;
@@ -325,8 +325,9 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto cones = std::make_tuple(soc);
 
       const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
-                           decltype(child_cb)>(map, child_cb);
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                  decltype(map), decltype(child_cb)>(map,
+                                                                     child_cb);
       return new_builder.template make<AType>(cones);
     } else if constexpr (Type == NormBallType::Linf) {
       linalg::Matrix<T, 2 * N, N> F;
@@ -341,8 +342,9 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto cones = std::make_tuple(rplus, rplus);
 
       const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
-                           decltype(child_cb)>(map, child_cb);
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                  decltype(map), decltype(child_cb)>(map,
+                                                                     child_cb);
       return new_builder.template make<AType>(cones);
     } else {
       linalg::Matrix<T, 3 * N + 1, 2 * N> F;
@@ -362,8 +364,9 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto cones = std::make_tuple(rplus1, rplus1, rplus2, rplus1);
 
       const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
-                           decltype(child_cb)>(map, child_cb);
+          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                  decltype(map), decltype(child_cb)>(map,
+                                                                     child_cb);
       return new_builder.template make<AType>(cones);
     }
   }

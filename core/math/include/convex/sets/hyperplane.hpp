@@ -93,7 +93,7 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
              std::same_as<linalg::mat_type_t<Mat>, T>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto aT_U =
-        transpose(as_col_vector(a)) * linalg::inverse(map.linear_part());
+        transpose(as_col_vector(a)) * linalg::Inverse<Mat>()(map.linear_part());
     return Hyperplane<Meta, Child>(as_vector(aT_U),
                                    b + (aT_U * map.translation())(0),
                                    std::get<0>(this->children));
@@ -153,8 +153,9 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
     const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
-        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>, decltype(map),
-                         decltype(child_cb)>(map, child_cb);
+        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
+                                decltype(map), decltype(child_cb)>(map,
+                                                                   child_cb);
     return new_builder.template make<Type>(cones);
   }
 

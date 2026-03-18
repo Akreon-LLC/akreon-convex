@@ -87,6 +87,19 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
     return back_solve(transpose(L_mat), z);
   }
 
+  /**
+   * @brief det
+   *
+   * det(A) = \prod_i^n(d_{ii})
+   *
+   * @return det(A)
+   */
+  constexpr T det() const {
+    T res{1};
+    std::for_each(D_vec.begin(), D_vec.end(), [&](const auto& d) { res *= d; });
+    return res;
+  }
+
  private:
   /**
    * @brief LDL^T of a square matrix

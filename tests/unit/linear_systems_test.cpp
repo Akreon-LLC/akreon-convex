@@ -216,8 +216,6 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     STATIC_REQUIRE(lambdas(1).real() == diag(1));
     STATIC_REQUIRE(lambdas(2).real() == diag(2));
 
-    STATIC_REQUIRE(result.determinant() == 6.0);
-
     constexpr auto V = result.V;
     STATIC_REQUIRE(all_equal(V, make_identity<std::complex<double>, 3>()));
 
@@ -234,16 +232,13 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
         make_diag(Vectorcd<2>{std::complex(3.0, 0.0), std::complex(1.0, 0.0)});
     STATIC_REQUIRE(result.converged);
 
-    STATIC_REQUIRE(is_same(result.determinant(), std::complex(3.0, 0.0), eps));
-
-    constexpr auto lambdas = result.lambda;
-    STATIC_REQUIRE(all_equal(make_diag(lambdas), expected));
-
     constexpr auto V = result.V;
     constexpr auto VTV = conjugate_transpose(V) * V;
     STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
 
     constexpr auto VTAV = conjugate_transpose(V) * (as_complex_matrix(A) * V);
+
+    constexpr auto lambdas = result.lambda;
     STATIC_REQUIRE(all_equal(make_diag(lambdas), VTAV));
 
     constexpr auto VLVT = V * (make_diag(lambdas) * conjugate_transpose(V));

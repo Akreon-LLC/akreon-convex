@@ -156,7 +156,7 @@ struct PositiveSemidefiniteCone
    *
    * @return F'(x)
    */
-  constexpr auto grad_impl(const Slack& x) const { return x; }
+  constexpr auto grad_impl(const Slack& /* x */) const { return Slack{}; }
 
   /**
    * @brief barrier param
@@ -212,8 +212,6 @@ struct PositiveSemidefiniteCone
   /**
    * @brief trace
    *
-   * TODO - impl
-   *
    * tr(XY)
    *
    * @param x \in K
@@ -221,14 +219,17 @@ struct PositiveSemidefiniteCone
    *
    * @return tr(XY)
    */
-  constexpr T trace_impl(const Slack& /* x */, const Slack& /* y */) const {
-    return T(0);
+  constexpr T trace_impl(const Slack& x, const Slack& y) const {
+    const auto X = linalg::make_smat<N, Slack>(x);
+    const auto Y = linalg::make_smat<N, Slack>(y);
+    return linalg::trace(X * Y);
   }
 
   /**
    * @brief gamma_F
    *
    * TODO - impl
+   * \gamma_F = -ln(det(X)) - ln(det(Y)) + nu ln(Tr(X^{1/2} Y X^{1/2}))
    *
    * @param x \in K
    * @param y \in K^*
@@ -242,13 +243,26 @@ struct PositiveSemidefiniteCone
   /**
    * @brief inv
    *
-   * TODO - impl
-   *
    * @param x \in K
    *
    * @return inv(x)
    */
-  constexpr auto inv_impl(const Slack& /* x */) const { return Slack{}; }
+  constexpr auto inv_impl(const Slack& x) const {
+    const auto X = linalg::make_smat<N, Slack>(x);
+    const auto X_inv = linalg::SymmetricInverse<decltype(X)>()(X);
+    return linalg::get_lower_triangle_with_diag(X_inv);
+  }
+
+  /**
+   * @brief sqrt
+   *
+   * X^{1/2}
+   *
+   * @param x \in K
+   *
+   * @return sqrt(x)
+   */
+  constexpr auto sqrt(const Slack& /* x */) const { return Slack{}; }
 };
 
 }  // namespace conic

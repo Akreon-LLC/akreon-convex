@@ -12,50 +12,96 @@
 
 #pragma once
 
+#include "ldl.hpp"
 #include "linalg/linalg_util.hpp"
 #include "linalg/spectral/qr.hpp"
 
 namespace linalg {
 
 /**
- * @brief matrix inverse
- *
- * A A^{-1} = I
- *
- * @param matrix A of type T N x N elements
- *
- * @return matrix
+ * @brief Matrix inverse via QR
  */
-template <SquareMatrixLike Mat>
-constexpr auto inverse(const Mat& A) {
+template <MatrixLike MatIn>
+struct Inverse {
+  using Mat = linalg::remove_cvref_t<MatIn>;
   using T = mat_type_t<Mat>;
-  constexpr auto N = mat_rows_v<Mat>;
-  static_assert(N >= 1, "inverse requires matrix dimension N >= 1");
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static_assert(N >= 1, "inverse requires matrix dim of at least 1");
 
-  const auto I = make_identity<T, N>();
-  Matrix<T, N, N> res;
-  const auto qr_A = QR(A);
-  for (size_t i = 0; i < N; ++i) {
-    const auto x = qr_A.solve(get_col(I, i));
-    for (size_t j = 0; j < N; ++j) res(j)(i) = x(j);
+  /**
+   * @brief operator
+   *
+   * I = A^{-1} A
+   *
+   * @param A (matrix)
+   *
+   * @return A^{-1}
+   */
+  constexpr auto operator()(const Mat& A) const { return apply(A); }
+
+  /**
+   * @brief apply
+   *
+   * @param A (matrix)
+   *
+   * @return A^{-1}
+   */
+  constexpr auto apply(const Mat& A) const {
+    const auto qr = QR(A);
+    Mat A_inv{};
+    for (size_t i = 0; i < N; ++i) {
+      Vector<T, N> I_vec{};
+      I_vec(i) = T(1);
+      const auto a_col = qr.solve(I_vec);
+      for (size_t j = 0; j < N; ++j) A_inv(j)(i) = a_col(j);
+    }
+    return A_inv;
   }
-  return res;
-}
+};
 
 /**
- * @brief operator overload for matrix inverse
- *
- * @param matrix A of type T
- * @param matrix B of type T
- *
- * @return matrix
+ * @brief Symmetric matrix inverse via LDL^T
  */
-template <MatrixLike MatA, MatrixLike MatB>
-  requires(std::same_as<mat_type_t<MatA>, mat_type_t<MatB>>)
-constexpr auto operator/(const MatA& A, const MatB& B) {
-  static_assert(mat_cols_v<MatB> == mat_cols_v<MatA>,
-                "operator/ requires rhs matrix width to match lhs width");
-  return A * inverse(B);
-}
+template <SquareMatrixLike MatIn>
+struct SymmetricInverse {
+  using Mat = linalg::remove_cvref_t<MatIn>;
+  using T = mat_type_t<Mat>;
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static_assert(N >= 1, "inverse requires matrix dim of at least 1");
+
+  /**
+   * @brief operator
+   *
+   * I = A^{-1} A
+   *
+   * @param A (matrix)
+   *
+   * @return A^{-1}
+   */
+  constexpr auto operator()(const Mat& A) const { return apply(A); }
+
+  /**
+   * @brief apply
+   *
+   * @param A (matrix)
+   *
+   * @return A^{-1}
+   */
+  constexpr auto apply(const Mat& A) const {
+    const auto ldl = LDL(A);
+
+    AK_ASSERT(ldl.is_valid() &&
+              "Input matrix is not a valid symmetric matrix for LDL^T");
+
+    Mat A_inv{};
+    for (size_t i = 0; i < N; ++i) {
+      Vector<T, N> I_vec{};
+      I_vec(i) = T(1);
+      const auto a_col = ldl.solve(I_vec);
+      for (size_t j = 0; j < N; ++j) A_inv(j)(i) = a_col(j);
+    }
+    return A_inv;
+  }
+};
 
 }  // namespace linalg

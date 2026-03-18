@@ -12,9 +12,8 @@
 
 #pragma once
 
-#include "config/assert.hpp"
-
 #include "affine_set.hpp"
+#include "config/assert.hpp"
 #include "linalg/operator/matrix_inverse.hpp"
 
 namespace affine {
@@ -50,7 +49,7 @@ template <linalg::MatrixLike Mat>
   requires(linalg::mat_rows_v<Mat> == 1)
 constexpr AffineMap<Mat> make_selector_map(const size_t& idx) {
   AK_ASSERT(idx < linalg::mat_cols_v<Mat> &&
-         "make_selector_map index must be within [0, mat_cols)");
+            "make_selector_map index must be within [0, mat_cols)");
 
   using T = linalg::mat_type_t<Mat>;
   Mat A;
@@ -155,7 +154,7 @@ class AffineMap {
    */
   constexpr auto inverse() const {
     static_assert(M >= N, "short-fat TBD");
-    const auto U_inv = linalg::inverse(U);
+    const auto U_inv = linalg::Inverse<decltype(U)>()(U);
     return AffineMap(U_inv, T(-1) * U_inv * c);
   }
 
