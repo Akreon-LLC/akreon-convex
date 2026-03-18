@@ -275,5 +275,11 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     constexpr auto q = Slack{8.0, 3.0, 9.0};
     constexpr auto Hq = Slack{2.0, 2.0, 16.0};
     REQUIRE(L2<Slack>()(Hw.apply(q) - Hq) < 1e-5);
+
+    constexpr auto p_neg = Slack{-8.0, 0.0, -18.0};
+    constexpr auto p_pos = Slack{1.0, 0.0, 1.0};
+    REQUIRE(constexpr_abs(psd.alpha_max(gx, p_neg) - 0.495) < 1e-5);
+    REQUIRE(constexpr_abs(psd.alpha_max_dual(gy, p_neg) - 0.495) < 1e-5);
+    REQUIRE(constexpr_abs(psd.alpha_max(gx, p_pos) - 0.99) < 1e-5);
   }
 }

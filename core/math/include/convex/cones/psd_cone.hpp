@@ -109,16 +109,50 @@ struct PositiveSemidefiniteCone
    *
    * \sigma(\alpha) = \frac{1}{\sup{\alpha | (x + \alpha p \in K)}}
    *
+   * X + \alpha P \in S^n_++
+   * X + \alpha P = [
+   *  X^{1/2} (I + \alpha X^{-1/2} P X^{-1/2}) X^{1/2}
+   * ]
+   * let U = X^{-1/2} P X^{-1/2} we want I + \alpha U \succeq 0
+   * I + \alpha U \succeq 0 \iff 1 + \alpha \lambda_i(U) >= 0 \forall i
+   *
+   * \alpha_max = \cases{
+   *  +inf, if \lambda_i(U) >= 0 \forall i
+   *  -\frac{1}{\lambda_min(U)} else
+   * }
    *
    * @param x \in K
    * @param p \in E
    *
    * @return \alpha_max
    */
-  constexpr T alpha_max_impl(const Slack& /*x*/,
-                             const linalg::Vector<T, M>& /*p*/) const {
+  constexpr T alpha_max_impl(const Slack& x,
+                             const linalg::Vector<T, M>& p) const {
     constexpr T eta{0.99};
-    return eta;
+    if (in_cone_impl(x + p)) return eta;
+
+    const auto X = linalg::make_smat<N, Slack>(x);
+    const auto P = linalg::make_smat<N, linalg::Vector<T, M>>(p);
+
+    const auto X_sqrt = linalg::MatrixSqrt<decltype(X)>()(X);
+    const auto X_sqrt_inv =
+        linalg::SymmetricMatrixInverse<decltype(X_sqrt)>()(X_sqrt);
+    const auto U = X_sqrt_inv * (P * X_sqrt_inv);
+
+    const auto eig_decomp = linalg::EigenDecomposition(U);
+    AK_ASSERT(eig_decomp.converged &&
+              "Eigen decomposition failed to converge for PSD Cone");
+
+    T alpha{1};
+    std::for_each(eig_decomp.lambda.begin(), eig_decomp.lambda.end(),
+                  [&alpha](const auto& eig) {
+                    AK_ASSERT(linalg::is_real(eig) &&
+                              "Computed eigenvalue is not real for PSD Cone");
+                    if (eig.real() < T(0))
+                      alpha = std::min(alpha, T(-1) / eig.real());
+                  });
+
+    return eta * std::max(T(0), std::min(T(1), alpha));
   }
 
   /**
@@ -132,7 +166,7 @@ struct PositiveSemidefiniteCone
    */
   constexpr T alpha_max_dual_impl(const Slack& y,
                                   const linalg::Vector<T, M>& p) const {
-    return alpha_max_dual_impl(y, p);
+    return alpha_max_impl(y, p);
   }
 
   /**
