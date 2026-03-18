@@ -131,28 +131,16 @@ struct PositiveSemidefiniteCone
     constexpr T eta{0.99};
     if (in_cone_impl(x + p)) return eta;
 
-    const auto X = linalg::make_smat<N, Slack>(x);
-    const auto P = linalg::make_smat<N, linalg::Vector<T, M>>(p);
-
-    const auto X_sqrt = linalg::MatrixSqrt<decltype(X)>()(X);
-    const auto X_sqrt_inv =
-        linalg::SymmetricMatrixInverse<decltype(X_sqrt)>()(X_sqrt);
-    const auto U = X_sqrt_inv * (P * X_sqrt_inv);
-
-    const auto eig_decomp = linalg::EigenDecomposition(U);
-    AK_ASSERT(eig_decomp.converged &&
-              "Eigen decomposition failed to converge for PSD Cone");
-
-    T alpha{1};
-    std::for_each(eig_decomp.lambda.begin(), eig_decomp.lambda.end(),
-                  [&alpha](const auto& eig) {
-                    AK_ASSERT(linalg::is_real(eig) &&
-                              "Computed eigenvalue is not real for PSD Cone");
-                    if (eig.real() < T(0))
-                      alpha = std::min(alpha, T(-1) / eig.real());
-                  });
-
-    return eta * std::max(T(0), std::min(T(1), alpha));
+    constexpr size_t steps{64};
+    T lo{0}, hi{1};
+    for (size_t i = 0; i < steps; ++i) {
+      const T mid = T(0.5) * (lo + hi);
+      if (in_cone_impl(x + mid * p))
+        lo = mid;
+      else
+        hi = mid;
+    }
+    return eta * lo;
   }
 
   /**

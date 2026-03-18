@@ -277,9 +277,126 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     REQUIRE(L2<Slack>()(Hw.apply(q) - Hq) < 1e-5);
 
     constexpr auto p_neg = Slack{-8.0, 0.0, -18.0};
+    constexpr auto p_neg_dual = Slack{-2.0, 0.0, -32.0};
     constexpr auto p_pos = Slack{1.0, 0.0, 1.0};
     REQUIRE(constexpr_abs(psd.alpha_max(gx, p_neg) - 0.495) < 1e-5);
-    REQUIRE(constexpr_abs(psd.alpha_max_dual(gy, p_neg) - 0.495) < 1e-5);
+    REQUIRE(constexpr_abs(psd.alpha_max_dual(gy, p_neg_dual) - 0.495) < 1e-5);
     REQUIRE(constexpr_abs(psd.alpha_max(gx, p_pos) - 0.99) < 1e-5);
+  }
+
+  SECTION("Stress psd w/H on random interior points") {
+    using Slack = Vectord<6>;
+    constexpr PositiveSemidefiniteCone<Slack, 3> psd;
+    constexpr auto zero = Slack{};
+    constexpr auto l2 = L2<Slack>();
+
+    auto make_psd_point = [](std::mt19937& rng) {
+      std::uniform_real_distribution<double> diag_dist(0.5, 3.0);
+      return Slack{diag_dist(rng), 0.0, diag_dist(rng),
+                   0.0, 0.0, diag_dist(rng)};
+    };
+
+    std::mt19937 rng(0xFACE);
+    constexpr size_t trials = 256;
+    constexpr double tol = 1e-5;
+    constexpr double transport_tol = 5e-2;
+    constexpr double eta = 0.99;
+    constexpr double boundary_eps = 1e-8;
+
+    for (size_t i = 0; i < trials; ++i) {
+      const auto x = make_psd_point(rng);
+      const auto y = make_psd_point(rng);
+      const auto p = (-2.0) * x;
+
+      REQUIRE(psd.in_cone(x));
+      REQUIRE(psd.in_dual_cone(y));
+
+      const auto x_inv = psd.inv(x);
+      REQUIRE(psd.in_cone(x_inv));
+      REQUIRE(l2(psd.inv(x_inv) - x) < tol);
+      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < tol);
+
+      const auto w = psd.w(x, y);
+      REQUIRE(psd.in_cone(w));
+      REQUIRE(psd.in_dual_cone(w));
+
+      const auto Hw = psd.H(x, y);
+      REQUIRE(l2(Hw.apply(zero)) < tol);
+
+      QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P(w);
+      REQUIRE(l2(x - P.apply(y)) < transport_tol);
+
+      QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P_inv(psd.inv(w));
+      REQUIRE(l2(y - P_inv.apply(x)) < transport_tol);
+
+      const auto hx = Hw.apply(x);
+      REQUIRE(l2(hx - y) < transport_tol);
+
+      const auto alpha = psd.alpha_max(x, p);
+      const auto alpha_hit = alpha / eta;
+      REQUIRE(constexpr_abs(alpha_hit - 0.5) < tol);
+      REQUIRE(psd.in_cone(x + alpha * p));
+      REQUIRE(!psd.in_cone(x + (alpha_hit + boundary_eps) * p));
+    }
+  }
+
+  SECTION("Stress psd w/H on random SPD points with off-diagonals") {
+    using Slack = Vectord<6>;
+    constexpr PositiveSemidefiniteCone<Slack, 3> psd;
+    constexpr auto zero = Slack{};
+    constexpr auto l2 = L2<Slack>();
+
+    auto make_psd_point = [](std::mt19937& rng) {
+      std::uniform_real_distribution<double> diag_dist(0.75, 2.0);
+      std::uniform_real_distribution<double> offdiag_dist(-0.2, 0.2);
+
+      const double l00 = diag_dist(rng);
+      const double l10 = offdiag_dist(rng);
+      const double l11 = diag_dist(rng);
+      const double l20 = offdiag_dist(rng);
+      const double l21 = offdiag_dist(rng);
+      const double l22 = diag_dist(rng);
+
+      const auto L = Matrixd<3, 3>{
+          Vectord<3>{l00, 0.0, 0.0},
+          Vectord<3>{l10, l11, 0.0},
+          Vectord<3>{l20, l21, l22}};
+      const auto X = L * transpose(L);
+      return get_lower_triangle_with_diag(X);
+    };
+
+    std::mt19937 rng(0xBADA55);
+    constexpr size_t trials = 128;
+    constexpr double tol = 1e-5;
+    constexpr double transport_tol = 2e-1;
+    constexpr double eta = 0.99;
+    constexpr double boundary_eps = 1e-8;
+
+    for (size_t i = 0; i < trials; ++i) {
+      const auto x = make_psd_point(rng);
+      const auto y = make_psd_point(rng);
+      const auto p = (-2.0) * x;
+
+      REQUIRE(psd.in_cone(x));
+      REQUIRE(psd.in_dual_cone(y));
+
+      const auto x_inv = psd.inv(x);
+      REQUIRE(psd.in_cone(x_inv));
+      REQUIRE(l2(psd.inv(x_inv) - x) < transport_tol);
+      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < transport_tol);
+
+      const auto w = psd.w(x, y);
+      REQUIRE(psd.in_cone(w));
+      REQUIRE(psd.in_dual_cone(w));
+
+      const auto Hw = psd.H(x, y);
+      REQUIRE(l2(Hw.apply(zero)) < tol);
+
+      const auto alpha = psd.alpha_max(x, p);
+      const auto alpha_hit = alpha / eta;
+      REQUIRE(constexpr_abs(alpha_hit - 0.5) < 5e-3);
+      REQUIRE(psd.in_cone(x + alpha * p));
+      REQUIRE(!psd.in_cone(x + (alpha_hit + boundary_eps) * p));
+    }
   }
 }
