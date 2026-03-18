@@ -119,7 +119,7 @@ constexpr auto matrix_exp(const Mat& A) {
   if (!eig_decomp.converged) return Matrix<Complex, N, N>{};
 
   const auto V = eig_decomp.V;
-  const auto V_inv = Inverse<decltype(V)>()(V);
+  const auto V_inv = MatrixInverse<decltype(V)>()(V);
   const auto D = eig_decomp.lambda;
   const auto J = V_inv * (as_complex_matrix(A) * V);
 

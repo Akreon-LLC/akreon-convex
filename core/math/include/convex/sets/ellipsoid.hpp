@@ -71,7 +71,8 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
   constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
     const auto delta = x - c;
     const auto delta_T = linalg::transpose(as_col_vector(delta));
-    const auto res = (delta_T * (linalg::Inverse<decltype(P)>()(P) * delta));
+    const auto res =
+        (delta_T * (linalg::MatrixInverse<decltype(P)>()(P) * delta));
     static_assert(linalg::vec_size_v<decltype(res)> == 1);
     return res(0) <= T(1);
   }
@@ -107,7 +108,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     requires(linalg::mat_cols_v<Mat> == N &&
              std::same_as<T, linalg::mat_type_t<Mat>>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
-    const auto U_inv = linalg::Inverse<Mat>()(map.linear_part());
+    const auto U_inv = linalg::MatrixInverse<Mat>()(map.linear_part());
     return Ellipsoid<Meta, Child>(map.linear_part() * c + map.translation(),
                                   transpose(U_inv) * P * U_inv,
                                   std::get<0>(this->children));

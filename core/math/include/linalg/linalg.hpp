@@ -14,6 +14,7 @@
 #include "operator/cholesky.hpp"
 #include "operator/ldl.hpp"
 #include "operator/matrix_inverse.hpp"
+#include "operator/matrix_sqrt.hpp"
 #include "operator/schur_kkt.hpp"
 #include "operator/symmetric_matrix.hpp"
 #include "spectral/eig_decomp.hpp"

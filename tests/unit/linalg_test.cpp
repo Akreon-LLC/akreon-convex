@@ -176,7 +176,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(arg_min(A) == 0);
     STATIC_REQUIRE(arg_max(A) == 1);
 
-    constexpr auto B_inv = Inverse<decltype(B)>()(B);
+    constexpr auto B_inv = MatrixInverse<decltype(B)>()(B);
     constexpr auto B_B_inv = B * B_inv;
     // (dakre) this case is acting like pseudoinverse since B is degenerate
     STATIC_REQUIRE(B_B_inv(0)(0) == 0.5);
@@ -187,13 +187,13 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     // (dakre) this case acts like true inverse where Z is unique
     constexpr auto Z =
         Matrixd<2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{3.0, 4.0}};
-    constexpr auto Z_inv = Inverse<decltype(Z)>()(Z);
+    constexpr auto Z_inv = MatrixInverse<decltype(Z)>()(Z);
     constexpr auto Z_Z_inv = Z * Z_inv;
     STATIC_REQUIRE(all_equal(Z_Z_inv, make_identity<double, 2>()));
 
     constexpr auto S =
         Matrixd<2, 2>{Vectord<2>{4.0, 2.0}, Vectord<2>{2.0, 3.0}};
-    constexpr auto S_inv = SymmetricInverse<decltype(S)>()(S);
+    constexpr auto S_inv = SymmetricMatrixInverse<decltype(S)>()(S);
     constexpr auto S_inv_exp =
         Matrixd<2, 2>{Vectord<2>{0.375, -0.25}, Vectord<2>{-0.25, 0.5}};
     STATIC_REQUIRE(all_equal(S_inv, S_inv_exp));
@@ -448,6 +448,40 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
         Matrix<double, 2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{3.0, 4.0}};
     constexpr auto A_smat = SymmetricMatrix(A);
     STATIC_REQUIRE(A_smat.type == SymmetricOperatorType::INV);
+  }
+}
+
+TEST_CASE("Matrix square root", "[matrix_sqrt]") {
+  SECTION("2x2 diagonal") {
+    constexpr auto A =
+        Matrixd<2, 2>{Vectord<2>{4.0, 0.0}, Vectord<2>{0.0, 9.0}};
+    const auto A_sqrt = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt_exp =
+        Matrixd<2, 2>{Vectord<2>{2.0, 0.0}, Vectord<2>{0.0, 3.0}};
+
+    REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
+    REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+  }
+
+  SECTION("3x3 diagonal") {
+    constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
+    constexpr auto A =
+        A_mat(1.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 16.0);
+    const auto A_sqrt = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt_exp =
+        A_mat(1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 4.0);
+
+    REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
+    REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+  }
+
+  SECTION("2x2 SPD") {
+    constexpr auto A_mat = mat_traits<Matrixd<2, 2>>();
+    constexpr auto A = A_mat(4.0, 2.0, 2.0, 3.0);
+    const auto A_sqrt = MatrixSqrt<decltype(A)>()(A);
+
+    REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+    REQUIRE(all_equal(A_sqrt, transpose(A_sqrt), 1e-5));
   }
 }
 

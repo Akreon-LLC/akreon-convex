@@ -154,7 +154,7 @@ class AffineMap {
    */
   constexpr auto inverse() const {
     static_assert(M >= N, "short-fat TBD");
-    const auto U_inv = linalg::Inverse<decltype(U)>()(U);
+    const auto U_inv = linalg::MatrixInverse<decltype(U)>()(U);
     return AffineMap(U_inv, T(-1) * U_inv * c);
   }
 

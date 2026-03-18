@@ -13,7 +13,8 @@
 #pragma once
 
 #include "cone.hpp"
-#include "linalg/operator/symmetric_matrix.hpp"
+#include "linalg/operator/matrix_inverse.hpp"
+#include "linalg/operator/matrix_sqrt.hpp"
 
 namespace conic {
 
@@ -46,7 +47,7 @@ struct PSDCirc {
 
 /** @brief psd cone class
  *
- * svec(X) \in S^k_+
+ * svec(X) \in S^n_+
  */
 template <linalg::VectorLike Slack, size_t N>
 struct PositiveSemidefiniteCone
@@ -249,7 +250,7 @@ struct PositiveSemidefiniteCone
    */
   constexpr auto inv_impl(const Slack& x) const {
     const auto X = linalg::make_smat<N, Slack>(x);
-    const auto X_inv = linalg::SymmetricInverse<decltype(X)>()(X);
+    const auto X_inv = linalg::SymmetricMatrixInverse<decltype(X)>()(X);
     return linalg::get_lower_triangle_with_diag(X_inv);
   }
 
@@ -262,7 +263,11 @@ struct PositiveSemidefiniteCone
    *
    * @return sqrt(x)
    */
-  constexpr auto sqrt(const Slack& /* x */) const { return Slack{}; }
+  constexpr auto sqrt(const Slack& x) const {
+    const auto X = linalg::make_smat<N, Slack>(x);
+    const auto X_sqrt = linalg::MatrixSqrt<decltype(X)>()(X);
+    return linalg::get_lower_triangle_with_diag(X_sqrt);
+  }
 };
 
 }  // namespace conic

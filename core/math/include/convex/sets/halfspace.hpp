@@ -114,7 +114,8 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
              linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto aT_U =
-        transpose(as_col_vector(a)) * linalg::Inverse<Mat>()(map.linear_part());
+        transpose(as_col_vector(a)) *
+        linalg::MatrixInverse<Mat>()(map.linear_part());
     return Halfspace<Meta, Child, Type>(as_vector(aT_U),
                                         b + (aT_U * map.translation())(0),
                                         std::get<0>(this->children));

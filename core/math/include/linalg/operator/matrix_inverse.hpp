@@ -22,7 +22,7 @@ namespace linalg {
  * @brief Matrix inverse via QR
  */
 template <MatrixLike MatIn>
-struct Inverse {
+struct MatrixInverse {
   using Mat = linalg::remove_cvref_t<MatIn>;
   using T = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
@@ -63,7 +63,7 @@ struct Inverse {
  * @brief Symmetric matrix inverse via LDL^T
  */
 template <SquareMatrixLike MatIn>
-struct SymmetricInverse {
+struct SymmetricMatrixInverse {
   using Mat = linalg::remove_cvref_t<MatIn>;
   using T = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;

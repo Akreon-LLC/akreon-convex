@@ -251,5 +251,10 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     STATIC_REQUIRE(psd.in_cone(psd.inv(z)));
     STATIC_REQUIRE(all_equal(psd.inv(z), z_inv));
     STATIC_REQUIRE(all_equal(psd.circ(z, psd.inv(z)), psd.e()));
+
+    constexpr auto z_sqrt = Slack{1.9193659625, 0.5621692754, 1.6382813255};
+    REQUIRE(psd.in_cone(psd.sqrt(z)));
+    REQUIRE(L2<Slack>()(psd.sqrt(z) - z_sqrt) < 1e-5);
+    REQUIRE(L2<Slack>()(psd.circ(psd.sqrt(z), psd.sqrt(z)) - z) < 1e-5);
   }
 }
