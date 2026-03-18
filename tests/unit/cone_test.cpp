@@ -258,5 +258,22 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
         -1.0 * constexpr_ln_safe(36.0) - 1.0 * constexpr_ln_safe(16.0) +
         psd.nu() * constexpr_ln_safe(148.0);
     REQUIRE(constexpr_abs(psd.gamma_F(gx, gy) - expected_gamma) < 1e-5);
+
+    constexpr auto gw = Slack{2.0, 0.0, 0.75};
+    REQUIRE(psd.in_cone(psd.w(gx, gy)));
+    REQUIRE(L2<Slack>()(psd.w(gx, gy) - gw) < 1e-5);
+    const auto P = QuadraticRep<Matrixd<3, 3>, PSDCirc<Slack, 2>>(psd.w(gx, gy));
+    REQUIRE(L2<Slack>()(P.apply(gy) - gx) < 1e-5);
+
+    constexpr auto grad_x = Slack{-0.25, 0.0, -1.0 / 9.0};
+    REQUIRE(L2<Slack>()(psd.grad(gx) - grad_x) < 1e-5);
+
+    const auto Hw = psd.H(gx, gy);
+    REQUIRE(Hw.apply(Slack{}) == Slack{});
+    REQUIRE(L2<Slack>()(Hw.apply(gx) - gy) < 1e-5);
+
+    constexpr auto q = Slack{8.0, 3.0, 9.0};
+    constexpr auto Hq = Slack{2.0, 2.0, 16.0};
+    REQUIRE(L2<Slack>()(Hw.apply(q) - Hq) < 1e-5);
   }
 }

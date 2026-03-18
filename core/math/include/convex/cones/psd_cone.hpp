@@ -107,7 +107,8 @@ struct PositiveSemidefiniteCone
   /**
    * @brief alpha_max (fraction to boundary)
    *
-   * TODO - impl
+   * \sigma(\alpha) = \frac{1}{\sup{\alpha | (x + \alpha p \in K)}}
+   *
    *
    * @param x \in K
    * @param p \in E
@@ -137,27 +138,32 @@ struct PositiveSemidefiniteCone
   /**
    * @brief hessian
    *
-   * TODO - impl
+   * F(w) = -log det(w)
+   * F'(w) = - w^{-1}
+   * F''(w) = P(w^{-1})
+   *
+   * F''(w^{-1}) x = y
    *
    * @param x \in K
    * @param y \in K^*
    *
    * @return H
    */
-  constexpr auto H_impl(const Slack& /* x */, const Slack& /* y */) const {
-    return HessianMat{};
+  constexpr auto H_impl(const Slack& x, const Slack& y) const {
+    const auto w_inv = inv_impl(w_impl(x, y));
+    return linalg::QuadraticRep<HessianMat, PSDCirc<Slack, N>>(w_inv);
   }
 
   /**
    * @brief grad (jacobian)
    *
-   * TODO - impl
+   * F'(x) = -x^{-1}
    *
    * @param x \in K or y \in K^*
    *
    * @return F'(x)
    */
-  constexpr auto grad_impl(const Slack& /* x */) const { return Slack{}; }
+  constexpr auto grad_impl(const Slack& x) const { return T(-1) * inv_impl(x); }
 
   /**
    * @brief barrier param
@@ -185,15 +191,23 @@ struct PositiveSemidefiniteCone
   /**
    * @brief w (self-scaled point)
    *
-   * TODO - impl
+   * W = X^{1/2} (X^{1/2} Y X^{1/2})^{-1/2} X^{1/2}
    *
    * @param x \in K
    * @param y \in K^*
    *
    * @return w
    */
-  constexpr auto w_impl(const Slack& /* x */, const Slack& /* y */) const {
-    return Slack{};
+  constexpr auto w_impl(const Slack& x, const Slack& y) const {
+    const auto X = linalg::make_smat<N, Slack>(x);
+    const auto X_sqrt = linalg::MatrixSqrt<decltype(X)>()(X);
+    const auto Y = linalg::make_smat<N, Slack>(y);
+    const auto U = X_sqrt * (Y * X_sqrt);
+    const auto U_sqrt = linalg::MatrixSqrt<decltype(U)>()(U);
+    const auto U_sqrt_inv =
+        linalg::SymmetricMatrixInverse<decltype(U_sqrt)>()(U_sqrt);
+
+    return linalg::get_lower_triangle_with_diag(X_sqrt * (U_sqrt_inv * X_sqrt));
   }
 
   /**
