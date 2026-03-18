@@ -229,7 +229,6 @@ struct PositiveSemidefiniteCone
   /**
    * @brief gamma_F
    *
-   * TODO - impl
    * \gamma_F = -ln(det(X)) - ln(det(Y)) + nu ln(Tr(X^{1/2} Y X^{1/2}))
    *
    * @param x \in K
@@ -237,8 +236,24 @@ struct PositiveSemidefiniteCone
    *
    * @return gamma_F
    */
-  constexpr T gamma_F_impl(const Slack& /* x */, const Slack& /* y */) const {
-    return T(0);
+  constexpr T gamma_F_impl(const Slack& x, const Slack& y) const {
+    const auto X = linalg::make_smat<N, Slack>(x);
+    const auto Y = linalg::make_smat<N, Slack>(y);
+
+    const auto X_sqrt = linalg::MatrixSqrt<decltype(X)>()(X);
+
+    const auto ldl_X = linalg::LDL(X);
+    const auto ldl_Y = linalg::LDL(Y);
+
+    AK_ASSERT(ldl_X.is_valid() && ldl_Y.is_valid() &&
+              "Either LDL(X) or LDL(Y) is invalid");
+
+    const auto a = T(-1) * linalg::constexpr_ln_safe(ldl_X.det());
+    const auto b = T(-1) * linalg::constexpr_ln_safe(ldl_Y.det());
+    const auto tr_term = linalg::trace(X_sqrt * (Y * X_sqrt));
+    const auto c = nu_impl() * linalg::constexpr_ln_safe(tr_term);
+
+    return a + b + c;
   }
 
   /**
@@ -252,21 +267,6 @@ struct PositiveSemidefiniteCone
     const auto X = linalg::make_smat<N, Slack>(x);
     const auto X_inv = linalg::SymmetricMatrixInverse<decltype(X)>()(X);
     return linalg::get_lower_triangle_with_diag(X_inv);
-  }
-
-  /**
-   * @brief sqrt
-   *
-   * X^{1/2}
-   *
-   * @param x \in K
-   *
-   * @return sqrt(x)
-   */
-  constexpr auto sqrt(const Slack& x) const {
-    const auto X = linalg::make_smat<N, Slack>(x);
-    const auto X_sqrt = linalg::MatrixSqrt<decltype(X)>()(X);
-    return linalg::get_lower_triangle_with_diag(X_sqrt);
   }
 };
 
