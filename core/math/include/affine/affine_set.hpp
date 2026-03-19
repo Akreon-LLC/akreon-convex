@@ -92,7 +92,8 @@ class ParametricAffineSet {
    * @return projected x on affine set
    */
   constexpr auto project(const DomVec& x) const {
-    const auto t = linalg::QR(U).solve(x - this->x0);
+    const auto [t, flag] = linalg::QR(U).solve(x - this->x0);
+    static_cast<void>(flag);
     return this->x0 + U * t;
   }
 
@@ -126,7 +127,8 @@ class ParametricAffineSet {
    */
   constexpr bool contains(const AmbientVec& x, T tol = 1e-8) const {
     const auto r = x - this->x0;
-    const auto t = linalg::QR(U).solve(r);
+    const auto [t, flag] = linalg::QR(U).solve(r);
+    static_cast<void>(flag);
     const auto residual = U * t - r;
     return linalg::L2<linalg::Vector<T, N>>()(residual) < tol;
   }

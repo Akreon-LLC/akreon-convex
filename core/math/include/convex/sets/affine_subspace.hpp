@@ -113,7 +113,9 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
     requires(linalg::mat_cols_v<TMat> == N &&
              std::same_as<linalg::mat_type_t<TMat>, T>)
   constexpr auto transform_impl(const affine::AffineMap<TMat>& map) const {
-    const auto A_tilde = A * linalg::MatrixInverse<TMat>()(map.linear_part());
+    const auto [U_inv, event] = linalg::MatrixInverse<TMat>()(map.linear_part());
+    static_cast<void>(event);
+    const auto A_tilde = A * U_inv;
     const auto b_tilde = b + A_tilde * map.translation();
     return AffineSubspace<Meta, Child>(A_tilde, b_tilde,
                                        std::get<0>(this->children));

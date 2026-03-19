@@ -87,9 +87,8 @@ struct NonnegOrthantCone
    * @return bool
    */
   constexpr bool in_cone_impl(const Slack& x) const {
-    for (size_t i = 0; i < M; ++i) {
+    for (size_t i = 0; i < M; ++i)
       if (!(x(i) > T(0))) return false;
-    }
     return true;
   }
 
@@ -159,16 +158,28 @@ struct NonnegOrthantCone
    * @param x \in K
    * @param y \in K^*
    *
-   * @return H
+   * @return (H, event)
    */
   constexpr auto H_impl(const Slack& x, const Slack& y) const {
-    const auto w = w_impl(x, y);
+    const auto [w, event] = w_impl(x, y);
+    if (linalg::is_fatal_event(event))
+      return std::tuple(
+          linalg::QuadraticRep<HessianMat, RplusCirc<Slack>>(e_impl()), event);
     Slack w_inv{};
+    bool safeguarded = false;
     for (size_t i = 0; i < M; ++i) {
       const T wi_safe = std::max(w(i), eps);
+      safeguarded = safeguarded || (wi_safe != w(i));
       w_inv(i) = T(1) / wi_safe;
     }
-    return linalg::QuadraticRep<HessianMat, RplusCirc<Slack>>(w_inv);
+    const auto out_event =
+        linalg::is_fatal_event(event)
+            ? event
+            : (event != linalg::NumericalEvent::NONE || safeguarded)
+                  ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                  : linalg::NumericalEvent::NONE;
+    return std::tuple(linalg::QuadraticRep<HessianMat, RplusCirc<Slack>>(w_inv),
+                      out_event);
   }
 
   /**
@@ -178,15 +189,19 @@ struct NonnegOrthantCone
    *
    * @param x \in K or y \in K^*
    *
-   * @return F'(x)
+   * @return (F'(x), event)
    */
   constexpr auto grad_impl(const Slack& x) const {
     Slack dx{};
+    bool safeguarded = false;
     for (size_t i = 0; i < M; ++i) {
       const T xi_safe = std::max(x(i), eps);
+      safeguarded = safeguarded || (xi_safe != x(i));
       dx(i) = T(-1) / xi_safe;
     }
-    return dx;
+    return std::tuple(dx, safeguarded
+                              ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                              : linalg::NumericalEvent::NONE);
   }
 
   /**
@@ -214,16 +229,20 @@ struct NonnegOrthantCone
    * @param x \in K
    * @param y \in K^*
    *
-   * @return w
+   * @return (w, event)
    */
   constexpr auto w_impl(const Slack& x, const Slack& y) const {
     Slack w{};
+    bool safeguarded{false};
     for (size_t i = 0; i < M; ++i) {
       const T x_safe = std::max(x(i), eps);
       const T y_safe = std::max(y(i), eps);
+      safeguarded = safeguarded || (x_safe != x(i)) || (y_safe != y(i));
       w(i) = linalg::constexpr_sqrt_safe(x_safe / y_safe);
     }
-    return w;
+    return std::tuple(w, safeguarded
+                             ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                             : linalg::NumericalEvent::NONE);
   }
 
   /**
@@ -262,12 +281,19 @@ struct NonnegOrthantCone
    *
    * @param x \in K or y \in K^*
    *
-   * @return 1/x
+   * @return (inv(x), event)
    */
   constexpr auto inv_impl(const Slack& x) const {
     Slack res{};
-    for (size_t i = 0; i < M; ++i) res(i) = T(1) / std::max(x(i), eps);
-    return res;
+    bool safeguarded = false;
+    for (size_t i = 0; i < M; ++i) {
+      const T xi_safe = std::max(x(i), eps);
+      safeguarded = safeguarded || (xi_safe != x(i));
+      res(i) = T(1) / xi_safe;
+    }
+    return std::tuple(res, safeguarded
+                               ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                               : linalg::NumericalEvent::NONE);
   }
 
   /**
@@ -280,13 +306,18 @@ struct NonnegOrthantCone
    */
   constexpr auto gamma_F_impl(const Slack& x, const Slack& y) const {
     T res{};
+    bool safeguarded = false;
     for (size_t i = 0; i < M; ++i) {
       const auto xy_safe = std::max(x(i) * y(i), eps);
+      safeguarded = safeguarded || (xy_safe != x(i) * y(i));
       res += linalg::constexpr_ln_safe(xy_safe, eps);
     }
     const auto xTy_safe = std::max(linalg::dot(x, y), eps) / nu_impl();
+    safeguarded = safeguarded || (xTy_safe * nu_impl() != linalg::dot(x, y));
     res = nu_impl() * linalg::constexpr_ln_safe(xTy_safe, eps) - res;
-    return res;
+    return std::tuple(res, safeguarded
+                               ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                               : linalg::NumericalEvent::NONE);
   }
 };
 

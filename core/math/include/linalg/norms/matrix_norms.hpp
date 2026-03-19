@@ -13,7 +13,6 @@
 #pragma once
 
 #include "config/assert.hpp"
-
 #include "linalg/linalg_ops.hpp"
 
 namespace linalg {
@@ -29,6 +28,7 @@ namespace linalg {
  */
 template <SquareMatrixLike Mat>
 struct Fro {
+  /// @brief alias and size
   using T = mat_type_t<Mat>;
   static constexpr size_t N = mat_rows_v<Mat>;
 
@@ -39,7 +39,7 @@ struct Fro {
     } else {
       const auto tmp = trace(conjugate_transpose(A) * A);
       AK_ASSERT(is_real(tmp) &&
-             "Frobenius complex norm expects real trace(A* A)");
+                "Frobenius complex norm expects real trace(A* A)");
       result = tmp.real();
     }
     return constexpr_sqrt_safe(result);

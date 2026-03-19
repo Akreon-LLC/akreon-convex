@@ -53,19 +53,6 @@ constexpr bool is_real(const std::complex<T>& z, scalar_type_t<T> tol = 1e-10) {
 }
 
 /**
- * @brief perform absolute value computation
- *
- * @param some type T variable x
- *
- * @return |x|
- */
-template <FieldLike T>
-  requires(!is_complex_v<T>)
-constexpr T constexpr_abs(const T& x) {
-  return x < 0 ? -1 * x : x;
-}
-
-/**
  * @brief constexpr-safe division with optional domain check
  *
  * @param num numerator
@@ -129,12 +116,51 @@ constexpr std::optional<T> constexpr_sqrt(const T& x, T g = 1e-10,
   if (x == T(0)) return std::numeric_limits<T>::min();
   if (!(g > T(0))) g = T(1);
 
+  auto abs = [](const auto& val) { return val < T(0) ? -val : val; };
+
   for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
     if (!(g > T(0))) g = T(1);
-    if (constexpr_abs(g * g - x) <= tol) return g;
+    if (abs(g * g - x) <= tol) return g;
     g = T(0.5) * (g + constexpr_div_safe(x, g, g));
   }
   return g;
+}
+
+/**
+ * @brief safe scalar sqrt wrapper around optional constexpr_sqrt
+ *
+ * @param x input scalar
+ * @param floor minimum scalar for fallback
+ * @param g initial guess
+ * @param tol convergence tolerance
+ *
+ * @return scalar sqrt with optional fallback handling
+ */
+template <RealLike T>
+constexpr T constexpr_sqrt_safe(const T& x, const T& floor = T(0), T g = 1e-10,
+                                T tol = 1e-10) {
+  if (const auto r = constexpr_sqrt(x, g, tol); r.has_value()) return *r;
+
+  const auto floor_safe = (floor >= T(0)) ? floor : T(0);
+  if (const auto rf = constexpr_sqrt(floor_safe, g, tol); rf.has_value())
+    return *rf;
+
+  return T(0);
+}
+
+/**
+ * @brief perform absolute value computation
+ *
+ * @param x (FieldLike)
+ *
+ * @return |x|
+ */
+template <FieldLike T>
+constexpr auto constexpr_abs(const T& x) {
+  if constexpr (RealLike<T>)
+    return x < 0 ? -1 * x : x;
+  else
+    return constexpr_sqrt_safe(x.real() * x.real() + x.imag() * x.imag());
 }
 
 /**
@@ -182,28 +208,6 @@ constexpr std::optional<T> constexpr_nrt(T x, size_t root, T g = 1e-10,
 }
 
 /**
- * @brief safe scalar sqrt wrapper around optional constexpr_sqrt
- *
- * @param x input scalar
- * @param floor minimum scalar for fallback
- * @param g initial guess
- * @param tol convergence tolerance
- *
- * @return scalar sqrt with optional fallback handling
- */
-template <RealLike T>
-constexpr T constexpr_sqrt_safe(const T& x, const T& floor = T(0), T g = 1e-10,
-                                T tol = 1e-10) {
-  if (const auto r = constexpr_sqrt(x, g, tol); r.has_value()) return *r;
-
-  const auto floor_safe = (floor >= T(0)) ? floor : T(0);
-  if (const auto rf = constexpr_sqrt(floor_safe, g, tol); rf.has_value())
-    return *rf;
-
-  return T(0);
-}
-
-/**
  * @brief safe scalar nth-root wrapper around optional constexpr_nrt
  *
  * @param x input scalar
@@ -224,18 +228,6 @@ constexpr T constexpr_nrt_safe(T x, const size_t& root, const T& floor = T(0),
     return *rf;
 
   return T(0);
-}
-
-/**
- * @brief perform abs on complex var
- *
- * @param some type T var x
- *
- * @return |x|
- */
-template <ComplexLike T>
-constexpr scalar_type_t<T> constexpr_absc(const T& x) {
-  return constexpr_sqrt_safe(x.real() * x.real() + x.imag() * x.imag());
 }
 
 /**
@@ -460,7 +452,7 @@ constexpr void constexpr_for(Func&& f) {
  */
 template <ComplexLike T>
 constexpr bool is_same(const T& a, const T& b, scalar_type_t<T> tol = 1e-10) {
-  return constexpr_absc(a - b) < tol;
+  return constexpr_abs(a - b) < tol;
 }
 
 /**

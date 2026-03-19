@@ -169,11 +169,26 @@ struct PositiveSemidefiniteCone
    * @param x \in K
    * @param y \in K^*
    *
-   * @return H
+   * @return (H, event)
    */
   constexpr auto H_impl(const Slack& x, const Slack& y) const {
-    const auto w_inv = inv_impl(w_impl(x, y));
-    return linalg::QuadraticRep<HessianMat, PSDCirc<Slack, N>>(w_inv);
+    const auto [w, event] = w_impl(x, y);
+    if (linalg::is_fatal_event(event))
+      return std::tuple(
+          linalg::QuadraticRep<HessianMat, PSDCirc<Slack, N>>(e_impl()), event);
+    const auto [w_inv, inv_event] = inv_impl(w);
+    if (linalg::is_fatal_event(inv_event))
+      return std::tuple(
+          linalg::QuadraticRep<HessianMat, PSDCirc<Slack, N>>(e_impl()),
+          inv_event);
+    const auto out_event =
+        (event != linalg::NumericalEvent::NONE ||
+         inv_event != linalg::NumericalEvent::NONE)
+            ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+            : linalg::NumericalEvent::NONE;
+    return std::tuple(
+        linalg::QuadraticRep<HessianMat, PSDCirc<Slack, N>>(w_inv),
+        out_event);
   }
 
   /**
@@ -183,9 +198,12 @@ struct PositiveSemidefiniteCone
    *
    * @param x \in K or y \in K^*
    *
-   * @return F'(x)
+   * @return (F'(x), event)
    */
-  constexpr auto grad_impl(const Slack& x) const { return T(-1) * inv_impl(x); }
+  constexpr auto grad_impl(const Slack& x) const {
+    const auto [x_inv, event] = inv_impl(x);
+    return std::tuple(T(-1) * x_inv, event);
+  }
 
   /**
    * @brief barrier param
@@ -218,18 +236,37 @@ struct PositiveSemidefiniteCone
    * @param x \in K
    * @param y \in K^*
    *
-   * @return w
+   * @return (w, event)
    */
   constexpr auto w_impl(const Slack& x, const Slack& y) const {
+    Slack w{};
     const auto X = linalg::make_smat<N, Slack>(x);
-    const auto X_sqrt = linalg::MatrixSqrt<decltype(X)>()(X);
+    const auto [X_sqrt, event1] = linalg::MatrixSqrt<decltype(X)>()(X);
+    if (linalg::is_fatal_event(event1)) return std::tuple(w, event1);
+
     const auto Y = linalg::make_smat<N, Slack>(y);
     const auto U = X_sqrt * (Y * X_sqrt);
-    const auto U_sqrt = linalg::MatrixSqrt<decltype(U)>()(U);
-    const auto U_sqrt_inv =
-        linalg::SymmetricMatrixInverse<decltype(U_sqrt)>()(U_sqrt);
+    const auto [U_sqrt, event2] = linalg::MatrixSqrt<decltype(U)>()(U);
+    if (linalg::is_fatal_event(event2)) return std::tuple(w, event2);
 
-    return linalg::get_lower_triangle_with_diag(X_sqrt * (U_sqrt_inv * X_sqrt));
+    const auto ldl_U = linalg::LDL(U_sqrt);
+    const auto factor_res = ldl_U.is_valid();
+    AK_ASSERT(factor_res && "LDL(U_sqrt) is invalid");
+    if (!factor_res)
+      return std::tuple(w, linalg::NumericalEvent::FACTORIZATION_FAILED);
+
+    const auto [U_sqrt_inv, event3] =
+        linalg::SymmetricMatrixInverse<decltype(U_sqrt)>()(U_sqrt);
+    if (linalg::is_fatal_event(event3)) return std::tuple(w, event3);
+
+    w = linalg::get_lower_triangle_with_diag(X_sqrt * (U_sqrt_inv * X_sqrt));
+    const auto out_event =
+        (event1 != linalg::NumericalEvent::NONE ||
+         event2 != linalg::NumericalEvent::NONE ||
+         event3 != linalg::NumericalEvent::NONE)
+            ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+            : linalg::NumericalEvent::NONE;
+    return std::tuple(w, out_event);
   }
 
   /**
@@ -272,24 +309,27 @@ struct PositiveSemidefiniteCone
    *
    * @return gamma_F
    */
-  constexpr T gamma_F_impl(const Slack& x, const Slack& y) const {
+  constexpr auto gamma_F_impl(const Slack& x, const Slack& y) const {
     const auto X = linalg::make_smat<N, Slack>(x);
     const auto Y = linalg::make_smat<N, Slack>(y);
 
-    const auto X_sqrt = linalg::MatrixSqrt<decltype(X)>()(X);
+    const auto [X_sqrt, event] = linalg::MatrixSqrt<decltype(X)>()(X);
+    if (event != linalg::NumericalEvent::NONE) return std::tuple(T(0), event);
 
     const auto ldl_X = linalg::LDL(X);
     const auto ldl_Y = linalg::LDL(Y);
 
-    AK_ASSERT(ldl_X.is_valid() && ldl_Y.is_valid() &&
-              "Either LDL(X) or LDL(Y) is invalid");
+    const auto factor_res = ldl_X.is_valid() && ldl_Y.is_valid();
+    AK_ASSERT(factor_res && "Either LDL(X) or LDL(Y) is invalid");
+    if (!factor_res)
+      return std::tuple(T(0), linalg::NumericalEvent::FACTORIZATION_FAILED);
 
     const auto a = T(-1) * linalg::constexpr_ln_safe(ldl_X.det());
     const auto b = T(-1) * linalg::constexpr_ln_safe(ldl_Y.det());
     const auto tr_term = linalg::trace(X_sqrt * (Y * X_sqrt));
     const auto c = nu_impl() * linalg::constexpr_ln_safe(tr_term);
 
-    return a + b + c;
+    return std::tuple(a + b + c, linalg::NumericalEvent::NONE);
   }
 
   /**
@@ -297,12 +337,13 @@ struct PositiveSemidefiniteCone
    *
    * @param x \in K
    *
-   * @return inv(x)
+   * @return (inv(x), event)
    */
   constexpr auto inv_impl(const Slack& x) const {
     const auto X = linalg::make_smat<N, Slack>(x);
-    const auto X_inv = linalg::SymmetricMatrixInverse<decltype(X)>()(X);
-    return linalg::get_lower_triangle_with_diag(X_inv);
+    const auto [X_inv, event] =
+        linalg::SymmetricMatrixInverse<decltype(X)>()(X);
+    return std::tuple(linalg::get_lower_triangle_with_diag(X_inv), event);
   }
 };
 

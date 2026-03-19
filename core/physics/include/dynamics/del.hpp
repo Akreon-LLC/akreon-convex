@@ -143,7 +143,8 @@ constexpr auto Solve(
 
     linalg::Matrix<ScalarT, DoF, RHS_COLS> S;
     for (size_t i = 0; i < RHS_COLS; ++i) {
-      const auto x_i = J_qr.solve(get_col(RHS, i));
+      const auto [x_i, flag] = J_qr.solve(get_col(RHS, i));
+      static_cast<void>(flag);
       for (size_t j = 0; j < DoF; ++j) S(j)(i) = x_i(j);
     }
 
@@ -180,7 +181,8 @@ constexpr auto Solve(
     // Qkp1 = J^{-1} R where -R = J * (Qkp1 - Qk)... Q_delta = Qkp1 - Qk
     const auto J_qr = linalg::QR(R_qkp1);
     const auto R = DEL(Q, U);
-    const auto Q_delta = J_qr.solve(ScalarT(-1) * R);
+    const auto [Q_delta, flag] = J_qr.solve(ScalarT(-1) * R);
+    static_cast<void>(flag);
 
     const auto ss = solve_ss(Q, U, J_qr);
     A = std::get<0>(ss);

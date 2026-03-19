@@ -117,7 +117,8 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
     const auto& U = map.linear_part();
     const auto& trans = map.translation();
 
-    const auto U_inv = linalg::MatrixInverse<Mat>()(U);
+    const auto [U_inv, event] = linalg::MatrixInverse<Mat>()(U);
+    static_cast<void>(event);
     const auto A_new = A * U_inv;
     const auto b_new = b + A_new * trans;
 

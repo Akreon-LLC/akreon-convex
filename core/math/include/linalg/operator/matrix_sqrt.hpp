@@ -49,16 +49,19 @@ struct MatrixSqrt {
   constexpr auto apply(const Mat& A) const {
     const auto eig_decomp = EigenDecomposition(A);
     AK_ASSERT(eig_decomp.converged && "Eigen decomposition failed");
+
+    Mat A_sqrt{};
+    if (!eig_decomp.converged)
+      return std::tuple(A_sqrt, linalg::NumericalEvent::EVD_FAILED);
+
     const auto eigs = eig_decomp.lambda;
     Vector<std::complex<T>, N> sqrt_eigs{};
     for (size_t i = 0; i < N; ++i)
-      sqrt_eigs(i) =
-          std::complex<T>(constexpr_sqrt_safe<T>(eigs(i).real()));
+      sqrt_eigs(i) = std::complex<T>(constexpr_sqrt_safe<T>(eigs(i).real()));
 
     const auto V = eig_decomp.V;
     const auto VTV = V * (make_diag(sqrt_eigs) * conjugate_transpose(V));
 
-    Mat A_sqrt{};
     for (size_t i = 0; i < N; ++i) {
       for (size_t j = 0; j < N; ++j) {
         AK_ASSERT(is_real(VTV(i)(j)) &&
@@ -68,7 +71,7 @@ struct MatrixSqrt {
       }
     }
 
-    return A_sqrt;
+    return std::tuple(A_sqrt, linalg::NumericalEvent::NONE);
   }
 };
 

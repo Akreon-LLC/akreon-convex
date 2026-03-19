@@ -129,7 +129,8 @@ bool fuzz_test(const scalar_type_t<T>& tol) {
     const auto x = make_vec<T, Cols>(rng, dist);
     const auto b = A * x;
 
-    const auto x_tilde = res.solve(b);
+    const auto [x_tilde, flag] = res.solve(b);
+    static_cast<void>(flag);
     const auto lsq_fit = A * x_tilde;
     const auto residual = euclidean_distance(lsq_fit, b);
     if (residual > tol) {

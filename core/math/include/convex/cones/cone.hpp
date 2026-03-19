@@ -85,7 +85,7 @@ struct Cone {
    * @param x \in K
    * @param y \in K^*
    *
-   * @return H
+   * @return (H, event)
    */
   constexpr auto H(const Slack& x, const Slack& y) const {
     return self().H_impl(x, y);
@@ -167,7 +167,7 @@ struct Cone {
    * @param x \in K
    * @param y \in K^*
    *
-   * @return w
+   * @return (w, event)
    */
   constexpr auto w(const Slack& x, const Slack& y) const {
     static_assert(ConeType::SYMMETRIC == CType,
@@ -208,7 +208,7 @@ struct Cone {
    *
    * @param x \in K or y \in K^*
    *
-   * @return x^{-1}
+   * @return (x^{-1}, event)
    */
   constexpr auto inv(const Slack& x) const {
     static_assert(ConeType::SYMMETRIC == CType,
@@ -222,7 +222,7 @@ struct Cone {
    * @param x \in K
    * @param y \in K^*
    *
-   * @return \gamma_F
+   * @return (\gamma_F, event)
    */
   constexpr auto gamma_F(const Slack& x, const Slack& y) const {
     static_assert(ConeType::SYMMETRIC == CType,

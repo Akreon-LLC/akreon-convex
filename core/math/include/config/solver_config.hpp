@@ -25,16 +25,17 @@ namespace config {
 /**
  * @brief FactorConfig
  */
-template <linalg::FieldLike T>
+template <linalg::RealLike T>
 struct FactorConfig {
-  size_t steps{64};  ///< total number of iter
-  T tol{1e-8};       ///< tolerance of of solution
+  size_t steps{64};    ///< total number of iter
+  T tol{1e-8};         ///< tolerance of of solution
+  T floor_eps{1e-10};  ///< machine precision (lower bounds)
 };
 
 /**
  * @brief PrimalDualIPMConfig
  */
-template <linalg::FieldLike T>
+template <linalg::RealLike T>
 struct PrimalDualIPMConfig {
   size_t steps{PD_IPM_STEPS};     ///< total number of iter
   size_t backtrack_steps{64};     ///< total number of backtracking steps
@@ -59,3 +60,36 @@ enum struct SolverResult : uint8_t {
 };
 
 }  // namespace config
+
+namespace linalg {
+
+/**
+ * @brief NumericalEvent
+ */
+enum struct NumericalEvent : uint8_t {
+  NONE = 0,
+
+  // detection / observation
+  RANK_DEFICIENCY,
+  INDEFINITE_FACTORIZATION,
+  NEAR_SINGULAR_TRIANGULAR_SOLVE,
+  NUMERICAL_SAFEGUARD,
+
+  // failure
+  FACTORIZATION_FAILED,
+  EVD_FAILED
+};
+
+/**
+ * @brief is_fatal_event
+ *
+ * @param event (NumericalEvent)
+ *
+ * @return T/F
+ */
+inline constexpr bool is_fatal_event(const NumericalEvent& event) {
+  return event == NumericalEvent::FACTORIZATION_FAILED ||
+         event == NumericalEvent::EVD_FAILED;
+}
+
+}  // namespace linalg

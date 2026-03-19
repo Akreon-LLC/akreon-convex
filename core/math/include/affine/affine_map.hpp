@@ -52,7 +52,7 @@ constexpr AffineMap<Mat> make_selector_map(const size_t& idx) {
             "make_selector_map index must be within [0, mat_cols)");
 
   using T = linalg::mat_type_t<Mat>;
-  Mat A;
+  Mat A{};
   A(0)(idx) = T(1);
   return AffineMap<Mat>(A, linalg::Vector<T, 1>{});
 }
@@ -154,7 +154,8 @@ class AffineMap {
    */
   constexpr auto inverse() const {
     static_assert(M >= N, "short-fat TBD");
-    const auto U_inv = linalg::MatrixInverse<decltype(U)>()(U);
+    const auto [U_inv, event] = linalg::MatrixInverse<decltype(U)>()(U);
+    static_cast<void>(event);
     return AffineMap(U_inv, T(-1) * U_inv * c);
   }
 

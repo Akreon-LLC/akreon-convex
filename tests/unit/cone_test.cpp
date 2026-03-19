@@ -57,11 +57,17 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
     STATIC_REQUIRE(rplus.alpha_max(rplus.x0(), p) ==
                    rplus.alpha_max_dual(rplus.y0(), p));
 
-    constexpr auto w = rplus.w(rplus.x0(), rplus.y0());
+    constexpr auto w_res = rplus.w(rplus.x0(), rplus.y0());
+    constexpr auto w = std::get<0>(w_res);
+    constexpr auto w_event = std::get<1>(w_res);
     constexpr auto ones = vec.fill(1.0);
+    STATIC_REQUIRE(w_event == linalg::NumericalEvent::NONE);
     STATIC_REQUIRE(L2<Slack>()(w - ones) < eps);
 
-    constexpr auto P = rplus.H(rplus.x0(), rplus.y0());
+    constexpr auto H_res = rplus.H(rplus.x0(), rplus.y0());
+    constexpr auto P = std::get<0>(H_res);
+    constexpr auto H_event = std::get<1>(H_res);
+    STATIC_REQUIRE(H_event == linalg::NumericalEvent::NONE);
     STATIC_REQUIRE(P.apply(Slack{}) == Slack{});
     constexpr auto q = vec.fill(0.25);
     STATIC_REQUIRE(L2<Slack>()(P.apply(q) - q) < eps);
@@ -104,11 +110,13 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
       REQUIRE(rplus.in_cone(x));
       REQUIRE(rplus.in_dual_cone(y));
 
-      const auto w = rplus.w(x, y);
+      const auto [w, w_event] = rplus.w(x, y);
+      REQUIRE(w_event == linalg::NumericalEvent::NONE);
       REQUIRE(rplus.in_cone(w));
       REQUIRE(rplus.in_dual_cone(w));
 
-      const auto Hw = rplus.H(x, y);
+      const auto [Hw, H_event] = rplus.H(x, y);
+      REQUIRE(H_event == linalg::NumericalEvent::NONE);
       REQUIRE(l2(Hw.apply(zero)) < tol);
 
       QuadraticRep<Matrixd<8, 8>, RplusCirc<Slack>> P(w);
@@ -146,7 +154,10 @@ TEST_CASE("Test SOC", "[cone_test]") {
     STATIC_REQUIRE(soc.alpha_max(soc.x0(), p) ==
                    soc.alpha_max_dual(soc.y0(), p));
 
-    constexpr auto P = soc.H(soc.x0(), soc.y0());
+    constexpr auto H_res = soc.H(soc.x0(), soc.y0());
+    constexpr auto P = std::get<0>(H_res);
+    constexpr auto H_event = std::get<1>(H_res);
+    STATIC_REQUIRE(H_event == linalg::NumericalEvent::NONE);
     STATIC_REQUIRE(P.apply(Slack{}) == Slack{});
     constexpr auto q =
         Slack{0.1, -0.2, 0.3, -0.4, 0.5, -0.6, 0.7, -0.8, 0.9, 0.2};
@@ -156,7 +167,11 @@ TEST_CASE("Test SOC", "[cone_test]") {
 
     constexpr Vectord<10> e{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
     STATIC_REQUIRE(soc.e() == e);
-    STATIC_REQUIRE(L2<Slack>()(soc.w(soc.x0(), soc.y0()) - soc.e()) < eps);
+    constexpr auto soc_w_res = soc.w(soc.x0(), soc.y0());
+    constexpr auto soc_w = std::get<0>(soc_w_res);
+    constexpr auto soc_w_event = std::get<1>(soc_w_res);
+    STATIC_REQUIRE(soc_w_event == linalg::NumericalEvent::NONE);
+    STATIC_REQUIRE(L2<Slack>()(soc_w - soc.e()) < eps);
 
     constexpr SOCCirc<Slack> circ;
     constexpr auto x = vec.fill(5.5);
@@ -197,26 +212,34 @@ TEST_CASE("Test SOC", "[cone_test]") {
       REQUIRE(soc.in_cone(x));
       REQUIRE(soc.in_dual_cone(y));
 
-      const auto w = soc.w(x, y);
+      const auto [w, w_event] = soc.w(x, y);
+      REQUIRE(w_event == linalg::NumericalEvent::NONE);
       REQUIRE(soc.in_cone(w));
       REQUIRE(soc.in_dual_cone(w));
 
-      REQUIRE(l2(x - soc.inv(soc.inv(x))) < eps);
+      const auto [x_inv, x_inv_event] = soc.inv(x);
+      REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
+      const auto [x_inv_inv, x_inv_inv_event] = soc.inv(x_inv);
+      REQUIRE(x_inv_inv_event == linalg::NumericalEvent::NONE);
+      REQUIRE(l2(x - x_inv_inv) < eps);
       REQUIRE(l2(x - soc.circ(soc.sqrt(x), soc.sqrt(x))) < eps);
-      REQUIRE(l2(soc.circ(x, soc.inv(x)) - soc.e()) < eps);
+      REQUIRE(l2(soc.circ(x, x_inv) - soc.e()) < eps);
 
       const auto x_eigs = soc.eigs(x);
       const auto det = std::get<0>(x_eigs) * std::get<1>(x_eigs);
       const auto xv = std::get<0>(splice<3>(x));
       REQUIRE(constexpr_abs(det - (x(3) * x(3) - dot(xv, xv))) < eps);
 
-      const auto Hw = soc.H(x, y);
+      const auto [Hw, H_event] = soc.H(x, y);
+      REQUIRE(H_event == linalg::NumericalEvent::NONE);
       REQUIRE(l2(Hw.apply(zero)) < tol);
 
       QuadraticRep<Matrixd<4, 4>, SOCCirc<Slack>> P(w);
       REQUIRE(l2(x - P.apply(y)) < eps);
 
-      QuadraticRep<Matrixd<4, 4>, SOCCirc<Slack>> P_inv(soc.inv(w));
+      const auto [w_inv, w_inv_event] = soc.inv(w);
+      REQUIRE(w_inv_event == linalg::NumericalEvent::NONE);
+      QuadraticRep<Matrixd<4, 4>, SOCCirc<Slack>> P_inv(w_inv);
       REQUIRE(l2(y - P_inv.apply(x)) < eps);
 
       const auto hx = Hw.apply(x);
@@ -248,27 +271,42 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
 
     constexpr auto z = Slack{4.0, 2.0, 3.0};
     constexpr auto z_inv = Slack{0.375, -0.25, 0.5};
-    STATIC_REQUIRE(psd.in_cone(psd.inv(z)));
-    STATIC_REQUIRE(all_equal(psd.inv(z), z_inv));
-    STATIC_REQUIRE(all_equal(psd.circ(z, psd.inv(z)), psd.e()));
+    constexpr auto z_inv_res = psd.inv(z);
+    constexpr auto z_inv_calc = std::get<0>(z_inv_res);
+    constexpr auto z_inv_event = std::get<1>(z_inv_res);
+    STATIC_REQUIRE(z_inv_event == linalg::NumericalEvent::NONE);
+    STATIC_REQUIRE(psd.in_cone(z_inv_calc));
+    STATIC_REQUIRE(all_equal(z_inv_calc, z_inv));
+    STATIC_REQUIRE(all_equal(psd.circ(z, z_inv_calc), psd.e()));
 
     constexpr auto gx = Slack{4.0, 0.0, 9.0};
     constexpr auto gy = Slack{1.0, 0.0, 16.0};
     constexpr auto expected_gamma =
         -1.0 * constexpr_ln_safe(36.0) - 1.0 * constexpr_ln_safe(16.0) +
         psd.nu() * constexpr_ln_safe(148.0);
-    REQUIRE(constexpr_abs(psd.gamma_F(gx, gy) - expected_gamma) < 1e-5);
+    constexpr auto gamma_res = psd.gamma_F(gx, gy);
+    constexpr auto gamma = std::get<0>(gamma_res);
+    constexpr auto event = std::get<1>(gamma_res);
+    STATIC_REQUIRE(event == linalg::NumericalEvent::NONE);
+    REQUIRE(constexpr_abs(gamma - expected_gamma) < 1e-5);
 
     constexpr auto gw = Slack{2.0, 0.0, 0.75};
-    REQUIRE(psd.in_cone(psd.w(gx, gy)));
-    REQUIRE(L2<Slack>()(psd.w(gx, gy) - gw) < 1e-5);
-    const auto P = QuadraticRep<Matrixd<3, 3>, PSDCirc<Slack, 2>>(psd.w(gx, gy));
+    constexpr auto w_res_psd = psd.w(gx, gy);
+    constexpr auto w_psd = std::get<0>(w_res_psd);
+    constexpr auto w_psd_event = std::get<1>(w_res_psd);
+    STATIC_REQUIRE(w_psd_event == linalg::NumericalEvent::NONE);
+    REQUIRE(psd.in_cone(w_psd));
+    REQUIRE(L2<Slack>()(w_psd - gw) < 1e-5);
+    const auto P = QuadraticRep<Matrixd<3, 3>, PSDCirc<Slack, 2>>(w_psd);
     REQUIRE(L2<Slack>()(P.apply(gy) - gx) < 1e-5);
 
     constexpr auto grad_x = Slack{-0.25, 0.0, -1.0 / 9.0};
-    REQUIRE(L2<Slack>()(psd.grad(gx) - grad_x) < 1e-5);
+    const auto [grad_x_calc, grad_event] = psd.grad(gx);
+    REQUIRE(grad_event == linalg::NumericalEvent::NONE);
+    REQUIRE(L2<Slack>()(grad_x_calc - grad_x) < 1e-5);
 
-    const auto Hw = psd.H(gx, gy);
+    const auto [Hw, H_event] = psd.H(gx, gy);
+    REQUIRE(H_event == linalg::NumericalEvent::NONE);
     REQUIRE(Hw.apply(Slack{}) == Slack{});
     REQUIRE(L2<Slack>()(Hw.apply(gx) - gy) < 1e-5);
 
@@ -311,22 +349,29 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       REQUIRE(psd.in_cone(x));
       REQUIRE(psd.in_dual_cone(y));
 
-      const auto x_inv = psd.inv(x);
+      const auto [x_inv, x_inv_event] = psd.inv(x);
+      REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(x_inv));
-      REQUIRE(l2(psd.inv(x_inv) - x) < tol);
+      const auto [x_inv_inv, x_inv_inv_event] = psd.inv(x_inv);
+      REQUIRE(x_inv_inv_event == linalg::NumericalEvent::NONE);
+      REQUIRE(l2(x_inv_inv - x) < tol);
       REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < tol);
 
-      const auto w = psd.w(x, y);
+      const auto [w, w_event] = psd.w(x, y);
+      REQUIRE(w_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(w));
       REQUIRE(psd.in_dual_cone(w));
 
-      const auto Hw = psd.H(x, y);
+      const auto [Hw, H_event] = psd.H(x, y);
+      REQUIRE(H_event == linalg::NumericalEvent::NONE);
       REQUIRE(l2(Hw.apply(zero)) < tol);
 
       QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P(w);
       REQUIRE(l2(x - P.apply(y)) < transport_tol);
 
-      QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P_inv(psd.inv(w));
+      const auto [w_inv, w_inv_event] = psd.inv(w);
+      REQUIRE(w_inv_event == linalg::NumericalEvent::NONE);
+      QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P_inv(w_inv);
       REQUIRE(l2(y - P_inv.apply(x)) < transport_tol);
 
       const auto hx = Hw.apply(x);
@@ -380,16 +425,21 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       REQUIRE(psd.in_cone(x));
       REQUIRE(psd.in_dual_cone(y));
 
-      const auto x_inv = psd.inv(x);
+      const auto [x_inv, x_inv_event] = psd.inv(x);
+      REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(x_inv));
-      REQUIRE(l2(psd.inv(x_inv) - x) < transport_tol);
+      const auto [x_inv_inv, x_inv_inv_event] = psd.inv(x_inv);
+      REQUIRE(x_inv_inv_event == linalg::NumericalEvent::NONE);
+      REQUIRE(l2(x_inv_inv - x) < transport_tol);
       REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < transport_tol);
 
-      const auto w = psd.w(x, y);
+      const auto [w, w_event] = psd.w(x, y);
+      REQUIRE(w_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(w));
       REQUIRE(psd.in_dual_cone(w));
 
-      const auto Hw = psd.H(x, y);
+      const auto [Hw, H_event] = psd.H(x, y);
+      REQUIRE(H_event == linalg::NumericalEvent::NONE);
       REQUIRE(l2(Hw.apply(zero)) < tol);
 
       const auto alpha = psd.alpha_max(x, p);

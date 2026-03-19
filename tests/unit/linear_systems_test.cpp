@@ -158,7 +158,10 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     STATIC_REQUIRE(all_equal(QTQr, make_identity<double, 2>()));
 
     constexpr auto b = Vectord<3>{3.0, 5.0, 7.0};
-    constexpr auto x_tilde = qr.solve(b);
+    constexpr auto solve_res = qr.solve(b);
+    constexpr auto x_tilde = std::get<0>(solve_res);
+    constexpr auto flag = std::get<1>(solve_res);
+    static_cast<void>(flag);
 
     STATIC_REQUIRE(euclidean_distance(x_tilde, Vectord<2>{1.0, 2.0}) <= eps);
   }
@@ -189,7 +192,10 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto d = std::complex<double>(5.0, 0);
     constexpr auto e = std::complex<double>(7.0, 0);
     constexpr auto y = Vectorcd<3>{c, d, e};
-    constexpr auto x_tilde = qr.solve(y);
+    constexpr auto solve_res = qr.solve(y);
+    constexpr auto x_tilde = std::get<0>(solve_res);
+    constexpr auto flag = std::get<1>(solve_res);
+    static_cast<void>(flag);
     STATIC_REQUIRE(euclidean_distance(x_tilde, Vectorcd<2>{1.0, 2.0}) <= eps);
   }
 
@@ -245,7 +251,7 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     STATIC_REQUIRE(all_equal(as_complex_matrix(A), VLVT));
 
     constexpr auto rho = result.spectral_radius();
-    STATIC_REQUIRE(constexpr_absc(rho - expected(0)(0)) <= eps);
+    STATIC_REQUIRE(constexpr_abs(rho - expected(0)(0)) <= eps);
   }
 
   SECTION("Real A") {

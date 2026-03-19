@@ -214,7 +214,7 @@ struct EigenDecomposition {
       // block lies in
       int AM = 0;
       std::for_each(eigs.begin(), eigs.end(), [&](const auto& val) {
-        AM += constexpr_absc(eigs(i) - val) < config.tol;
+        AM += constexpr_abs(eigs(i) - val) < config.tol;
       });
       int GM = 0, defect = 0;
       if (AM > 1) {
@@ -456,7 +456,8 @@ struct EigenDecomposition {
       v(j) = sum;
     }
 
-    return normalize(v, L2<Vector<Complex, N>>());
+    const auto norm = std::max(L2<Vector<Complex, N>>()(v), config.floor_eps);
+    return T(1) / norm * v;
   }
 
   /** @brief member vars */

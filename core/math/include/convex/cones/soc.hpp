@@ -313,11 +313,25 @@ struct SecondOrderCone
    * @param x \in K
    * @param y \in K^*
    *
-   * @return H
+   * @return (H, event)
    */
   constexpr auto H_impl(const Slack& x, const Slack& y) const {
-    const auto w_inv = inv_impl(w_impl(x, y));
-    return linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(w_inv);
+    const auto [w, event] = w_impl(x, y);
+    if (linalg::is_fatal_event(event))
+      return std::tuple(
+          linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(e_impl()), event);
+    const auto [w_inv, inv_event] = inv_impl(w);
+    if (linalg::is_fatal_event(inv_event))
+      return std::tuple(
+          linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(e_impl()),
+          inv_event);
+    const auto out_event =
+        (event != linalg::NumericalEvent::NONE ||
+         inv_event != linalg::NumericalEvent::NONE)
+            ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+            : linalg::NumericalEvent::NONE;
+    return std::tuple(linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(w_inv),
+                      out_event);
   }
 
   /**
@@ -327,9 +341,12 @@ struct SecondOrderCone
    *
    * @param x \in K or y \in K^*
    *
-   * @return F'(x)
+   * @return (F'(x), event)
    */
-  constexpr auto grad_impl(const Slack& x) const { return T(-1) * inv_impl(x); }
+  constexpr auto grad_impl(const Slack& x) const {
+    const auto [x_inv, event] = inv_impl(x);
+    return std::tuple(T(-1) * x_inv, event);
+  }
 
   /**
    * @brief barrier param
@@ -379,16 +396,18 @@ struct SecondOrderCone
    * @param x \in K
    * @param y \in K^*
    *
-   * @return w
+   * @return (w, event)
    */
   constexpr auto w_impl(const Slack& x, const Slack& y) const {
     const auto x_sqrt = sqrt(x);
     linalg::QuadraticRep<HessianMat, SOCCirc<Slack>> P(x_sqrt);
 
     const auto b = P.apply(y);
-    const auto inner = inv_impl(sqrt(b));
+    const auto [inner, event] = inv_impl(sqrt(b));
+    if (linalg::is_fatal_event(event))
+      return std::tuple(Slack{}, event);
 
-    return P.apply(inner);
+    return std::tuple(P.apply(inner), event);
   }
 
   /**
@@ -427,7 +446,7 @@ struct SecondOrderCone
    *
    * @return gamma_F
    */
-  constexpr T gamma_F_impl(const Slack& x, const Slack& y) const {
+  constexpr auto gamma_F_impl(const Slack& x, const Slack& y) const {
     const auto lambdas_x = eigs(x);
     const auto lambdas_y = eigs(y);
 
@@ -436,8 +455,10 @@ struct SecondOrderCone
 
     const auto tr_xy = trace_impl(x, y);
 
-    return nu_impl() * linalg::constexpr_ln_safe(tr_xy) -
-           linalg::constexpr_ln_safe(det_x) - linalg::constexpr_ln_safe(det_y);
+    return std::tuple(nu_impl() * linalg::constexpr_ln_safe(tr_xy) -
+                          linalg::constexpr_ln_safe(det_x) -
+                          linalg::constexpr_ln_safe(det_y),
+                      linalg::NumericalEvent::NONE);
   }
 
   /**
@@ -448,7 +469,7 @@ struct SecondOrderCone
    *
    * @param x (slack vector)
    *
-   * @return inv(x)
+   * @return (inv(x), event)
    */
   constexpr auto inv_impl(const Slack& x) const {
     const auto v = std::get<0>(linalg::splice<M - 1>(x));
@@ -458,8 +479,12 @@ struct SecondOrderCone
     adj_v(M - 1) = t;
 
     const auto det = t * t - linalg::dot(v, v);
-    if (std::isnan(det) || det == T(0)) return (T(1) / eps) * adj_v;
-    return (T(1) / det) * adj_v;
+    if (std::isnan(det) || linalg::constexpr_abs(det) <= eps)
+      return std::tuple((T(1) / eps) * adj_v,
+                        linalg::NumericalEvent::NUMERICAL_SAFEGUARD);
+
+    const auto res = (T(1) / det) * adj_v;
+    return std::tuple(res, linalg::NumericalEvent::NONE);
   }
 
   /**

@@ -323,21 +323,6 @@ constexpr auto get_lower_left_triangular_matrix(const Mat& A) {
 }
 
 /**
- * @brief Normalize a vector given a norm function
- *
- * @param vector of type T with N elements
- * @param reference to a Norm object (L1, L2, max_norm, etc.)
- *
- * @return normalized vector
- */
-template <VectorLike Vec, typename Norm>
-constexpr auto normalize(const Vec& X, const Norm& norm) {
-  const auto norm_val = norm(X);
-  AK_ASSERT(norm_val > 0 && "normalize requires strictly positive norm");
-  return (1 / norm_val) * X;
-}
-
-/**
  * @brief Compute the euclidean distance between two vectors (L2 norm of delta)
  *
  * @param vector X of type T with N elements

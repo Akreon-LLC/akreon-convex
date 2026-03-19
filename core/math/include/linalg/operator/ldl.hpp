@@ -83,8 +83,11 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   constexpr auto solve(const Vector<T, N>& b) const {
     const auto L_mat = L();
     const auto y = forward_solve(L_mat, b);
-    const auto z = diag_solve(y);
-    return back_solve(transpose(L_mat), z);
+    const auto [z, event] = diag_solve(y);
+    if (is_fatal_event(event)) return std::tuple(z, event);
+
+    return std::tuple(back_solve(transpose(L_mat), z),
+                      linalg::NumericalEvent::NONE);
   }
 
   /**
@@ -183,18 +186,21 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   /**
    * @brief diag solve
    *
-   * @param vector y
+   * @param y (vec)
    *
-   * @return vector z
+   * @return (z, event)
    */
   constexpr auto diag_solve(const Vector<T, N>& y) const {
-    AK_ASSERT(is_valid() &&
-              "LDL::diag_solve requires a valid factorization (non-singular)");
-
     Vector<T, N> z{};
+
+    AK_ASSERT(this->is_valid() &&
+              "LDL::diag_solve requires a valid factorization (non-singular)");
+    if (!this->is_valid())
+      return std::tuple(z, linalg::NumericalEvent::FACTORIZATION_FAILED);
+
     for (size_t i = 0; i < N; ++i) z(i) = y(i) / D_vec(i);
 
-    return z;
+    return std::tuple(z, linalg::NumericalEvent::NONE);
   }
 
   /**

@@ -116,20 +116,6 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(L1<Vector<double, 2>>()(G) == manhattan_distance(A, B));
     STATIC_REQUIRE(Linf<Vector<double, 2>>()(G) == 3.0);
 
-    constexpr auto normalized_A = normalize(A, L2<Vector<double, 2>>());
-    constexpr auto norm_A = L2<Vector<double, 2>>()(A);
-    STATIC_REQUIRE((1 / norm_A) * A == normalized_A);
-    constexpr auto normalized_B = normalize(B, Linf<Vector<double, 2>>());
-    constexpr auto norm_B = Linf<Vector<double, 2>>()(B);
-    STATIC_REQUIRE((1 / norm_B) * B == normalized_B);
-
-    constexpr auto all_lt_one = [](const auto& vec) {
-      bool flag = true;
-      for (const auto& x : vec) flag &= x <= 1;
-      return flag;
-    };
-    STATIC_REQUIRE(all_lt_one(normalized_B));
-
     constexpr auto GT = transpose(G);
     STATIC_REQUIRE(GT(0)(0) == 2.0);
     STATIC_REQUIRE(GT(1)(0) == -3.0);
@@ -176,24 +162,30 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(arg_min(A) == 0);
     STATIC_REQUIRE(arg_max(A) == 1);
 
-    constexpr auto B_inv = MatrixInverse<decltype(B)>()(B);
+    constexpr auto B_inv_res = MatrixInverse<decltype(B)>()(B);
+    constexpr auto B_inv = std::get<0>(B_inv_res);
+    constexpr auto B_inv_event = std::get<1>(B_inv_res);
+    STATIC_REQUIRE(B_inv_event ==
+                   linalg::NumericalEvent::NEAR_SINGULAR_TRIANGULAR_SOLVE);
     constexpr auto B_B_inv = B * B_inv;
-    // (dakre) this case is acting like pseudoinverse since B is degenerate
-    STATIC_REQUIRE(B_B_inv(0)(0) == 0.5);
-    STATIC_REQUIRE(B_B_inv(0)(1) == 0.5);
-    STATIC_REQUIRE(B_B_inv(1)(0) == 0.5);
-    STATIC_REQUIRE(B_B_inv(1)(1) == 0.5);
+    STATIC_REQUIRE(B_B_inv == Matrixd<2, 2>{});
 
     // (dakre) this case acts like true inverse where Z is unique
     constexpr auto Z =
         Matrixd<2, 2>{Vectord<2>{1.0, 2.0}, Vectord<2>{3.0, 4.0}};
-    constexpr auto Z_inv = MatrixInverse<decltype(Z)>()(Z);
+    constexpr auto Z_inv_res = MatrixInverse<decltype(Z)>()(Z);
+    constexpr auto Z_inv = std::get<0>(Z_inv_res);
+    constexpr auto Z_inv_event = std::get<1>(Z_inv_res);
+    STATIC_REQUIRE(Z_inv_event == linalg::NumericalEvent::NONE);
     constexpr auto Z_Z_inv = Z * Z_inv;
     STATIC_REQUIRE(all_equal(Z_Z_inv, make_identity<double, 2>()));
 
     constexpr auto S =
         Matrixd<2, 2>{Vectord<2>{4.0, 2.0}, Vectord<2>{2.0, 3.0}};
-    constexpr auto S_inv = SymmetricMatrixInverse<decltype(S)>()(S);
+    constexpr auto S_inv_res = SymmetricMatrixInverse<decltype(S)>()(S);
+    constexpr auto S_inv = std::get<0>(S_inv_res);
+    constexpr auto S_inv_event = std::get<1>(S_inv_res);
+    STATIC_REQUIRE(S_inv_event == linalg::NumericalEvent::NONE);
     constexpr auto S_inv_exp =
         Matrixd<2, 2>{Vectord<2>{0.375, -0.25}, Vectord<2>{-0.25, 0.5}};
     STATIC_REQUIRE(all_equal(S_inv, S_inv_exp));
@@ -455,33 +447,32 @@ TEST_CASE("Matrix square root", "[matrix_sqrt]") {
   SECTION("2x2 diagonal") {
     constexpr auto A =
         Matrixd<2, 2>{Vectord<2>{4.0, 0.0}, Vectord<2>{0.0, 9.0}};
-    const auto A_sqrt = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt = std::get<0>(MatrixSqrt<decltype(A)>()(A));
     constexpr auto A_sqrt_exp =
         Matrixd<2, 2>{Vectord<2>{2.0, 0.0}, Vectord<2>{0.0, 3.0}};
 
-    REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
-    REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+    STATIC_REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
+    STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
   }
 
   SECTION("3x3 diagonal") {
     constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
-    constexpr auto A =
-        A_mat(1.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 16.0);
-    const auto A_sqrt = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 16.0);
+    constexpr auto A_sqrt = std::get<0>(MatrixSqrt<decltype(A)>()(A));
     constexpr auto A_sqrt_exp =
         A_mat(1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 4.0);
 
-    REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
-    REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+    STATIC_REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
+    STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
   }
 
   SECTION("2x2 SPD") {
     constexpr auto A_mat = mat_traits<Matrixd<2, 2>>();
     constexpr auto A = A_mat(4.0, 2.0, 2.0, 3.0);
-    const auto A_sqrt = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt = std::get<0>(MatrixSqrt<decltype(A)>()(A));
 
-    REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
-    REQUIRE(all_equal(A_sqrt, transpose(A_sqrt), 1e-5));
+    STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+    STATIC_REQUIRE(all_equal(A_sqrt, transpose(A_sqrt), 1e-5));
   }
 }
 
@@ -528,7 +519,10 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(ldl.L() == make_identity<double, 4>());
 
     constexpr auto b = Vectord<4>{1.0, 1.0, 1.0, 1.0};
-    constexpr auto x = ldl.solve(b);
+    constexpr auto solve_res = ldl.solve(b);
+    constexpr auto x = std::get<0>(solve_res);
+    constexpr auto event = std::get<1>(solve_res);
+    STATIC_REQUIRE(event == linalg::NumericalEvent::NONE);
     constexpr auto y = A * x;
     STATIC_REQUIRE(y == b);
   }
@@ -543,7 +537,10 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
 
     constexpr auto b = Vectord<2>{1.0, 2.0};
-    constexpr auto x = ldl.solve(b);
+    constexpr auto solve_res = ldl.solve(b);
+    constexpr auto x = std::get<0>(solve_res);
+    constexpr auto event = std::get<1>(solve_res);
+    STATIC_REQUIRE(event == linalg::NumericalEvent::NONE);
     constexpr auto y = A * x;
     STATIC_REQUIRE(y == b);
   }
@@ -561,7 +558,10 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
 
     constexpr auto b = Vectord<4>{1.0, 2.0, 3.0, 4.0};
-    constexpr auto x = ldl.solve(b);
+    constexpr auto solve_res = ldl.solve(b);
+    constexpr auto x = std::get<0>(solve_res);
+    constexpr auto event = std::get<1>(solve_res);
+    STATIC_REQUIRE(event == linalg::NumericalEvent::NONE);
     constexpr auto y = A * x;
     STATIC_REQUIRE(y == b);
   }
@@ -588,7 +588,10 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(A == ldl.L() * (ldl.D() * transpose(ldl.L())));
 
     constexpr auto b = Vectord<5>{1.0, 2.0, 3.0, 4.0, 5.0};
-    constexpr auto x = ldl.solve(b);
+    constexpr auto solve_res = ldl.solve(b);
+    constexpr auto x = std::get<0>(solve_res);
+    constexpr auto event = std::get<1>(solve_res);
+    STATIC_REQUIRE(event == linalg::NumericalEvent::NONE);
     constexpr auto y = A * x;
     STATIC_REQUIRE(L2<Vectord<5>>()(y - b) < eps);
   }
@@ -605,7 +608,10 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(all_equal(A, res));
 
     constexpr auto b = Vectord<4>{-1.0, -2.0, -3.0, -4.0};
-    constexpr auto x = ldl.solve(b);
+    constexpr auto solve_res = ldl.solve(b);
+    constexpr auto x = std::get<0>(solve_res);
+    constexpr auto event = std::get<1>(solve_res);
+    STATIC_REQUIRE(event == linalg::NumericalEvent::NONE);
     constexpr auto y = A * x;
     STATIC_REQUIRE(L2<Vectord<4>>()(y - b) < eps);
   }

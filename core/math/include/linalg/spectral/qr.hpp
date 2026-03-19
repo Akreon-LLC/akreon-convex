@@ -12,7 +12,7 @@
 #pragma once
 
 #include "config/assert.hpp"
-
+#include "config/solver_config.hpp"
 #include "linalg/linalg_util.hpp"
 #include "linalg/vector/householder.hpp"
 
@@ -46,9 +46,20 @@ struct QR {
   /**
    * @brief CTOR
    *
-   * @param matrix A of type T with Rows x Cols elements
+   * @param A (matrix of type T with Rows x Cols elements)
    */
   constexpr QR(const Mat& A) { solve_householder(A); }
+
+  /**
+   * @brief CTOR
+   *
+   * @param A (matrix)
+   * @param config (FactorConfig)
+   */
+  constexpr QR(const Mat& A, const config::FactorConfig<ScalarT>& config_in)
+      : config(config_in) {
+    solve_householder(A);
+  }
 
   /**
    * @brief get Q from compact householder Q
@@ -88,7 +99,7 @@ struct QR {
    *
    * @param vector b representing the outputs or observables of a linear system
    *
-   * @return x
+   * @return (x, event)
    */
   constexpr auto solve(const Vector<T, Rows>& b) const {
     Vector<T, Rows> c;
@@ -189,27 +200,36 @@ struct QR {
    * @param upper right triangular R matrix
    * @param rhs vector to be solved
    *
-   * @return solved x vector
+   * @return (x, event)
    */
   constexpr auto back_solve(const Matrix<T, Rows, Cols>& R,
                             const Vector<T, Rows>& rhs) const {
     Vector<T, Cols> x;
     constexpr auto mn = std::min(Rows, Cols);
+    linalg::NumericalEvent event{linalg::NumericalEvent::NONE};
     for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
       T sum = 0;
       for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
 
       AK_ASSERT(R(i)(i) != T(0) &&
-             "QR back_solve requires non-zero diagonal in R");
-      x(i) = (rhs(i) - sum) / R(i)(i);
+                "QR back_solve requires non-zero diagonal in R");
+      T d = R(i)(i);
+      ScalarT mag = constexpr_abs(d);
+      if (mag <= config.floor_eps) {
+        d = (mag > ScalarT(0)) ? d * config.floor_eps / mag
+                               : T(config.floor_eps);
+        event = linalg::NumericalEvent::NEAR_SINGULAR_TRIANGULAR_SOLVE;
+      }
+      x(i) = (rhs(i) - sum) / d;
     }
-    return x;
+    return std::tuple{x, event};
   }
 
   /** @brief QR decomposition for matrix input A */
   Mat H;                 ///< orthonormal basis Q (slighty different than GS
                          ///< as its fully compact and can use straight up)
   Vector<T, Rows> beta;  ///< beta scalars
+  config::FactorConfig<ScalarT> config;  ///< Factor config
 };
 
 }  // namespace linalg

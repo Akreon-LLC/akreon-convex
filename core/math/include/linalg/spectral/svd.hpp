@@ -12,7 +12,6 @@
 #pragma once
 
 #include "config/assert.hpp"
-
 #include "eig_decomp.hpp"
 
 namespace linalg {
@@ -74,7 +73,12 @@ struct SVD {
     Vector<Real, Cols> lambdas;
     for (size_t i = 0; i < Cols; ++i) {
       AK_ASSERT(is_real(tmp_lambdas(i)) &&
-             "SVD expects real eigenvalues from A^*A");
+                "SVD expects real eigenvalues from A^*A");
+      if (!is_real(tmp_lambdas(i))) {
+        converged = false;
+        return;
+      }
+
       lambdas(i) = tmp_lambdas(i).real();
     }
 

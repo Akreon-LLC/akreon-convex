@@ -35,7 +35,7 @@ struct MatrixInverse {
    *
    * @param A (matrix)
    *
-   * @return A^{-1}
+   * @return (A^{-1}, event)
    */
   constexpr auto operator()(const Mat& A) const { return apply(A); }
 
@@ -44,7 +44,7 @@ struct MatrixInverse {
    *
    * @param A (matrix)
    *
-   * @return A^{-1}
+   * @return (A^{-1}, event)
    */
   constexpr auto apply(const Mat& A) const {
     const auto qr = QR(A);
@@ -52,10 +52,13 @@ struct MatrixInverse {
     for (size_t i = 0; i < N; ++i) {
       Vector<T, N> I_vec{};
       I_vec(i) = T(1);
-      const auto a_col = qr.solve(I_vec);
+      const auto [a_col, event] = qr.solve(I_vec);
+      if (event != linalg::NumericalEvent::NONE)
+        return std::tuple(A_inv, event);
+
       for (size_t j = 0; j < N; ++j) A_inv(j)(i) = a_col(j);
     }
-    return A_inv;
+    return std::tuple(A_inv, linalg::NumericalEvent::NONE);
   }
 };
 
@@ -76,7 +79,7 @@ struct SymmetricMatrixInverse {
    *
    * @param A (matrix)
    *
-   * @return A^{-1}
+   * @return (A^{-1}, event)
    */
   constexpr auto operator()(const Mat& A) const { return apply(A); }
 
@@ -85,22 +88,26 @@ struct SymmetricMatrixInverse {
    *
    * @param A (matrix)
    *
-   * @return A^{-1}
+   * @return (A^{-1}, event)
    */
   constexpr auto apply(const Mat& A) const {
     const auto ldl = LDL(A);
 
+    Mat A_inv{};
     AK_ASSERT(ldl.is_valid() &&
               "Input matrix is not a valid symmetric matrix for LDL^T");
+    if (!ldl.is_valid())
+      return std::tuple(A_inv, linalg::NumericalEvent::FACTORIZATION_FAILED);
 
-    Mat A_inv{};
     for (size_t i = 0; i < N; ++i) {
       Vector<T, N> I_vec{};
       I_vec(i) = T(1);
-      const auto a_col = ldl.solve(I_vec);
+      const auto [a_col, event] = ldl.solve(I_vec);
+      if (linalg::is_fatal_event(event))
+        return std::tuple(A_inv, event);
       for (size_t j = 0; j < N; ++j) A_inv(j)(i) = a_col(j);
     }
-    return A_inv;
+    return std::tuple(A_inv, linalg::NumericalEvent::NONE);
   }
 };
 

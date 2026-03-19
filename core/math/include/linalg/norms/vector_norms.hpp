@@ -13,7 +13,6 @@
 #pragma once
 
 #include "config/assert.hpp"
-
 #include "linalg/linalg_ops.hpp"
 #include "norm_traits.hpp"
 
@@ -60,10 +59,7 @@ struct L1 {
   using ScalarT = scalar_type_t<vec_type_t<Vec>>;
   constexpr auto operator()(const Vec& x) const {
     ScalarT sum = 0;
-    if constexpr (RealLike<T>)
-      for (const auto& _x : x) sum += constexpr_abs(_x);
-    else
-      for (const auto& _x : x) sum += constexpr_absc(_x);
+    for (const auto& _x : x) sum += constexpr_abs(_x);
     return sum;
   }
 };
@@ -83,10 +79,7 @@ struct Linf {
   using ScalarT = scalar_type_t<vec_type_t<Vec>>;
   constexpr auto operator()(const Vec& x) const {
     ScalarT mx = 0;
-    if constexpr (RealLike<T>)
-      for (const auto& _x : x) mx = std::max(mx, constexpr_abs(_x));
-    else
-      for (const auto& _x : x) mx = std::max(mx, constexpr_absc(_x));
+    for (const auto& _x : x) mx = std::max(mx, constexpr_abs(_x));
     return mx;
   }
 };

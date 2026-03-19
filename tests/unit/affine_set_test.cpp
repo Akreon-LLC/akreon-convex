@@ -119,7 +119,11 @@ TEST_CASE("Test 2d Space Operations", "[affine_sets]") {
     constexpr auto set_rotated = set.transform(map);
     STATIC_REQUIRE(all_equal(set_rotated.basis(), R_mat * I));
     STATIC_REQUIRE(all_equal(set_rotated.point(), x0));
-    constexpr auto R_mat_inv = linalg::MatrixInverse<decltype(R_mat)>()(R_mat);
+    constexpr auto R_mat_inv_res =
+        linalg::MatrixInverse<decltype(R_mat)>()(R_mat);
+    constexpr auto R_mat_inv = std::get<0>(R_mat_inv_res);
+    constexpr auto R_mat_inv_event = std::get<1>(R_mat_inv_res);
+    STATIC_REQUIRE(R_mat_inv_event == linalg::NumericalEvent::NONE);
     constexpr auto map2 = map.compose(AffineMap2d<double>(R_mat_inv, x0));
     constexpr auto set_id = set.transform(map2);
     STATIC_REQUIRE(all_equal(set_id.basis(), set.basis()));

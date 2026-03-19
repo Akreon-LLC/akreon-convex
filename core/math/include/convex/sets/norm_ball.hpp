@@ -177,7 +177,8 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       linalg::Vector<T, 3 * N + 1> b;
       b(0) = r;
 
-      const auto U_inv = linalg::MatrixInverse<decltype(U)>()(U);
+      const auto [U_inv, event] = linalg::MatrixInverse<decltype(U)>()(U);
+      static_cast<void>(event);
       const auto c_plus_U_inv_t = c + U_inv * t;
       for (size_t i = 1; i < 2 * N + 1; ++i) {
         const size_t idx = (i - 1) % N;
@@ -229,7 +230,8 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       linalg::Matrix<T, 2 * N, N> A;
       linalg::Vector<T, 2 * N> b;
 
-      const auto U_inv = linalg::MatrixInverse<decltype(U)>()(U);
+      const auto [U_inv, event] = linalg::MatrixInverse<decltype(U)>()(U);
+      static_cast<void>(event);
       const auto c_plus_U_inv_t = c + U_inv * t;
       for (size_t i = 0; i < 2 * N; ++i) {
         const auto idx = i % N;

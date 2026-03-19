@@ -92,9 +92,11 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
     requires(linalg::mat_cols_v<Mat> == N &&
              std::same_as<linalg::mat_type_t<Mat>, T>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
-    const auto aT_U =
-        transpose(as_col_vector(a)) *
+    const auto [U_inv, event] =
         linalg::MatrixInverse<Mat>()(map.linear_part());
+    static_cast<void>(event);
+    const auto aT_U =
+        transpose(as_col_vector(a)) * U_inv;
     return Hyperplane<Meta, Child>(as_vector(aT_U),
                                    b + (aT_U * map.translation())(0),
                                    std::get<0>(this->children));

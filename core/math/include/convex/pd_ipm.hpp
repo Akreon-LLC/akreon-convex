@@ -55,12 +55,13 @@ struct PrimalDualResult {
   using T = linalg::vec_type_t<Var>;
 
   config::SolverResult tag{};  ///< tag for result of pd-ipm
-  bool stalled{false};         ///< backtracking status (stalled or not)
-  T mu{};                      ///< normalized duality gap
-  T convex_obj{};              ///< convex objective value c^T z
-  T dual_obj{};                ///< dual objective value -g^T y
-  Var rd{};                    ///< dual residuals
-  ConeVar rp{};                ///< primal residuals
+  linalg::NumericalEvent event{linalg::NumericalEvent::NONE};
+  bool stalled{false};  ///< backtracking status (stalled or not)
+  T mu{};               ///< normalized duality gap
+  T convex_obj{};       ///< convex objective value c^T z
+  T dual_obj{};         ///< dual objective value -g^T y
+  Var rd{};             ///< dual residuals
+  ConeVar rp{};         ///< primal residuals
   PrimalDualIterate<Var, ConeVar> iterate;  ///< primal dual iterate
   size_t num_iter{};                        ///< total number of iter
 };
@@ -93,7 +94,7 @@ struct PredictorCorrector {
    * @return pz_rhs (ignore on return)
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr Var predictor(
+  constexpr auto predictor(
       Var&& pz_rhs, const auto& K, const auto& S_inv, const Mat& F,
       const ConeVar& rp, const Var& rd, const ConeVar& x, const ConeVar& y,
       Var& pz, ConeVar& px, ConeVar& py
@@ -103,7 +104,7 @@ struct PredictorCorrector {
 #endif
   ) const {
     if constexpr (idx >= NumCones)
-      return pz_rhs;
+      return std::tuple(std::move(pz_rhs), linalg::NumericalEvent::NONE);
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
@@ -121,7 +122,10 @@ struct PredictorCorrector {
         rpk(j) = rp(i);
       }
 
-      const auto Hes = Ki.H(xk, yk);
+      const auto [Hes, event] = Ki.H(xk, yk);
+      if (linalg::is_fatal_event(event))
+        return std::tuple(std::move(pz_rhs), event);
+
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
@@ -142,15 +146,22 @@ struct PredictorCorrector {
       cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
 #endif
 
-      const auto new_pz_rhs = predictor<idx + 1, End>(
+      auto [new_pz_rhs, next_event] = predictor<idx + 1, End>(
           std::move(pz_rhs), K, S_inv, F, rp, rd, x, y, pz, px, py
 #ifdef AKREON_DEBUG
           ,
           trace_state
 #endif
       );
+      if (linalg::is_fatal_event(next_event))
+        return std::tuple(std::move(new_pz_rhs), next_event);
 
-      if constexpr (idx + 1 == NumCones) pz = S_inv.solve(new_pz_rhs + rd);
+      if constexpr (idx + 1 == NumCones) {
+        const auto [pz_next, solve_event] = S_inv.solve(new_pz_rhs + rd);
+        if (linalg::is_fatal_event(solve_event))
+          return std::tuple(std::move(new_pz_rhs), solve_event);
+        pz = pz_next;
+      }
 
       const auto px_local = F_blk * pz + rpk;
       const auto py_local = T(-1) * rhs_c - Hes.apply(px_local);
@@ -166,7 +177,7 @@ struct PredictorCorrector {
       }
 #endif
 
-      return new_pz_rhs;
+      return std::tuple(std::move(new_pz_rhs), linalg::NumericalEvent::NONE);
     }
   }
 
@@ -190,7 +201,7 @@ struct PredictorCorrector {
    * @return pz_rhs (ignore on return)
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr Var corrector(
+  constexpr auto corrector(
       Var&& pz_rhs, const ConeVar& px_aff, const ConeVar& py_aff, const auto& K,
       const auto& S_inv, const Mat& F, const ConeVar& rp, const Var& rd,
       const ConeVar& x, const ConeVar& y, Var& pz, ConeVar& px, ConeVar& py
@@ -200,7 +211,7 @@ struct PredictorCorrector {
 #endif
   ) const {
     if constexpr (idx >= NumCones)
-      return pz_rhs;
+      return std::tuple(std::move(pz_rhs), linalg::NumericalEvent::NONE);
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
@@ -218,12 +229,19 @@ struct PredictorCorrector {
         rpk(j) = rp(i);
       }
 
-      const auto Hes = Ki.H(xk, yk);
+      const auto [Hes, event] = Ki.H(xk, yk);
+      if (linalg::is_fatal_event(event))
+        return std::tuple(std::move(pz_rhs), event);
+
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
       T mu_k = Ki.trace(xk, yk) / Ki.nu();
-      ConePoint rhs_c = yk + mu_k * Ki.grad(xk) + Ki.circ(px_aff_k, py_aff_k);
+      const auto [grad_xk, grad_event] = Ki.grad(xk);
+      if (linalg::is_fatal_event(grad_event))
+        return std::tuple(std::move(pz_rhs), grad_event);
+
+      ConePoint rhs_c = yk + mu_k * grad_xk + Ki.circ(px_aff_k, py_aff_k);
 
       pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_DEBUG
@@ -240,7 +258,7 @@ struct PredictorCorrector {
       cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
 #endif
 
-      const auto new_pz_rhs =
+      auto [new_pz_rhs, next_event] =
           corrector<idx + 1, End>(std::move(pz_rhs), px_aff, py_aff, K, S_inv,
                                   F, rp, rd, x, y, pz, px, py
 #ifdef AKREON_DEBUG
@@ -248,8 +266,15 @@ struct PredictorCorrector {
                                   trace_state
 #endif
           );
+      if (linalg::is_fatal_event(next_event))
+        return std::tuple(std::move(new_pz_rhs), next_event);
 
-      if constexpr (idx + 1 == NumCones) pz = S_inv.solve(new_pz_rhs + rd);
+      if constexpr (idx + 1 == NumCones) {
+        const auto [pz_next, solve_event] = S_inv.solve(new_pz_rhs + rd);
+        if (linalg::is_fatal_event(solve_event))
+          return std::tuple(std::move(new_pz_rhs), solve_event);
+        pz = pz_next;
+      }
 
       const auto px_local = F_blk * pz + rpk;
       const auto py_local = T(-1) * rhs_c - Hes.apply(px_local);
@@ -265,7 +290,7 @@ struct PredictorCorrector {
       }
 #endif
 
-      return new_pz_rhs;
+      return std::tuple(std::move(new_pz_rhs), linalg::NumericalEvent::NONE);
     }
   }
 };
@@ -396,7 +421,12 @@ struct PrimalDualIPM {
 #endif
 
       /// (dakre) 1 - accumulate and factor schur
-      const auto S = accumulate_schur(Schur{}, F, K, x, y);
+      const auto [S, schur_event] = accumulate_schur(Schur{}, F, K, x, y);
+      if (linalg::is_fatal_event(schur_event)) {
+        res.event = schur_event;
+        res.stalled = true;
+        return;
+      }
       const auto ldl = linalg::LDL(linalg::regularize(S));
 
       /// (dakre) 2 - compute initial primal & dual residuals (negated)
@@ -406,21 +436,35 @@ struct PrimalDualIPM {
       auto rp_norm = linalg::L2<decltype(rp)>()(rp);
 
       /// (dakre) 3 - predictor step
-      pc.predictor(Var{}, K, ldl, F, rp, rd, x, y, pz_pred, px_pred, py_pred
+      const auto [pred_rhs, pred_event] =
+          pc.predictor(Var{}, K, ldl, F, rp, rd, x, y, pz_pred, px_pred, py_pred
 #ifdef AKREON_DEBUG
-                   ,
-                   trace[i]
+                       ,
+                       trace[i]
 #endif
-      );
+          );
+      static_cast<void>(pred_rhs);
+      if (linalg::is_fatal_event(pred_event)) {
+        res.event = pred_event;
+        res.stalled = true;
+        return;
+      }
 
       /// (dakre) 4 - corrector step
-      pc.corrector(Var{}, px_pred, py_pred, K, ldl, F, rp, rd, x, y, pz_corr,
-                   px_corr, py_corr
+      const auto [corr_rhs, corr_event] =
+          pc.corrector(Var{}, px_pred, py_pred, K, ldl, F, rp, rd, x, y,
+                       pz_corr, px_corr, py_corr
 #ifdef AKREON_DEBUG
-                   ,
-                   trace[i]
+                       ,
+                       trace[i]
 #endif
-      );
+          );
+      static_cast<void>(corr_rhs);
+      if (linalg::is_fatal_event(corr_event)) {
+        res.event = corr_event;
+        res.stalled = true;
+        return;
+      }
 
       /// (dakre) 5 - newton step (blended step)
       const auto px = rho * px_pred + (1.0 - rho) * px_corr;
@@ -487,7 +531,7 @@ struct PrimalDualIPM {
   constexpr auto accumulate_schur(Schur&& S, const FMat& F, const auto& K,
                                   const ConeVar& x, const ConeVar& y) const {
     if constexpr (idx >= NumCones)
-      return S;
+      return std::tuple(std::move(S), linalg::NumericalEvent::NONE);
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
@@ -501,7 +545,8 @@ struct PrimalDualIPM {
       for (size_t i = Start, j = 0; i < End; ++i, ++j)
         xk(j) = x(i), yk(j) = y(i);
 
-      const auto Hes = Ki.H(xk, yk);
+      const auto [Hes, event] = Ki.H(xk, yk);
+      if (linalg::is_fatal_event(event)) return std::tuple(std::move(S), event);
 
       const auto F_blk = get_block<Start, End, 0, N>(F);
       const linalg::SchurKKT<linalg::operator_mat_t<decltype(Hes)>,
@@ -628,8 +673,9 @@ struct PrimalDualIPM {
         xk(j) = x(i), yk(j) = y(i);
 
       const auto beta_limit = beta + config.Delta;
+      const auto [gamma_F, event] = Ki.gamma_F(xk, yk);
       bool rv = Ki.in_cone(xk) && Ki.in_dual_cone(yk) &&
-                Ki.gamma_F(xk, yk) < beta_limit;
+                !linalg::is_fatal_event(event) && gamma_F < beta_limit;
       return rv && check_functional_proximity<idx + 1, End>(K, x, y);
     }
   }
