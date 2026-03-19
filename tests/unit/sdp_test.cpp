@@ -23,7 +23,7 @@ using namespace conic;
 using namespace unit_test;
 using namespace config;
 
-// static constexpr auto rel_tol{1e-3};
+static constexpr auto rel_tol{1e-3};
 
 TEST_CASE("Minimal SDP", "[sdp_test]") {
   using Space = Matrixd<1, 2>;
@@ -57,34 +57,30 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     STATIC_REQUIRE(
         std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
 
-#if 0
-    constexpr auto F_mat = mat_traits<Matrixd<3, 2>>();
-    constexpr auto F_exp = F_mat(1.0, 2.0, 0.0, 0.0, 2.0, 1.0);
+    constexpr auto F_mat = mat_traits<Matrixd<5, 2>>();
+    constexpr auto F_exp =
+        F_mat(1.0, 2.0, 0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0, 1.0);
     constexpr auto F = prob_min.constraint_map().linear_part();
-    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 3);
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 3);
-    STATIC_REQUIRE(g == Vectord<3>{1.0, 0.0, 1.0});
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 5);
+    STATIC_REQUIRE(g == Vectord<5>{1.0, 0.0, 1.0, 0.0, 0.0});
     STATIC_REQUIRE(prob_min.linear_objective() == Matrixd<1, 2>{c});
-#endif
 
+    /// (dakre) moving this to runtime path as compile time is slow
     const PrimalDualIPM solver(prob_min);
     const auto& res = solver.res;
     const auto& trace = solver.trace;
 
-#if 0
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(res.num_iter > 0);
     REQUIRE(res.num_iter <= PD_IPM_STEPS);
     REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
     REQUIRE(!res.stalled);
-    REQUIRE(constexpr_abs(res.iterate.z(0) + 1.0 / 3.0) < rel_tol);
-    REQUIRE(constexpr_abs(res.iterate.z(1) + 1.0 / 3.0) < rel_tol);
-#endif
-
-    log(res, trace);
+    REQUIRE(constexpr_abs(res.iterate.z(0)) < rel_tol);
+    REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
   }
 }
