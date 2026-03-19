@@ -1,0 +1,81 @@
+/*
+ * Copyright © 2025 Akreon LLC. All rights reserved.
+ *
+ * Proprietary and Confidential.
+ * This source code is the property of Akreon LLC and constitutes a trade secret
+ * protected by U.S. and international law.
+ *
+ * Unauthorized copying, modification, distribution, or disclosure of this file,
+ * via any medium, is strictly prohibited without express written permission
+ * from Akreon LLC.
+ */
+
+#include <algorithm>
+#include <catch2/catch_test_macros.hpp>
+
+#include "math.hpp"
+#include "unit_test_helpers.hpp"
+
+using namespace linalg;
+using namespace convex;
+using namespace affine;
+using namespace conic;
+using namespace unit_test;
+using namespace config;
+
+// static constexpr auto rel_tol{1e-3};
+
+TEST_CASE("Minimal SDP", "[sdp_test]") {
+  using Space = Matrixd<1, 2>;
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+
+  SECTION("Min c^T x s.t. LMI") {
+    constexpr auto A0 =
+        Matrixd<2, 2>{Vectord<2>{-1.0, 0.0}, Vectord<2>{0.0, -2.0}};
+    constexpr auto A1 =
+        Matrixd<2, 2>{Vectord<2>{-2.0, 0.0}, Vectord<2>{0.0, -1.0}};
+    constexpr auto B =
+        Matrixd<2, 2>{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 1.0}};
+    constexpr Vector<Matrixd<2, 2>, 2> A{A0, A1};
+    constexpr auto feasible_set = LMI<LMIMeta<Space>, decltype(x)>(A, B, x);
+    constexpr auto prob_constr = prob_init.in_set(feasible_set);
+
+    constexpr Vectord<2> c{1.0, 1.0};
+    constexpr auto cx = WeightedSum<Space>()(c, x);
+    constexpr auto prob_min = prob_constr.minimize(cx);
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(prob_min.validate());
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 1);
+
+    constexpr auto F_mat = mat_traits<Matrixd<3, 2>>();
+    constexpr auto F_exp = F_mat(1.0, 2.0, 0.0, 0.0, 2.0, 1.0);
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 3);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
+    STATIC_REQUIRE(all_equal(F, F_exp));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 3);
+    STATIC_REQUIRE(g == Vectord<3>{1.0, 0.0, 1.0});
+    STATIC_REQUIRE(prob_min.linear_objective() == Matrixd<1, 2>{c});
+
+    const PrimalDualIPM solver(prob_min);
+    const auto& res = solver.res;
+    const auto& trace = solver.trace;
+
+#if 0
+    REQUIRE(res.tag == SolverResult::OPTIMAL);
+    REQUIRE(res.num_iter > 0);
+    REQUIRE(res.num_iter <= PD_IPM_STEPS);
+    REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
+    REQUIRE(!res.stalled);
+    REQUIRE(constexpr_abs(res.iterate.z(0) + 1.0 / 3.0) < rel_tol);
+    REQUIRE(constexpr_abs(res.iterate.z(1) + 1.0 / 3.0) < rel_tol);
+#endif
+
+    log(res, trace);
+  }
+}

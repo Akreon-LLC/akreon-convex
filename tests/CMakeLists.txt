@@ -128,6 +128,12 @@ if(BUILD_UNIT_TESTS)
   target_link_libraries(socp_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(socp_test PRIVATE ../math/include)
   target_compile_options(socp_test PRIVATE ${UNIT_COMPILE_OPTS})
+
+  add_executable(sdp_test unit/sdp_test.cpp)
+  add_test(NAME sdp_test COMMAND sdp_test)
+  target_link_libraries(sdp_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(sdp_test PRIVATE ../math/include)
+  target_compile_options(sdp_test PRIVATE ${UNIT_COMPILE_OPTS})
 endif()
 
 if(BUILD_FUNCTIONAL_TESTS)
