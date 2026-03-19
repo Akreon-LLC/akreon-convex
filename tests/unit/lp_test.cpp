@@ -61,13 +61,16 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0)) < rel_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+
+#if AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
   }
 
   SECTION("Min x1") {
@@ -88,13 +91,15 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
   }
 
   SECTION("Min sum(x.split())") {
@@ -121,12 +126,14 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(res.iterate.z(0) < rel_tol);
     STATIC_REQUIRE(res.iterate.z(1) < rel_tol);
   }
@@ -151,12 +158,14 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(res.iterate.z(0) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - 1.0) < rel_tol);
   }
@@ -255,12 +264,14 @@ TEST_CASE("Polyhedron and Affine Subspace LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0)) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - 1.0) < rel_tol);
   }
@@ -305,12 +316,14 @@ TEST_CASE("L1 Ball LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) + radius) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1)) < rel_tol);
   }
@@ -352,12 +365,14 @@ TEST_CASE("Linf Ball LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) + radius) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - radius) < rel_tol);
   }
@@ -401,12 +416,14 @@ TEST_CASE("L1 Function LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1)) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(4) - 1.0) < rel_tol);
@@ -449,12 +466,14 @@ TEST_CASE("Linf Function LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) + 2.0) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(2) - 2.0) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0)) <= 2.0 + rel_tol);
@@ -500,12 +519,14 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.5) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - 1.5) < rel_tol);
   }
@@ -555,12 +576,14 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0)) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - 1.0) < rel_tol);
   }
@@ -597,12 +620,14 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0)) < rel_tol);
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - 1.0) < rel_tol);
   }
@@ -635,12 +660,14 @@ TEST_CASE("Abs Function LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
-    constexpr auto trace = solver.trace;
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
 
     // log(res, trace);
@@ -668,18 +695,20 @@ TEST_CASE("Warm Start LP Test", "[lp_test]") {
 
     constexpr PrimalDualIPM cold_solver(prob_min);
     constexpr auto cold_res = cold_solver.res;
-    constexpr auto cold_trace = cold_solver.trace;
 
     constexpr PrimalDualIPM warm_solver(prob_min, cold_res.iterate);
     constexpr auto warm_res = warm_solver.res;
-    constexpr auto warm_trace = warm_solver.trace;
 
     STATIC_REQUIRE(cold_res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(warm_res.tag == SolverResult::OPTIMAL);
+#ifdef AKREON_DEBUG
+    constexpr auto cold_trace = cold_solver.trace;
+    constexpr auto warm_trace = warm_solver.trace;
     STATIC_REQUIRE(cold_trace[cold_res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
     STATIC_REQUIRE(warm_trace[warm_res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(warm_res.num_iter > 0 && warm_res.num_iter < PD_IPM_STEPS);
     STATIC_REQUIRE(warm_res.num_iter <= cold_res.num_iter);
     STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0)) < rel_tol);

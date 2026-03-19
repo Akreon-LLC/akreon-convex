@@ -62,12 +62,16 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - x_exp(0)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - x_exp(1)) < rel_tol);
@@ -103,12 +107,16 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - x_exp(0)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - x_exp(1)) < rel_tol);
@@ -148,14 +156,18 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
 
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - x_exp(0)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - x_exp(1)) < rel_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
   }
 }
@@ -202,12 +214,16 @@ TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
@@ -247,12 +263,16 @@ TEST_CASE("Minimal QP 1 Var (Square Objective Free Var)", "[qp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
@@ -298,12 +318,16 @@ TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
 
     constexpr PrimalDualIPM solver(prob_max);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) + 1.0) < rel_tol);
@@ -356,12 +380,16 @@ TEST_CASE("Minimal QP 2 Vars (Harmonic Mean Objective)", "[qp_test]") {
     constexpr PrimalDualIPMConfig config{.duality_gap_tol = 1e-4};
     constexpr PrimalDualIPM solver(prob_max, config);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(1) - 1.0) < rel_tol);
@@ -407,12 +435,16 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
   }
@@ -450,11 +482,15 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
 
     constexpr PrimalDualIPM solver(prob_min);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
   }
@@ -502,12 +538,16 @@ TEST_CASE("Minimal QP 1 Var (Huber Objective)", "[qp_test]") {
     constexpr PrimalDualIPMConfig config{.duality_gap_tol = 1e-4};
     constexpr PrimalDualIPM solver(prob_min, config);
     constexpr auto res = solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto trace = solver.trace;
+#endif
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!res.stalled);
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(0)) < 2e-2);
   }
@@ -533,18 +573,26 @@ TEST_CASE("Warm Start QP Test", "[qp_test]") {
 
     constexpr PrimalDualIPM cold_solver(prob_min);
     constexpr auto cold_res = cold_solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto cold_trace = cold_solver.trace;
+#endif
 
     constexpr PrimalDualIPM warm_solver(prob_min, cold_res.iterate);
     constexpr auto warm_res = warm_solver.res;
+#ifdef AKREON_DEBUG
     constexpr auto warm_trace = warm_solver.trace;
+#endif
 
     STATIC_REQUIRE(cold_res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(warm_res.tag == SolverResult::OPTIMAL);
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(cold_trace[cold_res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
+#ifdef AKREON_DEBUG
     STATIC_REQUIRE(warm_trace[warm_res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
+#endif
     STATIC_REQUIRE(!warm_res.stalled);
     STATIC_REQUIRE(warm_res.num_iter > 0 && warm_res.num_iter < PD_IPM_STEPS);
     STATIC_REQUIRE(warm_res.num_iter <= cold_res.num_iter);

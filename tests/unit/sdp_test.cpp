@@ -73,12 +73,16 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     /// (dakre) moving this to runtime path as compile time is slow
     const PrimalDualIPM solver(prob_min);
     const auto& res = solver.res;
+#ifdef AKREON_DEBUG
     const auto& trace = solver.trace;
+#endif
 
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(res.num_iter > 0);
     REQUIRE(res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
     REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
+#endif
     REQUIRE(!res.stalled);
     REQUIRE(constexpr_abs(res.iterate.z(0)) < rel_tol);
     REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
