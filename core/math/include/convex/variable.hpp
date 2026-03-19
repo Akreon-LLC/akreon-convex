@@ -27,8 +27,7 @@ using VarDom = ConvexDomain<Dom, VarType::FREE>;
 
 /// @brief alias for nominal vector/matrix variable meta
 template <linalg::RnSpace Dom>
-using VarMeta =
-    ConvexAtomMeta<VarDom<Dom>, VarDom<Dom>, CurvatureType::AFFINE>;
+using VarMeta = ConvexAtomMeta<VarDom<Dom>, VarDom<Dom>, CurvatureType::AFFINE>;
 
 /// @brief alias for nominal nonnegative vector/matrix variable domain
 template <linalg::RnSpace Dom>
@@ -37,8 +36,7 @@ using NonnegVarDom = ConvexDomain<Dom, VarType::NONNEG>;
 /// @brief alias for nominal nonnegative vector/matrix variable meta
 template <linalg::RnSpace Dom>
 using NonnegVarMeta =
-    ConvexAtomMeta<NonnegVarDom<Dom>, NonnegVarDom<Dom>,
-                   CurvatureType::AFFINE>;
+    ConvexAtomMeta<NonnegVarDom<Dom>, NonnegVarDom<Dom>, CurvatureType::AFFINE>;
 
 /// @brief alias for nominal positive vector/matrix variable domain
 template <linalg::RnSpace Dom>
@@ -56,8 +54,7 @@ using NonposVarDom = ConvexDomain<Dom, VarType::NONPOS>;
 /// @brief alias for nominal nonpositive vector/matrix variable meta
 template <linalg::RnSpace Dom>
 using NonposVarMeta =
-    ConvexAtomMeta<NonposVarDom<Dom>, NonposVarDom<Dom>,
-                   CurvatureType::AFFINE>;
+    ConvexAtomMeta<NonposVarDom<Dom>, NonposVarDom<Dom>, CurvatureType::AFFINE>;
 
 /// @brief alias for nominal negative vector/matrix variable domain
 template <linalg::RnSpace Dom>
@@ -67,24 +64,6 @@ using NegVarDom = ConvexDomain<Dom, VarType::NEG>;
 template <linalg::RnSpace Dom>
 using NegVarMeta =
     ConvexAtomMeta<NegVarDom<Dom>, NegVarDom<Dom>, CurvatureType::AFFINE>;
-
-/// @brief alias for psd var domain
-template <linalg::RnSpace Dom>
-using PSDVarDom = ConvexDomain<Dom, VarType::PSD>;
-
-/// @brief alias for psd var meta
-template <linalg::RnSpace Dom>
-using PSDVarMeta =
-    ConvexAtomMeta<PSDVarDom<Dom>, PSDVarDom<Dom>, CurvatureType::AFFINE>;
-
-/// @brief alias for pd var domain
-template <linalg::RnSpace Dom>
-using PDVarDom = ConvexDomain<Dom, VarType::PD>;
-
-/// @brief alias for pd var meta
-template <linalg::RnSpace Dom>
-using PDVarMeta =
-    ConvexAtomMeta<PDVarDom<Dom>, PDVarDom<Dom>, CurvatureType::AFFINE>;
 
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
