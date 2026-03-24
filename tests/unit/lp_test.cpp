@@ -199,21 +199,24 @@ TEST_CASE("Halfspace and Hyperplane LP Test", "[lp_test]") {
     constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
-    constexpr mat_traits<Matrixd<5, 2>> F_mat;
-    constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0, -1.0, -1.0, 1.0, 1.0);
-    constexpr auto g_exp = Vectord<5>{0.0, 0.0, 0.5, 1.0, -1.0};
+    constexpr mat_traits<Matrixd<3, 2>> F_mat;
+    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0);
+    constexpr auto g_exp = Vectord<3>{0.0, 0.0, 0.5};
+    constexpr mat_traits<Matrixd<1, 2>> Aeq_mat;
+    constexpr auto Aeq = Aeq_mat(1.0, 1.0);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(prob_min.validate());
     STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
     STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 5);
+        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 3);
     STATIC_REQUIRE(
         mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 2);
     STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
     STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+    STATIC_REQUIRE(all_equal(prob_min.equality_map().linear_part(), Aeq));
+    STATIC_REQUIRE(prob_min.equality_map().translation() == Vectord<1>{1.0});
     STATIC_REQUIRE(prob_min.linear_objective() == c);
   }
 }
@@ -245,21 +248,24 @@ TEST_CASE("Polyhedron and Affine Subspace LP Test", "[lp_test]") {
     constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
-    constexpr mat_traits<Matrixd<7, 2>> F_mat;
-    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0, -1.0, 0.0, 0.0,
-                                 -1.0, 1.0, 0.0, 0.0, 1.0);
-    constexpr auto g_exp = Vectord<7>{0.0, 0.0, 0.5, 0.0, 1.0, 0.0, -1.0};
+    constexpr mat_traits<Matrixd<3, 2>> F_mat;
+    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0);
+    constexpr auto g_exp = Vectord<3>{0.0, 0.0, 0.5};
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(prob_min.validate());
     STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 1);
     STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 7);
+        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 3);
     STATIC_REQUIRE(
         mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 2);
     STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
     STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+    STATIC_REQUIRE(all_equal(prob_min.equality_map().linear_part(),
+                             make_identity<double, 2>()));
+    STATIC_REQUIRE(prob_min.equality_map().translation() ==
+                   Vectord<2>{0.0, 1.0});
     STATIC_REQUIRE(prob_min.linear_objective() == c);
 
     constexpr PrimalDualIPM solver(prob_min);
@@ -558,20 +564,24 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
     constexpr auto cx = WeightedSum<Space>()(c, x);
     constexpr auto prob_min = prob_constr.minimize(cx);
 
-    constexpr mat_traits<Matrixd<4, 2>> F_mat;
-    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, -1.0, 1.0, 1.0);
-    constexpr auto g_exp = Vectord<4>{0.0, 0.0, 1.0, -1.0};
+    constexpr mat_traits<Matrixd<2, 2>> F_mat;
+    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0);
+    constexpr auto g_exp = Vectord<2>{0.0, 0.0};
+    constexpr mat_traits<Matrixd<1, 2>> Aeq_mat;
+    constexpr auto Aeq = Aeq_mat(1.0, 1.0);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(prob_min.validate());
     STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 1);
     STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 4);
+        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 2);
     STATIC_REQUIRE(
         mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 2);
     STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
     STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+    STATIC_REQUIRE(all_equal(prob_min.equality_map().linear_part(), Aeq));
+    STATIC_REQUIRE(prob_min.equality_map().translation() == Vectord<1>{1.0});
     STATIC_REQUIRE(prob_min.linear_objective() == c);
 
     constexpr PrimalDualIPM solver(prob_min);
@@ -682,8 +692,8 @@ TEST_CASE("Warm Start LP Test", "[lp_test]") {
     constexpr auto prob_init = make_problem(x);
 
     constexpr auto A_mat = mat_traits<Matrixd<5, 2>>();
-    constexpr auto A = A_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 2.0, 1.0, -1.0,
-                             2.0);
+    constexpr auto A =
+        A_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 2.0, 1.0, -1.0, 2.0);
     constexpr auto b = Vectord<5>{0.0, 0.0, 4.0, 5.0, 2.0};
     constexpr Polyhedron<PolyhedronMeta<Space, Matrixd<1, 5>>, decltype(x)>
         poly(A, b, x);
@@ -713,9 +723,9 @@ TEST_CASE("Warm Start LP Test", "[lp_test]") {
     STATIC_REQUIRE(warm_res.num_iter <= cold_res.num_iter);
     STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0)) < rel_tol);
     STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - 1.0) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0) - cold_res.iterate.z(0)) <
-                   rel_tol);
-    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - cold_res.iterate.z(1)) <
-                   rel_tol);
+    STATIC_REQUIRE(
+        constexpr_abs(warm_res.iterate.z(0) - cold_res.iterate.z(0)) < rel_tol);
+    STATIC_REQUIRE(
+        constexpr_abs(warm_res.iterate.z(1) - cold_res.iterate.z(1)) < rel_tol);
   }
 }

@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "cone_block_builder.hpp"
+#include "canonical_form_builder.hpp"
 #include "config/assert.hpp"
 #include "convex_traits.hpp"
 

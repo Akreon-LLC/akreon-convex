@@ -103,6 +103,30 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
     return res;
   }
 
+  /**
+   * @brief apply
+   *
+   * @param Y (mat)
+   *
+   * @return A^{-1} Y
+   */
+  template <linalg::MatrixLike MatIn>
+    requires(std::same_as<linalg::mat_type_t<MatIn>, T>)
+  constexpr auto apply(const MatIn& Y) const {
+    constexpr size_t YRows = linalg::mat_rows_v<MatIn>;
+    constexpr size_t YCols = linalg::mat_cols_v<MatIn>;
+    static_assert(YRows == N, "Codom of Y must match expected dom of A");
+
+    linalg::Matrix<T, N, YCols> A_inv_Y{};
+    for (size_t i = 0; i < YCols; ++i) {
+      const auto y_col = get_col(Y, i);
+      const auto [res, event] = solve(y_col);
+      if (linalg::is_fatal_event(event)) return std::tuple(Y, event);
+      for (size_t j = 0; j < YRows; ++j) A_inv_Y(j)(i) = res(j);
+    }
+    return std::tuple(A_inv_Y, linalg::NumericalEvent::NONE);
+  }
+
  private:
   /**
    * @brief LDL^T of a square matrix

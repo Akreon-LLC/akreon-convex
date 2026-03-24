@@ -18,6 +18,7 @@
 #include <cstdio>
 
 #include "config/solver_config.hpp"
+#include "convex/solver_traits.hpp"
 
 namespace detail {
 
@@ -60,14 +61,10 @@ constexpr const char* cone_type_name_v =
 
 namespace convex {
 
-/// @brief forward declaration of pd result
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar>
-struct PrimalDualResult;
-
 /**
  * @brief IterState
  */
-template <linalg::FieldLike T, size_t MaxConeDim, size_t VarDim>
+template <linalg::FieldLike T, size_t MaxConeDim, size_t VarDim, size_t EqDim>
 struct PredictorCorrectorConeTrace {
   T mu{};      ///< local normalized duality gap (per cone)
   T rhs_c{};   ///< ||rhs_c||_2 in local cone block
@@ -78,6 +75,7 @@ struct PredictorCorrectorConeTrace {
   std::array<T, MaxConeDim> px{};
   std::array<T, MaxConeDim> py{};
   std::array<T, VarDim> pz{};
+  std::array<T, EqDim> pnu{};
   size_t cone_dim{};
   const char* cone_type{"unknown"};
 };
@@ -86,26 +84,32 @@ struct PredictorCorrectorConeTrace {
  * @brief IterState
  */
 template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
-          size_t VarDim>
+          size_t VarDim, size_t EqDim>
 struct IterState {
-  T mu{};       ///< normalized duality gap
-  T alpha_x{};  ///< max step to dK size
-  T alpha_y{};  ///< max step to dK^* size
-  T rd_norm{};  ///< dual norm residual size
-  T rp_norm{};  ///< primal norm residual size
-  T pz_norm{};  ///< newton step in z \in R^n size
-  T px_norm{};  ///< newton step in x \in K size
-  T py_norm{};  ///< newton step in y \in K^* size
-  std::array<PredictorCorrectorConeTrace<T, MaxConeDim, VarDim>, NumCones>
+  T mu{};        ///< normalized duality gap
+  T alpha_x{};   ///< max step to dK size
+  T alpha_y{};   ///< max step to dK^* size
+  T rd_norm{};   ///< dual norm residual size
+  T rp_norm{};   ///< primal norm residual size
+  T req_norm{};  ///< equality norm residual size
+  T pz_norm{};   ///< newton step in z \in R^n size
+  T pnu_norm{};  ///< newton step in nu size
+  T px_norm{};   ///< newton step in x \in K size
+  T py_norm{};   ///< newton step in y \in K^* size
+  std::array<PredictorCorrectorConeTrace<T, MaxConeDim, VarDim, EqDim>,
+             NumCones>
       predictor{};
-  std::array<PredictorCorrectorConeTrace<T, MaxConeDim, VarDim>, NumCones>
+  std::array<PredictorCorrectorConeTrace<T, MaxConeDim, VarDim, EqDim>,
+             NumCones>
       corrector{};
   config::SolverResult tag{};  ///< tag of current iterate
 
   constexpr void reset_pc_trace() {
     for (size_t i = 0; i < NumCones; ++i) {
-      predictor[i] = PredictorCorrectorConeTrace<T, MaxConeDim, VarDim>{};
-      corrector[i] = PredictorCorrectorConeTrace<T, MaxConeDim, VarDim>{};
+      predictor[i] =
+          PredictorCorrectorConeTrace<T, MaxConeDim, VarDim, EqDim>{};
+      corrector[i] =
+          PredictorCorrectorConeTrace<T, MaxConeDim, VarDim, EqDim>{};
     }
   }
 };
@@ -176,9 +180,9 @@ inline size_t array_slice_to_cstr(const std::array<T, N>& v, const size_t size,
  * @return write position
  */
 template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
-          size_t VarDim>
+          size_t VarDim, size_t EqDim>
 inline size_t iter_state_to_cstr(
-    const IterState<T, NumCones, MaxConeDim, VarDim>& state, char* out,
+    const IterState<T, NumCones, MaxConeDim, VarDim, EqDim>& state, char* out,
     const size_t out_size) {
   AK_ASSERT(out != nullptr && "iter_state_to_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
@@ -201,12 +205,15 @@ inline size_t iter_state_to_cstr(
   };
 
   if (!appendf(
-          "mu=%g ax=%g ay=%g rd=%g rp=%g pz=%g px=%g py=%g tag=%hhX",
+          "mu=%g ax=%g ay=%g rd=%g rp=%g req=%g pz=%g pnu=%g px=%g py=%g "
+          "tag=%hhX",
           static_cast<double>(state.mu), static_cast<double>(state.alpha_x),
           static_cast<double>(state.alpha_y),
           static_cast<double>(state.rd_norm),
           static_cast<double>(state.rp_norm),
+          static_cast<double>(state.req_norm),
           static_cast<double>(state.pz_norm),
+          static_cast<double>(state.pnu_norm),
           static_cast<double>(state.px_norm),
           static_cast<double>(state.py_norm), static_cast<uint8_t>(state.tag)))
     return write_pos;
@@ -237,6 +244,9 @@ inline size_t iter_state_to_cstr(
       if (!append_vec("yk", pred.yk, pred.cone_dim)) return write_pos;
       if (!append_vec("rhs_c", pred.rhs_c_vec, pred.cone_dim)) return write_pos;
       if (!append_vec("pz", pred.pz, VarDim)) return write_pos;
+      if constexpr (EqDim > 0) {
+        if (!append_vec("pnu", pred.pnu, EqDim)) return write_pos;
+      }
       if (!append_vec("px", pred.px, pred.cone_dim)) return write_pos;
       if (!append_vec("py", pred.py, pred.cone_dim)) return write_pos;
     }
@@ -257,6 +267,9 @@ inline size_t iter_state_to_cstr(
       if (!append_vec("yk", corr.yk, corr.cone_dim)) return write_pos;
       if (!append_vec("rhs_c", corr.rhs_c_vec, corr.cone_dim)) return write_pos;
       if (!append_vec("pz", corr.pz, VarDim)) return write_pos;
+      if constexpr (EqDim > 0) {
+        if (!append_vec("pnu", corr.pnu, EqDim)) return write_pos;
+      }
       if (!append_vec("px", corr.px, corr.cone_dim)) return write_pos;
       if (!append_vec("py", corr.py, corr.cone_dim)) return write_pos;
     }
@@ -276,10 +289,11 @@ inline size_t iter_state_to_cstr(
  * @return write position (in case buffer to small)
  */
 template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
-          size_t VarDim, size_t N>
+          size_t VarDim, size_t EqDim, size_t N>
 inline size_t trace_to_cstr(
     const size_t& num_iter,
-    const std::array<IterState<T, NumCones, MaxConeDim, VarDim>, N>& trace,
+    const std::array<IterState<T, NumCones, MaxConeDim, VarDim, EqDim>, N>&
+        trace,
     char* out, const size_t& out_size) {
   AK_ASSERT(out != nullptr && "trace_to_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
@@ -374,8 +388,9 @@ inline size_t vec_to_cstr(const Vec& v, char* out, const size_t& out_size) {
  *
  * @return write position (in case buffer to small)
  */
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar>
-inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar>& res,
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
+          linalg::VectorLike NuVar>
+inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar, NuVar>& res,
                              char* out, const size_t& out_size) {
   AK_ASSERT(out != nullptr && "result_to_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
@@ -399,18 +414,20 @@ inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar>& res,
 
   const auto rd_norm = linalg::L2<decltype(res.rd)>()(res.rd);
   const auto rp_norm = linalg::L2<decltype(res.rp)>()(res.rp);
+  const auto req_norm = linalg::L2<decltype(res.req)>()(res.req);
 
   const int header = std::snprintf(
       out + write_pos, out_size - write_pos,
       "tag=%u stalled=%d event=%hhu num_iter=%zu mu=%g convex_obj=%g "
       "dual_obj=%g "
       "rd=%g "
-      "rp=%g\n",
+      "rp=%g "
+      "req=%g\n",
       static_cast<unsigned>(res.tag), res.stalled,
       static_cast<uint8_t>(res.event), res.num_iter,
       static_cast<double>(res.mu), static_cast<double>(res.convex_obj),
       static_cast<double>(res.dual_obj), static_cast<double>(rd_norm),
-      static_cast<double>(rp_norm));
+      static_cast<double>(rp_norm), static_cast<double>(req_norm));
   if (header < 0) {
     out[0] = '\0';
     return 0;
@@ -442,6 +459,13 @@ inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar>& res,
   out[write_pos++] = '\n';
   out[write_pos] = '\0';
 
+  if (!append_text("nu=")) return write_pos;
+  write_pos +=
+      vec_to_cstr(res.iterate.nu, out + write_pos, out_size - write_pos);
+  if (write_pos >= out_size - 1) return out_size - 1;
+  out[write_pos++] = '\n';
+  out[write_pos] = '\0';
+
   if (!append_text("rd=")) return write_pos;
   write_pos += vec_to_cstr(res.rd, out + write_pos, out_size - write_pos);
   if (write_pos >= out_size - 1) return out_size - 1;
@@ -450,6 +474,12 @@ inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar>& res,
 
   if (!append_text("rp=")) return write_pos;
   write_pos += vec_to_cstr(res.rp, out + write_pos, out_size - write_pos);
+  if (write_pos >= out_size - 1) return out_size - 1;
+  out[write_pos++] = '\n';
+  out[write_pos] = '\0';
+
+  if (!append_text("req=")) return write_pos;
+  write_pos += vec_to_cstr(res.req, out + write_pos, out_size - write_pos);
   if (write_pos >= out_size - 1) return out_size - 1;
   out[write_pos++] = '\n';
   out[write_pos] = '\0';

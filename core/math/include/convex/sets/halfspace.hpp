@@ -113,11 +113,9 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
     requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
              linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
-    const auto [U_inv, event] =
-        linalg::MatrixInverse<Mat>()(map.linear_part());
+    const auto [U_inv, event] = linalg::MatrixInverse<Mat>()(map.linear_part());
     static_cast<void>(event);
-    const auto aT_U =
-        transpose(as_col_vector(a)) * U_inv;
+    const auto aT_U = transpose(as_col_vector(a)) * U_inv;
     return Halfspace<Meta, Child, Type>(as_vector(aT_U),
                                         b + (aT_U * map.translation())(0),
                                         std::get<0>(this->children));
@@ -171,9 +169,10 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
     const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
-        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                decltype(map), decltype(child_cb)>(map,
-                                                                   child_cb);
+        conic::CanonicalFormBuilder<conic::builder_dom_t<decltype(builder)>,
+                                    decltype(map), decltype(child_cb),
+                                    decltype(child_builder.eq_map)>(
+            map, child_cb, child_builder.eq_map);
     return new_builder.template make<AType>(cones);
   }
 

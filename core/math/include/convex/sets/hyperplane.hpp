@@ -92,11 +92,9 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
     requires(linalg::mat_cols_v<Mat> == N &&
              std::same_as<linalg::mat_type_t<Mat>, T>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
-    const auto [U_inv, event] =
-        linalg::MatrixInverse<Mat>()(map.linear_part());
+    const auto [U_inv, event] = linalg::MatrixInverse<Mat>()(map.linear_part());
     static_cast<void>(event);
-    const auto aT_U =
-        transpose(as_col_vector(a)) * U_inv;
+    const auto aT_U = transpose(as_col_vector(a)) * U_inv;
     return Hyperplane<Meta, Child>(as_vector(aT_U),
                                    b + (aT_U * map.translation())(0),
                                    std::get<0>(this->children));
@@ -116,30 +114,19 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * Apply P^{-1}(C) -> K and map K to cone block
    *
-   * [old] deprecating homogenized t
-   * H = { x | a^T x = b }
-   * P^{-1}(H) = { (x,t) | a^T x = b t, t >= 0 }
-   *
-   * [ a -b ] [ x; t ] = 0
-   * [ 0  1 ]
-   *
-   * [A x - b t; t], where Ax - bt = 0, t >= 0
-   *
-   * The current PD-IPM path does not handle zero cones as equality blocks in
-   * the KKT system, so encode the hyperplane as paired inequalities:
-   *
-   *   a^T x <= b
-   *  -a^T x <= -b
+   * a^T x = b
    *
    * @return cone block
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
+    static_cast<void>(Type);
     const auto child_builder =
         std::get<0>(this->children)
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
+    const auto child_eq = child_builder.eq_map;
 
     static constexpr size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
@@ -147,19 +134,34 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, 2, N> F;
-    F = linalg::set_block<0, 1, 0, N>(F, T(-1) * linalg::as_row_vector(a));
-    F = linalg::set_block<1, 2, 0, N>(F, linalg::as_row_vector(a));
-    linalg::Vector<T, 2> g{b, T(-1) * b};
-    const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 2>>();
-    const auto cones = std::make_tuple(rplus);
+    const auto eq_map = affine::AffineMap<linalg::Matrix<T, 1, N>>(
+                            linalg::as_row_vector(a), linalg::Vector<T, 1>{b})
+                            .compose(child_coord);
 
-    const auto new_builder =
-        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                decltype(map), decltype(child_cb)>(map,
-                                                                   child_cb);
-    return new_builder.template make<Type>(cones);
+    static constexpr size_t ChildEqRows =
+        linalg::mat_rows_v<decltype(child_eq.linear_part())>;
+    static constexpr size_t EqRows = ChildEqRows + 1;
+    static constexpr size_t EqCols =
+        linalg::mat_cols_v<decltype(eq_map.linear_part())>;
+
+    linalg::Matrix<T, EqRows, EqCols> A{};
+    linalg::Vector<T, EqRows> g{};
+
+    if constexpr (ChildEqRows != 0) {
+      A = linalg::set_block<0, ChildEqRows, 0, EqCols>(A,
+                                                       child_eq.linear_part());
+      for (size_t i = 0; i < ChildEqRows; ++i) g(i) = child_eq.translation()(i);
+    }
+
+    A = linalg::set_block<ChildEqRows, EqRows, 0, EqCols>(A,
+                                                          eq_map.linear_part());
+    g(ChildEqRows) = eq_map.translation()(0);
+
+    const auto new_eq_map = affine::AffineMap<decltype(A)>(A, g);
+    return conic::CanonicalFormBuilder<
+        conic::builder_dom_t<decltype(builder)>, decltype(child_coord),
+        decltype(child_cb), decltype(new_eq_map)>(child_coord, child_cb,
+                                                  new_eq_map);
   }
 
   /** @brief member var in hyperplane */

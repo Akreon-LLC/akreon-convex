@@ -185,10 +185,11 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
         affine::AffineMap<decltype(selector.linear_part())>(F, g);
 
     const auto new_builder = std::get<1>(res);
-    return conic::ConeBlockBuilder<conic::builder_dom_t<Builder>,
-                                   decltype(new_selector),
-                                   decltype(new_builder.cb)>(new_selector,
-                                                             new_builder.cb);
+    return conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
+                                       decltype(new_selector),
+                                       decltype(new_builder.cb),
+                                       decltype(new_builder.eq_map)>(
+        new_selector, new_builder.cb, new_builder.eq_map);
   }
 
   /** @brief member var */

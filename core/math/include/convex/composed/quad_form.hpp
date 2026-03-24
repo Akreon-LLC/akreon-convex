@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "convex/cone_block_builder.hpp"
+#include "convex/canonical_form_builder.hpp"
 #include "convex/convex_traits.hpp"
 #include "convex/functions/norm.hpp"
 #include "convex/functions/square.hpp"
@@ -63,7 +63,7 @@ struct QuadForm {
         "Invalid quad operator mismatch on vector types");
 
     const auto chol = linalg::Cholesky<Mat>()(P);
-    AK_ASSERT(chold.is_valid() && chol.is_psd() && "Chol(P) is not SPD");
+    AK_ASSERT(chol.is_valid() && chol.is_psd() && "Chol(P) is not SPD");
 
     const auto LT_x = x.mul(linalg::transpose(chol.G()));
 

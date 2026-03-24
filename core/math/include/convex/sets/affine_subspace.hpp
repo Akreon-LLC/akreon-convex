@@ -113,7 +113,8 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
     requires(linalg::mat_cols_v<TMat> == N &&
              std::same_as<linalg::mat_type_t<TMat>, T>)
   constexpr auto transform_impl(const affine::AffineMap<TMat>& map) const {
-    const auto [U_inv, event] = linalg::MatrixInverse<TMat>()(map.linear_part());
+    const auto [U_inv, event] =
+        linalg::MatrixInverse<TMat>()(map.linear_part());
     static_cast<void>(event);
     const auto A_tilde = A * U_inv;
     const auto b_tilde = b + A_tilde * map.translation();
@@ -142,11 +143,13 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {
+    static_cast<void>(Type);
     const auto child_builder =
         std::get<0>(this->children)
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
     const auto child_cb = child_builder.cb;
+    const auto child_eq = child_builder.eq_map;
 
     static constexpr size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
@@ -154,27 +157,34 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, 2 * M, N> F;
-    linalg::Vector<T, 2 * M> g;
-    const auto composed_map = affine::AffineMap<Mat>(A, b).compose(child_coord);
-    const auto F_eq = composed_map.linear_part();
-    const auto g_eq = T(-1) * composed_map.translation();
-    F = linalg::set_block<0, M, 0, N>(F, T(-1) * F_eq);
-    F = linalg::set_block<M, 2 * M, 0, N>(F, F_eq);
-    for (size_t i = 0; i < M; ++i) {
-      g(i) = T(-1) * g_eq(i);
-      g(M + i) = g_eq(i);
+    const auto eq_map = affine::AffineMap<Mat>(A, b).compose(child_coord);
+
+    static constexpr size_t ChildEqRows =
+        linalg::mat_rows_v<decltype(child_eq.linear_part())>;
+    static constexpr size_t EqRows = ChildEqRows + M;
+    static constexpr size_t EqCols =
+        linalg::mat_cols_v<decltype(eq_map.linear_part())>;
+
+    linalg::Matrix<T, EqRows, EqCols> A_eq{};
+    linalg::Vector<T, EqRows> g_eq{};
+
+    if constexpr (ChildEqRows != 0) {
+      A_eq = linalg::set_block<0, ChildEqRows, 0, EqCols>(
+          A_eq, child_eq.linear_part());
+      for (size_t i = 0; i < ChildEqRows; ++i)
+        g_eq(i) = child_eq.translation()(i);
     }
 
-    const auto map = affine::AffineMap<decltype(F)>(F, g);
-    const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 2 * M>>();
+    A_eq = linalg::set_block<ChildEqRows, EqRows, 0, EqCols>(
+        A_eq, eq_map.linear_part());
+    for (size_t i = 0; i < M; ++i)
+      g_eq(i + ChildEqRows) = eq_map.translation()(i);
 
-    const auto new_builder =
-        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                decltype(map), decltype(child_cb)>(map,
-                                                                   child_cb);
-    const auto cones = std::make_tuple(rplus);
-    return new_builder.template make<Type>(cones);
+    const auto new_eq_map = affine::AffineMap<decltype(A_eq)>(A_eq, g_eq);
+    return conic::CanonicalFormBuilder<
+        conic::builder_dom_t<decltype(builder)>, decltype(child_coord),
+        decltype(child_cb), decltype(new_eq_map)>(child_coord, child_cb,
+                                                  new_eq_map);
   }
 
   /** @brief data members for affine subspace */

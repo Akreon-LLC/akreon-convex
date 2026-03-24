@@ -14,7 +14,7 @@
 
 #include <tuple>
 
-#include "cone_block_builder.hpp"
+#include "canonical_form_builder.hpp"
 #include "config/assert.hpp"
 #include "config/solver_config.hpp"
 #include "convex_traits.hpp"
@@ -142,8 +142,10 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto cb = builder.cb;
-    return conic::ConeBlockBuilder<conic::builder_dom_t<Builder>, decltype(map),
-                                   decltype(cb)>(map, cb);
+    return conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
+                                       decltype(map), decltype(cb),
+                                       decltype(builder.eq_map)>(
+        map, cb, builder.eq_map);
   }
 
   /** @brief member var */
@@ -246,14 +248,16 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    * Almost treated as a no-op as var will always be leaf node but need to pass
    * its map and cone block
    *
-   * @param builder (ConeBlockBuilder)
+   * @param builder (CanonicalFormBuilder)
    *
    * @return cone block builder (new)
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
-    return conic::ConeBlockBuilder<conic::builder_dom_t<Builder>, decltype(map),
-                                   decltype(builder.cb)>(map, builder.cb);
+    return conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
+                                       decltype(map), decltype(builder.cb),
+                                       decltype(builder.eq_map)>(
+        map, builder.cb, builder.eq_map);
   }
 
   /**
@@ -276,7 +280,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    * Instead of canonicalization adding the variable to the block it is treated
    * specially by this function to manually add it to F
    *
-   * @param builder (ConeBlockBuilder)
+   * @param builder (CanonicalFormBuilder)
    *
    * @return new cone block builder
    */
@@ -305,10 +309,10 @@ struct Variable : Atom<Meta, Variable<Meta>> {
       }
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
 
-      const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                  decltype(coord_map_up), decltype(child_cb)>(
-              coord_map_up, child_cb);
+      const auto new_builder = conic::CanonicalFormBuilder<
+          conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
+          decltype(child_cb), decltype(child_builder.eq_map)>(
+          coord_map_up, child_cb, child_builder.eq_map);
       static constexpr size_t K = N * (N + 1) / 2;
       const auto psd_cone =
           conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, N>();

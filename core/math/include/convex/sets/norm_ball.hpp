@@ -327,9 +327,10 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto cones = std::make_tuple(soc);
 
       const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                  decltype(map), decltype(child_cb)>(map,
-                                                                     child_cb);
+          conic::CanonicalFormBuilder<conic::builder_dom_t<decltype(builder)>,
+                                      decltype(map), decltype(child_cb),
+                                      decltype(child_builder.eq_map)>(
+              map, child_cb, child_builder.eq_map);
       return new_builder.template make<AType>(cones);
     } else if constexpr (Type == NormBallType::Linf) {
       linalg::Matrix<T, 2 * N, N> F;
@@ -344,9 +345,10 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto cones = std::make_tuple(rplus, rplus);
 
       const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                  decltype(map), decltype(child_cb)>(map,
-                                                                     child_cb);
+          conic::CanonicalFormBuilder<conic::builder_dom_t<decltype(builder)>,
+                                      decltype(map), decltype(child_cb),
+                                      decltype(child_builder.eq_map)>(
+              map, child_cb, child_builder.eq_map);
       return new_builder.template make<AType>(cones);
     } else {
       linalg::Matrix<T, 3 * N + 1, 2 * N> F;
@@ -366,9 +368,10 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto cones = std::make_tuple(rplus1, rplus1, rplus2, rplus1);
 
       const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                  decltype(map), decltype(child_cb)>(map,
-                                                                     child_cb);
+          conic::CanonicalFormBuilder<conic::builder_dom_t<decltype(builder)>,
+                                      decltype(map), decltype(child_cb),
+                                      decltype(child_builder.eq_map)>(
+              map, child_cb, child_builder.eq_map);
       return new_builder.template make<AType>(cones);
     }
   }

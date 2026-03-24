@@ -176,9 +176,10 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
     const auto cones = std::make_tuple(rplus);
 
     const auto new_builder =
-        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                decltype(map), decltype(child_cb)>(map,
-                                                                   child_cb);
+        conic::CanonicalFormBuilder<conic::builder_dom_t<decltype(builder)>,
+                                    decltype(map), decltype(child_cb),
+                                    decltype(child_builder.eq_map)>(
+            map, child_cb, child_builder.eq_map);
     return new_builder.template make<Type>(cones);
   }
 
