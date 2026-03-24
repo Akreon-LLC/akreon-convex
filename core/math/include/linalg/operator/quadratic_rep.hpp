@@ -60,6 +60,28 @@ struct QuadraticRep {
     return T(2) * circ(x, circ(x, y)) - circ(circ(x, x), y);
   }
 
+  /**
+   * @brief apply column-wise to a matrix
+   *
+   * P(x)Y = [P(x)y_1 ... P(x)y_m]
+   *
+   * @param Y matrix with columns in J
+   *
+   * @return P(x)Y
+   */
+  template <MatrixLike MatX>
+    requires(N == mat_rows_v<MatX>)
+  constexpr auto apply(const MatX& Y) const {
+    constexpr size_t Cols = mat_cols_v<MatX>;
+    Matrix<T, N, Cols> result{};
+    for (size_t j = 0; j < Cols; ++j) {
+      const auto y_col = get_col(Y, j);
+      const auto p_y_col = apply(y_col);
+      for (size_t i = 0; i < N; ++i) result(i)(j) = p_y_col(i);
+    }
+    return result;
+  }
+
   /** @brief member var */
   J x;  ///< x in domain of P (i.e., P(x))
 };

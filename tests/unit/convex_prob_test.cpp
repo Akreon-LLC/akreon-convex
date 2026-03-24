@@ -492,9 +492,12 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
     constexpr auto new_builder =
         intersection.template canonicalize<AtomType::CAP>(builder);
     constexpr auto canon_cb = new_builder.cb;
-    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 2);
-    STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 6);
+    constexpr auto eq_map = new_builder.eq_map;
+    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 1);
+    STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 4);
     STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 3);
+    STATIC_REQUIRE(mat_rows_v<decltype(eq_map.linear_part())> == 1);
+    STATIC_REQUIRE(mat_cols_v<decltype(eq_map.linear_part())> == 3);
   }
 }
 
@@ -558,12 +561,15 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob3.validate());
     STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{0.0, 1.0, 0.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
-                   1);
-    constexpr mat_traits<Matrix<double, 6, 3>> F_mat;
-    constexpr auto F = F_mat(-1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0,
-                             1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
-    STATIC_REQUIRE(all_equal(F, prob3.constraint_map().linear_part()));
-    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<6>{});
+                   0);
+    STATIC_REQUIRE(
+        mat_rows_v<decltype(prob3.constraint_map().linear_part())> == 0);
+    STATIC_REQUIRE(
+        mat_cols_v<decltype(prob3.constraint_map().linear_part())> == 0);
+    STATIC_REQUIRE(
+        vec_size_v<decltype(prob3.constraint_map().translation())> == 0);
+    STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(), I));
+    STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<3>{});
   }
 
   SECTION("Intersection of sets min. Linf prob") {
@@ -587,14 +593,18 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob3.validate());
     STATIC_REQUIRE(prob3.linear_objective() == Vectord<4>{0.0, 0.0, 0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
-                   4);
+                   3);
 
     STATIC_REQUIRE(
         linalg::mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
-        12);
+        10);
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
         4);
+    STATIC_REQUIRE(
+        linalg::mat_rows_v<decltype(prob3.equality_map().linear_part())> == 1);
+    STATIC_REQUIRE(
+        linalg::mat_cols_v<decltype(prob3.equality_map().linear_part())> == 4);
   }
 
   SECTION("Sum square min. prob") {
@@ -720,12 +730,21 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob3.validate());
     STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{0.0, 0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
-                   1);
+                   0);
 
-    constexpr mat_traits<Matrix<double, 2, 3>> F_mat;
-    constexpr auto F = F_mat(-1.0, 1.0, 0.0, 1.0, -1.0, 0.0);
-    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
-    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<2>{});
+    STATIC_REQUIRE(
+        linalg::mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
+        0);
+    STATIC_REQUIRE(
+        linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
+        0);
+    STATIC_REQUIRE(
+        vec_size_v<decltype(prob3.constraint_map().translation())> == 0);
+
+    constexpr mat_traits<Matrix<double, 1, 3>> Aeq_mat;
+    constexpr auto Aeq = Aeq_mat(1.0, -1.0, 0.0);
+    STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(), Aeq));
+    STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<1>{0.0});
   }
 }
 

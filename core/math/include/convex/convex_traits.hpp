@@ -265,6 +265,7 @@ concept ProblemLike = requires(const Problem& prob) {
   { prob.linear_objective() };
   { prob.constraint_map() };
   { prob.constraint_cones() };
+  { prob.equality_map() };
 };
 
 /// @brief Base atom traits.

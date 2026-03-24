@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "convex/cone_block_builder.hpp"
+#include "convex/canonical_form_builder.hpp"
 #include "convex/cones/soc.hpp"
 #include "convex/convex_traits.hpp"
 
@@ -216,9 +216,10 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
     const auto coord_map_up =
         conic::Rotated2SOC<decltype(rsoc_coords)>()(rsoc_coords);
     const auto new_builder =
-        conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                decltype(coord_map_up), decltype(child_cb)>(
-            coord_map_up, child_cb);
+        conic::CanonicalFormBuilder<conic::builder_dom_t<decltype(builder)>,
+                                    decltype(coord_map_up), decltype(child_cb),
+                                    decltype(child_builder.eq_map)>(
+            coord_map_up, child_cb, child_builder.eq_map);
     const auto rsoc = conic::SecondOrderCone<linalg::Vector<T, 3>>();
     const auto cones = std::make_tuple(rsoc);
     return new_builder.template make<Type>(idx, lift_map, cones);

@@ -68,7 +68,11 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     constexpr auto c = prob_min.linear_objective();
     STATIC_REQUIRE(c == Vectord<4>{0.0, 0.0, 0.0, 0.5});
 
-    constexpr PrimalDualIPMConfig config{.duality_gap_tol = 1e-4};
+    constexpr auto config = [] {
+      PrimalDualIPMConfig<double> cfg{};
+      cfg.duality_gap_tol = 1e-4;
+      return cfg;
+    }();
     constexpr PrimalDualIPM solver(prob_min, config);
     constexpr auto res = solver.res;
 #ifdef AKREON_DEBUG

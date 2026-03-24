@@ -147,12 +147,13 @@ template <typename Builder>
 concept BuilderLike = requires(const Builder& builder) {
   { builder.coord_map };
   { builder.cb };
+  { builder.eq_map };
 };
 
 /// @brief forward declaration of cone block builder
 template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
-          conic::ConeBlockLike CB>
-struct ConeBlockBuilder;
+          conic::ConeBlockLike CB, affine::AffineMapLike EqMap>
+struct CanonicalFormBuilder;
 
 /// @brief Base builder traits.
 template <typename Builder>
@@ -160,11 +161,12 @@ struct builder_traits;
 
 /// @brief builder type traits of cone block builder
 template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
-          conic::ConeBlockLike CB>
-struct builder_traits<ConeBlockBuilder<DecVarDom, CoordMap, CB>> {
+          conic::ConeBlockLike CB, affine::AffineMapLike EqMap>
+struct builder_traits<CanonicalFormBuilder<DecVarDom, CoordMap, CB, EqMap>> {
   using Dom = DecVarDom;
   using Map = CoordMap;
   using ConeBlock = CB;
+  using EqualityMap = EqMap;
 };
 
 /// @brief builder domain
@@ -181,5 +183,10 @@ using builder_map_t =
 template <typename Builder>
 using builder_cb_t =
     typename builder_traits<linalg::remove_cvref_t<Builder>>::ConeBlock;
+
+/// @brief builder equality map
+template <typename Builder>
+using builder_eq_t =
+    typename builder_traits<linalg::remove_cvref_t<Builder>>::EqualityMap;
 
 }  // namespace conic

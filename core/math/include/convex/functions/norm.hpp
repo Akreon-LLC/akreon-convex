@@ -12,8 +12,8 @@
 
 #pragma once
 
+#include "convex/canonical_form_builder.hpp"
 #include "convex/convex_traits.hpp"
-#include "convex/cone_block_builder.hpp"
 
 namespace convex {
 
@@ -109,9 +109,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
    *
    * @return result
    */
-  constexpr T operator()(const PointT& x) const {
-    return eval(x);
-  }
+  constexpr T operator()(const PointT& x) const { return eval(x); }
 
   /**
    * @brief eval impl
@@ -269,10 +267,10 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-      const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                           decltype(coord_map_up), decltype(child_cb)>(
-              coord_map_up, child_cb);
+      const auto new_builder = conic::CanonicalFormBuilder<
+          conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
+          decltype(child_cb), decltype(child_builder.eq_map)>(
+          coord_map_up, child_cb, child_builder.eq_map);
 
       const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
       const auto cones = std::make_tuple(soc);
@@ -296,10 +294,10 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-      const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                           decltype(coord_map_up), decltype(child_cb)>(
-              coord_map_up, child_cb);
+      const auto new_builder = conic::CanonicalFormBuilder<
+          conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
+          decltype(child_cb), decltype(child_builder.eq_map)>(
+          coord_map_up, child_cb, child_builder.eq_map);
 
       const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto cones = std::make_tuple(rplus, rplus);
@@ -328,10 +326,10 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-      const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                           decltype(coord_map_up), decltype(child_cb)>(
-              coord_map_up, child_cb);
+      const auto new_builder = conic::CanonicalFormBuilder<
+          conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
+          decltype(child_cb), decltype(child_builder.eq_map)>(
+          coord_map_up, child_cb, child_builder.eq_map);
 
       const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();

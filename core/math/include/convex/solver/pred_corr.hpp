@@ -12,9 +12,11 @@
 
 #pragma once
 
-#include "cone_traits.hpp"
-#include "convex_traits.hpp"
+#include "convex/cone_traits.hpp"
+#include "convex/convex_traits.hpp"
+#include "equality_coupling.hpp"
 #include "linalg/linalg_util.hpp"
+#include "newton_step.hpp"
 #ifdef AKREON_DEBUG
 #include "pd_ipm_debug.hpp"
 #endif
@@ -24,42 +26,47 @@ namespace convex {
 /**
  * @brief Predictor Corrector
  */
-template <size_t NumCones, linalg::MatrixLike Mat, linalg::VectorLike Var,
-          linalg::VectorLike ConeVar>
+template <size_t NumCones, linalg::MatrixLike ConeMat, linalg::MatrixLike EqMat,
+          linalg::VectorLike Var, linalg::VectorLike ConeVar>
 struct PredictorCorrector {
   /// @brief extract T and N from Mat
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
+  using T = linalg::mat_type_t<ConeMat>;
+  static constexpr size_t N = linalg::mat_cols_v<ConeMat>;
+
+  static constexpr size_t EqRows = linalg::mat_rows_v<EqMat>;
+  using NuVar = linalg::Vector<T, EqRows>;
+  using Step = NewtonStep<Var, ConeVar, NuVar>;
 
   /**
    * @brief predictor (affine-scaling) direction
    *
    * @param pz_rhs (rhs forward pass accumulate)
    * @param K (cartesian product of cones)
-   * @param S_inv (factored)
+   * @param M_inv (factored M = (F^T H F)^{-1})
+   * @param eq (equality coupling)
    * @param F (R^n -> conic space)
    * @param rp (primal residual)
    * @param rd (dual residual)
+   * @param req (equality residual)
    * @param x (x \in K iterate)
    * @param y (y \in K^* iterate)
-   * @param pz (newton step in z)
-   * @param px (newton step in x)
-   * @param py (newton step in y)
    *
-   * @return pz_rhs (ignore on return)
+   * @return pz_rhs, step (ignore rhs on return), event
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr auto predictor(
-      Var&& pz_rhs, const auto& K, const auto& S_inv, const Mat& F,
-      const ConeVar& rp, const Var& rd, const ConeVar& x, const ConeVar& y,
-      Var& pz, ConeVar& px, ConeVar& py
+  constexpr auto predictor(Var&& pz_rhs, const auto& K, const auto& M_inv,
+                           const auto& eq, const ConeMat& F, const ConeVar& rp,
+                           const Var& rd, const NuVar& req, const ConeVar& x,
+                           const ConeVar& y
 #ifdef AKREON_DEBUG
-      ,
-      IterState<T, NumCones, linalg::mat_rows_v<Mat>, N>& trace_state
+                           ,
+                           IterState<T, NumCones, linalg::mat_rows_v<ConeMat>,
+                                     N, EqRows>& trace_state
 #endif
   ) const {
     if constexpr (idx >= NumCones)
-      return std::tuple(std::move(pz_rhs), linalg::NumericalEvent::NONE);
+      return std::tuple(std::move(pz_rhs), Step{},
+                        linalg::NumericalEvent::NONE);
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
@@ -67,26 +74,24 @@ struct PredictorCorrector {
       constexpr size_t End = Start + KiRows;
 
       using ConePoint = linalg::Vector<T, End - Start>;
-      ConePoint xk{}, yk{}, pxk{}, pyk{}, rpk{};
+      ConePoint xk{}, yk{}, rpk{};
 
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         xk(j) = x(i);
         yk(j) = y(i);
-        pxk(j) = px(i);
-        pyk(j) = py(i);
         rpk(j) = rp(i);
       }
 
-      const auto [Hes, event] = Ki.H(xk, yk);
+      const auto [P, event] = Ki.H(xk, yk);
       if (linalg::is_fatal_event(event))
-        return std::tuple(std::move(pz_rhs), event);
+        return std::tuple(std::move(pz_rhs), Step{}, event);
 
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
       ConePoint rhs_c = yk;
 
-      pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
+      pz_rhs = pz_rhs - F_blk_T * P.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_DEBUG
       auto& cone_trace = trace_state.predictor[idx];
       cone_trace.mu = Ki.trace(xk, yk) / Ki.nu();
@@ -101,38 +106,43 @@ struct PredictorCorrector {
       cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
 #endif
 
-      auto [new_pz_rhs, next_event] = predictor<idx + 1, End>(
-          std::move(pz_rhs), K, S_inv, F, rp, rd, x, y, pz, px, py
+      auto [new_pz_rhs, step, next_event] = predictor<idx + 1, End>(
+          std::move(pz_rhs), K, M_inv, eq, F, rp, rd, req, x, y
 #ifdef AKREON_DEBUG
           ,
           trace_state
 #endif
       );
       if (linalg::is_fatal_event(next_event))
-        return std::tuple(std::move(new_pz_rhs), next_event);
+        return std::tuple(std::move(new_pz_rhs), std::move(step), next_event);
 
       if constexpr (idx + 1 == NumCones) {
-        const auto [pz_next, solve_event] = S_inv.solve(new_pz_rhs + rd);
+        const auto [pz_next, pnu_next, solve_event] =
+            eq.solve_step(M_inv, new_pz_rhs, rd, req);
         if (linalg::is_fatal_event(solve_event))
-          return std::tuple(std::move(new_pz_rhs), solve_event);
-        pz = pz_next;
+          return std::tuple(std::move(new_pz_rhs), std::move(step),
+                            solve_event);
+        step.pz = pz_next;
+        step.pnu = pnu_next;
       }
 
-      const auto px_local = F_blk * pz + rpk;
-      const auto py_local = T(-1) * rhs_c - Hes.apply(px_local);
+      const auto px_local = F_blk * step.pz + rpk;
+      const auto py_local = T(-1) * rhs_c - P.apply(px_local);
 
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
-        px(i) = px_local(j), py(i) = py_local(j);
+        step.px(i) = px_local(j), step.py(i) = py_local(j);
       }
 #ifdef AKREON_DEBUG
-      for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = pz(j);
+      for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = step.pz(j);
+      for (size_t j = 0; j < EqRows; ++j) cone_trace.pnu[j] = step.pnu(j);
       for (size_t j = 0; j < End - Start; ++j) {
         cone_trace.px[j] = px_local(j);
         cone_trace.py[j] = py_local(j);
       }
 #endif
 
-      return std::tuple(std::move(new_pz_rhs), linalg::NumericalEvent::NONE);
+      return std::tuple(std::move(new_pz_rhs), std::move(step),
+                        linalg::NumericalEvent::NONE);
     }
   }
 
@@ -143,30 +153,31 @@ struct PredictorCorrector {
    * @param px_pred (newton step affine scaling dir x)
    * @param py_pred (newton step affine scaling dir y)
    * @param K (cartesian product of cones)
-   * @param S_inv (factored)
+   * @param M_inv (factored M = (F^T H F)^{-1})
+   * @param eq (equality coupling)
    * @param F (R^n -> conic space)
    * @param rp (primal residual)
    * @param rd (dual residual)
+   * @param req (equality residual)
    * @param x (x \in K iterate)
    * @param y (y \in K^* iterate)
-   * @param pz (newton step in z)
-   * @param px (newton step in x)
-   * @param py (newton step in y)
-   *
-   * @return pz_rhs (ignore on return)
+   * @return pz_rhs, step (ignore rhs on return), event
    */
   template <size_t idx = 0, size_t Start = 0>
-  constexpr auto corrector(
-      Var&& pz_rhs, const ConeVar& px_aff, const ConeVar& py_aff, const auto& K,
-      const auto& S_inv, const Mat& F, const ConeVar& rp, const Var& rd,
-      const ConeVar& x, const ConeVar& y, Var& pz, ConeVar& px, ConeVar& py
+  constexpr auto corrector(Var&& pz_rhs, const ConeVar& px_aff,
+                           const ConeVar& py_aff, const auto& K,
+                           const auto& M_inv, const auto& eq,
+                           const ConeMat& F, const ConeVar& rp, const Var& rd,
+                           const NuVar& req, const ConeVar& x, const ConeVar& y
 #ifdef AKREON_DEBUG
-      ,
-      IterState<T, NumCones, linalg::mat_rows_v<Mat>, N>& trace_state
+                           ,
+                           IterState<T, NumCones, linalg::mat_rows_v<ConeMat>,
+                                     N, EqRows>& trace_state
 #endif
   ) const {
     if constexpr (idx >= NumCones)
-      return std::tuple(std::move(pz_rhs), linalg::NumericalEvent::NONE);
+      return std::tuple(std::move(pz_rhs), Step{},
+                        linalg::NumericalEvent::NONE);
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
@@ -184,9 +195,9 @@ struct PredictorCorrector {
         rpk(j) = rp(i);
       }
 
-      const auto [Hes, event] = Ki.H(xk, yk);
+      const auto [P, event] = Ki.H(xk, yk);
       if (linalg::is_fatal_event(event))
-        return std::tuple(std::move(pz_rhs), event);
+        return std::tuple(std::move(pz_rhs), Step{}, event);
 
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
@@ -194,11 +205,11 @@ struct PredictorCorrector {
       T mu_k = Ki.trace(xk, yk) / Ki.nu();
       const auto [grad_xk, grad_event] = Ki.grad(xk);
       if (linalg::is_fatal_event(grad_event))
-        return std::tuple(std::move(pz_rhs), grad_event);
+        return std::tuple(std::move(pz_rhs), Step{}, grad_event);
 
       ConePoint rhs_c = yk + mu_k * grad_xk + Ki.circ(px_aff_k, py_aff_k);
 
-      pz_rhs = pz_rhs - F_blk_T * Hes.apply(rpk) - F_blk_T * rhs_c;
+      pz_rhs = pz_rhs - F_blk_T * P.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_DEBUG
       auto& cone_trace = trace_state.corrector[idx];
       cone_trace.mu = mu_k;
@@ -213,39 +224,44 @@ struct PredictorCorrector {
       cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
 #endif
 
-      auto [new_pz_rhs, next_event] =
-          corrector<idx + 1, End>(std::move(pz_rhs), px_aff, py_aff, K, S_inv,
-                                  F, rp, rd, x, y, pz, px, py
+      auto [new_pz_rhs, step, next_event] =
+          corrector<idx + 1, End>(std::move(pz_rhs), px_aff, py_aff, K, M_inv,
+                                  eq, F, rp, rd, req, x, y
 #ifdef AKREON_DEBUG
                                   ,
                                   trace_state
 #endif
           );
       if (linalg::is_fatal_event(next_event))
-        return std::tuple(std::move(new_pz_rhs), next_event);
+        return std::tuple(std::move(new_pz_rhs), std::move(step), next_event);
 
       if constexpr (idx + 1 == NumCones) {
-        const auto [pz_next, solve_event] = S_inv.solve(new_pz_rhs + rd);
+        const auto [pz_next, pnu_next, solve_event] =
+            eq.solve_step(M_inv, new_pz_rhs, rd, req);
         if (linalg::is_fatal_event(solve_event))
-          return std::tuple(std::move(new_pz_rhs), solve_event);
-        pz = pz_next;
+          return std::tuple(std::move(new_pz_rhs), std::move(step),
+                            solve_event);
+        step.pz = pz_next;
+        step.pnu = pnu_next;
       }
 
-      const auto px_local = F_blk * pz + rpk;
-      const auto py_local = T(-1) * rhs_c - Hes.apply(px_local);
+      const auto px_local = F_blk * step.pz + rpk;
+      const auto py_local = T(-1) * rhs_c - P.apply(px_local);
 
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
-        px(i) = px_local(j), py(i) = py_local(j);
+        step.px(i) = px_local(j), step.py(i) = py_local(j);
       }
 #ifdef AKREON_DEBUG
-      for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = pz(j);
+      for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = step.pz(j);
+      for (size_t j = 0; j < EqRows; ++j) cone_trace.pnu[j] = step.pnu(j);
       for (size_t j = 0; j < End - Start; ++j) {
         cone_trace.px[j] = px_local(j);
         cone_trace.py[j] = py_local(j);
       }
 #endif
 
-      return std::tuple(std::move(new_pz_rhs), linalg::NumericalEvent::NONE);
+      return std::tuple(std::move(new_pz_rhs), std::move(step),
+                        linalg::NumericalEvent::NONE);
     }
   }
 };

@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "cone_block_builder.hpp"
+#include "canonical_form_builder.hpp"
 
 namespace convex {
 
@@ -112,8 +112,11 @@ struct ConvexProblem {
           "convex function, or index of var instead of raw type");
     } else if constexpr (is_index_type_v<Atom>) {
       const auto cb = builder.cb;
-      static constexpr size_t AugN =
+      static constexpr size_t ConeN =
           linalg::mat_cols_v<decltype(cb.map.linear_part())>;
+      static constexpr size_t EqN =
+          linalg::mat_cols_v<decltype(builder.eq_map.linear_part())>;
+      static constexpr size_t AugN = (ConeN > EqN) ? ConeN : EqN;
       linalg::Matrix<T, 1, AugN> c{};
       auto b = builder.coord_map.translation()(0) + atom.map.translation()(0);
       static constexpr size_t N =
@@ -122,8 +125,10 @@ struct ConvexProblem {
       for (size_t i = 0; i < CopyN; ++i) c(0)(i) = atom.map.linear_part()(0)(i);
       const affine::AffineMap<decltype(c)> new_map(c, b);
       const auto new_builder =
-          conic::ConeBlockBuilder<conic::builder_dom_t<Builder>,
-                                  decltype(new_map), decltype(cb)>(new_map, cb);
+          conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
+                                      decltype(new_map), decltype(cb),
+                                      decltype(builder.eq_map)>(new_map, cb,
+                                                                builder.eq_map);
       return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
           new_builder);
     } else {
@@ -133,8 +138,11 @@ struct ConvexProblem {
       } else {
         const auto obj_builder =
             atom.template canonicalize<AtomType::CAP>(builder);
-        static constexpr size_t FullN =
+        static constexpr size_t ConeN =
             linalg::mat_cols_v<decltype(obj_builder.cb.map.linear_part())>;
+        static constexpr size_t EqN =
+            linalg::mat_cols_v<decltype(obj_builder.eq_map.linear_part())>;
+        static constexpr size_t FullN = (ConeN > EqN) ? ConeN : EqN;
         static constexpr size_t ObjN =
             linalg::mat_cols_v<decltype(obj_builder.coord_map.linear_part())>;
 
@@ -145,11 +153,10 @@ struct ConvexProblem {
 
         const auto b = obj_builder.coord_map.translation()(0);
         const auto obj_map = affine::AffineMap<decltype(c)>(c, b);
-        const auto new_builder =
-            conic::ConeBlockBuilder<conic::builder_dom_t<decltype(obj_builder)>,
-                                    decltype(obj_map),
-                                    decltype(obj_builder.cb)>(obj_map,
-                                                              obj_builder.cb);
+        const auto new_builder = conic::CanonicalFormBuilder<
+            conic::builder_dom_t<decltype(obj_builder)>, decltype(obj_map),
+            decltype(obj_builder.cb), decltype(obj_builder.eq_map)>(
+            obj_map, obj_builder.cb, obj_builder.eq_map);
         return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
             new_builder);
       }
@@ -207,11 +214,11 @@ struct ConvexProblem {
   }
 
   /**
-   * @brief constraint map (canonical form) [ F; g ]
+   * @brief constraint map (canonical conic form) [ F; g ]
    *
    * F z + g
    *
-   * @return F
+   * @return conic constraint map
    */
   constexpr auto constraint_map() const
     requires(Stage == StageType::PROBLEM_SET)
@@ -228,6 +235,19 @@ struct ConvexProblem {
     requires(Stage == StageType::PROBLEM_SET)
   {
     return builder.cb.cones;
+  }
+
+  /**
+   * @brief affine equality map [ A; b ]
+   *
+   * A z = b
+   *
+   * @return affine equality map
+   */
+  constexpr auto equality_map() const
+    requires(Stage == StageType::PROBLEM_SET)
+  {
+    return builder.eq_map;
   }
 
   /** @brief member var */

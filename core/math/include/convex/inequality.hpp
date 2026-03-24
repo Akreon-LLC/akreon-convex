@@ -22,7 +22,7 @@ namespace convex {
  *
  * lhs <= rhs... 0 <= rhs - lhs (rplus)
  * lhs >= rhs... 0 <= lhs - rhs (rplus)
- * lhs == rhs... paired inequalities on rhs - lhs and lhs - rhs
+ * lhs == rhs... affine equality row lhs - rhs = 0
  */
 template <InequalityType IType, AtomLike LHS, typename RHS>
 struct Inequality {
@@ -48,12 +48,57 @@ struct Inequality {
   /**
    * @brief canonicalize
    *
+   * Follows DCP convention:
+   * LEQ: lhs - rhs <= 0 (i.e., convex - (concave))
+   * GEQ: 0 <= rhs - lhs (i.e., convex - (concave))
+   * -> Works directly on cone map F & g
+   *
+   * EQ: lhs - rhs == 0 (i.e., convex - (concave))
+   * -> Works directly on A & b affine equality map
+   *
    * @param builder
    *
    * @return new builder
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
+    auto append_equality = [](const auto& child_builder, const auto& eq_linear,
+                              const auto& eq_bias) {
+      const auto child_cb = child_builder.cb;
+      const auto child_eq = child_builder.eq_map;
+
+      using EqMat = std::decay_t<decltype(eq_linear)>;
+      using ChildEqMat = affine::affine_mat_t<decltype(child_eq)>;
+
+      static constexpr size_t NewRows = linalg::mat_rows_v<EqMat>;
+      static constexpr size_t NewCols = linalg::mat_cols_v<EqMat>;
+      static constexpr size_t ChildEqRows = linalg::mat_rows_v<ChildEqMat>;
+      static constexpr size_t ChildEqCols = linalg::mat_cols_v<ChildEqMat>;
+      static constexpr size_t FullCols =
+          (ChildEqCols > NewCols) ? ChildEqCols : NewCols;
+      static constexpr size_t FullRows = ChildEqRows + NewRows;
+
+      linalg::Matrix<T, FullRows, FullCols> A_eq{};
+      linalg::Vector<T, FullRows> b_eq{};
+
+      if constexpr (ChildEqRows != 0 && ChildEqCols != 0) {
+        A_eq = linalg::set_block<0, ChildEqRows, 0, ChildEqCols>(
+            A_eq, child_eq.linear_part());
+        for (size_t i = 0; i < ChildEqRows; ++i)
+          b_eq(i) = child_eq.translation()(i);
+      }
+
+      A_eq =
+          linalg::set_block<ChildEqRows, FullRows, 0, NewCols>(A_eq, eq_linear);
+      for (size_t i = 0; i < NewRows; ++i) b_eq(i + ChildEqRows) = eq_bias(i);
+
+      const auto new_eq_map = affine::AffineMap<decltype(A_eq)>(A_eq, b_eq);
+      return conic::CanonicalFormBuilder<
+          conic::builder_dom_t<Builder>, decltype(child_builder.coord_map),
+          decltype(child_cb), decltype(new_eq_map)>(child_builder.coord_map,
+                                                    child_cb, new_eq_map);
+    };
+
     if constexpr (linalg::FieldLike<RHS>) {
       const auto child_builder =
           lhs.template canonicalize<AtomType::FN>(builder);
@@ -67,38 +112,27 @@ struct Inequality {
         linalg::Vector<T, 1> g{linalg::Vector<T, 1>{rhs} -
                                child_coord.translation()};
         const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-        const auto new_builder =
-            conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                    decltype(coord_map_up), decltype(child_cb)>(
-                coord_map_up, child_cb);
-        return new_builder.template make<AtomType::CAP>(std::make_tuple(
-            conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
+        const auto new_builder = conic::CanonicalFormBuilder<
+            conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
+            decltype(child_cb), decltype(child_builder.eq_map)>(
+            coord_map_up, child_cb, child_builder.eq_map);
+        return new_builder.template make<AtomType::CAP>(
+            std::make_tuple(conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
       } else if constexpr (IType == InequalityType::GEQ) {
         ChildMat F{child_coord.linear_part()};
         linalg::Vector<T, 1> g{child_coord.translation() -
                                linalg::Vector<T, 1>{rhs}};
         const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-        const auto new_builder =
-            conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                    decltype(coord_map_up), decltype(child_cb)>(
-                coord_map_up, child_cb);
-        return new_builder.template make<AtomType::CAP>(std::make_tuple(
-            conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
+        const auto new_builder = conic::CanonicalFormBuilder<
+            conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
+            decltype(child_cb), decltype(child_builder.eq_map)>(
+            coord_map_up, child_cb, child_builder.eq_map);
+        return new_builder.template make<AtomType::CAP>(
+            std::make_tuple(conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
       } else {
-        linalg::Matrix<T, 2, linalg::mat_cols_v<ChildMat>> F{};
-        const auto F_eq = child_coord.linear_part();
-        const auto g_eq = child_coord.translation() - linalg::Vector<T, 1>{rhs};
-        F = linalg::set_block<0, 1, 0, linalg::mat_cols_v<ChildMat>>(
-            F, T(-1) * F_eq);
-        F = linalg::set_block<1, 2, 0, linalg::mat_cols_v<ChildMat>>(F, F_eq);
-        linalg::Vector<T, 2> g{-1 * g_eq(0), g_eq(0)};
-        const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-        const auto new_builder =
-            conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                    decltype(coord_map_up), decltype(child_cb)>(
-                coord_map_up, child_cb);
-        return new_builder.template make<AtomType::CAP>(std::make_tuple(
-            conic::NonnegOrthantCone<linalg::Vector<T, 2>>()));
+        const auto A_eq = child_coord.linear_part();
+        linalg::Vector<T, 1> b_eq{rhs - child_coord.translation()(0)};
+        return append_equality(child_builder, A_eq, b_eq);
       }
     } else {
       static_assert(is_fn_type_v<RHS> || is_index_type_v<LHS>,
@@ -138,24 +172,9 @@ struct Inequality {
         const auto child_builder =
             sum.template canonicalize<AtomType::ADD>(builder);
         const auto child_coord = child_builder.coord_map;
-        const auto child_cb = child_builder.cb;
-
-        using ChildMat = decltype(child_coord.linear_part());
-        linalg::Matrix<T, 2, linalg::mat_cols_v<ChildMat>> F{};
-        F = linalg::set_block<0, 1, 0, linalg::mat_cols_v<ChildMat>>(
-            F, T(-1) * child_coord.linear_part());
-        F = linalg::set_block<1, 2, 0, linalg::mat_cols_v<ChildMat>>(
-            F, child_coord.linear_part());
-        linalg::Vector<T, 2> g{-1 * child_coord.translation()(0),
-                               child_coord.translation()(0)};
-
-        const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-        const auto new_builder =
-            conic::ConeBlockBuilder<conic::builder_dom_t<decltype(builder)>,
-                                    decltype(coord_map_up), decltype(child_cb)>(
-                coord_map_up, child_cb);
-        return new_builder.template make<AtomType::CAP>(std::make_tuple(
-            conic::NonnegOrthantCone<linalg::Vector<T, 2>>()));
+        const auto A_eq = child_coord.linear_part();
+        linalg::Vector<T, 1> b_eq{child_coord.translation()(0)};
+        return append_equality(child_builder, A_eq, b_eq);
       }
     }
   }
