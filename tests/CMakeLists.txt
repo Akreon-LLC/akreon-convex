@@ -141,9 +141,17 @@ if(BUILD_FUNCTIONAL_TESTS)
   target_include_directories(linalg_fuzz_test PRIVATE ../math/include)
   target_compile_options(linalg_fuzz_test PRIVATE ${UNIT_COMPILE_OPTS})
 
-  add_executable(convex_fuzz_test functional/convex_fuzz_test.cpp)
-  target_include_directories(convex_fuzz_test PRIVATE ../math/include)
-  target_compile_options(convex_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
+  add_executable(lp_fuzz_test functional/lp_fuzz_test.cpp)
+  target_include_directories(lp_fuzz_test PRIVATE ../math/include)
+  target_compile_options(lp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
+
+  add_executable(qp_fuzz_test functional/qp_fuzz_test.cpp)
+  target_include_directories(qp_fuzz_test PRIVATE ../math/include)
+  target_compile_options(qp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
+
+  add_executable(sdp_fuzz_test functional/sdp_fuzz_test.cpp)
+  target_include_directories(sdp_fuzz_test PRIVATE ../math/include)
+  target_compile_options(sdp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
 endif()
 
 set(AKREON_TEST_TARGETS
@@ -161,7 +169,9 @@ set(AKREON_TEST_TARGETS
   qp_test
   socp_test
   linalg_fuzz_test
-  convex_fuzz_test
+  lp_fuzz_test
+  qp_fuzz_test
+  sdp_fuzz_test
 )
 
 foreach(_ak_target IN LISTS AKREON_TEST_TARGETS)
