@@ -541,10 +541,6 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
 TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
   using Space = Matrixd<1, 2>;
 
-  /// (dakre) TODO - Previous zero order cone -> now two-sided Rn+ doesnt have
-  /// as clean of a KKT as emplacing the equality blocks directly. However
-  /// this requires a much greater refactor as it impacts modeling & solver
-  /// layers
   SECTION("sum(x) == 1") {
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto prob_init = make_problem(x);
