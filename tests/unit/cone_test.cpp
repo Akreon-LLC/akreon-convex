@@ -16,13 +16,18 @@
 #include <random>
 
 #include "math.hpp"
-#include "unit_test_helpers.hpp"
+#include "test_helpers.hpp"
 
 using namespace linalg;
 using namespace convex;
 using namespace affine;
 using namespace conic;
 using namespace unit_test;
+
+static constexpr bool ok_psd_event(const linalg::NumericalEvent& event) {
+  return event == linalg::NumericalEvent::NONE ||
+         event == linalg::NumericalEvent::NUMERICAL_SAFEGUARD;
+}
 
 TEST_CASE("Test cone formations", "[cone_test]") {
   SECTION("Test exp cone") {
@@ -265,25 +270,27 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     constexpr auto y = Slack{7.0, 0.0, 11.0};
     constexpr auto expected = Slack{14.0, 27.0, 55.0};
 
-    STATIC_REQUIRE(psd.circ(x, y) == expected);
-    STATIC_REQUIRE(psd.circ(x, psd.e()) == x);
-    STATIC_REQUIRE(psd.circ(psd.e(), x) == x);
+    STATIC_REQUIRE(all_equal(psd.circ(x, y), expected));
+    STATIC_REQUIRE(all_equal(psd.circ(x, psd.e()), x));
+    STATIC_REQUIRE(all_equal(psd.circ(psd.e(), x), x));
 
     constexpr auto z = Slack{4.0, 2.0, 3.0};
-    constexpr auto z_inv = Slack{0.375, -0.25, 0.5};
+    constexpr auto z_inv = Slack{0.3, -0.2, 0.4};
     constexpr auto z_inv_res = psd.inv(z);
     constexpr auto z_inv_calc = std::get<0>(z_inv_res);
     constexpr auto z_inv_event = std::get<1>(z_inv_res);
     STATIC_REQUIRE(z_inv_event == linalg::NumericalEvent::NONE);
     STATIC_REQUIRE(psd.in_cone(z_inv_calc));
     STATIC_REQUIRE(all_equal(z_inv_calc, z_inv));
+    STATIC_REQUIRE(all_equal(make_smat<2>(z) * make_smat<2>(z_inv_calc),
+                             make_identity<double, 2>(), 1e-5));
     STATIC_REQUIRE(all_equal(psd.circ(z, z_inv_calc), psd.e()));
 
     constexpr auto gx = Slack{4.0, 0.0, 9.0};
     constexpr auto gy = Slack{1.0, 0.0, 16.0};
     constexpr auto expected_gamma =
         -1.0 * constexpr_ln_safe(36.0) - 1.0 * constexpr_ln_safe(16.0) +
-        psd.nu() * constexpr_ln_safe(148.0);
+        psd.nu() * constexpr_ln_safe(148.0 / psd.nu());
     constexpr auto gamma_res = psd.gamma_F(gx, gy);
     constexpr auto gamma = std::get<0>(gamma_res);
     constexpr auto event = std::get<1>(gamma_res);
@@ -294,7 +301,7 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     constexpr auto w_res_psd = psd.w(gx, gy);
     constexpr auto w_psd = std::get<0>(w_res_psd);
     constexpr auto w_psd_event = std::get<1>(w_res_psd);
-    STATIC_REQUIRE(w_psd_event == linalg::NumericalEvent::NONE);
+    STATIC_REQUIRE(ok_psd_event(w_psd_event));
     REQUIRE(psd.in_cone(w_psd));
     REQUIRE(L2<Slack>()(w_psd - gw) < 1e-5);
     const auto P = QuadraticRep<Matrixd<3, 3>, PSDCirc<Slack, 2>>(w_psd);
@@ -306,7 +313,7 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     REQUIRE(L2<Slack>()(grad_x_calc - grad_x) < 1e-5);
 
     const auto [Hw, H_event] = psd.H(gx, gy);
-    REQUIRE(H_event == linalg::NumericalEvent::NONE);
+    REQUIRE(ok_psd_event(H_event));
     REQUIRE(Hw.apply(Slack{}) == Slack{});
     REQUIRE(L2<Slack>()(Hw.apply(gx) - gy) < 1e-5);
 
@@ -330,14 +337,13 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
 
     auto make_psd_point = [](std::mt19937& rng) {
       std::uniform_real_distribution<double> diag_dist(0.5, 3.0);
-      return Slack{diag_dist(rng), 0.0, diag_dist(rng),
-                   0.0, 0.0, diag_dist(rng)};
+      return Slack{diag_dist(rng), 0.0, diag_dist(rng), 0.0, 0.0,
+                   diag_dist(rng)};
     };
 
     std::mt19937 rng(0xFACE);
     constexpr size_t trials = 256;
     constexpr double tol = 1e-5;
-    constexpr double transport_tol = 5e-2;
     constexpr double eta = 0.99;
     constexpr double boundary_eps = 1e-8;
 
@@ -352,30 +358,30 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       const auto [x_inv, x_inv_event] = psd.inv(x);
       REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(x_inv));
-      const auto [x_inv_inv, x_inv_inv_event] = psd.inv(x_inv);
-      REQUIRE(x_inv_inv_event == linalg::NumericalEvent::NONE);
-      REQUIRE(l2(x_inv_inv - x) < tol);
-      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < tol);
+      REQUIRE(all_equal(make_smat<3>(x) * make_smat<3>(x_inv),
+                        make_identity<double, 3>(), tol));
+      REQUIRE(all_equal(make_smat<3>(x_inv) * make_smat<3>(x),
+                        make_identity<double, 3>(), tol));
 
       const auto [w, w_event] = psd.w(x, y);
-      REQUIRE(w_event == linalg::NumericalEvent::NONE);
+      REQUIRE(ok_psd_event(w_event));
       REQUIRE(psd.in_cone(w));
       REQUIRE(psd.in_dual_cone(w));
 
       const auto [Hw, H_event] = psd.H(x, y);
-      REQUIRE(H_event == linalg::NumericalEvent::NONE);
+      REQUIRE(ok_psd_event(H_event));
       REQUIRE(l2(Hw.apply(zero)) < tol);
 
       QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P(w);
-      REQUIRE(l2(x - P.apply(y)) < transport_tol);
+      REQUIRE(l2(x - P.apply(y)) < tol);
 
       const auto [w_inv, w_inv_event] = psd.inv(w);
       REQUIRE(w_inv_event == linalg::NumericalEvent::NONE);
       QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P_inv(w_inv);
-      REQUIRE(l2(y - P_inv.apply(x)) < transport_tol);
+      REQUIRE(l2(y - P_inv.apply(x)) < tol);
 
       const auto hx = Hw.apply(x);
-      REQUIRE(l2(hx - y) < transport_tol);
+      REQUIRE(l2(hx - y) < tol);
 
       const auto alpha = psd.alpha_max(x, p);
       const auto alpha_hit = alpha / eta;
@@ -383,6 +389,55 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       REQUIRE(psd.in_cone(x + alpha * p));
       REQUIRE(!psd.in_cone(x + (alpha_hit + boundary_eps) * p));
     }
+  }
+
+  SECTION("Near-boundary PSD alpha and functional proximity") {
+    using Slack = Vectord<6>;
+    constexpr PositiveSemidefiniteCone<Slack, 3> psd;
+    constexpr double tol = 1e-8;
+    constexpr double boundary_eps = 1e-9;
+    constexpr double eta = 0.99;
+
+    const auto X_int = make_identity<double, 3>();
+    const auto X_near = Matrixd<3, 3>{
+        Vectord<3>{1e-6, 0.0, 0.0},
+        Vectord<3>{0.0, 1.0, 0.0},
+        Vectord<3>{0.0, 0.0, 1.0},
+    };
+    const auto X_out = Matrixd<3, 3>{
+        Vectord<3>{-1e-6, 0.0, 0.0},
+        Vectord<3>{0.0, 1.0, 0.0},
+        Vectord<3>{0.0, 0.0, 1.0},
+    };
+
+    const auto x_int = get_svec(X_int);
+    const auto x_near = get_svec(X_near);
+    const auto x_out = get_svec(X_out);
+    const auto y_int = x_int;
+    const auto p = get_svec(Matrixd<3, 3>{
+        Vectord<3>{-1.0, 0.0, 0.0},
+        Vectord<3>{0.0, 0.0, 0.0},
+        Vectord<3>{0.0, 0.0, 0.0},
+    });
+
+    REQUIRE(psd.in_cone(x_int));
+    REQUIRE(psd.in_cone(x_near));
+    REQUIRE(!psd.in_cone(x_out));
+
+    const auto alpha_int = psd.alpha_max(x_int, p);
+    const auto alpha_near = psd.alpha_max(x_near, p);
+    REQUIRE(alpha_near < alpha_int);
+    REQUIRE(alpha_near < 1e-4 * alpha_int);
+
+    const auto alpha_hit_near = alpha_near / eta;
+    REQUIRE(psd.in_cone(x_near + alpha_near * p));
+    REQUIRE(!psd.in_cone(x_near + (alpha_hit_near + boundary_eps) * p));
+
+    const auto [gamma_int, gamma_int_event] = psd.gamma_F(x_int, y_int);
+    const auto [gamma_near, gamma_near_event] = psd.gamma_F(x_near, y_int);
+    REQUIRE(gamma_int_event == linalg::NumericalEvent::NONE);
+    REQUIRE(gamma_near_event == linalg::NumericalEvent::NONE);
+    REQUIRE(gamma_near > gamma_int + tol);
   }
 
   SECTION("Stress psd w/H on random SPD points with off-diagonals") {
@@ -402,18 +457,16 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       const double l21 = offdiag_dist(rng);
       const double l22 = diag_dist(rng);
 
-      const auto L = Matrixd<3, 3>{
-          Vectord<3>{l00, 0.0, 0.0},
-          Vectord<3>{l10, l11, 0.0},
-          Vectord<3>{l20, l21, l22}};
+      const auto L =
+          Matrixd<3, 3>{Vectord<3>{l00, 0.0, 0.0}, Vectord<3>{l10, l11, 0.0},
+                        Vectord<3>{l20, l21, l22}};
       const auto X = L * transpose(L);
-      return get_lower_triangle_with_diag(X);
+      return get_svec(X);
     };
 
     std::mt19937 rng(0xBADA55);
     constexpr size_t trials = 128;
     constexpr double tol = 1e-5;
-    constexpr double transport_tol = 2e-1;
     constexpr double eta = 0.99;
     constexpr double boundary_eps = 1e-8;
 
@@ -428,23 +481,118 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       const auto [x_inv, x_inv_event] = psd.inv(x);
       REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(x_inv));
-      const auto [x_inv_inv, x_inv_inv_event] = psd.inv(x_inv);
-      REQUIRE(x_inv_inv_event == linalg::NumericalEvent::NONE);
-      REQUIRE(l2(x_inv_inv - x) < transport_tol);
-      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < transport_tol);
+
+      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < tol);
+      REQUIRE(l2(psd.circ(x_inv, x) - psd.e()) < tol);
 
       const auto [w, w_event] = psd.w(x, y);
-      REQUIRE(w_event == linalg::NumericalEvent::NONE);
+      REQUIRE(ok_psd_event(w_event));
       REQUIRE(psd.in_cone(w));
       REQUIRE(psd.in_dual_cone(w));
 
+      const auto W = make_smat<3>(w);
+      const auto lhs = linalg::symmetric_part(W * (make_smat<3>(y) * W));
+      REQUIRE(all_equal(lhs, make_smat<3>(x), tol));
+
+      QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P(w);
+      REQUIRE(l2(x - P.apply(y)) < tol);
+
+      const auto [w_inv, w_inv_event] = psd.inv(w);
+      REQUIRE(w_inv_event == linalg::NumericalEvent::NONE);
+      QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P_inv(w_inv);
+      REQUIRE(l2(y - P_inv.apply(x)) < tol);
+
       const auto [Hw, H_event] = psd.H(x, y);
-      REQUIRE(H_event == linalg::NumericalEvent::NONE);
+      REQUIRE(ok_psd_event(H_event));
       REQUIRE(l2(Hw.apply(zero)) < tol);
+
+      const auto hx = Hw.apply(x);
+      REQUIRE(l2(hx - y) < tol);
 
       const auto alpha = psd.alpha_max(x, p);
       const auto alpha_hit = alpha / eta;
-      REQUIRE(constexpr_abs(alpha_hit - 0.5) < 5e-3);
+      REQUIRE(constexpr_abs(alpha_hit - 0.5) < tol);
+      REQUIRE(psd.in_cone(x + alpha * p));
+      REQUIRE(!psd.in_cone(x + (alpha_hit + boundary_eps) * p));
+    }
+  }
+
+  SECTION("Stress 4x4 psd w/H on random SPD points with off-diagonals") {
+    using Slack = Vectord<10>;
+    constexpr PositiveSemidefiniteCone<Slack, 4> psd;
+    constexpr auto zero = Slack{};
+    constexpr auto l2 = L2<Slack>();
+
+    auto make_psd_point = [](std::mt19937& rng) {
+      std::uniform_real_distribution<double> diag_dist(0.75, 2.0);
+      std::uniform_real_distribution<double> offdiag_dist(-0.2, 0.2);
+
+      const double l00 = diag_dist(rng);
+      const double l10 = offdiag_dist(rng);
+      const double l11 = diag_dist(rng);
+      const double l20 = offdiag_dist(rng);
+      const double l21 = offdiag_dist(rng);
+      const double l22 = diag_dist(rng);
+      const double l30 = offdiag_dist(rng);
+      const double l31 = offdiag_dist(rng);
+      const double l32 = offdiag_dist(rng);
+      const double l33 = diag_dist(rng);
+
+      const auto L = Matrixd<4, 4>{
+          Vectord<4>{l00, 0.0, 0.0, 0.0}, Vectord<4>{l10, l11, 0.0, 0.0},
+          Vectord<4>{l20, l21, l22, 0.0}, Vectord<4>{l30, l31, l32, l33}};
+      const auto X = L * transpose(L);
+      return get_svec(X);
+    };
+
+    std::mt19937 rng(0xD00DFEED);
+    constexpr size_t trials = 96;
+    constexpr double tol = 1e-5;
+    constexpr double eta = 0.99;
+    constexpr double boundary_eps = 1e-8;
+
+    for (size_t i = 0; i < trials; ++i) {
+      const auto x = make_psd_point(rng);
+      const auto y = make_psd_point(rng);
+      const auto p = (-2.0) * x;
+
+      REQUIRE(psd.in_cone(x));
+      REQUIRE(psd.in_dual_cone(y));
+
+      const auto [x_inv, x_inv_event] = psd.inv(x);
+      REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
+      REQUIRE(psd.in_cone(x_inv));
+
+      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < tol);
+      REQUIRE(l2(psd.circ(x_inv, x) - psd.e()) < tol);
+
+      const auto [w, w_event] = psd.w(x, y);
+      REQUIRE(ok_psd_event(w_event));
+      REQUIRE(psd.in_cone(w));
+      REQUIRE(psd.in_dual_cone(w));
+
+      const auto W = make_smat<4>(w);
+      const auto lhs = linalg::symmetric_part(W * (make_smat<4>(y) * W));
+      REQUIRE(all_equal(lhs, make_smat<4>(x), tol));
+
+      QuadraticRep<Matrixd<10, 10>, PSDCirc<Slack, 4>> P(w);
+      REQUIRE(l2(x - P.apply(y)) < tol);
+
+      const auto [w_inv, w_inv_event] = psd.inv(w);
+      REQUIRE(w_inv_event == linalg::NumericalEvent::NONE);
+      QuadraticRep<Matrixd<10, 10>, PSDCirc<Slack, 4>> P_inv(w_inv);
+      REQUIRE(l2(y - P_inv.apply(x)) < tol);
+
+      const auto [Hw, H_event] = psd.H(x, y);
+      REQUIRE(ok_psd_event(H_event));
+      REQUIRE(l2(Hw.apply(zero)) < tol);
+
+      const auto hx = Hw.apply(x);
+      REQUIRE(l2(hx - y) < tol);
+
+      const auto alpha = psd.alpha_max(x, p);
+      const auto alpha_hit = alpha / eta;
+      REQUIRE(constexpr_abs(alpha_hit - 0.5) < tol);
       REQUIRE(psd.in_cone(x + alpha * p));
       REQUIRE(!psd.in_cone(x + (alpha_hit + boundary_eps) * p));
     }

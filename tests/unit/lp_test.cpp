@@ -14,7 +14,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "math.hpp"
-#include "unit_test_helpers.hpp"
+#include "test_helpers.hpp"
 
 using namespace linalg;
 using namespace convex;
@@ -27,14 +27,13 @@ constexpr double rel_tol = 1e-3;
 
 TEST_CASE("Polyhedron Test", "[lp_test]") {
   using Space = Matrixd<1, 2>;
-  using Codom = Matrixd<1, 5>;
   constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
 
   constexpr auto A_mat = mat_traits<Matrixd<5, 2>>();
   constexpr auto A = A_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 2.0, 1.0, -1.0, 2.0);
   constexpr auto b = Vectord<5>{0.0, 0.0, 4.0, 5.0, 2.0};
-  constexpr Polyhedron<PolyhedronMeta<Space, Codom>, decltype(x)> poly(A, b, x);
+  constexpr auto poly = Polyhedron(A, b, x);
   constexpr auto prob_constr = prob_init.in_set(poly);
 
   constexpr auto F_mat = mat_traits<Matrixd<5, 2>>();
@@ -104,10 +103,7 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
 
   SECTION("Min sum(x.split())") {
     static constexpr auto x_tup = x.split();
-    constexpr auto x_sum =
-        Sum<SumMeta<Space, Matrixd<1, 1>>, decltype(std::get<0>(x_tup)),
-            decltype(std::get<1>(x_tup))>(std::get<0>(x_tup),
-                                          std::get<1>(x_tup));
+    constexpr auto x_sum = Sum(std::get<0>(x_tup), std::get<1>(x_tup));
 
     constexpr auto prob_min = prob_constr.minimize(x_sum);
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
@@ -181,18 +177,14 @@ TEST_CASE("Halfspace and Hyperplane LP Test", "[lp_test]") {
     constexpr mat_traits<Matrixd<2, 2>> A_nonneg_mat;
     constexpr auto A_nonneg = A_nonneg_mat(-1.0, 0.0, 0.0, -1.0);
     constexpr auto b_nonneg = Vectord<2>{0.0, 0.0};
-    constexpr Polyhedron<PolyhedronMeta<Space, Space>, decltype(x)> nonneg(
-        A_nonneg, b_nonneg, x);
+    constexpr auto nonneg = Polyhedron(A_nonneg, b_nonneg, x);
 
     constexpr Halfspace<HalfspaceMeta<Space>, decltype(x), HalfspaceType::LH>
         x0_upper_bound(Vectord<2>{1.0, 0.0}, 0.5, x);
-    constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> simplex_face(
-        Vectord<2>{1.0, 1.0}, 1.0, x);
+    constexpr auto simplex_face = Hyperplane(Vectord<2>{1.0, 1.0}, 1.0, x);
 
     constexpr auto feasible_set =
-        Intersection<IntersectionMeta<Space>, decltype(nonneg),
-                     decltype(x0_upper_bound), decltype(simplex_face)>(
-            nonneg, x0_upper_bound, simplex_face);
+        Intersection(nonneg, x0_upper_bound, simplex_face);
     constexpr auto prob_constr = prob_init.in_set(feasible_set);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
@@ -231,17 +223,13 @@ TEST_CASE("Polyhedron and Affine Subspace LP Test", "[lp_test]") {
     constexpr mat_traits<Matrixd<3, 2>> A_poly_mat;
     constexpr auto A_poly = A_poly_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 0.0);
     constexpr auto b_poly = Vectord<3>{0.0, 0.0, 0.5};
-    constexpr Polyhedron<PolyhedronMeta<Space, Matrixd<1, 3>>, decltype(x)>
-        poly(A_poly, b_poly, x);
+    constexpr auto poly = Polyhedron(A_poly, b_poly, x);
 
     constexpr auto A_aff = make_identity<double, 2>();
     constexpr auto b_aff = Vectord<2>{0.0, 1.0};
-    constexpr auto affine_set =
-        AffineSubspace<AffineMeta<Space, Space>, decltype(x)>(A_aff, b_aff, x);
+    constexpr auto affine_set = AffineSubspace(A_aff, b_aff, x);
 
-    constexpr auto feasible_set =
-        Intersection<IntersectionMeta<Space>, decltype(poly),
-                     decltype(affine_set)>(poly, affine_set);
+    constexpr auto feasible_set = Intersection(poly, affine_set);
     constexpr auto prob_constr = prob_init.in_set(feasible_set);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
@@ -488,8 +476,6 @@ TEST_CASE("Linf Function LP Test", "[lp_test]") {
 
 TEST_CASE("Max Function LP Test", "[lp_test]") {
   using Space = Matrixd<1, 2>;
-  using Codom = Matrixd<1, 1>;
-
   SECTION("Min max(x) s.t. x >= 1.5") {
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto prob_init = make_problem(x);
@@ -502,7 +488,7 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
     constexpr auto prob_constr =
         prob_init.add_constraint(x0_geq).add_constraint(x1_geq);
 
-    constexpr auto mx = Max<MaxMeta<Space, Codom>, decltype(x)>(x);
+    constexpr auto mx = Max(x);
     constexpr auto prob_min = prob_constr.minimize(mx);
 
     constexpr mat_traits<Matrixd<4, 3>> F_mat;
@@ -547,13 +533,9 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
     constexpr mat_traits<Matrixd<2, 2>> A_nonneg_mat;
     constexpr auto A_nonneg = A_nonneg_mat(-1.0, 0.0, 0.0, -1.0);
     constexpr auto b_nonneg = Vectord<2>{0.0, 0.0};
-    constexpr Polyhedron<PolyhedronMeta<Space, Space>, decltype(x)> nonneg(
-        A_nonneg, b_nonneg, x);
-    constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> sum_eq_one(
-        Vectord<2>{1.0, 1.0}, 1.0, x);
-    constexpr auto feasible_set =
-        Intersection<IntersectionMeta<Space>, decltype(nonneg),
-                     decltype(sum_eq_one)>(nonneg, sum_eq_one);
+    constexpr auto nonneg = Polyhedron(A_nonneg, b_nonneg, x);
+    constexpr auto sum_eq_one = Hyperplane(Vectord<2>{1.0, 1.0}, 1.0, x);
+    constexpr auto feasible_set = Intersection(nonneg, sum_eq_one);
     constexpr auto prob_constr = prob_init.in_set(feasible_set);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
@@ -600,8 +582,7 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
     constexpr mat_traits<Matrixd<3, 2>> A_poly_mat;
     constexpr auto A_poly = A_poly_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 1.0);
     constexpr auto b_poly = Vectord<3>{0.0, 0.0, 1.0};
-    constexpr Polyhedron<PolyhedronMeta<Space, Matrixd<1, 3>>, decltype(x)>
-        poly(A_poly, b_poly, x);
+    constexpr auto poly = Polyhedron(A_poly, b_poly, x);
     constexpr auto prob_constr = prob_init.in_set(poly);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};
@@ -645,7 +626,7 @@ TEST_CASE("Abs Function LP Test", "[lp_test]") {
   SECTION("Min abs(x) s.t. x0 >= 1") {
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto prob_init = make_problem(x);
-    constexpr auto abs_x = Abs<AbsMeta<Space>, decltype(x)>(x);
+    constexpr auto abs_x = Abs(x);
     constexpr auto x0 = x(0);
     constexpr auto geq =
         Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 1.0);
@@ -691,8 +672,7 @@ TEST_CASE("Warm Start LP Test", "[lp_test]") {
     constexpr auto A =
         A_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 2.0, 1.0, -1.0, 2.0);
     constexpr auto b = Vectord<5>{0.0, 0.0, 4.0, 5.0, 2.0};
-    constexpr Polyhedron<PolyhedronMeta<Space, Matrixd<1, 5>>, decltype(x)>
-        poly(A, b, x);
+    constexpr auto poly = Polyhedron(A, b, x);
     constexpr auto prob_constr = prob_init.in_set(poly);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};

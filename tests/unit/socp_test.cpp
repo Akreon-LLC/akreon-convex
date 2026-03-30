@@ -14,7 +14,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "math.hpp"
-#include "unit_test_helpers.hpp"
+#include "test_helpers.hpp"
 
 using namespace linalg;
 using namespace convex;
@@ -34,7 +34,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
   constexpr auto norm =
       Norm<NormMeta<Space, Singleton>, decltype(x_trans), L2<Vectord<2>>>(
           x_trans);
-  constexpr auto square = Square<SquareMeta<Singleton>, decltype(norm)>(norm);
+  constexpr auto square = Square(norm);
   constexpr auto half_square = square.mul<0.5>();
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
   constexpr auto sqrt5 = constexpr_sqrt_safe(5.0);
@@ -157,7 +157,7 @@ TEST_CASE("Warm Start SOCP Test", "[socp_test]") {
     constexpr auto norm =
         Norm<NormMeta<Space, Singleton>, decltype(x_trans), L2<Vectord<2>>>(
             x_trans);
-    constexpr auto square = Square<SquareMeta<Singleton>, decltype(norm)>(norm);
+    constexpr auto square = Square(norm);
     constexpr auto half_square = square.mul<0.5>();
     constexpr auto sqrt5 = constexpr_sqrt_safe(5.0);
     constexpr auto x_exp = Vectord<2>{1.0 / sqrt5, -2.0 / sqrt5};
