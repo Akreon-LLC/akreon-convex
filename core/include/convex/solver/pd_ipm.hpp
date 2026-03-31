@@ -328,8 +328,13 @@ struct PrimalDualIPM {
       auto alpha_xy = alpha_max(T(1), T(1), K, x, y, step.px, step.py);
 
       /// (dakre) 7 - backtrack line search to acquire next iterate
-      backtrack_iterates(alpha_xy, K, F, A, g, c, b, step.pz, step.pnu, step.px,
-                         step.py, z, nu, x, y);
+      const auto accepted =
+          backtrack_iterates(alpha_xy, K, F, A, g, c, b, step.pz, step.pnu,
+                             step.px, step.py, z, nu, x, y);
+      if (!accepted) {
+        res.stalled = true;
+        return;
+      }
 
       res.mu = mu(x, y, barrier_param);
 #ifdef AKREON_DEBUG
