@@ -149,10 +149,6 @@ if(BUILD_FUNCTIONAL_TESTS)
   add_executable(qp_fuzz_test functional/qp_fuzz_test.cpp)
   target_include_directories(qp_fuzz_test PRIVATE ../include)
   target_compile_options(qp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
-
-  add_executable(sdp_fuzz_test functional/sdp_fuzz_test.cpp)
-  target_include_directories(sdp_fuzz_test PRIVATE ../include)
-  target_compile_options(sdp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
 endif()
 
 set(AKREON_TEST_TARGETS

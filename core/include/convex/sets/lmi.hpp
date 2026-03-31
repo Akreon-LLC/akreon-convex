@@ -35,10 +35,10 @@ using LMIMeta =
  *
  * LMI solution set: 0 \succeq B - \sum(x_i A_i)
  */
-template <typename Meta, typename Child>
-struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
+template <typename Meta, typename Child, linalg::SquareMatrixLike MatIn>
+struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
   /// @brief bring into scope the type traits from the base class
-  using ConvexBase = ConvexSet<Meta, LMI<Meta, Child>, Child>;
+  using ConvexBase = ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child>;
   using typename ConvexBase::PointT;
   using typename ConvexBase::T;
 
@@ -46,7 +46,10 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
   using ConvexBase::N;
 
   /// @brief lifted matrix for P
-  using Mat = linalg::Matrix<T, N, N>;
+  using Mat = linalg::remove_cvref_t<MatIn>;
+  static constexpr size_t MatDim = linalg::mat_rows_v<Mat>;
+  static_assert(linalg::mat_cols_v<Mat> == MatDim,
+                "LMI expects square coefficient matrices");
 
   /**
    * @brief CTOR for LMI A & B split out
@@ -149,14 +152,14 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    static constexpr size_t K = N * (N + 1) / 2;
+    static constexpr size_t K = MatDim * (MatDim + 1) / 2;
     linalg::Matrix<T, K, N> F{};
     linalg::Vector<T, K> g{};
 
     auto update_F = [&F](const auto& i, const auto&& ldl) {
       size_t row_idx{0};
-      for (size_t j = 0; j < N; ++j) {
-        for (size_t k = j; k < N; ++k, ++row_idx) {
+      for (size_t j = 0; j < MatDim; ++j) {
+        for (size_t k = j; k < MatDim; ++k, ++row_idx) {
           if (k == j)
             F(row_idx)(i) = T(-1) * ldl(k, j);
           else
@@ -168,8 +171,8 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
 
     auto update_g = [&g](const auto& ldl) {
       size_t row_idx{0};
-      for (size_t j = 0; j < N; ++j) {
-        for (size_t k = j; k < N; ++k, ++row_idx) {
+      for (size_t j = 0; j < MatDim; ++j) {
+        for (size_t k = j; k < MatDim; ++k, ++row_idx) {
           if (k == j)
             g(row_idx) = ldl(k, j);
           else
@@ -183,7 +186,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
 
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto psd_cone =
-        conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, N>();
+        conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, MatDim>();
     const auto cones = std::make_tuple(psd_cone);
 
     const auto new_builder =
@@ -198,5 +201,11 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child>, Child> {
   linalg::Vector<Mat, N> A;  ///< LMI of As
   Mat B;                     ///< B offset
 };
+
+/// (dakre) CTAD - class template argument deduction for egononic use of LMI
+/// instead of full template path
+template <typename Mat, size_t N, typename Child>
+LMI(const linalg::Vector<Mat, N>&, const Mat&, const Child&)
+    -> LMI<LMIMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>, Child, Mat>;
 
 }  // namespace convex

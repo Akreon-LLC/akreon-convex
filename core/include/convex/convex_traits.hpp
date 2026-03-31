@@ -216,7 +216,7 @@ template <typename Meta, typename Child>
 struct Hyperplane;
 
 /// @brief forward declaration of LMI type
-template <typename Meta, typename Child>
+template <typename Meta, typename Child, linalg::SquareMatrixLike MatIn>
 struct LMI;
 
 /// @brief simple enum to describe ball type
@@ -403,8 +403,8 @@ struct atom_traits<Hyperplane<Meta, Child>> {
   static constexpr AtomType Type = AtomType::SET;
 };
 
-template <typename Meta, typename Child>
-struct atom_traits<LMI<Meta, Child>> {
+template <typename Meta, typename Child, typename Mat>
+struct atom_traits<LMI<Meta, Child, Mat>> {
   using ConvexMeta = Meta;
   static constexpr AtomType Type = AtomType::SET;
 };

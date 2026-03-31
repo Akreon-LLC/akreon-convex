@@ -188,7 +188,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     constexpr auto B = mat_traits<linalg::Matrixd<2, 2>>()(3.0, 1.0, 1.0, 4.0);
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr linalg::Vector<linalg::Matrixd<2, 2>, 2> A{A0, A1};
-    constexpr LMI<LMIMeta<Space>, decltype(x)> set(A, B, x);
+    constexpr LMI set(A, B, x);
     STATIC_REQUIRE(set.is_well_formed());
     STATIC_REQUIRE(!set.contains(Vectord<2>{1.0, 1.0}));
     STATIC_REQUIRE(set.contains(Vectord<2>{}));

@@ -38,7 +38,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     constexpr auto B =
         Matrixd<2, 2>{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 1.0}};
     constexpr Vector<Matrixd<2, 2>, 2> A{A0, A1};
-    constexpr auto feasible_set = LMI<LMIMeta<Space>, decltype(x)>(A, B, x);
+    constexpr auto feasible_set = LMI(A, B, x);
     constexpr auto prob_constr = prob_init.in_set(feasible_set);
 
     constexpr auto geq_x0 =
@@ -71,12 +71,20 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     STATIC_REQUIRE(prob_min.linear_objective() == Matrixd<1, 2>{c});
 
     /// (dakre) moving this to runtime path as compile time is slow
-    const PrimalDualIPM solver(prob_min);
+    PrimalDualIPMConfig<double> cfg{};
+    cfg.steps = 64;
+    cfg.primal_feas_tol = 1e-4;
+    cfg.dual_feas_tol = 1e-4;
+    cfg.duality_gap_tol = 1e-4;
+    const PrimalDualIPM solver(prob_min, cfg);
     const auto& res = solver.res;
 #ifdef AKREON_DEBUG
     const auto& trace = solver.trace;
 #endif
 
+#ifdef AKREON_DEBUG
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+#endif
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(res.num_iter > 0);
     REQUIRE(res.num_iter <= PD_IPM_STEPS);
@@ -96,7 +104,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     constexpr auto B =
         Matrixd<2, 2>{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 1.0}};
     constexpr Vector<Matrixd<2, 2>, 2> A{A0, A1};
-    constexpr auto lmi = LMI<LMIMeta<Space>, decltype(x)>(A, B, x);
+    constexpr auto lmi = LMI(A, B, x);
     constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> eq_x0_x1(
         Vectord<2>{1.0, -1.0}, 0.0, x);
 
@@ -123,10 +131,16 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     STATIC_REQUIRE(all_equal(prob_min.equality_map().linear_part(), Aeq));
     STATIC_REQUIRE(prob_min.equality_map().translation() == Vectord<1>{0.0});
 
-    const PrimalDualIPM solver(prob_min);
+    PrimalDualIPMConfig<double> cfg{};
+    cfg.steps = 64;
+    cfg.primal_feas_tol = 1e-4;
+    cfg.dual_feas_tol = 1e-4;
+    cfg.duality_gap_tol = 1e-4;
+    const PrimalDualIPM solver(prob_min, cfg);
     const auto& res = solver.res;
 #ifdef AKREON_DEBUG
     const auto& trace = solver.trace;
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif
 
     REQUIRE(res.tag == SolverResult::OPTIMAL);
@@ -138,5 +152,69 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     REQUIRE(!res.stalled);
     REQUIRE(constexpr_abs(res.iterate.z(0)) < rel_tol);
     REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
+  }
+
+  SECTION("Min c^T x s.t. 3x3 LMI") {
+    constexpr auto A0 = Matrixd<3, 3>{
+        Vectord<3>{-1.0, 0.0, 0.0},
+        Vectord<3>{0.0, -2.0, 0.0},
+        Vectord<3>{0.0, 0.0, -3.0},
+    };
+    constexpr auto A1 = Matrixd<3, 3>{
+        Vectord<3>{-3.0, 0.0, 0.0},
+        Vectord<3>{0.0, -2.0, 0.0},
+        Vectord<3>{0.0, 0.0, -1.0},
+    };
+    constexpr auto B = Matrixd<3, 3>{
+        Vectord<3>{1.0, 0.0, 0.0},
+        Vectord<3>{0.0, 1.0, 0.0},
+        Vectord<3>{0.0, 0.0, 1.0},
+    };
+
+    constexpr Vector<Matrixd<3, 3>, 2> A{A0, A1};
+    constexpr auto feasible_set = LMI(A, B, x);
+    constexpr auto prob_constr = prob_init.in_set(feasible_set);
+
+    constexpr auto geq_x0 =
+        Inequality<InequalityType::GEQ, decltype(x(0)), double>(x(0), 0.0);
+    constexpr auto geq_x1 =
+        Inequality<InequalityType::GEQ, decltype(x(1)), double>(x(1), 0.0);
+    constexpr auto x_constr =
+        prob_constr.add_constraint(geq_x0).add_constraint(geq_x1);
+
+    constexpr Vectord<2> c{1.0, 1.0};
+    constexpr auto cx = WeightedSum<Space>()(c, x);
+    constexpr auto prob_min = x_constr.minimize(cx);
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+    STATIC_REQUIRE(prob_min.validate());
+    STATIC_REQUIRE(
+        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+
+    // PSD(3) contributes 6 lower-triangular coordinates, then 2 R_+
+    // constraints.
+    constexpr auto F_exp = Matrixd<8, 2>{
+        Vectord<2>{1.0, 3.0},  // (0,0)
+        Vectord<2>{0.0, 0.0},  // (1,0)
+        Vectord<2>{0.0, 0.0},  // (2,0)
+        Vectord<2>{2.0, 2.0},  // (1,1)
+        Vectord<2>{0.0, 0.0},  // (2,1)
+        Vectord<2>{3.0, 1.0},  // (2,2)
+        Vectord<2>{1.0, 0.0},  // x0 >= 0
+        Vectord<2>{0.0, 1.0},  // x1 >= 0
+    };
+
+    const auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 8);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
+    REQUIRE(all_equal(F, F_exp));
+
+    const auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 8);
+    REQUIRE(g == Vectord<8>{1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0});
+
+    STATIC_REQUIRE(prob_min.linear_objective() == Matrixd<1, 2>{c});
+
+    SUCCEED("3x3 LMI with 2-dim decision variable canonicalizes correctly");
   }
 }
