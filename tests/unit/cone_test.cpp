@@ -16,7 +16,7 @@
 #include <random>
 
 #include "math.hpp"
-#include "unit_test_helpers.hpp"
+#include "test_helpers.hpp"
 
 using namespace linalg;
 using namespace convex;

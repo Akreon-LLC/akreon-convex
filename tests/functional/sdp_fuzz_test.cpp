@@ -11,13 +11,14 @@
  */
 
 #include "convex_fuzz_common.hpp"
+#include "test_helpers.hpp"
 
 namespace functional_test {
 
+using namespace unit_test;
+
 /**
  * @brief SDP trial
- *
- * TODO - currently not working well
  *
  * @param random (range)
  *
@@ -65,20 +66,28 @@ bool run_sdp_trial(std::mt19937& rng) {
   const auto config = make_fuzz_config();
   const PrimalDualIPM solver(prob, config);
   const auto& res = solver.res;
+  auto log_debug = [&]() {
+#ifdef AKREON_DEBUG
+    log(res, solver.trace);
+#endif
+  };
 
   if (res.tag != SolverResult::OPTIMAL || res.stalled) {
+    log_debug();
     std::fprintf(stderr, "SDP solve failed: tag=%d stalled=%d iter=%zu\n",
                  static_cast<int>(res.tag), res.stalled, res.num_iter);
     return false;
   }
 
   if (!all_nonnegative<N>(res.iterate.z, TOL)) {
+    log_debug();
     std::fprintf(stderr, "SDP feasibility failed: nonnegative violated\n");
     return false;
   }
 
   for (size_t i = 0; i < N; ++i) {
     if (res.iterate.z(i) > ub(i) + TOL) {
+      log_debug();
       std::fprintf(stderr, "SDP feasibility failed: z(%zu)=%g exceeds ub=%g\n",
                    i, res.iterate.z(i), ub(i));
       return false;
@@ -87,7 +96,8 @@ bool run_sdp_trial(std::mt19937& rng) {
 
   // Since c > 0 and x = 0 is feasible, optimum should be near zero.
   for (size_t i = 0; i < N; ++i) {
-    if (constexpr_abs(res.iterate.z(i)) > 5e-3) {
+    if (constexpr_abs(res.iterate.z(i)) > 1e-3) {
+      log_debug();
       std::fprintf(stderr,
                    "SDP optimality sanity failed: z(%zu)=%g not near zero\n", i,
                    res.iterate.z(i));

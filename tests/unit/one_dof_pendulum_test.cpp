@@ -14,7 +14,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "dynamics.hpp"
-#include "unit_test_helpers.hpp"
+#include "test_helpers.hpp"
 
 using namespace dynamics;
 using namespace unit_test;
