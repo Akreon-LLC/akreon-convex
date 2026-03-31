@@ -233,6 +233,6 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
 template <typename Child>
 InvPos(const Child&)
     -> InvPos<InvPosMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-              const Child>;
+              atom_decay_t<Child>>;
 
 }  // namespace convex

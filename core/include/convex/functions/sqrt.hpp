@@ -227,6 +227,6 @@ struct Sqrt : Atom<Meta, Sqrt<Meta, Child>, Child> {
 template <typename Child>
 Sqrt(const Child&)
     -> Sqrt<SqrtMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-            const Child>;
+            atom_decay_t<Child>>;
 
 }  // namespace convex

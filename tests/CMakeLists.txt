@@ -3,6 +3,14 @@ cmake_minimum_required(VERSION 3.22)
 include_directories(../core/include)
 include_directories(util)
 
+add_custom_target(ctad_self_nesting_check
+  COMMAND ${CMAKE_COMMAND}
+    -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/util/check_ctad_self_nesting.cmake
+  COMMENT "Checking for risky CTAD self-nesting patterns"
+  VERBATIM
+)
+
 set(UNIT_COMPILE_OPTS
   -ffunction-sections
   -fdata-sections
@@ -173,6 +181,7 @@ set(AKREON_TEST_TARGETS
 
 foreach(_ak_target IN LISTS AKREON_TEST_TARGETS)
   if(TARGET ${_ak_target})
+    add_dependencies(${_ak_target} ctad_self_nesting_check)
     akreon_configure_target(${_ak_target})
   endif()
 endforeach()

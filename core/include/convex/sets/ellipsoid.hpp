@@ -123,7 +123,8 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool is_equal_impl(const ConvexBase& other) const {
+  template <typename Other>
+  constexpr bool is_equal_impl(const Other& other) const {
     return other.self().c == c && other.self().P == P;
   }
 
@@ -210,6 +211,6 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
 template <typename Point, typename Mat, typename Child>
 Ellipsoid(const Point&, const Mat&, const Child&)
     -> Ellipsoid<EllipsoidMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-                 const Child>;
+                 atom_decay_t<Child>>;
 
 }  // namespace convex

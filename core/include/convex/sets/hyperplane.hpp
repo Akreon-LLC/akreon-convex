@@ -105,7 +105,8 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool is_equal_impl(const ConvexBase& other) const {
+  template <typename Other>
+  constexpr bool is_equal_impl(const Other& other) const {
     return other.self().a == a && other.self().b == b;
   }
 
@@ -173,6 +174,6 @@ template <typename Point, typename T, typename Child>
 Hyperplane(const Point&, const T&, const Child&)
     -> Hyperplane<
         HyperplaneMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-        const Child>;
+        atom_decay_t<Child>>;
 
 }  // namespace convex

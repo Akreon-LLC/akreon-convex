@@ -92,7 +92,8 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool is_equal_impl(const ConvexBase& other) const {
+  template <typename Other>
+  constexpr bool is_equal_impl(const Other& other) const {
     return A == other.self().A && b == other.self().b &&
            other.coord_map == this->coord_map;
   }
@@ -197,6 +198,6 @@ AffineSubspace(const Mat&, const Vec&, const Child&)
     -> AffineSubspace<
         AffineMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
                    dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-        const Child>;
+        atom_decay_t<Child>>;
 
 }  // namespace convex

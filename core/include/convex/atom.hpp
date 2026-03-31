@@ -28,6 +28,7 @@ struct Atom {
   /// @brief extract alias & types
   using Domain = meta_dom_t<Meta>;
   using Codomain = meta_codom_t<Meta>;
+  using ChildrenT = std::tuple<atom_decay_t<Cs>...>;
   using T = dom_type_t<Domain>;
   using PointT = dom_point_t<Domain>;
 
@@ -48,7 +49,7 @@ struct Atom {
    *
    * @param children (tuple)
    */
-  constexpr explicit Atom(const std::tuple<Cs...> child_in)
+  constexpr explicit Atom(ChildrenT child_in)
       : children(std::move(child_in)) {
     validate_domain();
   }
@@ -247,7 +248,7 @@ struct Atom {
   }
 
   /** @brief member vars*/
-  std::tuple<Cs...> children; ///< tuple of children
+  ChildrenT children; ///< tuple of normalized child atoms
 };
 
 }  // namespace convex

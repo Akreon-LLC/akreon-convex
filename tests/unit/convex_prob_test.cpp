@@ -83,9 +83,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(canon2_map.translation() == Vectord<1>{1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(canon2_cb.cones)>::value == 0);
 
-    using Mat2T = Matrixd<1, 2>;
-    constexpr auto sum =
-        Sum<SumMeta<Mat2T, MatT>, decltype(x0), decltype(x0)>(x0, x0);
+    constexpr auto sum = Sum(x0, x0);
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
 
     constexpr auto new_builder3 =
@@ -146,10 +144,9 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 
   SECTION("Var -> Scalar View -> Abs") {
     using Space = Matrixd<1, 3>;
-    using Scalar = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto x1 = x(1).mul(1.5).add(-1.0);
-    constexpr auto abs_fn = Abs<AbsMeta<Scalar>, decltype(x1)>(x1);
+    constexpr auto abs_fn = Abs(x1);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder =
@@ -191,7 +188,6 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 
   SECTION("Var + Fn -> Cones") {
     using Space = Matrixd<1, 2>;
-    using Codom = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto builder2 = x.add_var_block<AtomType::VAR>(builder);
@@ -200,7 +196,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(builder2.coord_map.linear_part() == I);
     STATIC_REQUIRE(builder2.coord_map.translation() == Vectord<2>{});
 
-    constexpr auto max_fn = Max<MaxMeta<Space, Codom>, decltype(x)>(x);
+    constexpr auto max_fn = Max(x);
     constexpr auto builder3 =
         max_fn.template canonicalize<AtomType::FN>(builder2);
     STATIC_REQUIRE(std::tuple_size<decltype(builder3.cb.cones)>::value == 1);
@@ -216,8 +212,6 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 
   SECTION("Split var") {
     using Space = Matrixd<1, 3>;
-    using Scalar = Matrixd<1, 1>;
-    using Pair = Matrixd<1, 2>;
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto x_tup = x.split();
     STATIC_REQUIRE(std::tuple_size<decltype(x_tup)>::value == 3);
@@ -234,15 +228,11 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(x1.map.translation() == Vectord<1>{0.0});
     STATIC_REQUIRE(x2.map.translation() == Vectord<1>{0.0});
 
-    constexpr auto abs_x0 = Abs<AbsMeta<Scalar>, decltype(x0)>(x0);
-    constexpr auto abs_x1 = Abs<AbsMeta<Scalar>, decltype(x1)>(x1);
-    constexpr auto abs_x2 = Abs<AbsMeta<Scalar>, decltype(x2)>(x2);
-    constexpr auto sum01 =
-        Sum<SumMeta<Pair, Scalar>, decltype(abs_x0), decltype(abs_x1)>(abs_x0,
-                                                                       abs_x1);
-    constexpr auto sum012 =
-        Sum<SumMeta<Pair, Scalar>, decltype(sum01), decltype(abs_x2)>(sum01,
-                                                                      abs_x2);
+    constexpr auto abs_x0 = Abs(x0);
+    constexpr auto abs_x1 = Abs(x1);
+    constexpr auto abs_x2 = Abs(x2);
+    constexpr auto sum01 = Sum(abs_x0, abs_x1);
+    constexpr auto sum012 = Sum(sum01, abs_x2);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder =
@@ -300,8 +290,12 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
   SECTION("Composed abs") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto abs_x = Abs<AbsMeta<Space>, decltype(x)>(x);
-    constexpr auto abs_abs_x = Abs<AbsMeta<Space>, decltype(abs_x)>(abs_x);
+    constexpr auto abs_x = Abs(x);
+    // Self-type nesting is intentionally explicit here. `Abs(abs_x)` would
+    // trigger CTAD's copy deduction candidate and just copy `abs_x` instead of
+    // forming the nested expression `abs(abs(x))`.
+    constexpr auto abs_abs_x =
+        Abs<AbsMeta<Space>, decltype(abs_x)>(abs_x);
 
     STATIC_REQUIRE(
         dom_vartype_v<meta_dom_t<atom_meta_t<decltype(abs_abs_x)>>> ==
@@ -352,28 +346,26 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     constexpr auto x_pos = Variable<PosVarMeta<Scalar>>();
     constexpr auto pair_pos = Variable<PosVarMeta<Pair>>();
 
-    constexpr auto exp_fn = Exp<ExpMeta<Scalar>, decltype(x_free)>(x_free);
+    constexpr auto exp_fn = Exp(x_free);
     STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(exp_fn)>>> ==
                    VarType::FREE);
     STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(exp_fn)>>> ==
                    VarType::NONNEG);
 
-    constexpr auto sqrt_fn =
-        Sqrt<SqrtMeta<Scalar>, decltype(x_nonneg)>(x_nonneg);
+    constexpr auto sqrt_fn = Sqrt(x_nonneg);
     STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(sqrt_fn)>>> ==
                    VarType::NONNEG);
     STATIC_REQUIRE(
         dom_vartype_v<meta_codom_t<atom_meta_t<decltype(sqrt_fn)>>> ==
         VarType::NONNEG);
 
-    constexpr auto log_fn = Log<LogMeta<Scalar>, decltype(x_pos)>(x_pos);
+    constexpr auto log_fn = Log(x_pos);
     STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(log_fn)>>> ==
                    VarType::POS);
     STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(log_fn)>>> ==
                    VarType::FREE);
 
-    constexpr auto inv_pos_fn =
-        InvPos<InvPosMeta<Scalar>, decltype(x_pos)>(x_pos);
+    constexpr auto inv_pos_fn = InvPos(x_pos);
     STATIC_REQUIRE(
         dom_vartype_v<meta_dom_t<atom_meta_t<decltype(inv_pos_fn)>>> ==
         VarType::POS);
@@ -381,8 +373,7 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
         dom_vartype_v<meta_codom_t<atom_meta_t<decltype(inv_pos_fn)>>> ==
         VarType::POS);
 
-    constexpr auto geo_mean_fn =
-        GeoMean<GeoMeanMeta<Pair, Scalar>, decltype(pair_pos)>(pair_pos);
+    constexpr auto geo_mean_fn = GeoMean(pair_pos);
     STATIC_REQUIRE(
         dom_vartype_v<meta_dom_t<atom_meta_t<decltype(geo_mean_fn)>>> ==
         VarType::POS);
@@ -390,9 +381,7 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
         dom_vartype_v<meta_codom_t<atom_meta_t<decltype(geo_mean_fn)>>> ==
         VarType::POS);
 
-    constexpr auto harmonic_mean_fn =
-        HarmonicMean<HarmonicMeanMeta<Pair, Scalar>, decltype(pair_pos)>(
-            pair_pos);
+    constexpr auto harmonic_mean_fn = HarmonicMean(pair_pos);
     STATIC_REQUIRE(
         dom_vartype_v<meta_dom_t<atom_meta_t<decltype(harmonic_mean_fn)>>> ==
         VarType::POS);
@@ -416,9 +405,7 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     constexpr auto x = Variable<VarMeta<MatT>>();
     constexpr auto x0 = x(0);
     constexpr auto x1 = x(1);
-    using Mat1T = Matrixd<1, 1>;
-    constexpr auto sum =
-        Sum<SumMeta<MatT, Mat1T>, decltype(x0), decltype(x1)>(x0, x1);
+    constexpr auto sum = Sum(x0, x1);
 
     STATIC_REQUIRE(std::tuple_size<decltype(sum.children)>::value == 2);
 
@@ -433,12 +420,9 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     STATIC_REQUIRE(canon_map.translation() == Vectord<1>{0.0});
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 0);
 
-    using Space = Matrixd<1, 1>;
-    constexpr auto abs_x0 = Abs<AbsMeta<Space>, decltype(x0)>(x0);
-    constexpr auto abs_x1 = Abs<AbsMeta<Space>, decltype(x1)>(x1);
-    constexpr auto sum_abs =
-        Sum<SumMeta<MatT, Space>, decltype(abs_x0), decltype(abs_x1)>(abs_x0,
-                                                                      abs_x1);
+    constexpr auto abs_x0 = Abs(x0);
+    constexpr auto abs_x1 = Abs(x1);
+    constexpr auto sum_abs = Sum(abs_x0, abs_x1);
     STATIC_REQUIRE(std::tuple_size<decltype(sum_abs.children)>::value == 2);
 
     constexpr auto new_builder2 =
@@ -474,8 +458,7 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
     constexpr Vector<double, 3> point{1.0, 2.0, 3.0};
     constexpr auto b = 0.6;
     constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> hyperplane(point,
-                                                                        b, x);
+    constexpr auto hyperplane = Hyperplane(point, b, x);
     STATIC_REQUIRE(hyperplane.is_well_formed());
 
     constexpr auto r = 2.0;
@@ -484,9 +467,7 @@ TEST_CASE("Simple convex set ops", "[convex_ops]") {
             Vectord<3>{}, r, x);
     STATIC_REQUIRE(ball.is_well_formed());
 
-    constexpr auto intersection =
-        Intersection<IntersectionMeta<Space>, decltype(hyperplane),
-                     decltype(ball)>(hyperplane, ball);
+    constexpr auto intersection = Intersection(hyperplane, ball);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto new_builder =
@@ -552,9 +533,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
 
   SECTION("Simple EQ constrained min. x(1) prob") {
     constexpr auto I = make_identity<double, 3>();
-    constexpr auto subspace =
-        AffineSubspace<AffineMeta<Dom, Dom>, decltype(var)>(I, Vectord<3>{},
-                                                            var);
+    constexpr auto subspace = AffineSubspace(I, Vectord<3>{}, var);
     constexpr auto prob2 = prob.in_set(subspace);
     constexpr auto prob3 = prob2.minimize(var(1));
     STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
@@ -575,15 +554,12 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
   SECTION("Intersection of sets min. Linf prob") {
     constexpr Vectord<3> a{1.0, 4.0, 6.0};
     constexpr double b = 0.4;
-    constexpr Hyperplane<HyperplaneMeta<Dom>, decltype(var)> hyperplane(a, b,
-                                                                        var);
+    constexpr auto hyperplane = Hyperplane(a, b, var);
     constexpr Vectord<3> c{1.0, 0.0, 1.0};
     constexpr auto P = make_identity<double, 3>();
-    constexpr Ellipsoid<EllipsoidMeta<Dom>, decltype(var)> ellipsoid(c, P, var);
+    constexpr auto ellipsoid = Ellipsoid(c, P, var);
 
-    constexpr auto intersection =
-        Intersection<IntersectionMeta<Dom>, decltype(hyperplane),
-                     decltype(ellipsoid)>(hyperplane, ellipsoid);
+    constexpr auto intersection = Intersection(hyperplane, ellipsoid);
     constexpr auto prob2 = prob.in_set(intersection);
 
     constexpr auto norm =
@@ -611,12 +587,10 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     constexpr auto x0 = var(0);
     constexpr auto x1 = var(1);
     constexpr auto x2 = var(2);
-    constexpr auto sq0 = Square<SquareMeta<Codom>, decltype(x0)>(x0);
-    constexpr auto sq1 = Square<SquareMeta<Codom>, decltype(x1)>(x1);
-    constexpr auto sq2 = Square<SquareMeta<Codom>, decltype(x2)>(x2);
-    constexpr auto sum =
-        Sum<SumMeta<Dom, Codom>, decltype(sq0), decltype(sq1), decltype(sq2)>(
-            sq0, sq1, sq2);
+    constexpr auto sq0 = Square(x0);
+    constexpr auto sq1 = Square(x1);
+    constexpr auto sq2 = Square(x2);
+    constexpr auto sum = Sum(sq0, sq1, sq2);
     constexpr auto prob2 = prob.minimize(sum);
     STATIC_REQUIRE(is_problem_set_v<decltype(prob2)>);
     STATIC_REQUIRE(prob2.validate());
@@ -650,10 +624,9 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     constexpr auto x0 = var(0);
     constexpr auto x1 = var(1);
     constexpr auto x2 = var(2);
-    constexpr auto exp0 =
-        Exp<ExpMeta<Codom>, decltype(x0)>(x0).template mul<-1.0>();
-    constexpr auto exp1 = Exp<ExpMeta<Codom>, decltype(x1)>(x1);
-    constexpr auto exp2 = Exp<ExpMeta<Codom>, decltype(x2)>(x2);
+    constexpr auto exp0 = Exp(x0).template mul<-1.0>();
+    constexpr auto exp1 = Exp(x1);
+    constexpr auto exp2 = Exp(x2);
 
     /// (dakre) part 1 - leq
     constexpr auto leq =
@@ -754,7 +727,7 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
     constexpr auto var = Variable<PosVarMeta<Space>>();
     constexpr auto prob = make_problem(var);
 
-    constexpr auto log = Log<LogMeta<Space>, decltype(var)>(var);
+    constexpr auto log = Log(var);
     constexpr auto prob2 = prob.maximize(log);
     STATIC_REQUIRE(is_problem_set_v<decltype(prob2)>);
     STATIC_REQUIRE(prob2.validate());
@@ -781,14 +754,11 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
     constexpr auto var = Variable<NonnegVarMeta<Dom>>();
     constexpr auto prob = make_problem(var);
 
-    using Codom = Matrixd<1, 1>;
     constexpr auto x0 = var(0);
     constexpr auto x1 = var(1);
-    constexpr auto sqrt0 = Sqrt<SqrtMeta<Codom>, decltype(x0)>(x0);
-    constexpr auto sqrt1 = Sqrt<SqrtMeta<Codom>, decltype(x1)>(x1);
-    constexpr auto sum_sqrt =
-        Sum<SumMeta<Dom, Codom>, decltype(sqrt0), decltype(sqrt1)>(sqrt0,
-                                                                   sqrt1);
+    constexpr auto sqrt0 = Sqrt(x0);
+    constexpr auto sqrt1 = Sqrt(x1);
+    constexpr auto sum_sqrt = Sum(sqrt0, sqrt1);
 
     constexpr auto prob2 = prob.maximize(sum_sqrt);
     STATIC_REQUIRE(is_problem_set_v<decltype(prob2)>);

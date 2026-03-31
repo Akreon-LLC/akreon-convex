@@ -120,7 +120,7 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
    * @param children param pack
    */
   constexpr explicit Sum(const Cs&... cs)
-      : BaseT(std::forward_as_tuple(cs...)), map(affine::make_map_id<MatT>()) {
+      : BaseT(std::make_tuple(cs...)), map(affine::make_map_id<MatT>()) {
     (validate_sum_child_codomain<Codomain, Cs>(), ...);
   }
 
@@ -203,6 +203,6 @@ Sum(const C0&, const Cs&...)
                        dom_type_t<meta_dom_t<atom_meta_t<C0>>>, 1,
                        1 + sizeof...(Cs)>,
                    dom_space_t<meta_codom_t<atom_meta_t<C0>>>>,
-           const C0, const Cs...>;
+           atom_decay_t<C0>, atom_decay_t<Cs>...>;
 
 }  // namespace convex

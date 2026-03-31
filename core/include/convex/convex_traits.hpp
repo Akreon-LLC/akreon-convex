@@ -474,15 +474,19 @@ concept AtomLike = requires(const Atom& atom) {
 template <InequalityType IType, AtomLike LHS, typename RHS>
 struct Inequality;
 
+/// @brief normalize atom-facing types to a stable internal form.
+template <typename T>
+using atom_decay_t = linalg::remove_cvref_t<T>;
+
 /// @brief Extract metadata type from atom.
 template <AtomLike Atom>
 using atom_meta_t =
-    typename atom_traits<linalg::remove_cvref_t<Atom>>::ConvexMeta;
+    typename atom_traits<atom_decay_t<Atom>>::ConvexMeta;
 
 /// @brief Compile-time atom category.
 template <AtomLike Atom>
 inline constexpr AtomType atom_type_v =
-    atom_traits<linalg::remove_cvref_t<Atom>>::Type;
+    atom_traits<atom_decay_t<Atom>>::Type;
 
 /// @brief Helper predicates on atom category.
 template <AtomLike Atom>

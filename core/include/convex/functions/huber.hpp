@@ -291,6 +291,6 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
 template <typename T, typename Child>
 Huber(const T&, const Child&)
     -> Huber<HuberMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-             const Child>;
+             atom_decay_t<Child>>;
 
 }  // namespace convex

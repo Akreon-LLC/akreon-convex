@@ -132,7 +132,8 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool is_equal_impl(const ConvexBase& other) const {
+  template <typename Other>
+  constexpr bool is_equal_impl(const Other& other) const {
     return other.self().A == A && other.self().b == b;
   }
 
@@ -195,6 +196,6 @@ Polyhedron(const Mat&, const Bias&, const Child&)
             dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
             linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1,
                            linalg::mat_rows_v<Mat>>>,
-        const Child>;
+        atom_decay_t<Child>>;
 
 }  // namespace convex

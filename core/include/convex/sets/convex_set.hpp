@@ -92,9 +92,10 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
    *
    * @return T/F
    */
+  template <typename OtherDerived, typename OtherChild>
   constexpr bool operator==(
-      const ConvexSet<Meta, Derived, Child>& other) const {
-    return self().is_equal_impl(other);
+      const ConvexSet<Meta, OtherDerived, OtherChild>& other) const {
+    return self().is_equal_impl(other.self());
   }
 
   /**
@@ -104,9 +105,10 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
    *
    * @return T/F
    */
+  template <typename OtherDerived, typename OtherChild>
   constexpr bool operator!=(
-      const ConvexSet<Meta, Derived, Child>& other) const {
-    return !self().is_equal_impl(other);
+      const ConvexSet<Meta, OtherDerived, OtherChild>& other) const {
+    return !self().is_equal_impl(other.self());
   }
 
   /**

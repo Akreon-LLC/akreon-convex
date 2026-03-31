@@ -98,7 +98,8 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
    *
    * @return T/F
    */
-  constexpr bool is_equal_impl(const ConvexBase& other) const {
+  template <typename Other>
+  constexpr bool is_equal_impl(const Other& other) const {
     if (!linalg::all_equal(B, other.B)) return false;
     for (size_t i = 0; i < N; ++i)
       if (!linalg::all_equal(A(i), other.A(i))) return false;
@@ -207,6 +208,6 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
 template <typename Mat, size_t N, typename Child>
 LMI(const linalg::Vector<Mat, N>&, const Mat&, const Child&)
     -> LMI<LMIMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-           const Child, Mat>;
+           atom_decay_t<Child>, Mat>;
 
 }  // namespace convex

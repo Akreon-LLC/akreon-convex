@@ -582,8 +582,7 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
     constexpr mat_traits<Matrixd<3, 2>> A_poly_mat;
     constexpr auto A_poly = A_poly_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 1.0);
     constexpr auto b_poly = Vectord<3>{0.0, 0.0, 1.0};
-    constexpr Polyhedron<PolyhedronMeta<Space, Matrixd<1, 3>>, decltype(x)>
-        poly(A_poly, b_poly, x);
+    constexpr auto poly = Polyhedron(A_poly, b_poly, x);
     constexpr auto prob_constr = prob_init.in_set(poly);
 
     constexpr auto c = Vectord<2>{2.0, -1.0};

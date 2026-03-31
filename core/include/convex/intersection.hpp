@@ -59,7 +59,7 @@ struct Intersection : Atom<Meta, Intersection<Meta, Cs...>, Cs...> {
    * @param children parameter pack
    */
   constexpr explicit Intersection(const Cs... cs)
-      : BaseT(std::make_tuple(std::forward<Cs>(cs)...)) {}
+      : BaseT(std::make_tuple(cs...)) {}
 
   /**
    * @brief CTOR
@@ -104,7 +104,7 @@ struct Intersection : Atom<Meta, Intersection<Meta, Cs...>, Cs...> {
 template <typename C0, typename... Cs>
 Intersection(const C0&, const Cs&...)
     -> Intersection<
-        IntersectionMeta<dom_space_t<meta_codom_t<atom_meta_t<C0>>>>, const C0,
-        const Cs...>;
+        IntersectionMeta<dom_space_t<meta_codom_t<atom_meta_t<C0>>>>,
+        atom_decay_t<C0>, atom_decay_t<Cs>...>;
 
 }  // namespace convex
