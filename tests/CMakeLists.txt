@@ -23,6 +23,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     -fconstexpr-ops-limit=2000000000
   )
 endif()
+
 set(FUNC_COMPILE_OPTS
   -ffunction-sections
   -fdata-sections
