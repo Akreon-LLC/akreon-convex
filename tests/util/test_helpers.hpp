@@ -10,6 +10,9 @@
  * from Akreon LLC.
  */
 
+#pragma once
+
+#include <cstring>
 #include <iostream>
 
 #include "math.hpp"
@@ -32,7 +35,7 @@ inline constexpr void log(const auto& res, const auto& trace) {
   trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
   std::cout << buf << std::endl;
 
-  memset(buf, '\0', sizeof(buf));
+  std::memset(buf, '\0', sizeof(buf));
   result_to_cstr(res, buf, sizeof(buf));
   std::cout << buf << std::endl;
 }
