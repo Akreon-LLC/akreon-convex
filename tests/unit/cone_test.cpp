@@ -281,9 +281,9 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
 
     constexpr auto gx = Slack{4.0, 0.0, 9.0};
     constexpr auto gy = Slack{1.0, 0.0, 16.0};
-    constexpr auto expected_gamma =
-        -1.0 * constexpr_ln_safe(36.0) - 1.0 * constexpr_ln_safe(16.0) +
-        psd.nu() * constexpr_ln_safe(148.0);
+    constexpr auto expected_gamma = -1.0 * constexpr_ln_safe(36.0) -
+                                    1.0 * constexpr_ln_safe(16.0) +
+                                    psd.nu() * constexpr_ln_safe(148.0);
     constexpr auto gamma_res = psd.gamma_F(gx, gy);
     constexpr auto gamma = std::get<0>(gamma_res);
     constexpr auto event = std::get<1>(gamma_res);
@@ -330,8 +330,8 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
 
     auto make_psd_point = [](std::mt19937& rng) {
       std::uniform_real_distribution<double> diag_dist(0.5, 3.0);
-      return Slack{diag_dist(rng), 0.0, diag_dist(rng),
-                   0.0, 0.0, diag_dist(rng)};
+      return Slack{diag_dist(rng), 0.0, diag_dist(rng), 0.0, 0.0,
+                   diag_dist(rng)};
     };
 
     std::mt19937 rng(0xFACE);
@@ -401,10 +401,9 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       const double l21 = offdiag_dist(rng);
       const double l22 = diag_dist(rng);
 
-      const auto L = Matrixd<3, 3>{
-          Vectord<3>{l00, 0.0, 0.0},
-          Vectord<3>{l10, l11, 0.0},
-          Vectord<3>{l20, l21, l22}};
+      const auto L =
+          Matrixd<3, 3>{Vectord<3>{l00, 0.0, 0.0}, Vectord<3>{l10, l11, 0.0},
+                        Vectord<3>{l20, l21, l22}};
       const auto X = L * transpose(L);
       return get_lower_triangle_with_diag(X);
     };
@@ -442,7 +441,7 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
 
       const auto alpha = psd.alpha_max(x, p);
       const auto alpha_hit = alpha / eta;
-      REQUIRE(constexpr_abs(alpha_hit - 0.5) < 5e-3);
+      REQUIRE(constexpr_abs(alpha_hit - 0.5) < tol);
       REQUIRE(psd.in_cone(x + alpha * p));
       REQUIRE(!psd.in_cone(x + (alpha_hit + boundary_eps) * p));
     }
