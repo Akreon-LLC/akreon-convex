@@ -457,6 +457,21 @@ constexpr auto get_lower_triangle_with_diag(const Mat& A) {
 }
 
 /**
+ * @brief symmetric part of a square matrix
+ *
+ * sym(A) = 0.5 * (A + A^T)
+ *
+ * @param matrix A
+ *
+ * @return symmetric matrix
+ */
+template <SquareMatrixLike Mat>
+constexpr auto symmetric_part(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  return T(0.5) * (A + transpose(A));
+}
+
+/**
  * @brief get lower triangle
  *
  * [ 0 0 0 0 ]

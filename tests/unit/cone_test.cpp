@@ -337,7 +337,6 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     std::mt19937 rng(0xFACE);
     constexpr size_t trials = 256;
     constexpr double tol = 1e-5;
-    constexpr double transport_tol = 5e-2;
     constexpr double eta = 0.99;
     constexpr double boundary_eps = 1e-8;
 
@@ -367,15 +366,15 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       REQUIRE(l2(Hw.apply(zero)) < tol);
 
       QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P(w);
-      REQUIRE(l2(x - P.apply(y)) < transport_tol);
+      REQUIRE(l2(x - P.apply(y)) < tol);
 
       const auto [w_inv, w_inv_event] = psd.inv(w);
       REQUIRE(w_inv_event == linalg::NumericalEvent::NONE);
       QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P_inv(w_inv);
-      REQUIRE(l2(y - P_inv.apply(x)) < transport_tol);
+      REQUIRE(l2(y - P_inv.apply(x)) < tol);
 
       const auto hx = Hw.apply(x);
-      REQUIRE(l2(hx - y) < transport_tol);
+      REQUIRE(l2(hx - y) < tol);
 
       const auto alpha = psd.alpha_max(x, p);
       const auto alpha_hit = alpha / eta;
@@ -413,7 +412,6 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     std::mt19937 rng(0xBADA55);
     constexpr size_t trials = 128;
     constexpr double tol = 1e-5;
-    constexpr double transport_tol = 2e-1;
     constexpr double eta = 0.99;
     constexpr double boundary_eps = 1e-8;
 
@@ -430,8 +428,8 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       REQUIRE(psd.in_cone(x_inv));
       const auto [x_inv_inv, x_inv_inv_event] = psd.inv(x_inv);
       REQUIRE(x_inv_inv_event == linalg::NumericalEvent::NONE);
-      REQUIRE(l2(x_inv_inv - x) < transport_tol);
-      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < transport_tol);
+      REQUIRE(l2(x_inv_inv - x) < tol);
+      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < tol);
 
       const auto [w, w_event] = psd.w(x, y);
       REQUIRE(w_event == linalg::NumericalEvent::NONE);

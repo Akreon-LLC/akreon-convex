@@ -259,7 +259,8 @@ struct PositiveSemidefiniteCone
         linalg::SymmetricMatrixInverse<decltype(U_sqrt)>()(U_sqrt);
     if (linalg::is_fatal_event(event3)) return std::tuple(w, event3);
 
-    w = linalg::get_lower_triangle_with_diag(X_sqrt * (U_sqrt_inv * X_sqrt));
+    w = linalg::get_lower_triangle_with_diag(
+        linalg::symmetric_part(X_sqrt * (U_sqrt_inv * X_sqrt)));
     const auto out_event =
         (event1 != linalg::NumericalEvent::NONE ||
          event2 != linalg::NumericalEvent::NONE ||
@@ -343,7 +344,9 @@ struct PositiveSemidefiniteCone
     const auto X = linalg::make_smat<N, Slack>(x);
     const auto [X_inv, event] =
         linalg::SymmetricMatrixInverse<decltype(X)>()(X);
-    return std::tuple(linalg::get_lower_triangle_with_diag(X_inv), event);
+    return std::tuple(
+        linalg::get_lower_triangle_with_diag(linalg::symmetric_part(X_inv)),
+        event);
   }
 };
 
