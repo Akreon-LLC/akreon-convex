@@ -239,4 +239,13 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
   const int idx{-1};
 };
 
+template <typename Child>
+HarmonicMean(const Child&)
+    -> HarmonicMean<
+        HarmonicMeanMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+                         linalg::Matrix<
+                             dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1,
+                             1>>,
+        const Child>;
+
 }  // namespace convex

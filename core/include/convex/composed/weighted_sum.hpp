@@ -46,17 +46,10 @@ struct WeightedSum {
         std::same_as<dom_space_t<meta_codom_t<atom_meta_t<Var>>>, Space>,
         "Invalid q^T x operator mismatch on vector types");
 
-    using Singleton = linalg::Matrix<T, 1, 1>;
-
-    auto make_sum = [&]<typename... Cs>(const std::tuple<Cs...>& vars) {
-      return std::make_from_tuple<Sum<SumMeta<Space, Singleton>, Cs...>>(vars);
-    };
-
     const auto W = linalg::make_diag(q);
     const auto weighted_x = x.mul(W);
     const auto vars = weighted_x.split();
-
-    return make_sum(vars);
+    return std::apply([](const auto&... cs) { return Sum(cs...); }, vars);
   }
 };
 

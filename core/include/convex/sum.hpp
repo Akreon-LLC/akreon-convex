@@ -197,4 +197,12 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   affine::AffineMap<MatT> map;
 };
 
+template <typename C0, typename... Cs>
+Sum(const C0&, const Cs&...)
+    -> Sum<SumMeta<linalg::Matrix<
+                       dom_type_t<meta_dom_t<atom_meta_t<C0>>>, 1,
+                       1 + sizeof...(Cs)>,
+                   dom_space_t<meta_codom_t<atom_meta_t<C0>>>>,
+           const C0, const Cs...>;
+
 }  // namespace convex

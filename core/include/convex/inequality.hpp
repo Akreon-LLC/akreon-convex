@@ -146,29 +146,23 @@ struct Inequality {
         }
       };
 
-      using SumDom = linalg::Matrix<T, 1, 2>;
-      using SumCodom = linalg::Matrix<T, 1, 1>;
-
       if constexpr (IType == InequalityType::LEQ) {
         const auto new_lhs = negate_atom(lhs);
-        const Sum<SumMeta<SumDom, SumCodom>, decltype(new_lhs), decltype(rhs)>
-            sum(new_lhs, rhs);
+        const Sum sum(new_lhs, rhs);
         const auto new_builder =
             sum.template canonicalize<AtomType::ADD>(builder);
         return new_builder.template make<AtomType::CAP>(
             std::make_tuple(conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
       } else if constexpr (IType == InequalityType::GEQ) {
         const auto new_rhs = negate_atom(rhs);
-        const Sum<SumMeta<SumDom, SumCodom>, decltype(lhs), decltype(new_rhs)>
-            sum(lhs, new_rhs);
+        const Sum sum(lhs, new_rhs);
         const auto new_builder =
             sum.template canonicalize<AtomType::ADD>(builder);
         return new_builder.template make<AtomType::CAP>(
             std::make_tuple(conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
       } else {
         const auto new_rhs = negate_atom(rhs);
-        const Sum<SumMeta<SumDom, SumCodom>, decltype(lhs), decltype(new_rhs)>
-            sum(lhs, new_rhs);
+        const Sum sum(lhs, new_rhs);
         const auto child_builder =
             sum.template canonicalize<AtomType::ADD>(builder);
         const auto child_coord = child_builder.coord_map;

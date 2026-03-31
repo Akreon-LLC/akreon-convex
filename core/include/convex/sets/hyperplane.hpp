@@ -169,4 +169,10 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
   T b;       //< bias scalar of type T
 };
 
+template <typename Point, typename T, typename Child>
+Hyperplane(const Point&, const T&, const Child&)
+    -> Hyperplane<
+        HyperplaneMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+        const Child>;
+
 }  // namespace convex

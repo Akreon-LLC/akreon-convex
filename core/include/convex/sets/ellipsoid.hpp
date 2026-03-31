@@ -207,4 +207,9 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
              // S^n_+)
 };
 
+template <typename Point, typename Mat, typename Child>
+Ellipsoid(const Point&, const Mat&, const Child&)
+    -> Ellipsoid<EllipsoidMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+                 const Child>;
+
 }  // namespace convex

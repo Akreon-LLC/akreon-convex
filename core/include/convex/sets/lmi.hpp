@@ -206,6 +206,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
 /// instead of full template path
 template <typename Mat, size_t N, typename Child>
 LMI(const linalg::Vector<Mat, N>&, const Mat&, const Child&)
-    -> LMI<LMIMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>, Child, Mat>;
+    -> LMI<LMIMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+           const Child, Mat>;
 
 }  // namespace convex

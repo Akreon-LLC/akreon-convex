@@ -27,7 +27,7 @@ TEST_CASE("Test abs function", "[convex_fn]") {
   SECTION("Test abs function") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<PosVarMeta<Space>>();
-    constexpr auto abs_fn = Abs<AbsMeta<Space>, decltype(x)>(x);
+    constexpr auto abs_fn = Abs(x);
     STATIC_REQUIRE(abs_fn(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(abs_fn(Vectord<1>{-2.0}) == 2.0);
 
@@ -78,7 +78,7 @@ TEST_CASE("Test exp fn", "[convex_fn]") {
   SECTION("Test exp fn") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<PosVarMeta<Space>>();
-    constexpr auto exp_fn = Exp<ExpMeta<Space>, decltype(x)>(x);
+    constexpr auto exp_fn = Exp(x);
     STATIC_REQUIRE(exp_fn(Vectord<1>{0.0}) == 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
@@ -123,9 +123,7 @@ TEST_CASE("Test geometric mean fn", "[concave_fn]") {
   SECTION("Test geometric mean fn") {
     using Space = Matrixd<1, 4>;
     constexpr auto x = Variable<PosVarMeta<Space>>();
-    using Codom = Matrixd<1, 1>;
-    constexpr auto geo_mean =
-        GeoMean<GeoMeanMeta<Space, Codom>, decltype(x)>(x);
+    constexpr auto geo_mean = GeoMean(x);
     STATIC_REQUIRE(geo_mean(Vectord<4>{1.0, 1.0, 1.0, 1.0}) == 1.0);
     STATIC_REQUIRE(
         constexpr_abs(geo_mean(Vectord<4>{81.0, 1.0, 1.0, 1.0}) - 3.0) <= eps);
@@ -174,7 +172,7 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
   SECTION("Test inv pos fn") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<NonnegVarMeta<Space>>();
-    constexpr auto inv_pos_fn = InvPos<InvPosMeta<Space>, decltype(x)>(x);
+    constexpr auto inv_pos_fn = InvPos(x);
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{1.0}) == 1.0);
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}) == 0.5);
 
@@ -230,7 +228,7 @@ TEST_CASE("Test log function", "[convex_fn]") {
   SECTION("Test log fn") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto log_fn = Log<LogMeta<Space>, decltype(x)>(x);
+    constexpr auto log_fn = Log(x);
     STATIC_REQUIRE(log_fn(Vectord<1>{1.0}) == 0.0);
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
@@ -277,9 +275,8 @@ TEST_CASE("Test max fn") {
   SECTION("Test max fn") {
     using Space = Matrixd<1, 5>;
     constexpr auto var = Variable<VarMeta<Space>>();
-    using Codom = Matrixd<1, 1>;
     constexpr auto x = Vectord<5>{-1.0, 4.5, 2.0, 3.0, 5.0};
-    constexpr auto max_fn = Max<MaxMeta<Space, Codom>, decltype(var)>(var);
+    constexpr auto max_fn = Max(var);
     STATIC_REQUIRE(max_fn.eval(x) == 5.0);
 
     constexpr mat_traits<Matrix<double, 5, 6>> F_mat;
@@ -468,7 +465,7 @@ TEST_CASE("Test square function", "[convex_fn]") {
   SECTION("Test square function") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto square_fn = Square<SquareMeta<Space>, decltype(x)>(x);
+    constexpr auto square_fn = Square(x);
     STATIC_REQUIRE(square_fn(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(square_fn(Vectord<1>{2.0}) == 4.0);
 
@@ -520,8 +517,7 @@ TEST_CASE("Test log sum exp", "[convex_fn]") {
   SECTION("Test log sum exp") {
     using Space = Matrixd<1, 4>;
     constexpr auto x = Variable<VarMeta<Space>>();
-    using Codom = Matrixd<1, 1>;
-    constexpr auto lse = LogSumExp<LogSumExpMeta<Space, Codom>, decltype(x)>(x);
+    constexpr auto lse = LogSumExp(x);
     STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{}) - 1.38629436112) < eps);
     STATIC_REQUIRE(constexpr_abs(lse(Vectord<4>{-1.0, 0.0, 0.0, 0.0}) -
                                  1.21428330036) < eps);
@@ -588,7 +584,7 @@ TEST_CASE("Square Root Function", "[convex_fn]") {
   SECTION("Test sqrt function") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto sqrt_fn = Sqrt<SqrtMeta<Space>, decltype(x)>(x);
+    constexpr auto sqrt_fn = Sqrt(x);
     STATIC_REQUIRE(sqrt_fn(Vectord<1>{0.0}) == constexpr_sqrt_safe(0.0));
     STATIC_REQUIRE(sqrt_fn(Vectord<1>{2.0}) == constexpr_sqrt_safe(2.0));
 
@@ -641,7 +637,7 @@ TEST_CASE("Softplus Function", "[convex_fn]") {
   SECTION("Test softplus") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto softplus_fn = Softplus<SoftplusMeta<Space>, decltype(x)>(x);
+    constexpr auto softplus_fn = Softplus(x);
     STATIC_REQUIRE(softplus_fn(Vectord<1>{0.0}) ==
                    constexpr_ln_safe(1 + constexpr_exp(0.0)));
 
@@ -691,8 +687,7 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
     using Codom = Matrixd<1, 1>;
 
     constexpr auto x = Variable<PosVarMeta<Dom>>();
-    constexpr auto hmean_fn =
-        HarmonicMean<HarmonicMeanMeta<Dom, Codom>, decltype(x)>(x);
+    constexpr auto hmean_fn = HarmonicMean(x);
     STATIC_REQUIRE(hmean_fn(Vectord<2>{1.0, 1.0}) == 1.0);
 
     constexpr auto builder = create_empty_cblk_builder<Codom>();
@@ -738,8 +733,7 @@ TEST_CASE("KL Div Function", "[convex_fn]") {
     constexpr auto ones = Vectord<3>{1.0, 1.0, 1.0};
     constexpr auto q = Variable<PosVarMeta<Dom>>();
 
-    constexpr auto kldiv_fn =
-        KLDivergence<KLDivMeta<Dom, Codom>, decltype(q)>(ones, q);
+    constexpr auto kldiv_fn = KLDivergence(ones, q);
     STATIC_REQUIRE(kldiv_fn(ones) == 0.0);
 
     constexpr auto builder = create_empty_cblk_builder<Codom>();
@@ -796,7 +790,7 @@ TEST_CASE("Huber Function", "[convex_fn]") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto delta = 2.0;
-    constexpr auto huber_fn = Huber<HuberMeta<Space>, decltype(x)>(delta, x);
+    constexpr auto huber_fn = Huber(delta, x);
     STATIC_REQUIRE(huber_fn(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(huber_fn(Vectord<1>{1.0}) == 0.5);
     STATIC_REQUIRE(huber_fn(Vectord<1>{3.0}) == 4.0);

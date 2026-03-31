@@ -105,8 +105,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
         Matrixd<2, 2>{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 1.0}};
     constexpr Vector<Matrixd<2, 2>, 2> A{A0, A1};
     constexpr auto lmi = LMI(A, B, x);
-    constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> eq_x0_x1(
-        Vectord<2>{1.0, -1.0}, 0.0, x);
+    constexpr auto eq_x0_x1 = Hyperplane(Vectord<2>{1.0, -1.0}, 0.0, x);
 
     constexpr auto prob_constr = prob_init.in_set(lmi).in_set(eq_x0_x1);
 

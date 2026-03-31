@@ -230,4 +230,9 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
   const int idx{-1};
 };
 
+template <typename Child>
+InvPos(const Child&)
+    -> InvPos<InvPosMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+              const Child>;
+
 }  // namespace convex

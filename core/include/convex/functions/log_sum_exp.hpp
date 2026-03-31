@@ -250,4 +250,12 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
   const int idx{-2};
 };
 
+template <typename Child>
+LogSumExp(const Child&)
+    -> LogSumExp<
+        LogSumExpMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+                      linalg::Matrix<
+                          dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
+        const Child>;
+
 }  // namespace convex

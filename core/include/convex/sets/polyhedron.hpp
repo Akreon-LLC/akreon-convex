@@ -187,4 +187,14 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
   Mat A;   //< set of finite number of halfspaces
   Bias b;  //< codomain vector describing halfspace inequalities
 };
+
+template <typename Mat, typename Bias, typename Child>
+Polyhedron(const Mat&, const Bias&, const Child&)
+    -> Polyhedron<
+        PolyhedronMeta<
+            dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+            linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1,
+                           linalg::mat_rows_v<Mat>>>,
+        const Child>;
+
 }  // namespace convex

@@ -255,4 +255,12 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
   const int idx{-1};
 };
 
+template <typename Point, typename Child>
+KLDivergence(const Point&, const Child&)
+    -> KLDivergence<
+        KLDivMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+                  linalg::Matrix<
+                      dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
+        const Child>;
+
 }  // namespace convex

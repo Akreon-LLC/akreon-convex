@@ -253,4 +253,9 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
   const int idx{-3};
 };
 
+template <typename Child>
+Softplus(const Child&)
+    -> Softplus<SoftplusMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+                const Child>;
+
 }  // namespace convex

@@ -192,4 +192,11 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
   AmbientVec b;  //< offset vector which translates the basis to a new origin
 };
 
+template <typename Mat, typename Vec, typename Child>
+AffineSubspace(const Mat&, const Vec&, const Child&)
+    -> AffineSubspace<
+        AffineMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+                   dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+        const Child>;
+
 }  // namespace convex

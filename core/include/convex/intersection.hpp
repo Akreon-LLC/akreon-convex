@@ -101,4 +101,10 @@ struct Intersection : Atom<Meta, Intersection<Meta, Cs...>, Cs...> {
   }
 };
 
+template <typename C0, typename... Cs>
+Intersection(const C0&, const Cs&...)
+    -> Intersection<
+        IntersectionMeta<dom_space_t<meta_codom_t<atom_meta_t<C0>>>>, const C0,
+        const Cs...>;
+
 }  // namespace convex

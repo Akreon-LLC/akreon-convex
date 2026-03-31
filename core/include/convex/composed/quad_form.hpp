@@ -53,14 +53,10 @@ struct ScalarQuadForm {
 
     const T alpha = linalg::constexpr_sqrt_safe(T(0.5) * p);
     const auto scaled_x = x.mul(alpha);
-    const auto quadratic =
-        Square<SquareMeta<Singleton>, decltype(scaled_x)>(scaled_x);
+    const auto quadratic = Square(scaled_x);
     const auto linear = x.mul(q);
 
-    using SumDom = linalg::Matrix<T, 1, 2>;
-    const auto sum =
-        Sum<SumMeta<SumDom, Singleton>, decltype(quadratic), decltype(linear)>(
-            quadratic, linear);
+    const auto sum = Sum(quadratic, linear);
     return sum.add(r);
   }
 
@@ -129,12 +125,10 @@ struct QuadForm {
     const auto LT_x = x.mul(linalg::transpose(chol.G()));
     const auto l2 =
         Norm<NormMeta<Space, Singleton>, Var, linalg::L2<Vec>>(LT_x);
-    const auto quadratic = Square<SquareMeta<Singleton>, decltype(l2)>(l2);
+    const auto quadratic = Square(l2);
     const auto weighted_sum = WeightedSum<Space>()(q, x);
 
-    using SumDom = linalg::Matrix<T, 1, 2>;
-    const auto sum = Sum<SumMeta<SumDom, Singleton>, decltype(quadratic),
-                         decltype(weighted_sum)>(quadratic, weighted_sum);
+    const auto sum = Sum(quadratic, weighted_sum);
     return sum.add(r);
   }
 

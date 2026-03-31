@@ -79,8 +79,7 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
 
   SECTION("Min c^T x s.t. ellipsoid") {
     constexpr auto P = r * r * make_identity<double, 2>();
-    constexpr auto ellipsoid =
-        Ellipsoid<EllipsoidMeta<Space>, decltype(x)>(c, P, x);
+    constexpr auto ellipsoid = Ellipsoid(c, P, x);
     constexpr auto prob_constr = prob_init.in_set(ellipsoid);
 
     constexpr Vectord<3> g_exp{-c(0), -c(1), r};
@@ -174,7 +173,6 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
 
 TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
   using Space = Matrixd<1, 2>;
-  using Singleton = Matrixd<1, 1>;
   constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
@@ -188,8 +186,7 @@ TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
         Inequality<InequalityType::EQ, decltype(x1), double>(x1, 0.0);
     constexpr auto prob_constr =
         prob_init.add_constraint(x0_geq).add_constraint(x1_eq);
-    constexpr auto sq =
-        Square<SquareMeta<Singleton>, decltype(x0)>(x0.add(-1.0));
+    constexpr auto sq = Square(x0.add(-1.0));
     constexpr auto prob_min = prob_constr.minimize(sq);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
@@ -236,15 +233,13 @@ TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
 
 TEST_CASE("Minimal QP 1 Var (Square Objective Free Var)", "[qp_test]") {
   using Space = Matrixd<1, 1>;
-  using Singleton = Matrixd<1, 1>;
   constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
 
   SECTION("Min square(x0 - 1)") {
-    constexpr auto sq =
-        Square<SquareMeta<Singleton>, decltype(x0)>(x0.add(-1.0));
+    constexpr auto sq = Square(x0.add(-1.0));
     constexpr auto prob_min = prob_init.minimize(sq);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
@@ -284,7 +279,6 @@ TEST_CASE("Minimal QP 1 Var (Square Objective Free Var)", "[qp_test]") {
 
 TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
   using Space = Matrixd<1, 1>;
-  using Singleton = Matrixd<1, 1>;
   constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
@@ -297,7 +291,7 @@ TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
         Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 0.0);
     constexpr auto prob_constr =
         prob_init.add_constraint(x0_leq).add_constraint(x0_geq);
-    constexpr auto sqrt_x0 = Sqrt<SqrtMeta<Singleton>, decltype(x0)>(x0);
+    constexpr auto sqrt_x0 = Sqrt(x0);
     constexpr auto prob_max = prob_constr.maximize(sqrt_x0);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_max)>);
@@ -339,24 +333,18 @@ TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
 
 TEST_CASE("Minimal QP 2 Vars (Harmonic Mean Objective)", "[qp_test]") {
   using Space = Matrixd<1, 2>;
-  using Singleton = Matrixd<1, 1>;
   constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
-  constexpr auto hmean_x =
-      HarmonicMean<HarmonicMeanMeta<Space, Singleton>, decltype(x)>(x);
+  constexpr auto hmean_x = HarmonicMean(x);
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
 
   SECTION("Max hmean(x) s.t. x >= 0, x0 + x1 == 2") {
     constexpr mat_traits<Matrixd<2, 2>> A_nonneg_mat;
     constexpr auto A_nonneg = A_nonneg_mat(-1.0, 0.0, 0.0, -1.0);
     constexpr auto b_nonneg = Vectord<2>{0.0, 0.0};
-    constexpr Polyhedron<PolyhedronMeta<Space, Space>, decltype(x)> nonneg(
-        A_nonneg, b_nonneg, x);
-    constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> simplex_face(
-        Vectord<2>{1.0, 1.0}, 2.0, x);
-    constexpr auto feasible_set =
-        Intersection<IntersectionMeta<Space>, decltype(nonneg),
-                     decltype(simplex_face)>(nonneg, simplex_face);
+    constexpr auto nonneg = Polyhedron(A_nonneg, b_nonneg, x);
+    constexpr auto simplex_face = Hyperplane(Vectord<2>{1.0, 1.0}, 2.0, x);
+    constexpr auto feasible_set = Intersection(nonneg, simplex_face);
     constexpr auto prob_constr = prob_init.in_set(feasible_set);
     constexpr auto prob_max = prob_constr.maximize(hmean_x);
 
@@ -409,7 +397,6 @@ TEST_CASE("Minimal QP 2 Vars (Harmonic Mean Objective)", "[qp_test]") {
 
 TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
   using Space = Matrixd<1, 1>;
-  using Singleton = Matrixd<1, 1>;
   constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
@@ -417,8 +404,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
 
   SECTION("Feasibility min c^T x s.t. (x - 1)^2 <= 5") {
-    constexpr auto sq =
-        Square<SquareMeta<Singleton>, decltype(x0)>(x0.add(-1.0));
+    constexpr auto sq = Square(x0.add(-1.0));
     constexpr auto leq =
         Inequality<InequalityType::LEQ, decltype(sq), double>(sq, 5.0);
     constexpr auto prob_constr = prob_init.add_constraint(leq);
@@ -460,7 +446,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
   }
 
   SECTION("Min x0 s.t. 1/x <= 1, x >= 0") {
-    constexpr auto inv_pos = InvPos<InvPosMeta<Singleton>, decltype(x0)>(x0);
+    constexpr auto inv_pos = InvPos(x0);
     constexpr auto leq =
         Inequality<InequalityType::LEQ, decltype(inv_pos), double>(inv_pos,
                                                                    1.0);
@@ -512,7 +498,7 @@ TEST_CASE("Minimal QP 1 Var (Huber Objective)", "[qp_test]") {
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
   constexpr auto delta = 2.0;
-  constexpr auto huber_x0 = Huber<HuberMeta<Space>, decltype(x0)>(delta, x0);
+  constexpr auto huber_x0 = Huber(delta, x0);
   constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
 
   SECTION("Min huber(x0) s.t. x0 >= 0") {

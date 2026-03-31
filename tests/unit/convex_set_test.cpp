@@ -27,9 +27,7 @@ TEST_CASE("Test affine subspace", "[convex_sets]") {
     using Space = Matrixd<1, 3>;
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr auto I = make_identity<double, 3>();
-    constexpr auto affine_set =
-        AffineSubspace<AffineMeta<Space, Space>, decltype(x)>(I, Vectord<3>{},
-                                                              x);
+    constexpr auto affine_set = AffineSubspace(I, Vectord<3>{}, x);
     STATIC_REQUIRE(affine_set.is_well_formed());
     STATIC_REQUIRE(affine_set.contains(Vectord<3>{}));
     STATIC_REQUIRE(!affine_set.contains(Vectord<3>{1.0, 1.0, 1.0}));
@@ -54,8 +52,7 @@ TEST_CASE("Test ellipsoid set", "[convex_sets]") {
     constexpr auto c = Vector<double, 2>{1.5, 2.0};
     constexpr auto P = make_identity<double, 2>();
     constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto ellipsoid =
-        Ellipsoid<EllipsoidMeta<Space>, decltype(x)>(c, P, x);
+    constexpr auto ellipsoid = Ellipsoid(c, P, x);
     REQUIRE(ellipsoid.is_well_formed());
     STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
     STATIC_REQUIRE(ellipsoid.contains(c));
@@ -84,8 +81,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr Vector<double, 3> point{0.1, 0.2, 0.3};
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr double b = 0.6;
-    constexpr Hyperplane<HyperplaneMeta<Space>, decltype(x)> hyperplane(point,
-                                                                        b, x);
+    constexpr auto hyperplane = Hyperplane(point, b, x);
     STATIC_REQUIRE(hyperplane.is_well_formed());
     STATIC_REQUIRE(!hyperplane.contains(Vectord<3>{}));
     STATIC_REQUIRE(hyperplane.contains(Vectord<3>{1.0, 1.0, 1.0}));
@@ -221,11 +217,9 @@ TEST_CASE("Polyhedron", "[convex_sets]") {
               0.0, 1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 0.0);
     STATIC_REQUIRE(mat_rows_v<decltype(A)> == 7);
     STATIC_REQUIRE(mat_cols_v<decltype(A)> == 3);
-    using Dom = Matrixd<1, 3>;
-    using Codom = Matrixd<1, 7>;
     constexpr auto x = Variable<VarMeta<Space>>();
     constexpr Vector<double, 7> b{1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 2.0};
-    constexpr Polyhedron<PolyhedronMeta<Dom, Codom>, decltype(x)> poly(A, b, x);
+    constexpr auto poly = Polyhedron(A, b, x);
 
     STATIC_REQUIRE(poly.is_well_formed());
     STATIC_REQUIRE(poly.contains(Vector<double, 3>{}));
@@ -266,8 +260,7 @@ TEST_CASE("Test norm ball convex set", "[convex_sets]") {
     STATIC_REQUIRE(ball.contains(Vector<float, 2>{c(0) + 2.f, c(1)}));
 
     constexpr auto P = r * r * make_identity<float, 2>();
-    constexpr auto ellipse =
-        Ellipsoid<EllipsoidMeta<Matrix<float, 1, 2>>, decltype(x)>(c, P, x);
+    constexpr auto ellipse = Ellipsoid(c, P, x);
     constexpr auto A_mat = mat_traits<Matrixf<2, 2>>();
     constexpr auto A = A_mat(1.0, 0.0, 0.0, 1.0);
     constexpr auto res =

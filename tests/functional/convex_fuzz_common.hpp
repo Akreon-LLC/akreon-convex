@@ -58,9 +58,7 @@ auto make_bounded_nonneg_problem(const Var& x, const Prob& prob,
   }
   b(N) = cap;
 
-  const auto bounded_poly =
-      Polyhedron<PolyhedronMeta<SpaceT<N>, Matrix<double, 1, N + 1>>,
-                 decltype(x)>(A, b, x);
+  const auto bounded_poly = Polyhedron(A, b, x);
   return prob.in_set(bounded_poly);
 }
 
@@ -79,9 +77,7 @@ auto make_nonneg_problem(const Var& x, const Prob& prob) {
 
   for (size_t i = 0; i < N; ++i) A(i)(i) = -1.0;
 
-  const auto nonneg_poly =
-      Polyhedron<PolyhedronMeta<SpaceT<N>, Matrix<double, 1, N>>, decltype(x)>(
-          A, b, x);
+  const auto nonneg_poly = Polyhedron(A, b, x);
   return prob.in_set(nonneg_poly);
 }
 

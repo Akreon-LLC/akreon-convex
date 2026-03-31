@@ -222,4 +222,9 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
   const int idx{-1};
 };
 
+template <typename Child>
+Exp(const Child&)
+    -> Exp<ExpMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+           const Child>;
+
 }  // namespace convex
