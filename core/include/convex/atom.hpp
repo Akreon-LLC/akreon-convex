@@ -49,8 +49,7 @@ struct Atom {
    *
    * @param children (tuple)
    */
-  constexpr explicit Atom(ChildrenT child_in)
-      : children(std::move(child_in)) {
+  constexpr explicit Atom(ChildrenT child_in) : children(std::move(child_in)) {
     validate_domain();
   }
 
@@ -139,10 +138,10 @@ struct Atom {
             break;
           }
           case VarType::NONNEG: {
-            AK_ASSERT((child_sign == VarType::POS ||
-                       child_sign == VarType::NONNEG) &&
-                      "Parent non-negative domain expects "
-                      "positive/non-negative child codomain");
+            AK_ASSERT(
+                (child_sign == VarType::POS || child_sign == VarType::NONNEG) &&
+                "Parent non-negative domain expects "
+                "positive/non-negative child codomain");
             break;
           }
           case VarType::NEG: {
@@ -151,32 +150,16 @@ struct Atom {
             break;
           }
           case VarType::NONPOS: {
-            AK_ASSERT((child_sign == VarType::NONPOS ||
-                       child_sign == VarType::NEG) &&
-                      "Parent non-positive domain expects "
-                      "non-positive/negative child codomain");
-            break;
-          }
-          case VarType::PD: {
-            AK_ASSERT(child_sign == VarType::PD &&
-                      "Parent PD domain expects PD child codomain");
+            AK_ASSERT(
+                (child_sign == VarType::NONPOS || child_sign == VarType::NEG) &&
+                "Parent non-positive domain expects "
+                "non-positive/negative child codomain");
             break;
           }
           case VarType::PSD: {
             AK_ASSERT(
                 (child_sign == VarType::PSD || child_sign == VarType::PD) &&
                 "Parent PSD domain expects PSD/PD child codomain");
-            break;
-          }
-          case VarType::ND: {
-            AK_ASSERT(child_sign == VarType::ND &&
-                      "Parent ND domain expects ND child codomain");
-            break;
-          }
-          case VarType::NSD: {
-            AK_ASSERT(
-                (child_sign == VarType::NSD || child_sign == VarType::ND) &&
-                "Parent NSD domain expects NSD/ND child codomain");
             break;
           }
           case VarType::FREE:
@@ -248,7 +231,7 @@ struct Atom {
   }
 
   /** @brief member vars*/
-  ChildrenT children; ///< tuple of normalized child atoms
+  ChildrenT children;  ///< tuple of normalized child atoms
 };
 
 }  // namespace convex

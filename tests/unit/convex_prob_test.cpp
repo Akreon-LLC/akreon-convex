@@ -186,6 +186,35 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(builder2.coord_map.linear_part() == I);
   }
 
+  SECTION("PSD var -> cones") {
+    using Mat = Matrixd<2, 2>;
+    constexpr auto X = Variable<PsdVarMeta<Mat>>();
+    using Space = dom_space_t<meta_dom_t<atom_meta_t<decltype(X)>>>;
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+    constexpr auto builder2 = X.add_var_block<AtomType::VAR>(builder);
+
+    STATIC_REQUIRE(dom_vartype_v<meta_dom_t<atom_meta_t<decltype(X)>>> ==
+                   VarType::PSD);
+    STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(X)>>> ==
+                   VarType::PSD);
+    STATIC_REQUIRE(dom_size_v<meta_dom_t<atom_meta_t<decltype(X)>>> == 3);
+    STATIC_REQUIRE(std::same_as<dom_point_t<meta_dom_t<atom_meta_t<decltype(X)>>>,
+                                Mat>);
+
+    using ConeT = std::tuple_element_t<0, decltype(builder2.cb.cones)>;
+    STATIC_REQUIRE(std::tuple_size<decltype(builder2.cb.cones)>::value == 1);
+    STATIC_REQUIRE(std::same_as<ConeT,
+                                PositiveSemidefiniteCone<linalg::Vector<double, 3>, 2>>);
+    STATIC_REQUIRE(cone_dim_t<ConeT> == 3);
+    STATIC_REQUIRE(builder2.cb.validate());
+
+    constexpr auto I = linalg::make_identity<double, 3>();
+    STATIC_REQUIRE(builder2.coord_map.linear_part() == I);
+    STATIC_REQUIRE(builder2.coord_map.translation() == Vectord<3>{});
+    STATIC_REQUIRE(builder2.cb.map.linear_part() == I);
+    STATIC_REQUIRE(builder2.cb.map.translation() == Vectord<3>{});
+  }
+
   SECTION("Var + Fn -> Cones") {
     using Space = Matrixd<1, 2>;
     constexpr auto x = Variable<VarMeta<Space>>();

@@ -18,6 +18,7 @@
 #include "config/assert.hpp"
 #include "config/solver_config.hpp"
 #include "convex_traits.hpp"
+#include "linalg/operator/operator_traits.hpp"
 
 namespace convex {
 
@@ -64,6 +65,15 @@ using NegVarDom = ConvexDomain<Dom, VarType::NEG>;
 template <linalg::RnSpace Dom>
 using NegVarMeta =
     ConvexAtomMeta<NegVarDom<Dom>, NegVarDom<Dom>, CurvatureType::AFFINE>;
+
+/// @brief alias for nominal psd matrix variable domain
+template <linalg::SquareMatrixLike Mat>
+using PsdVarDom = ConvexDomain<linalg::SymmetricMatrix<Mat>, VarType::PSD>;
+
+/// @brief alias for nominal psd matrix
+template <linalg::SquareMatrixLike Mat>
+using PsdVarMeta =
+    ConvexAtomMeta<PsdVarDom<Mat>, PsdVarDom<Mat>, CurvatureType::AFFINE>;
 
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
@@ -287,35 +297,24 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto add_var_block(const Builder& builder) const {
     static constexpr VarType sign = dom_vartype_v<meta_dom_t<Meta>>;
-    static constexpr bool is_sdp = VarType::PSD == sign ||
-                                   VarType::NSD == sign ||
-                                   VarType::PD == sign || VarType::ND == sign;
     const auto child_builder = this->template canonicalize<Type>(builder);
-    if constexpr (!is_sdp) {
+    if constexpr (VarType::PSD != sign) {
       return child_builder;
     } else {
       const auto child_cb = child_builder.cb;
 
       auto F = linalg::make_identity<T, N>();
       auto g = linalg::Vector<T, N>{};
-      if constexpr (VarType::PSD == sign) {
-        /// no-op
-      } else if constexpr (VarType::NSD == sign) {
-        F = T(-1) * F;
-      } else if constexpr (VarType::PD == sign || VarType::ND == sign) {
-        /// TODO(dakre): keep current PSD-family variable path until the strict
-        /// definiteness formulation is revisited.
-        if constexpr (VarType::ND == sign) F = T(-1) * F;
-      }
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
 
       const auto new_builder = conic::CanonicalFormBuilder<
           conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
           decltype(child_cb), decltype(child_builder.eq_map)>(
           coord_map_up, child_cb, child_builder.eq_map);
-      static constexpr size_t K = N * (N + 1) / 2;
+      static constexpr size_t MatDim = linalg::mat_rows_v<dom_point_t<Domain>>;
+      static constexpr size_t K = MatDim * (MatDim + 1) / 2;
       const auto psd_cone =
-          conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, N>();
+          conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, MatDim>();
       const auto cones = std::make_tuple(psd_cone);
       return new_builder.template make<Type>(cones);
     }

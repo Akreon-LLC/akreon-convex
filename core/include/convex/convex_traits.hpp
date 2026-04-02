@@ -35,10 +35,7 @@ enum struct VarType : uint8_t {
   NONPOS,
   POS,
   NEG,
-  PSD,
-  NSD,
-  PD,
-  ND
+  PSD
 };
 
 /// @brief Curvature annotation for atom codomain.
