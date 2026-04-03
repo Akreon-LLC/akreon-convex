@@ -37,8 +37,20 @@ namespace control {
  *
  * Therefore CARE: A^T P + P A - P B R^{-1} B^T P + Q = 0
  *
- * LMI form: [ -(A^T P + P A + Q) P B ]
- *           [ B^T P              R   ]
+ * Target Schur-complement LMI:
+ * [ -(A^T P + P A + Q)  P B ]
+ * [ B^T P               R   ]
+ *
+ * This is encoded through convex::LMI using its B - A(P) >= 0 convention.
+ * Therefore the coefficient blocks carry the signs opposite the desired
+ * off-diagonal terms:
+ *   B =
+ *   [ -Q  0 ]
+ *   [  0  R ]
+ *
+ *   A(E) =
+ *   [ A^T E + E A  -E B ]
+ *   [ -B^T E        0   ]
  */
 template <ContinuousStateSpaceLike SS, linalg::SquareMatrixLike StateCostMat,
           linalg::SquareMatrixLike InputCostMat>
@@ -107,16 +119,14 @@ struct LQR {
                   "Expected P var size != state covariance size");
 
     auto M = [&](const PMat& E) -> FMat {
-      const auto lyap_plus_q =
-          T(-1) * (linalg::transpose(ss.A) * E + E * ss.A + Q);
-      const auto pb = E * ss.B;
-      const auto pTb = linalg::transpose(ss.B) * E;
+      const auto lyap = linalg::transpose(ss.A) * E + E * ss.A;
+      const auto pb = T(-1) * (E * ss.B);
+      const auto pTb = T(-1) * (linalg::transpose(ss.B) * E);
 
       FMat F{};
-      F = linalg::set_block<0, StateDim, 0, StateDim>(F, lyap_plus_q);
+      F = linalg::set_block<0, StateDim, 0, StateDim>(F, lyap);
       F = linalg::set_block<0, StateDim, StateDim, TotalDim>(F, pb);
       F = linalg::set_block<StateDim, TotalDim, 0, StateDim>(F, pTb);
-      F = linalg::set_block<StateDim, TotalDim, StateDim, TotalDim>(F, R);
 
       return F;
     };
@@ -156,8 +166,7 @@ struct LQR {
    * @return K
    */
   constexpr auto K(const PMat& P, const SS& ss, const InputCostMat& R) const {
-    const auto [R_inv, event] =
-        linalg::SymmetricMatrixInverse<InputCost>()(R);
+    const auto [R_inv, event] = linalg::SymmetricMatrixInverse<InputCost>()(R);
     if (event != linalg::NumericalEvent::NONE) return std::tuple(KMat{}, event);
     const auto K = R_inv * linalg::transpose(ss.B) * P;
     return std::tuple(K, linalg::NumericalEvent::NONE);

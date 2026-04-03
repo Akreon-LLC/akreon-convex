@@ -82,14 +82,12 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
   /**
    * @brief is_well_formed to check if the set is valid
    *
+   * Cant really tell if B - sum(x_i A_i) >= 0 is valid until solve...
+   * so if construction passes well formed is fine
+   *
    * @return T/F
    */
-  constexpr bool is_well_formed() const {
-    if (!linalg::LDL(B).is_valid()) return false;
-    for (size_t i = 0; i < N; ++i)
-      if (!linalg::LDL(A(i)).is_valid()) return false;
-    return true;
-  }
+  constexpr bool is_well_formed() const { return true; }
 
   /**
    * @brief equality comparison
@@ -157,33 +155,32 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
     linalg::Matrix<T, K, N> F{};
     linalg::Vector<T, K> g{};
 
-    auto update_F = [&F](const auto& i, const auto&& ldl) {
+    auto update_F = [&F](const auto& i, const auto& M) {
       size_t row_idx{0};
       for (size_t j = 0; j < MatDim; ++j) {
         for (size_t k = j; k < MatDim; ++k, ++row_idx) {
           if (k == j)
-            F(row_idx)(i) = T(-1) * ldl(k, j);
+            F(row_idx)(i) = T(-1) * M(k)(j);
           else
-            F(row_idx)(i) =
-                T(-1) * linalg::constexpr_sqrt_safe(T(2)) * ldl(k, j);
+            F(row_idx)(i) = T(-1) * linalg::constexpr_sqrt_safe(T(2)) * M(k)(j);
         }
       }
     };
 
-    auto update_g = [&g](const auto& ldl) {
+    auto update_g = [&g](const auto& M) {
       size_t row_idx{0};
       for (size_t j = 0; j < MatDim; ++j) {
         for (size_t k = j; k < MatDim; ++k, ++row_idx) {
           if (k == j)
-            g(row_idx) = ldl(k, j);
+            g(row_idx) = M(k)(j);
           else
-            g(row_idx) = linalg::constexpr_sqrt_safe(T(2)) * ldl(k, j);
+            g(row_idx) = linalg::constexpr_sqrt_safe(T(2)) * M(k)(j);
         }
       }
     };
 
-    for (size_t i = 0; i < N; ++i) update_F(i, std::move(linalg::LDL(A(i))));
-    update_g(std::move(linalg::LDL(B)));
+    for (size_t i = 0; i < N; ++i) update_F(i, A(i));
+    update_g(B);
 
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto psd_cone =

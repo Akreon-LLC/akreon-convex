@@ -48,10 +48,10 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
 
     constexpr auto F_mat = mat_traits<Matrixd<13, 3>>();
     constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 3.0, 1.0, 1.0, 0.0,
-              2.0 * sqrt2, 0.0, -sqrt2, 0.0, 0.0, 0.0, -sqrt2, 0.0, 1.0, 1.0,
-              3.0, 0.0, -sqrt2, 0.0, 0.0, 0.0, -sqrt2, -1.0, -1.0, -1.0, 0.0,
-              0.0, 0.0, -1.0, -1.0, -1.0);
+        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, -2.0, 0.0, 0.0, 0.0,
+              -2.0 * sqrt2, 0.0, sqrt2, 0.0, 0.0, 0.0, sqrt2, 0.0, 0.0, 0.0,
+              -2.0, 0.0, sqrt2, 0.0, 0.0, 0.0, sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0);
     constexpr auto F = prob_min.constraint_map().linear_part();
     STATIC_REQUIRE(mat_rows_v<decltype(F)> == 13);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 3);

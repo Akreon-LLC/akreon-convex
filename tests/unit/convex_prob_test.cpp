@@ -748,6 +748,54 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(), Aeq));
     STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<1>{0.0});
   }
+
+  SECTION("Feasibility preserves cone map") {
+    constexpr auto c = Vectord<3>{};
+    constexpr auto r = 1.5;
+    constexpr auto ball =
+        NormBall<NormBallMeta<Dom>, decltype(var), NormBallType::L1>(c, r, var);
+    constexpr auto prob2 = prob.in_set(ball);
+    constexpr auto prob3 = prob2.feasibility();
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<6>{});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   4);
+
+    constexpr mat_traits<Matrix<double, 10, 6>> F_mat;
+    constexpr auto F =
+        F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    constexpr linalg::Vector<double, 10> g{0.0, 0.0, 0.0, 0.0, 0.0,
+                                           0.0, r,   0.0, 0.0, 0.0};
+    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
+    STATIC_REQUIRE(prob3.constraint_map().translation() == g);
+  }
+
+  SECTION("Feasibility preserves equality map") {
+    constexpr auto I = make_identity<double, 3>();
+    constexpr auto subspace = AffineSubspace(I, Vectord<3>{}, var);
+    constexpr auto prob2 = prob.in_set(subspace);
+    constexpr auto prob3 = prob2.feasibility();
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   0);
+    STATIC_REQUIRE(
+        mat_rows_v<decltype(prob3.constraint_map().linear_part())> == 0);
+    STATIC_REQUIRE(
+        mat_cols_v<decltype(prob3.constraint_map().linear_part())> == 0);
+    STATIC_REQUIRE(
+        vec_size_v<decltype(prob3.constraint_map().translation())> == 0);
+    STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(), I));
+    STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<3>{});
+  }
 }
 
 TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
