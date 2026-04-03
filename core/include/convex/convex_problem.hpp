@@ -94,14 +94,27 @@ struct ConvexProblem {
   }
 
   /**
-   * @brief minimize
-   *
-   * @param val (scalar- dont care)
+   * @brief feasibility
    *
    * @return problem set
    */
-  constexpr auto minimize(const T& /* val */) const {
-    return ConvexProblem<Builder, StageType::PROBLEM_SET>(builder);
+  constexpr auto feasibility() const {
+    const auto cb = builder.cb;
+    static constexpr size_t ConeN =
+        linalg::mat_cols_v<decltype(cb.map.linear_part())>;
+    static constexpr size_t EqN =
+        linalg::mat_cols_v<decltype(builder.eq_map.linear_part())>;
+    static constexpr size_t AugN = (ConeN > EqN) ? ConeN : EqN;
+    linalg::Matrix<T, 1, AugN> c{};
+    affine::AffineMap<decltype(c)> new_map(c);
+
+    const auto new_builder =
+        conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
+                                    decltype(new_map), decltype(cb),
+                                    decltype(builder.eq_map)>(new_map, cb,
+                                                              builder.eq_map);
+    return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
+        new_builder);
   }
 
   /**

@@ -22,7 +22,7 @@ using namespace control;
 using namespace unit_test;
 using namespace config;
 
-TEST_CASE("Minimal LQR 2x2", "[lqr_test]") {
+TEST_CASE("Small LQR 2x2", "[lqr_test]") {
   using Space = Matrixd<2, 2>;
   constexpr auto P = Variable<PsdVarMeta<Space>>();
   constexpr auto prob_init = make_problem(P);
@@ -41,7 +41,7 @@ TEST_CASE("Minimal LQR 2x2", "[lqr_test]") {
     constexpr auto lqr = LQR<decltype(ss), decltype(Q), decltype(R)>();
     constexpr auto lmi = lqr(ss, Q, R, P);
     constexpr auto prob_constr = prob_init.in_set(lmi);
-    constexpr auto prob_min = prob_constr.minimize(0.0);
+    constexpr auto prob_min = prob_constr.feasibility();
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
         std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
@@ -61,5 +61,18 @@ TEST_CASE("Minimal LQR 2x2", "[lqr_test]") {
     STATIC_REQUIRE(vec_size_v<decltype(g)> == 13);
     STATIC_REQUIRE(g == Vectord<13>{0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0,
                                     0.0, 0.0, 1.0, 0.0, 1.0});
+
+    STATIC_REQUIRE(prob_min.linear_objective() == Vectord<3>{});
+
+    PrimalDualIPM solver(prob_min);
+    auto res = solver.res;
+    //REQUIRE(res.tag == SolverResult::OPTIMAL);
+    //REQUIRE(res.num_iter < PD_IPM_STEPS);
+
+#if AKREON_DEBUG
+    auto trace = solver.trace;
+    //REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
+    log(res, trace);
+#endif
   }
 }
