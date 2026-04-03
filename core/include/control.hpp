@@ -12,4 +12,4 @@
 
 #pragma once
 
-#include "control/model/state_space.hpp"
+#include "control/design/lqr.hpp"

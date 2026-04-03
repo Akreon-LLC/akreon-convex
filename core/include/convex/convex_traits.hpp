@@ -29,14 +29,7 @@ using LiftedVarBias = linalg::Vector<T, 1>;
 enum struct AtomType : uint8_t { VAR = 0, INDEX, FN, SET, ADD, CAP };
 
 /// @brief Domain/variable annotation attached to domains/codomains.
-enum struct VarType : uint8_t {
-  FREE = 0,
-  NONNEG,
-  NONPOS,
-  POS,
-  NEG,
-  PSD
-};
+enum struct VarType : uint8_t { FREE = 0, NONNEG, NONPOS, POS, NEG, PSD };
 
 /// @brief Curvature annotation for atom codomain.
 enum struct CurvatureType : uint8_t { AFFINE = 0, CONVEX, CONCAVE };
@@ -477,13 +470,11 @@ using atom_decay_t = linalg::remove_cvref_t<T>;
 
 /// @brief Extract metadata type from atom.
 template <AtomLike Atom>
-using atom_meta_t =
-    typename atom_traits<atom_decay_t<Atom>>::ConvexMeta;
+using atom_meta_t = typename atom_traits<atom_decay_t<Atom>>::ConvexMeta;
 
 /// @brief Compile-time atom category.
 template <AtomLike Atom>
-inline constexpr AtomType atom_type_v =
-    atom_traits<atom_decay_t<Atom>>::Type;
+inline constexpr AtomType atom_type_v = atom_traits<atom_decay_t<Atom>>::Type;
 
 /// @brief Helper predicates on atom category.
 template <AtomLike Atom>

@@ -10,7 +10,8 @@
  * from Akreon LLC.
  */
 
-#include "model/state_space.hpp"
+#include "control/model/state_space.hpp"
+#include "convex/variable.hpp"
 
 namespace control {
 /**
@@ -33,14 +34,52 @@ namespace control {
  * sub back into HJB: 0 = x^T(Q + A^T P + P A - P B R^{-1} B^T P) x
  *
  * Therefore CARE: A^T P + P A - P B R^{-1} B^T P + Q = 0
+ *
+ * LMI form: [ -(A^T P + P A + Q) P B ]
+ *           [ B^T P              R   ]
  */
-template <ContinuousStateSpaceLike SS>
-struct LQR {};
+template <ContinuousStateSpaceLike SS, linalg::SquareMatrixLike StateCostMat,
+          linalg::SquareMatrixLike InputCostMat>
+struct LQR {
+  /// @brief extracting alias and types
+  using T = ss_type_t<SS>;
+  using State = state_vec_t<SS>;
+  using Input = input_vec_t<SS>;
 
-/**
- * @brief DLQR
- */
-template <DiscreteStateSpaceLike SS>
-struct DLQR {};
+  static constexpr size_t StateDim = linalg::vec_size_v<State>;
+  static constexpr size_t InputDim = linalg::vec_size_v<Input>;
+
+  static_assert(linalg::mat_rows_v<StateCostMat> == StateDim,
+                "Expected Q mat row/col dim != State dim from SS");
+
+  static_assert(linalg::mat_rows_v<InputCostMat> == InputDim,
+                "Expected R mat row/col dim != Input dim from SS");
+
+  /**
+   * @brief operator overload (form LQR problem)
+   *
+   * @param ss (StateSpace)
+   * @param Q (State Cost)
+   * @param R (Control Cost)
+   * @param x (dec var child)
+   *
+   * @return composed atom
+   */
+  template <convex::AtomLike Var>
+  constexpr auto operator()(const SS& ss, const StateCostMat& Q,
+                            const InputCostMat& R, const Var& P) {
+    static_assert(convex::is_var_type_v<Var>, "Input atom is not a var");
+    static_assert(
+        convex::dom_vartype_v<convex::meta_dom_t<convex::atom_meta_t<Var>>> ==
+            convex::VarType::PSD,
+        "Var type != PSD");
+
+    (void)ss;
+    (void)Q;
+    (void)R;
+    (void)P;
+    return T(0);
+  }
+};
 
 }  // namespace control

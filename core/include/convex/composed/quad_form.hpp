@@ -43,12 +43,12 @@ struct ScalarQuadForm {
    *
    * @return sum object embedding QP
    */
-  template <AtomLike Atom>
-  constexpr auto operator()(const T& p, const T& q, const T& r, const Atom& x) {
+  template <AtomLike Var>
+  constexpr auto operator()(const T& p, const T& q, const T& r, const Var& x) {
     static_assert(
-        std::same_as<dom_space_t<meta_codom_t<atom_meta_t<Atom>>>, Space>,
+        std::same_as<dom_space_t<meta_codom_t<atom_meta_t<Var>>>, Space>,
         "Scalar quad form requires scalar codomain");
-    static_assert(is_fn_type_v<Atom> || is_index_type_v<Atom>,
+    static_assert(is_fn_type_v<Var> || is_index_type_v<Var>,
                   "Scalar quad form must operate on scalar affine atoms");
 
     const T alpha = linalg::constexpr_sqrt_safe(T(0.5) * p);
@@ -69,8 +69,8 @@ struct ScalarQuadForm {
    *
    * @return sum object embedding qp
    */
-  template <AtomLike Atom>
-  constexpr auto operator()(const T& p, const T& q, const Atom& x) {
+  template <AtomLike Var>
+  constexpr auto operator()(const T& p, const T& q, const Var& x) {
     return this->operator()(p, q, T(0), x);
   }
 };

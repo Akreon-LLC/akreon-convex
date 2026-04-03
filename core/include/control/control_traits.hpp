@@ -20,7 +20,7 @@ namespace control {
 enum struct TimeDomainType : uint8_t { CONTINUOUS = 0, DISCRETE };
 
 /// @brief forward decl of state space
-template <linalg::MatrixLike Plant, linalg::MatrixLike Control,
+template <linalg::SquareMatrixLike Plant, linalg::MatrixLike Control,
           linalg::MatrixLike Output, linalg::MatrixLike Feedthrough,
           TimeDomainType Type>
 struct StateSpace;
@@ -30,25 +30,27 @@ template <class StateSpace>
 struct ss_traits;
 
 /// @brief explicit type traits for state space
-template <linalg::MatrixLike Plant, linalg::MatrixLike Control,
+template <linalg::SquareMatrixLike Plant, linalg::MatrixLike Control,
           linalg::MatrixLike Output, linalg::MatrixLike Feedthrough,
           TimeDomainType Type>
 struct ss_traits<StateSpace<Plant, Control, Output, Feedthrough, Type>> {
   using T = linalg::mat_type_t<Plant>;
-  static constexpr size_t PlantCols = linalg::mat_cols_v<Plant>;
-  static constexpr size_t ControlCols = linalg::mat_cols_v<Control>;
-  using State = linalg::Vector<T, PlantCols>;
-  using Input = linalg::Vector<T, ControlCols>;
+  using State = linalg::Vector<T, linalg::mat_cols_v<Plant>>;
+  using Input = linalg::Vector<T, linalg::mat_cols_v<Control>>;
   static constexpr TimeDomainType DType = Type;
 };
 
-/// @brief extract state vector
+/// @brief extract scalar type from ss
 template <typename StateSpace>
-using StateVec = typename ss_traits<StateSpace>::State;
+using ss_type_t = typename ss_traits<StateSpace>::T;
 
 /// @brief extract state vector
 template <typename StateSpace>
-using InputVec = typename ss_traits<StateSpace>::Input;
+using state_vec_t = typename ss_traits<StateSpace>::State;
+
+/// @brief extract state vector
+template <typename StateSpace>
+using input_vec_t = typename ss_traits<StateSpace>::Input;
 
 /// @brief check if continuous or not
 template <typename StateSpace>

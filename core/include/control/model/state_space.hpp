@@ -22,7 +22,7 @@ namespace control {
  * \dot{x} = A x(t) + B u(t)
  * y = C x(t) + D u(t)
  */
-template <linalg::MatrixLike Plant, linalg::MatrixLike Control,
+template <linalg::SquareMatrixLike Plant, linalg::MatrixLike Control,
           linalg::MatrixLike Output, linalg::MatrixLike Feedthrough,
           TimeDomainType Type>
 struct StateSpace {
