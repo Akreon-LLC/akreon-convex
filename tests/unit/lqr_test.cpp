@@ -31,6 +31,8 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
 
   SECTION("LQR case 1") {
     constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
+    constexpr auto P_geq =
+        Inequality<InequalityType::GEQ, decltype(P), double>(P, 0.0);
     constexpr auto Q = MatBuilder(1.0, 0.0, 0.0, 1.0);
     constexpr auto R = MatBuilder(1.0, 0.0, 0.0, 1.0);
     constexpr auto A = MatBuilder(1.0, 0.0, 0.0, 1.0);
@@ -40,7 +42,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
     constexpr auto lqr = LQR<decltype(ss), decltype(Q), decltype(R)>();
     constexpr auto lmi = lqr(ss, Q, R, P);
-    constexpr auto prob_constr = prob_init.in_set(lmi);
+    constexpr auto prob_constr = prob_init.add_constraint(P_geq).in_set(lmi);
     constexpr auto prob_min = prob_constr.feasibility();
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
@@ -48,10 +50,19 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
 
     constexpr auto F_mat = mat_traits<Matrixd<13, 3>>();
     constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, -2.0, 0.0, 0.0, 0.0,
-              -2.0 * sqrt2, 0.0, sqrt2, 0.0, 0.0, 0.0, sqrt2, 0.0, 0.0, 0.0,
-              -2.0, 0.0, sqrt2, 0.0, 0.0, 0.0, sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0);
+        F_mat(1.0, 0.0, 0.0,
+              0.0, sqrt2, 0.0,
+              0.0, 0.0, 1.0,
+              -2.0, 0.0, 0.0,
+              0.0, -2.0 * sqrt2, 0.0,
+              sqrt2, 0.0, 0.0,
+              0.0, sqrt2, 0.0,
+              0.0, 0.0, -2.0,
+              0.0, sqrt2, 0.0,
+              0.0, 0.0, sqrt2,
+              0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0);
     constexpr auto F = prob_min.constraint_map().linear_part();
     STATIC_REQUIRE(mat_rows_v<decltype(F)> == 13);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 3);

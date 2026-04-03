@@ -32,9 +32,10 @@ struct Inequality {
   using Codom = meta_codom_t<Meta>;
   using T = dom_type_t<Domain>;
   using Point = dom_point_t<Domain>;
+  static constexpr size_t M = dom_size_v<Codom>;
 
-  static_assert(is_fn_type_v<LHS> || is_index_type_v<LHS>,
-                "LHS Atom must be fn or index type");
+  static_assert(is_fn_type_v<LHS> || is_index_type_v<LHS> || is_var_type_v<LHS>,
+                "LHS Atom must be fn, index, or var type");
 
   /**
    * @brief CTOR
@@ -62,6 +63,28 @@ struct Inequality {
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
+    auto canonicalize_atom = [&](const auto& atom, const auto& parent_builder) {
+      if constexpr (is_var_type_v<decltype(atom)>)
+        return atom.template canonicalize<AtomType::VAR>(parent_builder);
+      else
+        return atom.template canonicalize<AtomType::FN>(parent_builder);
+    };
+
+    auto negate_atom = [](const auto& atom) {
+      if constexpr (is_index_type_v<decltype(atom)> ||
+                    is_var_type_v<decltype(atom)>) {
+        return atom.mul(T(-1));
+      } else {
+        return atom.template mul<T(-1)>();
+      }
+    };
+
+    auto make_broadcast = [](const T& scalar) {
+      linalg::Vector<T, M> out{};
+      for (size_t i = 0; i < M; ++i) out(i) = scalar;
+      return out;
+    };
+
     auto append_equality = [](const auto& child_builder, const auto& eq_linear,
                               const auto& eq_bias) {
       const auto child_cb = child_builder.cb;
@@ -100,51 +123,76 @@ struct Inequality {
     };
 
     if constexpr (linalg::FieldLike<RHS>) {
-      const auto child_builder =
-          lhs.template canonicalize<AtomType::FN>(builder);
+      const auto child_builder = canonicalize_atom(lhs, builder);
       const auto child_coord = child_builder.coord_map;
       const auto child_cb = child_builder.cb;
 
       using ChildMat = decltype(child_coord.linear_part());
+      using CodomPoint = dom_point_t<Codom>;
 
-      if constexpr (IType == InequalityType::LEQ) {
-        ChildMat F{T(-1) * child_coord.linear_part()};
-        linalg::Vector<T, 1> g{linalg::Vector<T, 1>{rhs} -
-                               child_coord.translation()};
+      if constexpr (dom_vartype_v<Codom> == VarType::PSD) {
+        static_assert(is_var_type_v<LHS>,
+                      "PSD inequalities only support variable lhs");
+        static_assert(IType == InequalityType::GEQ,
+                      "PSD inequalities currently only support X >= 0");
+        AK_ASSERT(rhs == T(0) && "PSD inequality expects zero rhs");
+
+        static constexpr size_t MatDim = linalg::mat_rows_v<CodomPoint>;
+        static constexpr size_t K = MatDim * (MatDim + 1) / 2;
+
+        linalg::Matrix<T, M, M> S{};
+        size_t idx{0};
+        for (size_t i = 0; i < MatDim; ++i) {
+          for (size_t j = 0; j <= i; ++j, ++idx) {
+            S(idx)(idx) = (i == j) ? T(1) : linalg::constexpr_sqrt_safe(T(2));
+          }
+        }
+
+        const auto F = S * child_coord.linear_part();
+        const auto g = S * child_coord.translation();
         const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
         const auto new_builder = conic::CanonicalFormBuilder<
             conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
             decltype(child_cb), decltype(child_builder.eq_map)>(
             coord_map_up, child_cb, child_builder.eq_map);
+        const auto psd_cone =
+            conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, MatDim>();
         return new_builder.template make<AtomType::CAP>(
-            std::make_tuple(conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
-      } else if constexpr (IType == InequalityType::GEQ) {
-        ChildMat F{child_coord.linear_part()};
-        linalg::Vector<T, 1> g{child_coord.translation() -
-                               linalg::Vector<T, 1>{rhs}};
-        const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-        const auto new_builder = conic::CanonicalFormBuilder<
-            conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
-            decltype(child_cb), decltype(child_builder.eq_map)>(
-            coord_map_up, child_cb, child_builder.eq_map);
-        return new_builder.template make<AtomType::CAP>(
-            std::make_tuple(conic::NonnegOrthantCone<linalg::Vector<T, 1>>()));
+            std::make_tuple(psd_cone));
       } else {
-        const auto A_eq = child_coord.linear_part();
-        linalg::Vector<T, 1> b_eq{rhs - child_coord.translation()(0)};
-        return append_equality(child_builder, A_eq, b_eq);
+        if constexpr (IType == InequalityType::LEQ) {
+          ChildMat F{T(-1) * child_coord.linear_part()};
+          linalg::Vector<T, M> g{make_broadcast(rhs) -
+                                 child_coord.translation()};
+          const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+          const auto new_builder = conic::CanonicalFormBuilder<
+              conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
+              decltype(child_cb), decltype(child_builder.eq_map)>(
+              coord_map_up, child_cb, child_builder.eq_map);
+          return new_builder.template make<AtomType::CAP>(std::make_tuple(
+              conic::NonnegOrthantCone<linalg::Vector<T, M>>()));
+        } else if constexpr (IType == InequalityType::GEQ) {
+          ChildMat F{child_coord.linear_part()};
+          linalg::Vector<T, M> g{child_coord.translation() -
+                                 make_broadcast(rhs)};
+          const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+          const auto new_builder = conic::CanonicalFormBuilder<
+              conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
+              decltype(child_cb), decltype(child_builder.eq_map)>(
+              coord_map_up, child_cb, child_builder.eq_map);
+          return new_builder.template make<AtomType::CAP>(std::make_tuple(
+              conic::NonnegOrthantCone<linalg::Vector<T, M>>()));
+        } else {
+          const auto A_eq = child_coord.linear_part();
+          linalg::Vector<T, M> b_eq{make_broadcast(rhs) -
+                                    child_coord.translation()};
+          return append_equality(child_builder, A_eq, b_eq);
+        }
       }
     } else {
-      static_assert(is_fn_type_v<RHS> || is_index_type_v<LHS>,
-                    "RHS Atom must be fn, index, or scalar type");
-
-      auto negate_atom = [](const auto& atom) {
-        if constexpr (is_index_type_v<decltype(atom)>) {
-          return atom.mul(T(-1));
-        } else {
-          return atom.template mul<T(-1)>();
-        }
-      };
+      static_assert(
+          is_fn_type_v<RHS> || is_index_type_v<RHS> || is_var_type_v<RHS>,
+          "RHS Atom must be fn, index, var, or scalar type");
 
       if constexpr (IType == InequalityType::LEQ) {
         const auto new_lhs = negate_atom(lhs);

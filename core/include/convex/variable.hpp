@@ -296,28 +296,8 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto add_var_block(const Builder& builder) const {
-    static constexpr VarType sign = dom_vartype_v<meta_dom_t<Meta>>;
     const auto child_builder = this->template canonicalize<Type>(builder);
-    if constexpr (VarType::PSD != sign) {
-      return child_builder;
-    } else {
-      const auto child_cb = child_builder.cb;
-
-      auto F = linalg::make_identity<T, N>();
-      auto g = linalg::Vector<T, N>{};
-      const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-
-      const auto new_builder = conic::CanonicalFormBuilder<
-          conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
-          decltype(child_cb), decltype(child_builder.eq_map)>(
-          coord_map_up, child_cb, child_builder.eq_map);
-      static constexpr size_t MatDim = linalg::mat_rows_v<dom_point_t<Domain>>;
-      static constexpr size_t K = MatDim * (MatDim + 1) / 2;
-      const auto psd_cone =
-          conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, MatDim>();
-      const auto cones = std::make_tuple(psd_cone);
-      return new_builder.template make<Type>(cones);
-    }
+    return child_builder;
   }
 
   /** @brief member vars */

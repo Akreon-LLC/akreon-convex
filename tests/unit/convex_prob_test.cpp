@@ -198,21 +198,15 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(dom_vartype_v<meta_codom_t<atom_meta_t<decltype(X)>>> ==
                    VarType::PSD);
     STATIC_REQUIRE(dom_size_v<meta_dom_t<atom_meta_t<decltype(X)>>> == 3);
-    STATIC_REQUIRE(std::same_as<dom_point_t<meta_dom_t<atom_meta_t<decltype(X)>>>,
-                                Mat>);
+    STATIC_REQUIRE(
+        std::same_as<dom_point_t<meta_dom_t<atom_meta_t<decltype(X)>>>, Mat>);
 
-    using ConeT = std::tuple_element_t<0, decltype(builder2.cb.cones)>;
-    STATIC_REQUIRE(std::tuple_size<decltype(builder2.cb.cones)>::value == 1);
-    STATIC_REQUIRE(std::same_as<ConeT,
-                                PositiveSemidefiniteCone<linalg::Vector<double, 3>, 2>>);
-    STATIC_REQUIRE(cone_dim_t<ConeT> == 3);
-    STATIC_REQUIRE(builder2.cb.validate());
-
-    constexpr auto I = linalg::make_identity<double, 3>();
+    constexpr mat_traits<Matrix<double, 3, 3>> F_mat;
+    constexpr auto I = F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(std::tuple_size<decltype(builder2.cb.cones)>::value == 0);
+    STATIC_REQUIRE(builder2.cb.map.linear_part() == Matrixd<0, 0>{});
     STATIC_REQUIRE(builder2.coord_map.linear_part() == I);
     STATIC_REQUIRE(builder2.coord_map.translation() == Vectord<3>{});
-    STATIC_REQUIRE(builder2.cb.map.linear_part() == I);
-    STATIC_REQUIRE(builder2.cb.map.translation() == Vectord<3>{});
   }
 
   SECTION("Var + Fn -> Cones") {
@@ -323,8 +317,7 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     // Self-type nesting is intentionally explicit here. `Abs(abs_x)` would
     // trigger CTAD's copy deduction candidate and just copy `abs_x` instead of
     // forming the nested expression `abs(abs(x))`.
-    constexpr auto abs_abs_x =
-        Abs<AbsMeta<Space>, decltype(abs_x)>(abs_x);
+    constexpr auto abs_abs_x = Abs<AbsMeta<Space>, decltype(abs_x)>(abs_x);
 
     STATIC_REQUIRE(
         dom_vartype_v<meta_dom_t<atom_meta_t<decltype(abs_abs_x)>>> ==
@@ -570,12 +563,12 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{0.0, 1.0, 0.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
                    0);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob3.constraint_map().linear_part())> == 0);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob3.constraint_map().linear_part())> == 0);
-    STATIC_REQUIRE(
-        vec_size_v<decltype(prob3.constraint_map().translation())> == 0);
+    STATIC_REQUIRE(mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
+                   0);
+    STATIC_REQUIRE(mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
+                   0);
+    STATIC_REQUIRE(vec_size_v<decltype(prob3.constraint_map().translation())> ==
+                   0);
     STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(), I));
     STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<3>{});
   }
@@ -740,8 +733,8 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
         0);
-    STATIC_REQUIRE(
-        vec_size_v<decltype(prob3.constraint_map().translation())> == 0);
+    STATIC_REQUIRE(vec_size_v<decltype(prob3.constraint_map().translation())> ==
+                   0);
 
     constexpr mat_traits<Matrix<double, 1, 3>> Aeq_mat;
     constexpr auto Aeq = Aeq_mat(1.0, -1.0, 0.0);
@@ -787,14 +780,71 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
                    0);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob3.constraint_map().linear_part())> == 0);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob3.constraint_map().linear_part())> == 0);
-    STATIC_REQUIRE(
-        vec_size_v<decltype(prob3.constraint_map().translation())> == 0);
+    STATIC_REQUIRE(mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
+                   0);
+    STATIC_REQUIRE(mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
+                   0);
+    STATIC_REQUIRE(vec_size_v<decltype(prob3.constraint_map().translation())> ==
+                   0);
     STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(), I));
     STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<3>{});
+  }
+
+  SECTION("Broadcast vector inequality canonicalizes to Rplus") {
+    constexpr auto geq =
+        Inequality<InequalityType::GEQ, decltype(var), double>(var, 0.0);
+    constexpr auto prob2 = prob.add_constraint(geq);
+    constexpr auto prob3 = prob2.feasibility();
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   1);
+    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(),
+                             linalg::make_identity<double, 3>()));
+    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<3>{});
+  }
+
+  SECTION("Broadcast vector equality canonicalizes to equality rows") {
+    constexpr auto eq =
+        Inequality<InequalityType::EQ, decltype(var), double>(var, 0.0);
+    constexpr auto prob2 = prob.add_constraint(eq);
+    constexpr auto prob3 = prob2.feasibility();
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   0);
+    STATIC_REQUIRE(mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
+                   0);
+    STATIC_REQUIRE(vec_size_v<decltype(prob3.constraint_map().translation())> ==
+                   0);
+    STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(),
+                             linalg::make_identity<double, 3>()));
+    STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<3>{});
+  }
+
+  SECTION("PSD inequality emits PSD cone") {
+    using Mat = Matrixd<2, 2>;
+    constexpr auto X = Variable<PsdVarMeta<Mat>>();
+    constexpr auto geq =
+        Inequality<InequalityType::GEQ, decltype(X), double>(X, 0.0);
+    constexpr auto prob2 = make_problem(X).add_constraint(geq);
+    constexpr auto prob3 = prob2.feasibility();
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob3)>);
+    STATIC_REQUIRE(prob3.validate());
+    STATIC_REQUIRE(prob3.linear_objective() == Vectord<3>{});
+    STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
+                   1);
+
+    constexpr auto F_mat = mat_traits<Matrixd<3, 3>>();
+    constexpr auto F_exp =
+        F_mat(1.0, 0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 1.0);
+    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F_exp));
+    STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<3>{});
   }
 }
 

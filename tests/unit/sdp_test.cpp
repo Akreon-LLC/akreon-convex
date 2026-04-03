@@ -217,3 +217,43 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     SUCCEED("3x3 LMI with 2-dim decision variable canonicalizes correctly");
   }
 }
+
+TEST_CASE("PSD Feasibility", "[sdp_test]") {
+  using Mat = Matrixd<2, 2>;
+  constexpr auto X = Variable<PsdVarMeta<Mat>>();
+  constexpr auto geq =
+      Inequality<InequalityType::GEQ, decltype(X), double>(X, 0.0);
+  constexpr auto prob_psd = make_problem(X).add_constraint(geq).feasibility();
+
+  STATIC_REQUIRE(is_problem_set_v<decltype(prob_psd)>);
+  STATIC_REQUIRE(prob_psd.validate());
+  STATIC_REQUIRE(
+      std::tuple_size<decltype(prob_psd.constraint_cones())>::value == 1);
+  STATIC_REQUIRE(prob_psd.linear_objective() == Vectord<3>{});
+
+  constexpr auto F_mat = mat_traits<Matrixd<3, 3>>();
+  constexpr auto F_exp =
+      F_mat(1.0, 0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 1.0);
+  STATIC_REQUIRE(all_equal(prob_psd.constraint_map().linear_part(), F_exp));
+  STATIC_REQUIRE(prob_psd.constraint_map().translation() == Vectord<3>{});
+
+  const PrimalDualIPM solver(prob_psd);
+  const auto& res = solver.res;
+#ifdef AKREON_DEBUG
+  const auto& trace = solver.trace;
+  REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
+#endif
+
+  REQUIRE(res.tag == SolverResult::OPTIMAL);
+  REQUIRE(!res.stalled);
+
+  const double a = res.iterate.z(0);
+  const double b = res.iterate.z(1) / constexpr_sqrt_safe(2.0);
+  const double c = res.iterate.z(2);
+
+  REQUIRE(constexpr_abs(b - b) < rel_tol);
+
+  REQUIRE(a >= -rel_tol);
+  REQUIRE(c >= -rel_tol);
+  REQUIRE(a * c - b * b >= -rel_tol);
+}
