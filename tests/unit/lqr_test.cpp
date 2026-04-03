@@ -27,14 +27,15 @@ TEST_CASE("Minimal LQR 2x2", "[lqr_test]") {
   constexpr auto P = Variable<PsdVarMeta<Space>>();
   constexpr auto prob_init = make_problem(P);
 
-  constexpr auto CostMat = mat_traits<Space>();
+  constexpr auto MatBuilder = mat_traits<Space>();
 
   SECTION("LQR case 1") {
-    constexpr auto Q = CostMat(1.0, 0.0, 0.0, 1.0);
-    constexpr auto R = CostMat(1.0, 0.0, 0.0, 1.0);
-    constexpr auto A = CostMat(1.0, 0.0, 0.0, 1.0);
-    constexpr auto B = CostMat(1.0, 0.0, 0.0, 1.0);
-    constexpr auto C = CostMat(1.0, 0.0, 0.0, 1.0);
+    constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
+    constexpr auto Q = MatBuilder(1.0, 0.0, 0.0, 1.0);
+    constexpr auto R = MatBuilder(1.0, 0.0, 0.0, 1.0);
+    constexpr auto A = MatBuilder(1.0, 0.0, 0.0, 1.0);
+    constexpr auto B = MatBuilder(1.0, 0.0, 0.0, 1.0);
+    constexpr auto C = MatBuilder(1.0, 0.0, 0.0, 1.0);
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
     constexpr auto lqr = LQR<decltype(ss), decltype(Q), decltype(R)>();
@@ -44,5 +45,21 @@ TEST_CASE("Minimal LQR 2x2", "[lqr_test]") {
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
     STATIC_REQUIRE(
         std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+
+    constexpr auto F_mat = mat_traits<Matrixd<13, 3>>();
+    constexpr auto F_exp =
+        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 3.0, 1.0, 1.0, 0.0,
+              2.0 * sqrt2, 0.0, -sqrt2, 0.0, 0.0, 0.0, -sqrt2, 0.0, 1.0, 1.0,
+              3.0, 0.0, -sqrt2, 0.0, 0.0, 0.0, -sqrt2, -1.0, -1.0, -1.0, 0.0,
+              0.0, 0.0, -1.0, -1.0, -1.0);
+    constexpr auto F = prob_min.constraint_map().linear_part();
+    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 13);
+    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 3);
+    STATIC_REQUIRE(all_equal(F, F_exp));
+
+    constexpr auto g = prob_min.constraint_map().translation();
+    STATIC_REQUIRE(vec_size_v<decltype(g)> == 13);
+    STATIC_REQUIRE(g == Vectord<13>{0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0,
+                                    0.0, 0.0, 1.0, 0.0, 1.0});
   }
 }
