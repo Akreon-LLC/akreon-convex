@@ -72,6 +72,12 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(linear_systems_test PRIVATE ../include)
   target_compile_options(linear_systems_test PRIVATE ${UNIT_COMPILE_OPTS})
 
+  add_executable(lqr_test unit/lqr_test.cpp)
+  add_test(NAME lqr_test COMMAND lqr_test)
+  target_link_libraries(lqr_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(lqr_test PRIVATE ../include)
+  target_compile_options(lqr_test PRIVATE ${UNIT_COMPILE_OPTS})
+
   add_executable(one_dof_pendulum_test unit/one_dof_pendulum_test.cpp)
   add_test(NAME one_dof_pendulum_test COMMAND one_dof_pendulum_test)
   target_link_libraries(one_dof_pendulum_test PRIVATE Catch2::Catch2WithMain)
@@ -162,6 +168,7 @@ endif()
 set(AKREON_TEST_TARGETS
   linalg_test
   linear_systems_test
+  lqr_test
   one_dof_pendulum_test
   two_dof_pendulum_test
   one_dof_smd_test

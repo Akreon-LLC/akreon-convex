@@ -22,11 +22,14 @@ namespace control {
  * \dot{x} = A x(t) + B u(t)
  * y = C x(t) + D u(t)
  */
-template <linalg::SquareMatrixLike Plant, linalg::MatrixLike Control,
-          linalg::MatrixLike Output, linalg::MatrixLike Feedthrough,
-          TimeDomainType Type>
+template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
+          linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>
 struct StateSpace {
   /// @brief extract type and alias
+  using Plant = linalg::remove_cvref_t<PlantIn>;
+  using Control = linalg::remove_cvref_t<ControlIn>;
+  using Output = linalg::remove_cvref_t<OutputIn>;
+
   using T = linalg::mat_type_t<Plant>;
   static constexpr size_t PlantRows = linalg::mat_rows_v<Plant>;
   static constexpr size_t PlantCols = linalg::mat_cols_v<Plant>;
@@ -34,15 +37,11 @@ struct StateSpace {
   static constexpr size_t ControlCols = linalg::mat_cols_v<Control>;
   static constexpr size_t OutputRows = linalg::mat_rows_v<Output>;
   static constexpr size_t OutputCols = linalg::mat_cols_v<Output>;
-  static constexpr size_t FeedthroughRows = linalg::mat_rows_v<Feedthrough>;
-  static constexpr size_t FeedthroughCols = linalg::mat_cols_v<Feedthrough>;
+
+  using Feedthrough = linalg::Matrix<T, OutputRows, ControlCols>;
 
   static_assert(PlantRows == ControlRows,
                 "state dim is not aligned between plant and control matrices");
-
-  static_assert(
-      OutputRows == FeedthroughRows,
-      "output dim is not aligned between output and feedthrough matrices");
 
   /// @brief state vector
   using State = linalg::Vector<T, PlantCols>;

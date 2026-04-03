@@ -20,9 +20,8 @@ namespace control {
 enum struct TimeDomainType : uint8_t { CONTINUOUS = 0, DISCRETE };
 
 /// @brief forward decl of state space
-template <linalg::SquareMatrixLike Plant, linalg::MatrixLike Control,
-          linalg::MatrixLike Output, linalg::MatrixLike Feedthrough,
-          TimeDomainType Type>
+template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
+          linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>
 struct StateSpace;
 
 /// @brief base type traits for state space
@@ -30,10 +29,13 @@ template <class StateSpace>
 struct ss_traits;
 
 /// @brief explicit type traits for state space
-template <linalg::SquareMatrixLike Plant, linalg::MatrixLike Control,
-          linalg::MatrixLike Output, linalg::MatrixLike Feedthrough,
-          TimeDomainType Type>
-struct ss_traits<StateSpace<Plant, Control, Output, Feedthrough, Type>> {
+template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
+          linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>
+struct ss_traits<StateSpace<Type, PlantIn, ControlIn, OutputIn>> {
+  using Plant = linalg::remove_cvref_t<PlantIn>;
+  using Control = linalg::remove_cvref_t<ControlIn>;
+  using Output = linalg::remove_cvref_t<OutputIn>;
+
   using T = linalg::mat_type_t<Plant>;
   using State = linalg::Vector<T, linalg::mat_cols_v<Plant>>;
   using Input = linalg::Vector<T, linalg::mat_cols_v<Control>>;
@@ -42,20 +44,23 @@ struct ss_traits<StateSpace<Plant, Control, Output, Feedthrough, Type>> {
 
 /// @brief extract scalar type from ss
 template <typename StateSpace>
-using ss_type_t = typename ss_traits<StateSpace>::T;
+using ss_type_t = typename ss_traits<linalg::remove_cvref_t<StateSpace>>::T;
 
 /// @brief extract state vector
 template <typename StateSpace>
-using state_vec_t = typename ss_traits<StateSpace>::State;
+using state_vec_t =
+    typename ss_traits<linalg::remove_cvref_t<StateSpace>>::State;
 
 /// @brief extract state vector
 template <typename StateSpace>
-using input_vec_t = typename ss_traits<StateSpace>::Input;
+using input_vec_t =
+    typename ss_traits<linalg::remove_cvref_t<StateSpace>>::Input;
 
 /// @brief check if continuous or not
 template <typename StateSpace>
 inline constexpr bool is_continuous_v =
-    ss_traits<StateSpace>::DType == TimeDomainType::CONTINUOUS;
+    ss_traits<linalg::remove_cvref_t<StateSpace>>::DType ==
+    TimeDomainType::CONTINUOUS;
 
 /// @brief StateSpace concept
 template <typename StateSpace>

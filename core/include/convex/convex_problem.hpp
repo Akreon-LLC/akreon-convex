@@ -96,6 +96,17 @@ struct ConvexProblem {
   /**
    * @brief minimize
    *
+   * @param val (scalar- dont care)
+   *
+   * @return problem set
+   */
+  constexpr auto minimize(const T& /* val */) const {
+    return ConvexProblem<Builder, StageType::PROBLEM_SET>(builder);
+  }
+
+  /**
+   * @brief minimize
+   *
    * @param atom
    *
    * @return new problem
