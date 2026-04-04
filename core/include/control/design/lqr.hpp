@@ -119,9 +119,9 @@ struct LQR {
                   "Expected P var size != state covariance size");
 
     auto M = [&](const PMat& E) -> FMat {
-      const auto lyap = linalg::transpose(ss.A) * E + E * ss.A;
-      const auto pb = T(-1) * (E * ss.B);
-      const auto pTb = T(-1) * (linalg::transpose(ss.B) * E);
+      const auto lyap = T(-1) * linalg::transpose(ss.A) * E + E * ss.A;
+      const auto pb = E * ss.B;
+      const auto pTb = linalg::transpose(ss.B) * E;
 
       FMat F{};
       F = linalg::set_block<0, StateDim, 0, StateDim>(F, lyap);
@@ -143,7 +143,7 @@ struct LQR {
         if (i == j)
           E(i)(j) = T(1);
         else if (i < j)
-          E(i)(j) = E(j)(i) = T(1);
+          E(i)(j) = E(j)(i) = T(1) / linalg::constexpr_sqrt_safe(T(2));
         else
           continue;
 
