@@ -413,15 +413,16 @@ template <size_t N, VectorLike Vec>
   requires(vec_size_v<Vec> == N * (N + 1) / 2)
 constexpr auto make_smat(const Vec& L) {
   using T = vec_type_t<Vec>;
-  Matrix<T, N, N> S;
+  Matrix<T, N, N> S{};
   for (size_t i = 0; i < N; ++i) {
     for (size_t j = 0; j <= i; ++j) {
       const auto idx = i * (i + 1) / 2 + j;
       S(i)(j) = L(idx);
+      if (i != j) S(i)(j) /= linalg::constexpr_sqrt_safe(T(2));
     }
   }
   const auto S_T = transpose(S);
-  Matrix<T, N, N> res;
+  Matrix<T, N, N> res{};
   for (size_t i = 0; i < N; ++i) {
     for (size_t j = 0; j < N; ++j) {
       if (i >= j)

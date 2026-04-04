@@ -256,4 +256,6 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
   REQUIRE(a >= -rel_tol);
   REQUIRE(c >= -rel_tol);
   REQUIRE(a * c - b * b >= -rel_tol);
+
+  log(res, trace);
 }

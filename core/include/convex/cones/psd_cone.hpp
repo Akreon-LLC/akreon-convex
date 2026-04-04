@@ -89,8 +89,8 @@ struct PositiveSemidefiniteCone
    */
   constexpr bool in_cone_impl(const Slack& x) const {
     const auto X = linalg::make_smat<N, Slack>(x);
-    const linalg::LDL ldl(X);
-    return ldl.is_psd();
+    const linalg::Cholesky chol(X);
+    return chol.is_pd();
   }
 
   /**
@@ -181,14 +181,12 @@ struct PositiveSemidefiniteCone
       return std::tuple(
           linalg::QuadraticRep<HessianMat, PSDCirc<Slack, N>>(e_impl()),
           inv_event);
-    const auto out_event =
-        (event != linalg::NumericalEvent::NONE ||
-         inv_event != linalg::NumericalEvent::NONE)
-            ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
-            : linalg::NumericalEvent::NONE;
+    const auto out_event = (event != linalg::NumericalEvent::NONE ||
+                            inv_event != linalg::NumericalEvent::NONE)
+                               ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                               : linalg::NumericalEvent::NONE;
     return std::tuple(
-        linalg::QuadraticRep<HessianMat, PSDCirc<Slack, N>>(w_inv),
-        out_event);
+        linalg::QuadraticRep<HessianMat, PSDCirc<Slack, N>>(w_inv), out_event);
   }
 
   /**
@@ -261,12 +259,11 @@ struct PositiveSemidefiniteCone
 
     w = linalg::get_lower_triangle_with_diag(
         linalg::symmetric_part(X_sqrt * (U_sqrt_inv * X_sqrt)));
-    const auto out_event =
-        (event1 != linalg::NumericalEvent::NONE ||
-         event2 != linalg::NumericalEvent::NONE ||
-         event3 != linalg::NumericalEvent::NONE)
-            ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
-            : linalg::NumericalEvent::NONE;
+    const auto out_event = (event1 != linalg::NumericalEvent::NONE ||
+                            event2 != linalg::NumericalEvent::NONE ||
+                            event3 != linalg::NumericalEvent::NONE)
+                               ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                               : linalg::NumericalEvent::NONE;
     return std::tuple(w, out_event);
   }
 

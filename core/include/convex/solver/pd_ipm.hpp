@@ -226,7 +226,9 @@ struct PrimalDualIPM {
 
     const auto barrier_param = seed_prob(K, x, y, warm_start);
 
-    for (i = 0; i < config.steps && tag != config::SolverResult::OPTIMAL; ++i) {
+    for (i = 0; i < config.steps && tag != config::SolverResult::OPTIMAL &&
+                !res.stalled;
+         ++i) {
 #ifdef AKREON_DEBUG
       trace[i].reset_pc_trace();
 #endif
@@ -297,10 +299,7 @@ struct PrimalDualIPM {
       const auto accepted =
           backtrack_iterates(alpha_xy, K, F, A, g, c, b, step.pz, step.pnu,
                              step.px, step.py, z, nu, x, y);
-      if (!accepted) {
-        res.stalled = true;
-        return;
-      }
+      res.stalled = accepted ? 0 : 1;
 
       res.mu = mu(x, y, barrier_param);
 #ifdef AKREON_DEBUG
@@ -315,7 +314,6 @@ struct PrimalDualIPM {
       trace[i].px_norm = linalg::L2<decltype(step.px)>()(step.px);
       trace[i].py_norm = linalg::L2<decltype(step.py)>()(step.py);
 #endif
-
       /// (dakre) 8 - compute residuals + mu again
       residuals = compute_residuals(F, A, g, c, b, z, nu, x, y);
       rd = residuals.rd;
