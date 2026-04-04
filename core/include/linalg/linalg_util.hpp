@@ -458,6 +458,36 @@ constexpr auto get_lower_triangle_with_diag(const Mat& A) {
 }
 
 /**
+ * @brief get svec encoding of a symmetric matrix
+ *
+ * Off-diagonal entries are scaled by sqrt(2) to preserve the Frobenius inner
+ * product under vectorization.
+ *
+ * @param matrix A
+ *
+ * @return svec(A)
+ */
+template <SquareMatrixLike Mat>
+constexpr auto get_svec(const Mat& A) {
+  using T = mat_type_t<Mat>;
+  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr size_t K = N * (N + 1) / 2;
+  Vector<T, K> vec{};
+  for (size_t i = 0, k = 0; i < N; ++i) {
+    for (size_t j = 0; j <= i; ++j, ++k) {
+      vec(k) = A(i)(j);
+      if (i != j) vec(k) *= constexpr_sqrt_safe(T(2));
+    }
+  }
+  return vec;
+}
+
+template <SquareMatrixLike Mat>
+constexpr auto make_svec(const Mat& A) {
+  return get_svec(A);
+}
+
+/**
  * @brief symmetric part of a square matrix
  *
  * sym(A) = 0.5 * (A + A^T)

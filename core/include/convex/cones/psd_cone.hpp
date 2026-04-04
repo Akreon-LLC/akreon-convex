@@ -39,9 +39,9 @@ struct PSDCirc {
    * @return x \circ y (vector)
    */
   constexpr auto operator()(const Vec& x, const Vec& y) const {
-    const auto X = linalg::make_smat<N, Vec>(x);
-    const auto Y = linalg::make_smat<N, Vec>(y);
-    return linalg::get_lower_triangle_with_diag(T(0.5) * (X * Y + Y * X));
+    const auto X = linalg::make_smat<N>(x);
+    const auto Y = linalg::make_smat<N>(y);
+    return linalg::get_svec(T(0.5) * (X * Y + Y * X));
   }
 };
 
@@ -257,7 +257,7 @@ struct PositiveSemidefiniteCone
         linalg::SymmetricMatrixInverse<decltype(U_sqrt)>()(U_sqrt);
     if (linalg::is_fatal_event(event3)) return std::tuple(w, event3);
 
-    w = linalg::get_lower_triangle_with_diag(
+    w = linalg::get_svec(
         linalg::symmetric_part(X_sqrt * (U_sqrt_inv * X_sqrt)));
     const auto out_event = (event1 != linalg::NumericalEvent::NONE ||
                             event2 != linalg::NumericalEvent::NONE ||
@@ -341,9 +341,7 @@ struct PositiveSemidefiniteCone
     const auto X = linalg::make_smat<N, Slack>(x);
     const auto [X_inv, event] =
         linalg::SymmetricMatrixInverse<decltype(X)>()(X);
-    return std::tuple(
-        linalg::get_lower_triangle_with_diag(linalg::symmetric_part(X_inv)),
-        event);
+    return std::tuple(linalg::get_svec(linalg::symmetric_part(X_inv)), event);
   }
 };
 

@@ -156,28 +156,12 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
     linalg::Vector<T, K> g{};
 
     auto update_F = [&F](const auto& i, const auto& M) {
-      size_t row_idx{0};
-      for (size_t j = 0; j < MatDim; ++j) {
-        for (size_t k = j; k < MatDim; ++k, ++row_idx) {
-          if (k == j)
-            F(row_idx)(i) = T(-1) * M(k)(j);
-          else
-            F(row_idx)(i) = T(-1) * linalg::constexpr_sqrt_safe(T(2)) * M(k)(j);
-        }
-      }
+      const auto m_svec = linalg::get_svec(M);
+      for (size_t row_idx = 0; row_idx < K; ++row_idx)
+        F(row_idx)(i) = T(-1) * m_svec(row_idx);
     };
 
-    auto update_g = [&g](const auto& M) {
-      size_t row_idx{0};
-      for (size_t j = 0; j < MatDim; ++j) {
-        for (size_t k = j; k < MatDim; ++k, ++row_idx) {
-          if (k == j)
-            g(row_idx) = M(k)(j);
-          else
-            g(row_idx) = linalg::constexpr_sqrt_safe(T(2)) * M(k)(j);
-        }
-      }
-    };
+    auto update_g = [&g](const auto& M) { g = linalg::get_svec(M); };
 
     for (size_t i = 0; i < N; ++i) update_F(i, A(i));
     update_g(B);

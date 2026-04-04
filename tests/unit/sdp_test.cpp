@@ -195,8 +195,8 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     constexpr auto F_exp = Matrixd<8, 2>{
         Vectord<2>{1.0, 3.0},  // (0,0)
         Vectord<2>{0.0, 0.0},  // (1,0)
-        Vectord<2>{0.0, 0.0},  // (2,0)
         Vectord<2>{2.0, 2.0},  // (1,1)
+        Vectord<2>{0.0, 0.0},  // (2,0)
         Vectord<2>{0.0, 0.0},  // (2,1)
         Vectord<2>{3.0, 1.0},  // (2,2)
         Vectord<2>{1.0, 0.0},  // x0 >= 0
@@ -210,7 +210,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
 
     const auto g = prob_min.constraint_map().translation();
     STATIC_REQUIRE(vec_size_v<decltype(g)> == 8);
-    REQUIRE(g == Vectord<8>{1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0});
+    REQUIRE(g == Vectord<8>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0});
 
     STATIC_REQUIRE(prob_min.linear_objective() == Matrixd<1, 2>{c});
 

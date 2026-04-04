@@ -258,37 +258,28 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
   SECTION("Test psd cone api") {
     using Slack = Vectord<3>;
     constexpr PositiveSemidefiniteCone<Slack, 2> psd;
-    constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
-    constexpr auto raw_to_smat = [](const auto& v) {
-      return Matrixd<2, 2>{Vectord<2>{v(0), v(1)}, Vectord<2>{v(1), v(2)}};
-    };
     STATIC_REQUIRE(psd.in_cone(psd.x0()));
     STATIC_REQUIRE(psd.in_dual_cone(psd.y0()));
 
     constexpr auto x = Slack{2.0, 3.0, 5.0};
     constexpr auto y = Slack{7.0, 0.0, 11.0};
-    constexpr auto expected = Slack{14.0, 27.0 / sqrt2, 55.0};
-    constexpr auto x_e = Slack{2.0, 3.0 / sqrt2, 5.0};
+    constexpr auto expected = Slack{14.0, 27.0, 55.0};
 
     STATIC_REQUIRE(all_equal(psd.circ(x, y), expected));
-    STATIC_REQUIRE(all_equal(psd.circ(x, psd.e()), x_e));
-    STATIC_REQUIRE(all_equal(psd.circ(psd.e(), x), x_e));
+    STATIC_REQUIRE(all_equal(psd.circ(x, psd.e()), x));
+    STATIC_REQUIRE(all_equal(psd.circ(psd.e(), x), x));
 
     constexpr auto z = Slack{4.0, 2.0, 3.0};
-    constexpr auto z_inv = Slack{0.3, -sqrt2 / 10.0, 0.4};
-    constexpr auto z_z_inv = Slack{1.2 - sqrt2 / 10.0,
-                                   7.0 * (sqrt2 - 1.0) / 20.0,
-                                   1.2 - sqrt2 / 10.0};
+    constexpr auto z_inv = Slack{0.3, -0.2, 0.4};
     constexpr auto z_inv_res = psd.inv(z);
     constexpr auto z_inv_calc = std::get<0>(z_inv_res);
     constexpr auto z_inv_event = std::get<1>(z_inv_res);
     STATIC_REQUIRE(z_inv_event == linalg::NumericalEvent::NONE);
     STATIC_REQUIRE(psd.in_cone(z_inv_calc));
     STATIC_REQUIRE(all_equal(z_inv_calc, z_inv));
-    STATIC_REQUIRE(
-        all_equal(make_smat<2>(z) * raw_to_smat(z_inv_calc),
-                  make_identity<double, 2>(), 1e-5));
-    STATIC_REQUIRE(all_equal(psd.circ(z, z_inv_calc), z_z_inv));
+    STATIC_REQUIRE(all_equal(make_smat<2>(z) * make_smat<2>(z_inv_calc),
+                             make_identity<double, 2>(), 1e-5));
+    STATIC_REQUIRE(all_equal(psd.circ(z, z_inv_calc), psd.e()));
 
     constexpr auto gx = Slack{4.0, 0.0, 9.0};
     constexpr auto gy = Slack{1.0, 0.0, 16.0};
@@ -322,7 +313,7 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     REQUIRE(L2<Slack>()(Hw.apply(gx) - gy) < 1e-5);
 
     constexpr auto q = Slack{8.0, 3.0, 9.0};
-    constexpr auto Hq = Slack{2.0, 0.3700496584, 16.0};
+    constexpr auto Hq = Slack{2.0, 2.0, 16.0};
     REQUIRE(L2<Slack>()(Hw.apply(q) - Hq) < 1e-5);
 
     constexpr auto p_neg = Slack{-8.0, 0.0, -18.0};
@@ -338,11 +329,6 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     constexpr PositiveSemidefiniteCone<Slack, 3> psd;
     constexpr auto zero = Slack{};
     constexpr auto l2 = L2<Slack>();
-    const auto raw_to_smat = [](const auto& v) {
-      return Matrixd<3, 3>{Vectord<3>{v(0), v(1), v(3)},
-                           Vectord<3>{v(1), v(2), v(4)},
-                           Vectord<3>{v(3), v(4), v(5)}};
-    };
 
     auto make_psd_point = [](std::mt19937& rng) {
       std::uniform_real_distribution<double> diag_dist(0.5, 3.0);
@@ -367,9 +353,9 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       const auto [x_inv, x_inv_event] = psd.inv(x);
       REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(x_inv));
-      REQUIRE(all_equal(make_smat<3>(x) * raw_to_smat(x_inv),
+      REQUIRE(all_equal(make_smat<3>(x) * make_smat<3>(x_inv),
                         make_identity<double, 3>(), tol));
-      REQUIRE(all_equal(raw_to_smat(x_inv) * make_smat<3>(x),
+      REQUIRE(all_equal(make_smat<3>(x_inv) * make_smat<3>(x),
                         make_identity<double, 3>(), tol));
 
       const auto [w, w_event] = psd.w(x, y);
@@ -405,11 +391,6 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     constexpr PositiveSemidefiniteCone<Slack, 3> psd;
     constexpr auto zero = Slack{};
     constexpr auto l2 = L2<Slack>();
-    const auto raw_to_smat = [](const auto& v) {
-      return Matrixd<3, 3>{Vectord<3>{v(0), v(1), v(3)},
-                           Vectord<3>{v(1), v(2), v(4)},
-                           Vectord<3>{v(3), v(4), v(5)}};
-    };
 
     auto make_psd_point = [](std::mt19937& rng) {
       std::uniform_real_distribution<double> diag_dist(0.75, 2.0);
@@ -426,11 +407,7 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
           Matrixd<3, 3>{Vectord<3>{l00, 0.0, 0.0}, Vectord<3>{l10, l11, 0.0},
                         Vectord<3>{l20, l21, l22}};
       const auto X = L * transpose(L);
-      auto svec = get_lower_triangle_with_diag(X);
-      svec(1) *= constexpr_sqrt_safe(2.0);
-      svec(3) *= constexpr_sqrt_safe(2.0);
-      svec(4) *= constexpr_sqrt_safe(2.0);
-      return svec;
+      return get_svec(X);
     };
 
     std::mt19937 rng(0xBADA55);
@@ -450,9 +427,9 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       const auto [x_inv, x_inv_event] = psd.inv(x);
       REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(x_inv));
-      REQUIRE(all_equal(make_smat<3>(x) * raw_to_smat(x_inv),
+      REQUIRE(all_equal(make_smat<3>(x) * make_smat<3>(x_inv),
                         make_identity<double, 3>(), tol));
-      REQUIRE(all_equal(raw_to_smat(x_inv) * make_smat<3>(x),
+      REQUIRE(all_equal(make_smat<3>(x_inv) * make_smat<3>(x),
                         make_identity<double, 3>(), tol));
 
       const auto [w, w_event] = psd.w(x, y);

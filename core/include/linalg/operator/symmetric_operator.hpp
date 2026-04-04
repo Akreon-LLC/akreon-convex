@@ -40,19 +40,20 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
    *
    * @param Mat A
    */
-  constexpr explicit SymmetricOperator(const Mat& A)
-      : svec(get_lower_triangle_with_diag(A)) {}
+  constexpr explicit SymmetricOperator(const Mat& A) : svec(get_svec(A)) {}
 
   /**
    * @brief get element at (i,j) index
    *
    * @param row index
    * @param col index
-   *
-   * @return element
-   */
+  *
+  * @return element
+  */
   constexpr auto operator()(const size_t& i, const size_t& j) const {
-    return svec(index(i, j));
+    const auto x = svec(index(i, j));
+    if (i == j) return x;
+    return x / constexpr_sqrt_safe(T(2));
   }
 
   /**
@@ -166,8 +167,8 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
 
   /** @brief member variables */
   SymmetricOperatorType type;  //< SymmetricOperatorType value
-  Vector<T, DIM> svec;  //< Data stored from input square matrix as flattened
-                        // n(n+1)/2 dim vector
+  Vector<T, DIM> svec;  //< Data stored as svec(A): lower triangle with
+                        // sqrt(2)-scaled off-diagonals
 };
 
 }  // namespace linalg

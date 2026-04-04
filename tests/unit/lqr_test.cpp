@@ -55,12 +55,12 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
               0.0, 0.0, 1.0,
               -2.0, 0.0, 0.0,
               0.0, -2.0 * sqrt2, 0.0,
+              0.0, 0.0, -2.0,
               sqrt2, 0.0, 0.0,
               0.0, sqrt2, 0.0,
-              0.0, 0.0, -2.0,
+              0.0, 0.0, 0.0,
               0.0, sqrt2, 0.0,
               0.0, 0.0, sqrt2,
-              0.0, 0.0, 0.0,
               0.0, 0.0, 0.0,
               0.0, 0.0, 0.0);
     constexpr auto F = prob_min.constraint_map().linear_part();
@@ -70,8 +70,8 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
 
     constexpr auto g = prob_min.constraint_map().translation();
     STATIC_REQUIRE(vec_size_v<decltype(g)> == 13);
-    STATIC_REQUIRE(g == Vectord<13>{0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0,
-                                    0.0, 0.0, 1.0, 0.0, 1.0});
+    STATIC_REQUIRE(g == Vectord<13>{0.0, 0.0, 0.0, -1.0, 0.0, -1.0, 0.0, 0.0,
+                                    1.0, 0.0, 0.0, 0.0, 1.0});
 
     STATIC_REQUIRE(prob_min.linear_objective() == Vectord<3>{});
 

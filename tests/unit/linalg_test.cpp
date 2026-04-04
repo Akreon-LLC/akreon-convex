@@ -492,6 +492,23 @@ TEST_CASE("PSD cone Jordan trace", "[symmetric_matrices]") {
   }
 }
 
+TEST_CASE("svec/smat preserve symmetric geometry", "[symmetric_matrices]") {
+  SECTION("3x3 round-trip and Frobenius norm") {
+    constexpr auto A = Matrixd<3, 3>{
+        Vectord<3>{2.0, -1.0, 3.0},
+        Vectord<3>{-1.0, 4.0, 0.5},
+        Vectord<3>{3.0, 0.5, 5.0},
+    };
+
+    constexpr auto svec = get_svec(A);
+    constexpr auto A_roundtrip = make_smat<3>(svec);
+
+    STATIC_REQUIRE(all_equal(A_roundtrip, A));
+    STATIC_REQUIRE(all_equal(make_svec(A_roundtrip), svec));
+    STATIC_REQUIRE(constexpr_abs(dot(svec, svec) - trace(A * A)) < 1e-10);
+  }
+}
+
 TEST_CASE("LDL^T Factorization") {
   SECTION("Simple I") {
     constexpr auto I = make_identity<double, 10>();
