@@ -22,68 +22,103 @@ using namespace control;
 using namespace unit_test;
 using namespace config;
 
+static constexpr auto rel_tol{1e-3};
+
 TEST_CASE("Small LQR 2x2", "[lqr_test]") {
   using Space = Matrixd<2, 2>;
+  using PSpace = SymmetricMatrix<Space>;
   constexpr auto P = Variable<PsdVarMeta<Space>>();
-  constexpr auto prob_init = make_problem(P);
-
   constexpr auto MatBuilder = mat_traits<Space>();
 
   SECTION("LQR case 1") {
-    constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
-    constexpr auto P_geq =
-        Inequality<InequalityType::GEQ, decltype(P), double>(P, 0.0);
-    constexpr auto Q = MatBuilder(1.0, 0.0, 0.0, 1.0);
-    constexpr auto R = MatBuilder(1.0, 0.0, 0.0, 1.0);
-    constexpr auto A = MatBuilder(1.0, 0.0, 0.0, 1.0);
-    constexpr auto B = MatBuilder(1.0, 0.0, 0.0, 1.0);
-    constexpr auto C = MatBuilder(1.0, 0.0, 0.0, 1.0);
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
-    constexpr auto lqr = LQR<decltype(ss), decltype(Q), decltype(R)>();
-    constexpr auto lmi = lqr(ss, Q, R, P);
-    constexpr auto prob_constr = prob_init.add_constraint(P_geq).in_set(lmi);
-    constexpr auto prob_min = prob_constr.feasibility();
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+    SECTION("Hand-checkable canonical LMI") {
+      constexpr auto I = make_identity<double, 2>();
+      constexpr auto Z = Matrixd<2, 2>{};
+      constexpr auto Q = MatBuilder(1.0, 0.0, 0.0, 1.0);
+      constexpr auto R = MatBuilder(1.0, 0.0, 0.0, 1.0);
+      constexpr auto A = Z;
+      constexpr auto B = I;
+      constexpr auto C = I;
 
-    constexpr auto F_mat = mat_traits<Matrixd<13, 3>>();
-    constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0,
-              0.0, sqrt2, 0.0,
-              0.0, 0.0, 1.0,
-              0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0,
-              -sqrt2, 0.0, 0.0,
-              0.0, -1.0, 0.0,
-              0.0, 0.0, 0.0,
-              0.0, -1.0, 0.0,
-              0.0, 0.0, -sqrt2,
-              0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0);
-    constexpr auto F = prob_min.constraint_map().linear_part();
-    STATIC_REQUIRE(mat_rows_v<decltype(F)> == 13);
-    STATIC_REQUIRE(mat_cols_v<decltype(F)> == 3);
-    STATIC_REQUIRE(all_equal(F, F_exp));
+      constexpr auto ss =
+          StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 13);
-    STATIC_REQUIRE(g == Vectord<13>{0.0, 0.0, 0.0, -1.0, 0.0, -1.0, 0.0, 0.0,
-                                    1.0, 0.0, 0.0, 0.0, 1.0});
+      constexpr auto lqr = LQR<decltype(ss), decltype(Q), decltype(R)>();
+      constexpr auto lmi = lqr(ss, Q, R, P);
 
-    STATIC_REQUIRE(prob_min.linear_objective() == Vectord<3>{});
+      STATIC_REQUIRE(lmi.is_well_formed());
 
-    PrimalDualIPM solver(prob_min);
-    auto res = solver.res;
-    //REQUIRE(res.tag == SolverResult::OPTIMAL);
-    //REQUIRE(res.num_iter < PD_IPM_STEPS);
+      constexpr auto builder = conic::create_empty_cblk_builder<PSpace>();
+      constexpr auto cone_block =
+          lmi.template canonicalize<AtomType::SET>(builder).cb;
 
-#if AKREON_DEBUG
-    auto trace = solver.trace;
-    //REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
-    log(res, trace);
+      constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
+      constexpr auto F_exp = Matrixd<10, 3>{
+          Vectord<3>{0.0, 0.0, 0.0},    // (0,0)
+          Vectord<3>{0.0, 0.0, 0.0},    // (1,0)
+          Vectord<3>{0.0, 0.0, 0.0},    // (1,1)
+          Vectord<3>{sqrt2, 0.0, 0.0},  // (2,0)
+          Vectord<3>{0.0, 1.0, 0.0},    // (2,1)
+          Vectord<3>{0.0, 0.0, 0.0},    // (2,2)
+          Vectord<3>{0.0, 1.0, 0.0},    // (3,0)
+          Vectord<3>{0.0, 0.0, sqrt2},  // (3,1)
+          Vectord<3>{0.0, 0.0, 0.0},    // (3,2)
+          Vectord<3>{0.0, 0.0, 0.0},    // (3,3)
+      };
+
+      STATIC_REQUIRE(all_equal(cone_block.map.linear_part(), F_exp));
+      STATIC_REQUIRE(
+          cone_block.map.translation() ==
+          Vectord<10>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
+
+      constexpr auto cones = cone_block.cones;
+      constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+      STATIC_REQUIRE(sz == 1);
+      STATIC_REQUIRE(cone_block.validate());
+    }
+
+    SECTION("Hand-checkable solver path") {
+      constexpr auto I = make_identity<double, 2>();
+      constexpr auto Z = Matrixd<2, 2>{};
+      constexpr auto Q = MatBuilder(1.0, 0.0, 0.0, 1.0);
+      constexpr auto R = MatBuilder(1.0, 0.0, 0.0, 1.0);
+      constexpr auto A = Z;
+      constexpr auto B = I;
+      constexpr auto C = I;
+      constexpr auto ss =
+          StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+
+      constexpr auto P_geq =
+          Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
+
+      constexpr auto lqr = LQR<decltype(ss), decltype(Q), decltype(R)>();
+      constexpr auto lmi = lqr(ss, Q, R, P);
+      constexpr auto prob_constr = make_problem(P).add_constraint(P_geq).in_set(lmi);
+      constexpr auto c = Vectord<3>{-1.0, 0.0, -1.0};
+      constexpr auto obj = WeightedSum<PSpace>()(c, P);
+      constexpr auto prob = prob_constr.minimize(obj);
+
+      STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
+      STATIC_REQUIRE(prob.validate());
+      STATIC_REQUIRE(
+          std::tuple_size<decltype(prob.constraint_cones())>::value == 2);
+      STATIC_REQUIRE(prob.linear_objective() == Matrixd<1, 3>{c});
+
+      const PrimalDualIPM solver(prob);
+      const auto& res = solver.res;
+#ifdef AKREON_DEBUG
+      const auto& trace = solver.trace;
+      if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif
+
+      REQUIRE(res.tag == SolverResult::OPTIMAL);
+      REQUIRE(!res.stalled);
+
+      const auto P_res = make_smat<2>(res.iterate.z);
+      REQUIRE(all_equal(P_res, transpose(P_res), rel_tol));
+      REQUIRE(constexpr_abs(P_res(0)(0) - 1.0) < 1e-3);
+      REQUIRE(constexpr_abs(P_res(1)(1) - 1.0) < 1e-3);
+      REQUIRE(constexpr_abs(P_res(0)(1)) < 1e-3);
+    }
   }
 }

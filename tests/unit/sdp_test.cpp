@@ -59,7 +59,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
 
     constexpr auto F_mat = mat_traits<Matrixd<5, 2>>();
     constexpr auto F_exp =
-        F_mat(1.0, 2.0, 0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0, 1.0);
+        F_mat(-1.0, -2.0, 0.0, 0.0, -2.0, -1.0, 1.0, 0.0, 0.0, 1.0);
     constexpr auto F = prob_min.constraint_map().linear_part();
     STATIC_REQUIRE(mat_rows_v<decltype(F)> == 5);
     STATIC_REQUIRE(mat_cols_v<decltype(F)> == 2);
@@ -193,14 +193,14 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     // PSD(3) contributes 6 lower-triangular coordinates, then 2 R_+
     // constraints.
     constexpr auto F_exp = Matrixd<8, 2>{
-        Vectord<2>{1.0, 3.0},  // (0,0)
-        Vectord<2>{0.0, 0.0},  // (1,0)
-        Vectord<2>{2.0, 2.0},  // (1,1)
-        Vectord<2>{0.0, 0.0},  // (2,0)
-        Vectord<2>{0.0, 0.0},  // (2,1)
-        Vectord<2>{3.0, 1.0},  // (2,2)
-        Vectord<2>{1.0, 0.0},  // x0 >= 0
-        Vectord<2>{0.0, 1.0},  // x1 >= 0
+        Vectord<2>{-1.0, -3.0},  // (0,0)
+        Vectord<2>{0.0, 0.0},    // (1,0)
+        Vectord<2>{-2.0, -2.0},  // (1,1)
+        Vectord<2>{0.0, 0.0},    // (2,0)
+        Vectord<2>{0.0, 0.0},    // (2,1)
+        Vectord<2>{-3.0, -1.0},  // (2,2)
+        Vectord<2>{1.0, 0.0},    // x0 >= 0
+        Vectord<2>{0.0, 1.0},    // x1 >= 0
     };
 
     const auto F = prob_min.constraint_map().linear_part();
@@ -213,8 +213,27 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     REQUIRE(g == Vectord<8>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0});
 
     STATIC_REQUIRE(prob_min.linear_objective() == Matrixd<1, 2>{c});
+    PrimalDualIPMConfig<double> cfg{};
+    cfg.steps = 64;
+    cfg.primal_feas_tol = 1e-4;
+    cfg.dual_feas_tol = 1e-4;
+    cfg.duality_gap_tol = 1e-4;
+    const PrimalDualIPM solver(prob_min, cfg);
+    const auto& res = solver.res;
+#ifdef AKREON_DEBUG
+    const auto& trace = solver.trace;
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+#endif
 
-    SUCCEED("3x3 LMI with 2-dim decision variable canonicalizes correctly");
+    REQUIRE(res.tag == SolverResult::OPTIMAL);
+    REQUIRE(res.num_iter > 0);
+    REQUIRE(res.num_iter <= PD_IPM_STEPS);
+#ifdef AKREON_DEBUG
+    REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
+#endif
+    REQUIRE(!res.stalled);
+    REQUIRE(constexpr_abs(res.iterate.z(0)) < rel_tol);
+    REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
   }
 }
 
@@ -233,8 +252,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
     STATIC_REQUIRE(prob_psd.linear_objective() == Vectord<3>{});
 
     constexpr auto F_mat = mat_traits<Matrixd<3, 3>>();
-    constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 1.0);
+    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(prob_psd.constraint_map().linear_part(), F_exp));
     STATIC_REQUIRE(prob_psd.constraint_map().translation() == Vectord<3>{});
 
@@ -275,12 +293,9 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
 
     constexpr auto F_mat = mat_traits<Matrixd<6, 6>>();
     constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(prob_psd.constraint_map().linear_part(), F_exp));
     STATIC_REQUIRE(all_equal(prob_psd.constraint_map().translation(),
                              Vectord<6>{-eps, 0.0, -eps, 0.0, 0.0, -eps}));
@@ -311,8 +326,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
     constexpr auto I = make_identity<double, 4>();
     constexpr auto geq =
         Inequality<InequalityType::GEQ, decltype(X), Mat>(X, eps * I);
-    constexpr auto prob_psd =
-        make_problem(X).add_constraint(geq).feasibility();
+    constexpr auto prob_psd = make_problem(X).add_constraint(geq).feasibility();
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob_psd)>);
     STATIC_REQUIRE(prob_psd.validate());
@@ -322,20 +336,18 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
 
     constexpr auto F_mat = mat_traits<Matrixd<10, 10>>();
     constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+              0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(prob_psd.constraint_map().linear_part(), F_exp));
-    STATIC_REQUIRE(all_equal(prob_psd.constraint_map().translation(),
-                             Vectord<10>{-eps, 0.0, -eps, 0.0, 0.0, -eps,
-                                         0.0, 0.0, 0.0, -eps}));
+    STATIC_REQUIRE(all_equal(
+        prob_psd.constraint_map().translation(),
+        Vectord<10>{-eps, 0.0, -eps, 0.0, 0.0, -eps, 0.0, 0.0, 0.0, -eps}));
 
     const PrimalDualIPM solver(prob_psd);
     const auto& res = solver.res;
@@ -356,5 +368,48 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
     REQUIRE(get_diag(X_res)(1) >= eps - rel_tol);
     REQUIRE(get_diag(X_res)(2) >= eps - rel_tol);
     REQUIRE(get_diag(X_res)(3) >= eps - rel_tol);
+  }
+
+  SECTION("2x2 Shared Var Two-PSD Test") {
+    using Mat = Matrixd<2, 2>;
+    using SymSpace = SymmetricMatrix<Mat>;
+    constexpr auto X = Variable<PsdVarMeta<Mat>>();
+    constexpr auto I = make_identity<double, 2>();
+
+    constexpr auto geq_psd =
+        Inequality<InequalityType::GEQ, decltype(X), double>(X, 0.0);
+    constexpr auto geq_spd =
+        Inequality<InequalityType::GEQ, decltype(X), Mat>(X, eps * I);
+
+    constexpr auto c = Vectord<3>{1.0, 1.0, 1.0};
+    constexpr auto obj = WeightedSum<SymSpace>()(c, X);
+    constexpr auto prob = make_problem(X)
+                              .add_constraint(geq_psd)
+                              .add_constraint(geq_spd)
+                              .minimize(obj);
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
+    STATIC_REQUIRE(prob.validate());
+    STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
+                   2);
+    STATIC_REQUIRE(prob.linear_objective() == Matrixd<1, 3>{c});
+
+    const PrimalDualIPM solver(prob);
+    const auto& res = solver.res;
+#ifdef AKREON_DEBUG
+    const auto& trace = solver.trace;
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+#endif
+
+    REQUIRE(res.tag == SolverResult::OPTIMAL);
+    REQUIRE(!res.stalled);
+
+    const auto X_res = make_smat<2>(res.iterate.z);
+    const auto chol = Cholesky(X_res);
+    REQUIRE(chol.is_valid());
+    REQUIRE(chol.is_pd());
+    REQUIRE(all_equal(X_res, transpose(X_res), rel_tol));
+    REQUIRE(get_diag(X_res)(0) >= eps - rel_tol);
+    REQUIRE(get_diag(X_res)(1) >= eps - rel_tol);
   }
 }

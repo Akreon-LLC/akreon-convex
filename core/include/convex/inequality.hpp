@@ -156,20 +156,8 @@ struct Inequality {
         AK_ASSERT(linalg::all_equal(rhs, linalg::conjugate_transpose(rhs)) &&
                   "PSD inequality expects Hermitian matrix rhs");
 
-      linalg::Matrix<T, M, M> S{};
-      size_t idx{0};
-      for (size_t i = 0; i < MatDim; ++i)
-        for (size_t j = 0; j <= i; ++j, ++idx)
-          S(idx)(idx) = (i == j) ? T(1) : linalg::constexpr_sqrt_safe(T(2));
-
-      /// (dakre) svec <-> smat is a linear isomorphism between S^n and
-      /// R^{n(n+1)/2}
-      /// 1. express the symmetric matrix var in psd-cone coords via svec
-      /// (off-diag scaling by sqrt(2))
-      /// 2. translate the affine bias by -svec(rhs) so the cone sees X - rhs
-      /// 3. enforce membership in the psd cone (i.e., smat(F z + g) >= 0)
-      const auto F = S * child_coord.linear_part();
-      const auto g = S * child_coord.translation() - linalg::get_svec(rhs);
+      const auto F = child_coord.linear_part();
+      const auto g = child_coord.translation() - linalg::get_svec(rhs);
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
       const auto new_builder = conic::CanonicalFormBuilder<
           conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
@@ -197,19 +185,8 @@ struct Inequality {
         static constexpr size_t MatDim = linalg::mat_rows_v<CodomPoint>;
         static constexpr size_t K = MatDim * (MatDim + 1) / 2;
 
-        linalg::Matrix<T, M, M> S{};
-        size_t idx{0};
-        for (size_t i = 0; i < MatDim; ++i)
-          for (size_t j = 0; j <= i; ++j, ++idx)
-            S(idx)(idx) = (i == j) ? T(1) : linalg::constexpr_sqrt_safe(T(2));
-
-        /// (dakre) svec <-> smat is a linear isomorphism between S^n and
-        /// R^{n(n+1)/2}
-        /// 1. express the symmetric matrix var in psd-cone coords via svec
-        /// (off-diag scaling by sqrt(2))
-        /// 2. enforce membership in the psd cone (i.e., smat(F z + g) >= 0)
-        const auto F = S * child_coord.linear_part();
-        const auto g = S * child_coord.translation();
+        const auto F = child_coord.linear_part();
+        const auto g = child_coord.translation();
         const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
         const auto new_builder = conic::CanonicalFormBuilder<
             conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),

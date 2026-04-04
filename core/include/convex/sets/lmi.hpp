@@ -33,7 +33,7 @@ using LMIMeta =
  * @brief LMI (linear matrix inequality)
  *
  *
- * LMI solution set: 0 \succeq B - \sum(x_i A_i)
+ * LMI solution set: 0 \preceq B + \sum(x_i A_i)
  */
 template <typename Meta, typename Child, linalg::SquareMatrixLike MatIn>
 struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
@@ -65,8 +65,8 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
    * @brief contains function to see if x is in the LMI defined as
    *
    * LMI
-   * (i)  PSD: 0 <= B - A(x)
-   * (ii) PD: 0 < B - A(x)
+   * (i)  PSD: 0 <= B + A(x)
+   * (ii) PD: 0 < B + A(x)
    *
    * @param x matrix with N vectors
    *
@@ -74,7 +74,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
    */
   constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
     auto res = B;
-    for (size_t i = 0; i < N; ++i) res = res - (x(i) * A(i));
+    for (size_t i = 0; i < N; ++i) res = res + (x(i) * A(i));
     linalg::LDL ldl(res);
     return ldl.is_psd();
   }
@@ -82,7 +82,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
   /**
    * @brief is_well_formed to check if the set is valid
    *
-   * Cant really tell if B - sum(x_i A_i) >= 0 is valid until solve...
+   * Cant really tell if B + sum(x_i A_i) >= 0 is valid until solve...
    * so if construction passes well formed is fine
    *
    * @return T/F
@@ -121,21 +121,10 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
    *
    * Apply P^{-1}(C) -> K and map K to cone block
    *
-   * [old] deprecating homogenized t
-   * C = { X in S^n_+ | A(x) <= B }
-   * K = { (X, t) | A(x) <= B t }... linear operator-> { (x, t) | B t - sum(x_i
-   * A_i) >= 0, t >= 0 }
-   *
    * a_i = svec(A_i) in R^k A_i in S^n where k = n(n+1)/2
    * b = svec(B) ...
    *
-   * B t - sum(x_i A_i) >= 0 ... psd cone
-   * t >= 0... nonneg orthant cone
-   *
-   * [ -a_i ... -a_n b ] [ x; t ] -> (u, t)
-   * [ 0    ...    0 1 ]
-   *
-   * smat(u) >= 0, t>= 0
+   * B + sum(x_i A_i) \succeq 0 ... psd cone
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
@@ -152,19 +141,24 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
                   "linear map's codomain in size");
 
     static constexpr size_t K = MatDim * (MatDim + 1) / 2;
-    linalg::Matrix<T, K, N> F{};
-    linalg::Vector<T, K> g{};
+    linalg::Matrix<T, K, N> F_local{};
+    linalg::Vector<T, K> g_local{};
 
-    auto update_F = [&F](const auto& i, const auto& M) {
+    auto update_F = [&F_local](const auto& i, const auto& M) {
       const auto m_svec = linalg::get_svec(M);
       for (size_t row_idx = 0; row_idx < K; ++row_idx)
-        F(row_idx)(i) = T(-1) * m_svec(row_idx);
+        F_local(row_idx)(i) = m_svec(row_idx);
     };
 
-    auto update_g = [&g](const auto& M) { g = linalg::get_svec(M); };
+    auto update_g = [&g_local](const auto& M) {
+      g_local = linalg::get_svec(M);
+    };
 
     for (size_t i = 0; i < N; ++i) update_F(i, A(i));
     update_g(B);
+
+    const auto F = F_local * child_coord.linear_part();
+    const auto g = F_local * child_coord.translation() + g_local;
 
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto psd_cone =

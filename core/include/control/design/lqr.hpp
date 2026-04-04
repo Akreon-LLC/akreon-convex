@@ -38,19 +38,8 @@ namespace control {
  * Therefore CARE: A^T P + P A - P B R^{-1} B^T P + Q = 0
  *
  * Target Schur-complement LMI:
- * [ -(A^T P + P A + Q)  P B ]
- * [ B^T P               R   ]
- *
- * This is encoded through convex::LMI using its B - A(P) >= 0 convention.
- * Therefore the coefficient blocks carry the signs opposite the desired
- * off-diagonal terms:
- *   B =
- *   [ -Q  0 ]
- *   [  0  R ]
- *
- *   A(E) =
- *   [ A^T E + E A  -E B ]
- *   [ -B^T E        0   ]
+ * [ A^T P + P A + Q  P B ]
+ * [ B^T P            R   ]
  */
 template <ContinuousStateSpaceLike SS, linalg::SquareMatrixLike StateCostMat,
           linalg::SquareMatrixLike InputCostMat>
@@ -116,10 +105,10 @@ struct LQR {
                   "Var type != PSD");
     using PSpace = convex::dom_space_t<PDom>;
     static_assert(std::same_as<PSpace, linalg::SymmetricMatrix<PMat>>,
-                  "Expected P var size != state covariance size");
+                  "Expected P var size != state size");
 
     auto M = [&](const PMat& E) -> FMat {
-      const auto lyap = T(-1) * linalg::transpose(ss.A) * E + E * ss.A;
+      const auto lyap = linalg::transpose(ss.A) * E + E * ss.A;
       const auto pb = E * ss.B;
       const auto pTb = linalg::transpose(ss.B) * E;
 
@@ -132,7 +121,7 @@ struct LQR {
     };
 
     FMat B{};
-    B = linalg::set_block<0, StateDim, 0, StateDim>(B, T(-1) * Q);
+    B = linalg::set_block<0, StateDim, 0, StateDim>(B, Q);
     B = linalg::set_block<StateDim, TotalDim, StateDim, TotalDim>(B, R);
 
     Fs F_blks{};

@@ -842,7 +842,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
 
     constexpr auto F_mat = mat_traits<Matrixd<3, 3>>();
     constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, constexpr_sqrt_safe(2.0), 0.0, 0.0, 0.0, 1.0);
+        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F_exp));
     STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<3>{});
   }

@@ -175,7 +175,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
 }
 
 TEST_CASE("Test LMI", "[convex_sets]") {
-  SECTION("Test LMI", "[A(x) <= B]") {
+  SECTION("Test LMI", "[B + A(x) >= 0]") {
     using Space = linalg::Matrixd<1, 2>;
     constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
     constexpr auto A0 = mat_traits<linalg::Matrixd<2, 2>>()(1.0, 0.5, 0.5, 2.0);
@@ -186,9 +186,9 @@ TEST_CASE("Test LMI", "[convex_sets]") {
     constexpr linalg::Vector<linalg::Matrixd<2, 2>, 2> A{A0, A1};
     constexpr LMI set(A, B, x);
     STATIC_REQUIRE(set.is_well_formed());
-    STATIC_REQUIRE(!set.contains(Vectord<2>{1.0, 1.0}));
     STATIC_REQUIRE(set.contains(Vectord<2>{}));
     STATIC_REQUIRE(set.contains(Vectord<2>{0.5, 0.5}));
+    STATIC_REQUIRE(!set.contains(Vectord<2>{-2.0, -2.0}));
 
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto cone_block =
@@ -196,7 +196,7 @@ TEST_CASE("Test LMI", "[convex_sets]") {
 
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
     constexpr auto F =
-        F_mat(-1.0, -2.0, -0.5 * sqrt2, 0.25 * sqrt2, -2.0, -1.5);
+        F_mat(1.0, 2.0, 0.5 * sqrt2, -0.25 * sqrt2, 2.0, 1.5);
     STATIC_REQUIRE(
         cone_block.map ==
         affine::AffineMap(F, Vectord<3>{3.0, sqrt2, 4.0}));
