@@ -64,15 +64,16 @@ struct Inequality {
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
     auto canonicalize_atom = [&](const auto& atom, const auto& parent_builder) {
-      if constexpr (is_var_type_v<decltype(atom)>)
+      using AtomT = linalg::remove_cvref_t<decltype(atom)>;
+      if constexpr (is_var_type_v<AtomT>)
         return atom.template canonicalize<AtomType::VAR>(parent_builder);
       else
         return atom.template canonicalize<AtomType::FN>(parent_builder);
     };
 
     auto negate_atom = [](const auto& atom) {
-      if constexpr (is_index_type_v<decltype(atom)> ||
-                    is_var_type_v<decltype(atom)>) {
+      using AtomT = linalg::remove_cvref_t<decltype(atom)>;
+      if constexpr (is_index_type_v<AtomT> || is_var_type_v<AtomT>) {
         return atom.mul(T(-1));
       } else {
         return atom.template mul<T(-1)>();
@@ -122,7 +123,63 @@ struct Inequality {
                                                     child_cb, new_eq_map);
     };
 
-    if constexpr (linalg::FieldLike<RHS>) {
+    if constexpr (dom_vartype_v<Codom> == VarType::PSD &&
+                  linalg::MatrixLike<linalg::remove_cvref_t<RHS>>) {
+      static_assert(is_var_type_v<LHS>,
+                    "PSD inequalities only support variable lhs");
+      static_assert(IType == InequalityType::GEQ,
+                    "PSD inequalities currently only support X >= C");
+
+      using CodomPoint = dom_point_t<Codom>;
+      using RHSMat = linalg::remove_cvref_t<RHS>;
+      using RHSScalar = linalg::mat_type_t<RHSMat>;
+      static_assert(
+          linalg::mat_rows_v<RHSMat> == linalg::mat_rows_v<CodomPoint>,
+          "PSD inequality rhs row dim mismatch");
+      static_assert(
+          linalg::mat_cols_v<RHSMat> == linalg::mat_cols_v<CodomPoint>,
+          "PSD inequality rhs col dim mismatch");
+      static_assert(std::convertible_to<RHSScalar, T>,
+                    "PSD inequality rhs scalar type must convert to lhs type");
+
+      const auto child_builder = canonicalize_atom(lhs, builder);
+      const auto child_coord = child_builder.coord_map;
+      const auto child_cb = child_builder.cb;
+
+      static constexpr size_t MatDim = linalg::mat_rows_v<CodomPoint>;
+      static constexpr size_t K = MatDim * (MatDim + 1) / 2;
+
+      if constexpr (linalg::RealLike<RHSScalar>)
+        AK_ASSERT(linalg::all_equal(rhs, linalg::transpose(rhs)) &&
+                  "PSD inequality expects symmetric matrix rhs");
+      else
+        AK_ASSERT(linalg::all_equal(rhs, linalg::conjugate_transpose(rhs)) &&
+                  "PSD inequality expects Hermitian matrix rhs");
+
+      linalg::Matrix<T, M, M> S{};
+      size_t idx{0};
+      for (size_t i = 0; i < MatDim; ++i)
+        for (size_t j = 0; j <= i; ++j, ++idx)
+          S(idx)(idx) = (i == j) ? T(1) : linalg::constexpr_sqrt_safe(T(2));
+
+      /// (dakre) svec <-> smat is a linear isomorphism between S^n and
+      /// R^{n(n+1)/2}
+      /// 1. express the symmetric matrix var in psd-cone coords via svec
+      /// (off-diag scaling by sqrt(2))
+      /// 2. translate the affine bias by -svec(rhs) so the cone sees X - rhs
+      /// 3. enforce membership in the psd cone (i.e., smat(F z + g) >= 0)
+      const auto F = S * child_coord.linear_part();
+      const auto g = S * child_coord.translation() - linalg::get_svec(rhs);
+      const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
+      const auto new_builder = conic::CanonicalFormBuilder<
+          conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
+          decltype(child_cb), decltype(child_builder.eq_map)>(
+          coord_map_up, child_cb, child_builder.eq_map);
+      const auto psd_cone =
+          conic::PositiveSemidefiniteCone<linalg::Vector<T, K>, MatDim>();
+      return new_builder.template make<AtomType::CAP>(
+          std::make_tuple(psd_cone));
+    } else if constexpr (linalg::FieldLike<RHS>) {
       const auto child_builder = canonicalize_atom(lhs, builder);
       const auto child_coord = child_builder.coord_map;
       const auto child_cb = child_builder.cb;
@@ -142,12 +199,15 @@ struct Inequality {
 
         linalg::Matrix<T, M, M> S{};
         size_t idx{0};
-        for (size_t i = 0; i < MatDim; ++i) {
-          for (size_t j = 0; j <= i; ++j, ++idx) {
+        for (size_t i = 0; i < MatDim; ++i)
+          for (size_t j = 0; j <= i; ++j, ++idx)
             S(idx)(idx) = (i == j) ? T(1) : linalg::constexpr_sqrt_safe(T(2));
-          }
-        }
 
+        /// (dakre) svec <-> smat is a linear isomorphism between S^n and
+        /// R^{n(n+1)/2}
+        /// 1. express the symmetric matrix var in psd-cone coords via svec
+        /// (off-diag scaling by sqrt(2))
+        /// 2. enforce membership in the psd cone (i.e., smat(F z + g) >= 0)
         const auto F = S * child_coord.linear_part();
         const auto g = S * child_coord.translation();
         const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
@@ -190,9 +250,11 @@ struct Inequality {
         }
       }
     } else {
-      static_assert(
-          is_fn_type_v<RHS> || is_index_type_v<RHS> || is_var_type_v<RHS>,
-          "RHS Atom must be fn, index, var, or scalar type");
+      if constexpr (!linalg::MatrixLike<linalg::remove_cvref_t<RHS>>) {
+        static_assert(
+            is_fn_type_v<RHS> || is_index_type_v<RHS> || is_var_type_v<RHS>,
+            "RHS Atom must be fn, index, var, scalar, or matrix type");
+      }
 
       if constexpr (IType == InequalityType::LEQ) {
         const auto new_lhs = negate_atom(lhs);

@@ -428,8 +428,8 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(x_inv));
 
-      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()));
-      REQUIRE(l2(psd.circ(x_inv, x) - psd.e()));
+      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < tol);
+      REQUIRE(l2(psd.circ(x_inv, x) - psd.e()) < tol);
 
       const auto [w, w_event] = psd.w(x, y);
       REQUIRE(w_event == linalg::NumericalEvent::NONE);
@@ -485,10 +485,8 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       const double l33 = diag_dist(rng);
 
       const auto L = Matrixd<4, 4>{
-          Vectord<4>{l00, 0.0, 0.0, 0.0},
-          Vectord<4>{l10, l11, 0.0, 0.0},
-          Vectord<4>{l20, l21, l22, 0.0},
-          Vectord<4>{l30, l31, l32, l33}};
+          Vectord<4>{l00, 0.0, 0.0, 0.0}, Vectord<4>{l10, l11, 0.0, 0.0},
+          Vectord<4>{l20, l21, l22, 0.0}, Vectord<4>{l30, l31, l32, l33}};
       const auto X = L * transpose(L);
       return get_svec(X);
     };
@@ -511,8 +509,8 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(x_inv));
 
-      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()));
-      REQUIRE(l2(psd.circ(x_inv, x) - psd.e()));
+      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()) < tol);
+      REQUIRE(l2(psd.circ(x_inv, x) - psd.e()) < tol);
 
       const auto [w, w_event] = psd.w(x, y);
       REQUIRE(w_event == linalg::NumericalEvent::NONE);
