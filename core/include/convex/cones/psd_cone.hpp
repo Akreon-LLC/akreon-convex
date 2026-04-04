@@ -239,29 +239,21 @@ struct PositiveSemidefiniteCone
   constexpr auto w_impl(const Slack& x, const Slack& y) const {
     Slack w{};
     const auto X = linalg::make_smat<N, Slack>(x);
-    const auto [X_sqrt, event1] = linalg::MatrixSqrt<decltype(X)>()(X);
+    const auto [X_sqrt, X_inv_sqrt, event1] =
+        linalg::MatrixSqrt<decltype(X)>()(X);
     if (linalg::is_fatal_event(event1)) return std::tuple(w, event1);
+    (void)X_inv_sqrt;
 
     const auto Y = linalg::make_smat<N, Slack>(y);
-    const auto U = X_sqrt * (Y * X_sqrt);
-    const auto [U_sqrt, event2] = linalg::MatrixSqrt<decltype(U)>()(U);
+    const auto U = linalg::symmetric_part(X_sqrt * (Y * X_sqrt));
+    const auto [U_sqrt, U_inv_sqrt, event2] =
+        linalg::MatrixSqrt<decltype(U)>()(U);
     if (linalg::is_fatal_event(event2)) return std::tuple(w, event2);
+    (void)U_sqrt;
 
-    const auto ldl_U = linalg::LDL(U_sqrt);
-    const auto factor_res = ldl_U.is_valid();
-    AK_ASSERT(factor_res && "LDL(U_sqrt) is invalid");
-    if (!factor_res)
-      return std::tuple(w, linalg::NumericalEvent::FACTORIZATION_FAILED);
-
-    const auto [U_sqrt_inv, event3] =
-        linalg::SymmetricMatrixInverse<decltype(U_sqrt)>()(U_sqrt);
-    if (linalg::is_fatal_event(event3)) return std::tuple(w, event3);
-
-    w = linalg::get_svec(
-        linalg::symmetric_part(X_sqrt * (U_sqrt_inv * X_sqrt)));
+    w = linalg::get_svec(linalg::symmetric_part(X_sqrt * (U_inv_sqrt * X_sqrt)));
     const auto out_event = (event1 != linalg::NumericalEvent::NONE ||
-                            event2 != linalg::NumericalEvent::NONE ||
-                            event3 != linalg::NumericalEvent::NONE)
+                            event2 != linalg::NumericalEvent::NONE)
                                ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
                                : linalg::NumericalEvent::NONE;
     return std::tuple(w, out_event);
@@ -311,8 +303,9 @@ struct PositiveSemidefiniteCone
     const auto X = linalg::make_smat<N, Slack>(x);
     const auto Y = linalg::make_smat<N, Slack>(y);
 
-    const auto [X_sqrt, event] = linalg::MatrixSqrt<decltype(X)>()(X);
+    const auto [X_sqrt, X_inv_sqrt, event] = linalg::MatrixSqrt<decltype(X)>()(X);
     if (event != linalg::NumericalEvent::NONE) return std::tuple(T(0), event);
+    (void)X_inv_sqrt;
 
     const auto ldl_X = linalg::LDL(X);
     const auto ldl_Y = linalg::LDL(Y);

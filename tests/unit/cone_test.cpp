@@ -427,19 +427,33 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       const auto [x_inv, x_inv_event] = psd.inv(x);
       REQUIRE(x_inv_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(x_inv));
-      REQUIRE(all_equal(make_smat<3>(x) * make_smat<3>(x_inv),
-                        make_identity<double, 3>(), tol));
-      REQUIRE(all_equal(make_smat<3>(x_inv) * make_smat<3>(x),
-                        make_identity<double, 3>(), tol));
+
+      REQUIRE(l2(psd.circ(x, x_inv) - psd.e()));
+      REQUIRE(l2(psd.circ(x_inv, x) - psd.e()));
 
       const auto [w, w_event] = psd.w(x, y);
       REQUIRE(w_event == linalg::NumericalEvent::NONE);
       REQUIRE(psd.in_cone(w));
       REQUIRE(psd.in_dual_cone(w));
 
+      const auto W = make_smat<3>(w);
+      const auto lhs = linalg::symmetric_part(W * (make_smat<3>(y) * W));
+      REQUIRE(all_equal(lhs, make_smat<3>(x), tol));
+
+      QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P(w);
+      REQUIRE(l2(x - P.apply(y)) < tol);
+
+      const auto [w_inv, w_inv_event] = psd.inv(w);
+      REQUIRE(w_inv_event == linalg::NumericalEvent::NONE);
+      QuadraticRep<Matrixd<6, 6>, PSDCirc<Slack, 3>> P_inv(w_inv);
+      REQUIRE(l2(y - P_inv.apply(x)) < tol);
+
       const auto [Hw, H_event] = psd.H(x, y);
       REQUIRE(H_event == linalg::NumericalEvent::NONE);
       REQUIRE(l2(Hw.apply(zero)) < tol);
+
+      const auto hx = Hw.apply(x);
+      REQUIRE(l2(hx - y) < tol);
 
       const auto alpha = psd.alpha_max(x, p);
       const auto alpha_hit = alpha / eta;

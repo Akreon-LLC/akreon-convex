@@ -447,32 +447,97 @@ TEST_CASE("Matrix square root", "[matrix_sqrt]") {
   SECTION("2x2 diagonal") {
     constexpr auto A =
         Matrixd<2, 2>{Vectord<2>{4.0, 0.0}, Vectord<2>{0.0, 9.0}};
-    constexpr auto A_sqrt = std::get<0>(MatrixSqrt<decltype(A)>()(A));
+    constexpr auto A_sqrt_res = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt = std::get<0>(A_sqrt_res);
+    constexpr auto A_inv_sqrt = std::get<1>(A_sqrt_res);
     constexpr auto A_sqrt_exp =
         Matrixd<2, 2>{Vectord<2>{2.0, 0.0}, Vectord<2>{0.0, 3.0}};
+    constexpr auto A_inv_sqrt_exp =
+        Matrixd<2, 2>{Vectord<2>{0.5, 0.0}, Vectord<2>{0.0, 1.0 / 3.0}};
 
     STATIC_REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
+    STATIC_REQUIRE(all_equal(A_inv_sqrt, A_inv_sqrt_exp, 1e-5));
     STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 2>(),
+                             1e-5));
   }
 
   SECTION("3x3 diagonal") {
     constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
     constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 16.0);
-    constexpr auto A_sqrt = std::get<0>(MatrixSqrt<decltype(A)>()(A));
+    constexpr auto A_sqrt_res = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt = std::get<0>(A_sqrt_res);
+    constexpr auto A_inv_sqrt = std::get<1>(A_sqrt_res);
     constexpr auto A_sqrt_exp =
         A_mat(1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 4.0);
+    constexpr auto A_inv_sqrt_exp =
+        A_mat(1.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.25);
 
     STATIC_REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
+    STATIC_REQUIRE(all_equal(A_inv_sqrt, A_inv_sqrt_exp, 1e-5));
     STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 3>(),
+                             1e-5));
   }
 
   SECTION("2x2 SPD") {
     constexpr auto A_mat = mat_traits<Matrixd<2, 2>>();
     constexpr auto A = A_mat(4.0, 2.0, 2.0, 3.0);
-    constexpr auto A_sqrt = std::get<0>(MatrixSqrt<decltype(A)>()(A));
+    constexpr auto A_sqrt_res = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt = std::get<0>(A_sqrt_res);
+    constexpr auto A_inv_sqrt = std::get<1>(A_sqrt_res);
 
     STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
     STATIC_REQUIRE(all_equal(A_sqrt, transpose(A_sqrt), 1e-5));
+    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 2>(),
+                             1e-5));
+  }
+
+  SECTION("3x3 SPD") {
+    constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
+    constexpr auto A = A_mat(4.0, 2.0, 0.0, 2.0, 3.0, 0.0, 0.0, 0.0, 9.0);
+    constexpr auto A_sqrt_res = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt = std::get<0>(A_sqrt_res);
+    constexpr auto A_inv_sqrt = std::get<1>(A_sqrt_res);
+
+    STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+    STATIC_REQUIRE(all_equal(A_sqrt, transpose(A_sqrt), 1e-5));
+    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 3>(),
+                             1e-5));
+  }
+
+  SECTION("4x4 diagonal") {
+    constexpr auto A_mat = mat_traits<Matrixd<4, 4>>();
+    constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0,
+                             9.0, 0.0, 0.0, 0.0, 0.0, 16.0);
+    constexpr auto A_sqrt_res = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt = std::get<0>(A_sqrt_res);
+    constexpr auto A_inv_sqrt = std::get<1>(A_sqrt_res);
+    constexpr auto A_sqrt_exp = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0,
+                                      0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 4.0);
+    constexpr auto A_inv_sqrt_exp =
+        A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0,
+              1.0 / 3.0, 0.0, 0.0, 0.0, 0.0, 0.25);
+
+    STATIC_REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
+    STATIC_REQUIRE(all_equal(A_inv_sqrt, A_inv_sqrt_exp, 1e-5));
+    STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 4>(),
+                             1e-5));
+  }
+
+  SECTION("4x4 SPD") {
+    constexpr auto A_mat = mat_traits<Matrixd<4, 4>>();
+    constexpr auto A = A_mat(6.0, 2.0, 1.0, 0.0, 2.0, 5.0, 2.0, 1.0, 1.0, 2.0,
+                             5.0, 2.0, 0.0, 1.0, 2.0, 6.0);
+    constexpr auto A_sqrt_res = MatrixSqrt<decltype(A)>()(A);
+    constexpr auto A_sqrt = std::get<0>(A_sqrt_res);
+    constexpr auto A_inv_sqrt = std::get<1>(A_sqrt_res);
+
+    STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
+    STATIC_REQUIRE(all_equal(A_sqrt, transpose(A_sqrt), 1e-5));
+    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 4>(),
+                             1e-5));
   }
 }
 

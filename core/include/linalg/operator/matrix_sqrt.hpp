@@ -12,8 +12,9 @@
 
 #pragma once
 
+#include "config/solver_config.hpp"
 #include "linalg/linalg_util.hpp"
-#include "linalg/spectral/eig_decomp.hpp"
+#include "linalg/operator/matrix_inverse.hpp"
 
 namespace linalg {
 
@@ -35,44 +36,48 @@ struct MatrixSqrt {
    *
    * @param A (matrix)
    *
-   * @return A^{1/2}
+   * @return (A^{1/2}, A^{-1/2}, event)
    */
   constexpr auto operator()(const Mat& A) const { return apply(A); }
 
   /**
    * @brief apply
    *
+   * Denman-Beavers iteration (quadratic convergence)
+   *
    * @param A (matrix)
    *
-   * @return A^{1/2}
+   * @return (A^{1/2}, A^{-1/2}, event)
    */
   constexpr auto apply(const Mat& A) const {
-    const auto eig_decomp = EigenDecomposition(A);
-    AK_ASSERT(eig_decomp.converged && "Eigen decomposition failed");
+    Mat Y{A};
+    Mat Z{make_identity<T, N>()};
 
-    Mat A_sqrt{};
-    if (!eig_decomp.converged)
-      return std::tuple(A_sqrt, linalg::NumericalEvent::EVD_FAILED);
+    for (size_t i = 0; i < config.steps; ++i) {
+      const auto [Y_inv, Y_event] = MatrixInverse<Mat>()(Y);
+      if (Y_event != linalg::NumericalEvent::NONE)
+        return std::tuple(Mat{}, Mat{}, Y_event);
 
-    const auto eigs = eig_decomp.lambda;
-    Vector<std::complex<T>, N> sqrt_eigs{};
-    for (size_t i = 0; i < N; ++i)
-      sqrt_eigs(i) = std::complex<T>(constexpr_sqrt_safe<T>(eigs(i).real()));
+      const auto [Z_inv, Z_event] = MatrixInverse<Mat>()(Z);
+      if (Z_event != linalg::NumericalEvent::NONE)
+        return std::tuple(Mat{}, Mat{}, Z_event);
 
-    const auto V = eig_decomp.V;
-    const auto VTV = V * (make_diag(sqrt_eigs) * conjugate_transpose(V));
+      const auto Y_next = T(0.5) * (Y + Z_inv);
+      const auto Z_next = T(0.5) * (Z + Y_inv);
 
-    for (size_t i = 0; i < N; ++i) {
-      for (size_t j = 0; j < N; ++j) {
-        AK_ASSERT(is_real(VTV(i)(j)) &&
-                  "V^TV result has imaginary component which is incompatible "
-                  "with domain of R");
-        A_sqrt(i)(j) = VTV(i)(j).real();
-      }
+      if (all_equal(Y_next * Y_next, A, config.tol))
+        return std::tuple(Y_next, Z_next, linalg::NumericalEvent::NONE);
+
+      Y = Y_next;
+      Z = Z_next;
     }
 
-    return std::tuple(A_sqrt, linalg::NumericalEvent::NONE);
+    return std::tuple(Y, Z, linalg::NumericalEvent::NONE);
   }
+
+  /** @brief member vars **/
+  config::FactorConfig<T> config{
+      .steps = 128, .tol = T(1e-12), .floor_eps = T(1e-14)};  ///< factor config
 };
 
 }  // namespace linalg
