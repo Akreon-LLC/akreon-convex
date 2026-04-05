@@ -140,21 +140,10 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
   /**
    * @brief canonicalize impl
    *
-   * Apply P^{-1}(C) -> K and map K to cone block
+   * C = { x | A x <= b }
    *
-   * [old] homogeneous t embedding removed
-   * C = { x | A x <= b, Cx = d }
-   * K = { (x, t) | A x <= b t, Cx = d t, t >= 0 }
-   *
-   * -Ax >= -b... b t - Ax >= 0 in rplus
-   *  t... in rplus
-   *
-   * [ -A b ] [ x; t ] >= 0
-   * [ 0  1 ]
-   *
-   * -a0^T x0 + bt >= 0
-   * ...
-   * t >= 0
+   * Direct cone map:
+   *   -A x + b \in R_+^m
    *
    * @return cone block
    */

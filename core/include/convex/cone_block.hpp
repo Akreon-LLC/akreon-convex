@@ -34,7 +34,7 @@ struct ConeBlock {
   /**
    * @brief CTOR for cone block
    *
-   * @param affine map (takes convex object -> cone coordinates (homogenized)
+   * @param affine map (takes convex object -> cone coordinates)
    * @param param pack of cones
    */
   constexpr explicit ConeBlock(const Map& map_in, Cs... cs)
@@ -70,7 +70,7 @@ struct ConeBlock {
   }
 
   /** @brief member vars for cone block */
-  Map map;                  ///< affine map taking [x;t] -> cone coords
+  Map map;                  ///< affine map taking the decision variables -> cone coords
   std::tuple<Cs...> cones;  ///< tuple of cones aligned with map
 };
 

@@ -255,52 +255,24 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
   /**
    * @brief canonicalize impl
    *
-   * Apply P^{-1}(C) -> K and map K to cone block
-   *
    * C = { x | ||x - c|| <= r }
    *
    * let y = x - c
    *
-   * [old] deprecating homogenized t
    * L2
-   * K = { (y, t) | ||y|| <= r t, t >= 0 }
-   * [ I 0 ] [ x; t ] + [ -c; 0 ] -> (y, rt)
-   * [ 0 r ]
-   * ||y||_2 <= r t... scaled second order cone
-   * ----
-   * [ I ; 0 ] [ x ] + [ -c; r ] -> (y, r)... ||y||<= r
+   * Direct SOC map:
+   *   [ I ] x + [ -c ]
+   *   [ 0 ]     [  r ]
+   * so that (y, r) \in K_soc.
    *
    * Linf
-   * K = { (y, t) | ||y|| <= r t, t >= 0 }
-   * -r t <= y_i <= r t \forall i
-   * -r t - y_i <= 0 to 0 <= y_i + r t nonneg orthant cone
-   * 0 <= r t - y_i... nonneg orthant cone
-   *
-   * [ I  r ] [ x; t ] + [ -c; c ]
-   * [ -I r ]
-   * ---
-   * [ I ; -I ] [ x ] + [ -c + r1; c + r1 ]
+   * Direct nonnegative-cone map:
+   *   [  I ] x + [ -c + r 1 ]
+   *   [ -I ]     [  c + r 1 ]
    *
    * L1
-   * K = { (y, t) | ||y|| <= r t, t >= 0 }
-   * let u_i >= |y_i|... intoduce first convex constraint
-   * sum(u_i) <= r t... second convex constraint (simplex)
-   * u_i >= 0... third convex constraint
-   * t >= 0... fourth convex constraint
-   *
-   * -u_i <= y_i <= u_i
-   * -u_i - y_i <= 0 to 0 <= y_i + u_i nonneg orthant cone
-   * 0 <= u_i - y_i... nonneg orthant cone
-   * 1^T u - r t <= 0 to 0 <= r t - 1^T u... nonneg orthant cone
-   *
-   * [ I  I    0 ] [ x; u; t ] + [ -c; c; 0]
-   * [ -I I    0 ]
-   * [ 0  -1^T r ]
-   * ---
-   * [  I  I   ] [ x; u ] + [ -c; c; r; 0 ]
-   * [ -I  I   ]
-   * [ 0  -1^T ]
-   * [ 0   I   ]
+   * Introduce u >= |y| with 1^T u <= r. The direct nonnegative-cone map is
+   * built over (x, u) without any homogeneous lift.
    */
   template <AtomType AType, conic::BuilderLike Builder>
   constexpr auto canonicalize_set(const Builder& builder) const {

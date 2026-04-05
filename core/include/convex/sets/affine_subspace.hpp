@@ -126,19 +126,11 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
   /**
    * @brief canonicalize impl
    *
-   * Apply P^{-1}(C) -> K and map K to cone block
+   * Affine subspace:
+   *   A x = b
    *
-   * [old] deprecating homogeneous t
-   * [ A -b ] [ x; t ] = 0
-   * [ 0  1 ]
-   *
-   * [A x - b t; t], where Ax - bt = 0, t >= 0
-   *
-   * The current PD-IPM path handles equality sets more robustly when they are
-   * expressed as paired inequalities:
-   *
-   *   A x <= b
-   *  -A x <= -b
+   * The current path keeps affine sets in the explicit equality map rather
+   * than lifting them into cone constraints.
    *
    * @return cone block
    */

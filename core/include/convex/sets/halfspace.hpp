@@ -134,17 +134,10 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
   /**
    * @brief canonicalize impl
    *
-   * Apply P^{-1}(C) -> K and map K to cone block
-   *
-   * [old] homogenized t deprecated
    * H = { x | a^T x <= b }
-   * P^{-1}(H) = { (x,t) | a^T x <= b t, t >= 0 }
    *
-   * [ a -b ] [ x; t ] = 0
-   * [ 0  1 ]
-   *
-   * [a x - b t; t], where ax - bt <= 0, t >= 0
-   * 0 <= bt - ax... nonneg cone
+   * Direct cone map:
+   *   -a^T x + b \in R_+
    *
    * @return cone block
    */

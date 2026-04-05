@@ -131,30 +131,19 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
   /**
    * @brief canonicalize impl
    *
-   * Apply P^{-1}(C) -> K and map K to cone block
-   *
    * E = { x | (x - c)^T P (x - c) <= 1, P \in S^n_+ }
    *
-   * [old] homogenzed t deprecated
    * Eigen decomposition: P = V D V^T
    * (x - c)^T V D V^T (x - c) <= 1
    * let u = V^T (x - c), u^T = (x-c)^T V
    *
-   * P^{-1}(E) = { (x, t) | (x - c)^T V D V^T (x - c) <= t^2 }
-   * { (x, u, t) | u^T(x) D u(x) <= t^2 }
+   * Let w = D^{1/2} V^T (x - c). Then
+   *   (x - c)^T P (x - c) <= 1  <=>  ||w||_2 <= 1.
    *
-   * Transform to SOC cone
-   * let w = D^{1/2} u, D^{1/2} = diag(sqrt(lam_1), ... sqrt(lam_n))
-   * u^T D u = (D^{1/2} u)^T (D^{1/2} u) = ||w||_2^2
-   * K_soc = { (x,t) | ||D^{1/2} V^T (x - c)||_2 <= t }
-   *
-   * [ D^{1/2} V^T 0 ] [ x; t ] + [ -D^{1/2} V^T c ; 0 ]
-   * [ 0           1 ]
-   * ----
-   * { (x, u, 1) | u^T(x) D u(x) <= 1 }
-   * 1 - u^T(x) D u(x) \in rplus
-   * so... K_soc = { (x,1) | ||D^{1/2} V^T (x - c) ||_2 <= 1 }
-   * [ D^{1/2} V^T 0 ] [ x; 1 ] + [ -D^{1/2} V^T c ; 1 ] -> (x,t) in SOC
+   * Direct cone map:
+   *   [ D^{1/2} V^T ] x + [ -D^{1/2} V^T c ]
+   *   [      0      ]     [          1       ]
+   *   \in K_soc
    *
    * @return cone block
    */

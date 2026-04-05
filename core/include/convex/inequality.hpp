@@ -49,10 +49,10 @@ struct Inequality {
   /**
    * @brief canonicalize
    *
-   * Follows DCP convention:
-   * LEQ: lhs - rhs <= 0 (i.e., convex - (concave))
-   * GEQ: 0 <= rhs - lhs (i.e., convex - (concave))
-   * -> Works directly on cone map F & g
+ * Follows DCP convention:
+ * LEQ: lhs - rhs <= 0, encoded as 0 <= rhs - lhs in the nonnegative cone
+ * GEQ: lhs - rhs >= 0, encoded directly in the nonnegative cone
+ * -> Works directly on cone map F & g
    *
    * EQ: lhs - rhs == 0 (i.e., convex - (concave))
    * -> Works directly on A & b affine equality map
