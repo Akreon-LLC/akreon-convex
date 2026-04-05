@@ -197,7 +197,6 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
   constexpr auto P = Variable<PsdVarMeta<Space>>();
   constexpr auto I = make_identity<double, 3>();
   constexpr auto MatBuilder = mat_traits<Space>();
-
   SECTION("Coupled stable plant solver path") {
     constexpr auto Q = I;
     constexpr auto R = I;
@@ -253,8 +252,56 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
     lmi_eval = set_block<3, 6, 0, 3>(lmi_eval, transpose(B) * P_res);
     lmi_eval = set_block<3, 6, 3, 6>(lmi_eval, R);
 
-    const auto chol = Cholesky(lmi_eval);
-    REQUIRE(chol.is_valid());
-    REQUIRE(chol.is_pd());
+    const auto lmi_sym = linalg::SymmetricMatrix(lmi_eval);
+    REQUIRE(lmi_sym.is_valid());
+    REQUIRE(lmi_sym.is_psd());
+  }
+
+  SECTION("Unstable controllable full-actuation feasible-point check") {
+    constexpr auto Q = I;
+    constexpr auto R = I;
+
+    // Open-loop unstable diagonal plant with eigenvalues {0.2, 0.1, -1.0}.
+    // With B = I, the pair (A, B) is controllable and each scalar CARE
+    // decouples: 2 a_i p_i - p_i^2 + 1 = 0. The stabilizing solution is
+    // p_i = a_i + sqrt(a_i^2 + 1).
+    constexpr auto A = MatBuilder(0.2, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0,
+                                  -1.0);
+    constexpr auto B = I;
+    constexpr auto C = I;
+    constexpr auto ss =
+        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+
+    constexpr auto lqr = LQR<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto lmi = lqr(ss, Q, R, P);
+    STATIC_REQUIRE(lmi.is_well_formed());
+
+    const auto P_res = MatBuilder(
+        0.2 + constexpr_sqrt_safe(1.04), 0.0, 0.0, 0.0,
+        0.1 + constexpr_sqrt_safe(1.01), 0.0, 0.0, 0.0,
+        -1.0 + constexpr_sqrt_safe(2.0));
+    REQUIRE(all_equal(P_res, transpose(P_res), rel_tol));
+    REQUIRE(P_res(0)(0) > 1e-6);
+    REQUIRE(P_res(1)(1) > 1e-6);
+    REQUIRE(P_res(2)(2) > 1e-6);
+
+    const auto [K_res, K_event] = lqr.K(P_res, ss, R);
+    REQUIRE(K_event == linalg::NumericalEvent::NONE);
+    REQUIRE(all_equal(K_res, P_res, 1e-6));
+
+    Space top_left = transpose(A) * P_res + P_res * A + Q;
+    Matrixd<6, 6> lmi_eval{};
+    lmi_eval = set_block<0, 3, 0, 3>(lmi_eval, top_left);
+    lmi_eval = set_block<0, 3, 3, 6>(lmi_eval, P_res * B);
+    lmi_eval = set_block<3, 6, 0, 3>(lmi_eval, transpose(B) * P_res);
+    lmi_eval = set_block<3, 6, 3, 6>(lmi_eval, R);
+
+    const auto lmi_sym = linalg::SymmetricMatrix(lmi_eval);
+    REQUIRE(lmi_sym.is_valid());
+    REQUIRE(lmi_sym.is_psd());
+
+    const auto care_res =
+        transpose(A) * P_res + P_res * A + Q - transpose(P_res) * P_res;
+    REQUIRE(all_equal(care_res, Matrixd<3, 3>{}, 1e-5));
   }
 }

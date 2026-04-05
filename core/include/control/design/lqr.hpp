@@ -21,7 +21,7 @@ namespace control {
  *
  * Performance of the system V(x,t) = min_u ∫ [x(t)^T Q x(t) + u(t)^T R u(t)] dt
  * Q \in S^n_+ penalizes state deviations
- * R \in S^n_+ penalizes control effort
+ * R \in S^n_++ penalizes control effort
  *
  * V(x) = x^T P x
  * 0 = min_u[ x^T Q x + u^T R u + \nabla V^T(A x + B u) ]
@@ -37,8 +37,11 @@ namespace control {
  *
  * Therefore CARE: A^T P + P A - P B R^{-1} B^T P + Q = 0
  *
+ * LMI (convex relaxation) -> A^T P + P A - P B R^{-1} B^T P + Q \succeq 0
+ * along with P \succeq 0
+ *
  * Target Schur-complement LMI:
- * [ A^T P + P A + Q  P B ]
+ * [ A^T P + P A + Q  P B ] \succeq 0 & P \succeq 0
  * [ B^T P            R   ]
  */
 template <ContinuousStateSpaceLike SS, linalg::SquareMatrixLike StateCostMat,
