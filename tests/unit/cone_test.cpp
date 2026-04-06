@@ -283,9 +283,9 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
 
     constexpr auto gx = Slack{4.0, 0.0, 9.0};
     constexpr auto gy = Slack{1.0, 0.0, 16.0};
-    constexpr auto expected_gamma = -1.0 * constexpr_ln_safe(36.0) -
-                                    1.0 * constexpr_ln_safe(16.0) +
-                                    psd.nu() * constexpr_ln_safe(148.0);
+    constexpr auto expected_gamma =
+        -1.0 * constexpr_ln_safe(36.0) - 1.0 * constexpr_ln_safe(16.0) +
+        psd.nu() * constexpr_ln_safe(148.0 / psd.nu());
     constexpr auto gamma_res = psd.gamma_F(gx, gy);
     constexpr auto gamma = std::get<0>(gamma_res);
     constexpr auto event = std::get<1>(gamma_res);
@@ -384,6 +384,55 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
       REQUIRE(psd.in_cone(x + alpha * p));
       REQUIRE(!psd.in_cone(x + (alpha_hit + boundary_eps) * p));
     }
+  }
+
+  SECTION("Near-boundary PSD alpha and functional proximity") {
+    using Slack = Vectord<6>;
+    constexpr PositiveSemidefiniteCone<Slack, 3> psd;
+    constexpr double tol = 1e-8;
+    constexpr double boundary_eps = 1e-9;
+    constexpr double eta = 0.99;
+
+    const auto X_int = make_identity<double, 3>();
+    const auto X_near = Matrixd<3, 3>{
+        Vectord<3>{1e-6, 0.0, 0.0},
+        Vectord<3>{0.0, 1.0, 0.0},
+        Vectord<3>{0.0, 0.0, 1.0},
+    };
+    const auto X_out = Matrixd<3, 3>{
+        Vectord<3>{-1e-6, 0.0, 0.0},
+        Vectord<3>{0.0, 1.0, 0.0},
+        Vectord<3>{0.0, 0.0, 1.0},
+    };
+
+    const auto x_int = get_svec(X_int);
+    const auto x_near = get_svec(X_near);
+    const auto x_out = get_svec(X_out);
+    const auto y_int = x_int;
+    const auto p = get_svec(Matrixd<3, 3>{
+        Vectord<3>{-1.0, 0.0, 0.0},
+        Vectord<3>{0.0, 0.0, 0.0},
+        Vectord<3>{0.0, 0.0, 0.0},
+    });
+
+    REQUIRE(psd.in_cone(x_int));
+    REQUIRE(psd.in_cone(x_near));
+    REQUIRE(!psd.in_cone(x_out));
+
+    const auto alpha_int = psd.alpha_max(x_int, p);
+    const auto alpha_near = psd.alpha_max(x_near, p);
+    REQUIRE(alpha_near < alpha_int);
+    REQUIRE(alpha_near < 1e-4 * alpha_int);
+
+    const auto alpha_hit_near = alpha_near / eta;
+    REQUIRE(psd.in_cone(x_near + alpha_near * p));
+    REQUIRE(!psd.in_cone(x_near + (alpha_hit_near + boundary_eps) * p));
+
+    const auto [gamma_int, gamma_int_event] = psd.gamma_F(x_int, y_int);
+    const auto [gamma_near, gamma_near_event] = psd.gamma_F(x_near, y_int);
+    REQUIRE(gamma_int_event == linalg::NumericalEvent::NONE);
+    REQUIRE(gamma_near_event == linalg::NumericalEvent::NONE);
+    REQUIRE(gamma_near > gamma_int + tol);
   }
 
   SECTION("Stress psd w/H on random SPD points with off-diagonals") {

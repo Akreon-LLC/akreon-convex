@@ -251,7 +251,8 @@ struct PositiveSemidefiniteCone
     if (linalg::is_fatal_event(event2)) return std::tuple(w, event2);
     (void)U_sqrt;
 
-    w = linalg::get_svec(linalg::symmetric_part(X_sqrt * (U_inv_sqrt * X_sqrt)));
+    w = linalg::get_svec(
+        linalg::symmetric_part(X_sqrt * (U_inv_sqrt * X_sqrt)));
     const auto out_event = (event1 != linalg::NumericalEvent::NONE ||
                             event2 != linalg::NumericalEvent::NONE)
                                ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
@@ -292,7 +293,7 @@ struct PositiveSemidefiniteCone
   /**
    * @brief gamma_F
    *
-   * \gamma_F = -ln(det(X)) - ln(det(Y)) + nu ln(Tr(X^{1/2} Y X^{1/2}))
+   * \gamma_F = -ln(det(X)) - ln(det(Y)) + nu ln(Tr(X^{1/2} Y X^{1/2}) / nu)
    *
    * @param x \in K
    * @param y \in K^*
@@ -303,7 +304,8 @@ struct PositiveSemidefiniteCone
     const auto X = linalg::make_smat<N, Slack>(x);
     const auto Y = linalg::make_smat<N, Slack>(y);
 
-    const auto [X_sqrt, X_inv_sqrt, event] = linalg::MatrixSqrt<decltype(X)>()(X);
+    const auto [X_sqrt, X_inv_sqrt, event] =
+        linalg::MatrixSqrt<decltype(X)>()(X);
     if (event != linalg::NumericalEvent::NONE) return std::tuple(T(0), event);
     (void)X_inv_sqrt;
 
@@ -318,7 +320,7 @@ struct PositiveSemidefiniteCone
     const auto a = T(-1) * linalg::constexpr_ln_safe(ldl_X.det());
     const auto b = T(-1) * linalg::constexpr_ln_safe(ldl_Y.det());
     const auto tr_term = linalg::trace(X_sqrt * (Y * X_sqrt));
-    const auto c = nu_impl() * linalg::constexpr_ln_safe(tr_term);
+    const auto c = nu_impl() * linalg::constexpr_ln_safe(tr_term / nu_impl());
 
     return std::tuple(a + b + c, linalg::NumericalEvent::NONE);
   }
