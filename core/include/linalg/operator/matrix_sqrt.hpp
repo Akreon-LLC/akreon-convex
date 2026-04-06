@@ -72,7 +72,7 @@ struct MatrixSqrt {
       Z = Z_next;
     }
 
-    return std::tuple(Y, Z, linalg::NumericalEvent::NONE);
+    return std::tuple(Y, Z, linalg::NumericalEvent::DB_MAX_ITERS_REACHED);
   }
 
   /** @brief member vars **/
