@@ -12,4 +12,4 @@
 
 #pragma once
 
-#include "control/design/lqr.hpp"
+#include "control/design/lyapunov_certificate.hpp"

@@ -1,3 +1,5 @@
+#pragma once
+
 /*
  * Copyright © 2025 Akreon LLC. All rights reserved.
  *
@@ -17,7 +19,7 @@
 
 namespace control {
 /**
- * @brief LQR
+ * @brief LyapunovCertificate
  *
  * Performance of the system V(x,t) = min_u ∫ [x(t)^T Q x(t) + u(t)^T R u(t)] dt
  * Q \in S^n_+ penalizes state deviations
@@ -47,7 +49,7 @@ namespace control {
  */
 template <ContinuousStateSpaceLike SS, linalg::SquareMatrixLike StateCostMat,
           linalg::SquareMatrixLike InputCostMat>
-struct LQR {
+struct LyapunovCertificate {
   /// @brief extracting alias and types
   using StateSpace = linalg::remove_cvref_t<SS>;
   using StateCost = linalg::remove_cvref_t<StateCostMat>;
@@ -75,14 +77,14 @@ struct LQR {
   using Fs = linalg::Vector<FMat, PDim>;
 
   /**
-   * @brief operator overload (form LQR problem)
+   * @brief operator overload (form Lyapunov certificate)
    *
    * @param ss (StateSpace)
    * @param Q (State Cost)
    * @param R (Control Cost)
    * @param x (dec var child)
    *
-   * @return LQR as LMI
+   * @return Lyapunov certificate as LMI
    */
   template <convex::AtomLike Var>
   constexpr auto operator()(const SS& ss, const StateCostMat& Q,
@@ -91,14 +93,14 @@ struct LQR {
   }
 
   /**
-   * @brief apply (form LQR problem)
+   * @brief apply (form Lyapunov certificate)
    *
    * @param ss (StateSpace)
    * @param Q (State Cost)
    * @param R (Control Cost)
    * @param x (dec var child)
    *
-   * @return LQR as LMI
+   * @return Lyapunov certificate as LMI
    */
   template <convex::AtomLike Var>
   constexpr auto apply(const SS& ss, const StateCostMat& Q,
