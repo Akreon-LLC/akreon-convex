@@ -37,12 +37,13 @@ namespace control {
  *
  * Therefore CARE: A^T P + P A - P B R^{-1} B^T P + Q = 0
  *
- * LMI (convex relaxation) -> A^T P + P A - P B R^{-1} B^T P + Q \succeq 0
+ * LMI (convex relaxation) -> A^T P + P A - P B R^{-1} B^T P + Q \preceq 0
  * along with P \succeq 0
+ * 0 \preceq -(A^T P + P A + Q) + P B R^{-1} B^T P
  *
  * Target Schur-complement LMI:
- * [ A^T P + P A + Q  P B ] \succeq 0 & P \succeq 0
- * [ B^T P            R   ]
+ * [ -(A^T P + P A + Q)  -P B ] \succeq 0 & P \succeq 0
+ * [ -B^T P               R   ]
  */
 template <ContinuousStateSpaceLike SS, linalg::SquareMatrixLike StateCostMat,
           linalg::SquareMatrixLike InputCostMat>
@@ -111,9 +112,9 @@ struct LQR {
                   "Expected P var size != state size");
 
     auto M = [&](const PMat& E) -> FMat {
-      const auto lyap = linalg::transpose(ss.A) * E + E * ss.A;
-      const auto pb = E * ss.B;
-      const auto pTb = linalg::transpose(ss.B) * E;
+      const auto lyap = T(-1) * (linalg::transpose(ss.A) * E + E * ss.A);
+      const auto pb = T(-1) * E * ss.B;
+      const auto pTb = T(-1) * linalg::transpose(ss.B) * E;
 
       FMat F{};
       F = linalg::set_block<0, StateDim, 0, StateDim>(F, lyap);
@@ -124,7 +125,7 @@ struct LQR {
     };
 
     FMat B{};
-    B = linalg::set_block<0, StateDim, 0, StateDim>(B, Q);
+    B = linalg::set_block<0, StateDim, 0, StateDim>(B, T(-1) * Q);
     B = linalg::set_block<StateDim, TotalDim, StateDim, TotalDim>(B, R);
 
     Fs F_blks{};
