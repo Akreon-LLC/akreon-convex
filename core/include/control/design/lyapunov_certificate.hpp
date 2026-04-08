@@ -10,14 +10,17 @@
  * from Akreon LLC.
  */
 
+#pragma once
+
 #include "control/model/state_space.hpp"
 #include "convex/sets/lmi.hpp"
 #include "convex/variable.hpp"
 #include "linalg/operator/matrix_inverse.hpp"
+#include "linalg/operator/matrix_pencil.hpp"
 
 namespace control {
 /**
- * @brief LQR
+ * @brief LyapunovCertificate
  *
  * Performance of the system V(x,t) = min_u ∫ [x(t)^T Q x(t) + u(t)^T R u(t)] dt
  * Q \in S^n_+ penalizes state deviations
@@ -47,7 +50,7 @@ namespace control {
  */
 template <ContinuousStateSpaceLike SS, linalg::SquareMatrixLike StateCostMat,
           linalg::SquareMatrixLike InputCostMat>
-struct LQR {
+struct LyapunovCertificate {
   /// @brief extracting alias and types
   using StateSpace = linalg::remove_cvref_t<SS>;
   using StateCost = linalg::remove_cvref_t<StateCostMat>;
@@ -75,14 +78,14 @@ struct LQR {
   using Fs = linalg::Vector<FMat, PDim>;
 
   /**
-   * @brief operator overload (form LQR problem)
+   * @brief operator overload (form Lyapunov certificate)
    *
    * @param ss (StateSpace)
    * @param Q (State Cost)
    * @param R (Control Cost)
    * @param x (dec var child)
    *
-   * @return LQR as LMI
+   * @return Lyapunov certificate as LMI
    */
   template <convex::AtomLike Var>
   constexpr auto operator()(const SS& ss, const StateCostMat& Q,
@@ -91,14 +94,14 @@ struct LQR {
   }
 
   /**
-   * @brief apply (form LQR problem)
+   * @brief apply (form Lyapunov certificate)
    *
    * @param ss (StateSpace)
    * @param Q (State Cost)
    * @param R (Control Cost)
    * @param x (dec var child)
    *
-   * @return LQR as LMI
+   * @return Lyapunov certificate as LMI
    */
   template <convex::AtomLike Var>
   constexpr auto apply(const SS& ss, const StateCostMat& Q,
@@ -109,7 +112,7 @@ struct LQR {
                   "Var type != PSD");
     using PSpace = convex::dom_space_t<PDom>;
     static_assert(std::same_as<PSpace, linalg::SymmetricMatrix<PMat>>,
-                  "Expected P var size != state size");
+                  "Expected P var size != P mat size");
 
     auto M = [&](const PMat& E) -> FMat {
       const auto lyap = T(-1) * (linalg::transpose(ss.A) * E + E * ss.A);
@@ -128,21 +131,8 @@ struct LQR {
     B = linalg::set_block<0, StateDim, 0, StateDim>(B, T(-1) * Q);
     B = linalg::set_block<StateDim, TotalDim, StateDim, TotalDim>(B, R);
 
-    Fs F_blks{};
-    size_t idx{0};
-    for (size_t i = 0; i < StateDim; ++i) {
-      for (size_t j = 0; j < StateDim; ++j) {
-        PMat E{};
-        if (i == j)
-          E(i)(j) = T(1);
-        else if (i < j)
-          E(i)(j) = E(j)(i) = T(1) / linalg::constexpr_sqrt_safe(T(2));
-        else
-          continue;
-
-        F_blks(idx++) = M(E);
-      }
-    }
+    linalg::MatrixPencil<FMat, PDim> pencil;
+    const auto F_blks = pencil.template apply<PMat>(M);
 
     return convex::LMI(F_blks, B, P);
   }
