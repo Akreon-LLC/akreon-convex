@@ -111,6 +111,44 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
     REQUIRE(all_equal(care_res, Matrixd<2, 2>{}, 1e-6));
   }
 
+  SECTION("Explicit feasible point satisfies canonical constraints") {
+    constexpr auto I = make_identity<double, 2>();
+    constexpr auto Q = MatBuilder(1.0, 0.0, 0.0, 1.0);
+    constexpr auto R = MatBuilder(1.0, 0.0, 0.0, 1.0);
+    constexpr auto A = -1.0 * I;
+    constexpr auto B = I;
+    constexpr auto C = I;
+    constexpr auto ss =
+        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+
+    constexpr auto P_geq =
+        Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
+    constexpr auto lqr =
+        LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto lmi = lqr(ss, Q, R, P);
+    constexpr auto prob_constr =
+        make_problem(P).add_constraint(P_geq).in_set(lmi);
+
+    STATIC_REQUIRE(prob_constr.validate());
+
+    const auto P_feas = I + 1e-3 * I;
+
+    const auto P_sym = SymmetricMatrix(P_feas, 1e-6);
+    REQUIRE(P_sym.is_valid());
+    REQUIRE(P_sym.is_pd());
+
+    Matrixd<4, 4> lmi_slack{};
+    lmi_slack = set_block<0, 2, 0, 2>(
+        lmi_slack, (-1.0) * (transpose(A) * P_feas + P_feas * A + Q));
+    lmi_slack = set_block<0, 2, 2, 4>(lmi_slack, (-1.0) * (P_feas * B));
+    lmi_slack =
+        set_block<2, 4, 0, 2>(lmi_slack, (-1.0) * (transpose(B) * P_feas));
+    lmi_slack = set_block<2, 4, 2, 4>(lmi_slack, R);
+    const auto lmi_sym = SymmetricMatrix(lmi_slack, 1e-6);
+    REQUIRE(lmi_sym.is_valid());
+    REQUIRE(lmi_sym.is_psd());
+  }
+
   SECTION("Solver converges on stable 2x2 full-actuation plant") {
     constexpr auto I = make_identity<double, 2>();
     constexpr auto Q = MatBuilder(1.0, 0.0, 0.0, 1.0);
@@ -321,6 +359,47 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
     const auto chol = Cholesky(lmi_block);
     REQUIRE(chol.is_valid());
     REQUIRE(chol.is_pd());
+  }
+
+  SECTION("Explicit feasible 3x3 point satisfies canonical constraints") {
+    constexpr auto Q = I;
+    constexpr auto R = I;
+    constexpr auto A =
+        MatBuilder(-2.0, 0.2, 0.0, 0.0, -1.5, 0.3, 0.0, 0.0, -2.5);
+    constexpr auto B = I;
+    constexpr auto C = I;
+    constexpr auto ss =
+        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+
+    constexpr auto P_geq =
+        Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
+    constexpr auto lqr =
+        LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto lmi = lqr(ss, Q, R, P);
+    constexpr auto prob_constr =
+        make_problem(P).add_constraint(P_geq).in_set(lmi);
+
+    STATIC_REQUIRE(prob_constr.validate());
+
+    const auto p1 = 1.2 * (2.0 - constexpr_sqrt_safe(3.0));
+    const auto p2 = 1.2 * (1.5 - constexpr_sqrt_safe(1.25));
+    const auto p3 = 1.2 * (2.5 - constexpr_sqrt_safe(5.25));
+    const auto P_feas = MatBuilder(p1, 0.0, 0.0, 0.0, p2, 0.0, 0.0, 0.0, p3);
+
+    const auto P_sym = SymmetricMatrix(P_feas, 1e-6);
+    REQUIRE(P_sym.is_valid());
+    REQUIRE(P_sym.is_pd());
+
+    Matrixd<6, 6> lmi_slack{};
+    lmi_slack = set_block<0, 3, 0, 3>(
+        lmi_slack, (-1.0) * (transpose(A) * P_feas + P_feas * A + Q));
+    lmi_slack = set_block<0, 3, 3, 6>(lmi_slack, (-1.0) * (P_feas * B));
+    lmi_slack =
+        set_block<3, 6, 0, 3>(lmi_slack, (-1.0) * (transpose(B) * P_feas));
+    lmi_slack = set_block<3, 6, 3, 6>(lmi_slack, R);
+    const auto lmi_sym = SymmetricMatrix(lmi_slack, 1e-6);
+    REQUIRE(lmi_sym.is_valid());
+    REQUIRE(lmi_sym.is_psd());
   }
 
   SECTION("Solver converges on coupled stable full-actuation plant") {

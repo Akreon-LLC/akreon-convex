@@ -1,5 +1,3 @@
-#pragma once
-
 /*
  * Copyright © 2025 Akreon LLC. All rights reserved.
  *
