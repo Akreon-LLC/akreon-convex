@@ -112,7 +112,7 @@ struct StateFeedback {
    * @brief K
    *
    * K = -0.5 B^T Q^{-1}
-   * K^T = -0.5 Q^{-T} B
+   * K^T = -0.5 Q^{-T} B = -0.5 Q^{-1} B for symmetric Q
    *
    * @param ss (StateSpace)
    * @param Q (QMat)
@@ -122,17 +122,8 @@ struct StateFeedback {
   constexpr auto K(const SS& ss, const QMat& Q) const {
     const auto [Q_inv, event] = linalg::SymmetricMatrixInverse<QMat>()(Q);
     if (event != linalg::NumericalEvent::NONE) return std::tuple(KMat{}, event);
-
-    KTMat KT{};
-    for (size_t i = 0; i < InputDim; ++i) {
-      const auto B_col = linalg::get_col(ss.B, i);
-      for (size_t j = 0; j < StateDim; ++j) {
-        KT(j)(i) = T(-0.5) *
-                   linalg::SymmetricMatrixInverse<QMat>()(linalg::transpose(Q))
-                       .apply(B_col);
-      }
-    }
-    return linalg::transpose(KT);
+    const auto K = T(-0.5) * linalg::transpose(ss.B) * Q_inv;
+    return std::tuple(K, linalg::NumericalEvent::NONE);
   }
 };
 }  // namespace control
