@@ -15,6 +15,7 @@
 #include <iostream>
 
 #include "math.hpp"
+#include "linalg/operator/matrix_pencil.hpp"
 #include "test_helpers.hpp"
 
 using namespace linalg;
@@ -711,6 +712,43 @@ TEST_CASE("LDL^T Factorization") {
         A_mat(1.0, 0.999999, 0.0, 0.999999, 0.999998, 0.0, 0.0, 0.0, 1.0);
     constexpr auto ldl = LDL(A);
     STATIC_REQUIRE(!ldl.is_valid());
+  }
+}
+
+TEST_CASE("Matrix Pencil") {
+  SECTION("Symmetric basis expansion") {
+    using Mat = Matrixd<2, 2>;
+    constexpr linalg::MatrixPencil<Mat, 3> pencil;
+    constexpr auto F_blks = pencil.template apply_sym_mat<Mat>(
+        [](const Mat& E) constexpr { return E; });
+
+    constexpr auto s2 = constexpr_sqrt_safe(2.0);
+    constexpr auto E11 = Mat{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 0.0}};
+    constexpr auto E12 =
+        Mat{Vectord<2>{0.0, 1.0 / s2}, Vectord<2>{1.0 / s2, 0.0}};
+    constexpr auto E22 = Mat{Vectord<2>{0.0, 0.0}, Vectord<2>{0.0, 1.0}};
+
+    STATIC_REQUIRE(F_blks(0) == E11);
+    STATIC_REQUIRE(F_blks(1) == E12);
+    STATIC_REQUIRE(F_blks(2) == E22);
+  }
+
+  SECTION("Full basis expansion") {
+    using Block = Matrixd<2, 2>;
+    using FullMat = Matrixd<2, 2>;
+    constexpr linalg::MatrixPencil<Block, 4> pencil;
+    constexpr auto F_blks = pencil.template apply_full<FullMat>(
+        [](const FullMat& E) constexpr { return E + 2.0 * transpose(E); });
+
+    constexpr auto F00 = Block{Vectord<2>{3.0, 0.0}, Vectord<2>{0.0, 0.0}};
+    constexpr auto F01 = Block{Vectord<2>{0.0, 1.0}, Vectord<2>{2.0, 0.0}};
+    constexpr auto F10 = Block{Vectord<2>{0.0, 2.0}, Vectord<2>{1.0, 0.0}};
+    constexpr auto F11 = Block{Vectord<2>{0.0, 0.0}, Vectord<2>{0.0, 3.0}};
+
+    STATIC_REQUIRE(F_blks(0) == F00);
+    STATIC_REQUIRE(F_blks(1) == F01);
+    STATIC_REQUIRE(F_blks(2) == F10);
+    STATIC_REQUIRE(F_blks(3) == F11);
   }
 }
 

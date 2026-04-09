@@ -20,35 +20,45 @@ template <SquareMatrixLike Mat, size_t Dim>
 struct MatrixPencil {
   /// @brief extracting alias and types
   using T = mat_type_t<Mat>;
-
   using Fs = Vector<Mat, Dim>;
 
   /**
-   * @brief operator overload (apply matrix pencil)
+   * @brief apply_full
    *
    * Fs = { F_i }
    *
    * @return Fs
    */
-  template <MatrixLike InnerMat, typename Fn>
-  constexpr auto operator()(const Fn& op) const {
-    return this->template apply<InnerMat>(op);
+  template <MatrixLike FullMat, typename Fn>
+  constexpr auto apply_full(const Fn& op) const {
+    static constexpr size_t Rows = mat_rows_v<FullMat>;
+    static constexpr size_t Cols = mat_cols_v<FullMat>;
+    Fs F_blks{};
+    for (size_t i = 0, idx = 0; i < Rows; ++i) {
+      for (size_t j = 0; j < Cols; ++j, ++idx) {
+        FullMat E{};
+        E(i)(j) = T(1);
+        F_blks(idx) = op(E);
+      }
+    }
+    return F_blks;
   }
 
   /**
-   * @brief apply
+   * @brief apply symmetric matrix basis
    *
    * Fs = { F_i }
    *
    * @return Fs
    */
-  template <MatrixLike InnerMat, typename Fn>
-  constexpr auto apply(const Fn& op) const {
-    static constexpr size_t N = mat_rows_v<InnerMat>;
+  template <SquareMatrixLike SymMat, typename Fn>
+  constexpr auto apply_sym_mat(const Fn& op) const {
+    static constexpr size_t N = mat_rows_v<SymMat>;
+
     Fs F_blks{};
     for (size_t i = 0, idx = 0; i < N; ++i) {
       for (size_t j = 0; j < N; ++j) {
-        InnerMat E{};
+        SymMat E{};
         if (i == j)
           E(i)(j) = T(1);
         else if (i < j)

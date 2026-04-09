@@ -132,7 +132,7 @@ struct LyapunovCertificate {
     B = linalg::set_block<StateDim, TotalDim, StateDim, TotalDim>(B, R);
 
     linalg::MatrixPencil<FMat, PDim> pencil;
-    const auto F_blks = pencil.template apply<PMat>(M);
+    const auto F_blks = pencil.template apply_sym_mat<PMat>(M);
 
     return convex::LMI(F_blks, B, P);
   }

@@ -16,6 +16,7 @@
 #include "linalg/operator/matrix_inverse.hpp"
 
 namespace control {
+
 /**
  * @brief StateFeedback
  *
@@ -103,7 +104,7 @@ struct StateFeedback {
     FMat B = ss.B * linalg::transpose(ss.B);
 
     linalg::MatrixPencil<FMat, QDim> pencil;
-    const auto F_blks = pencil.template apply<QMat>(M);
+    const auto F_blks = pencil.template apply_sym_mat<QMat>(M);
 
     return convex::LMI(F_blks, B, Q);
   }
@@ -126,4 +127,5 @@ struct StateFeedback {
     return std::tuple(K, linalg::NumericalEvent::NONE);
   }
 };
+
 }  // namespace control
