@@ -84,6 +84,12 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(state_feedback_test PRIVATE ../include)
   target_compile_options(state_feedback_test PRIVATE ${UNIT_COMPILE_OPTS})
 
+  add_executable(polytopic_state_feedback_test unit/polytopic_state_feedback_test.cpp)
+  add_test(NAME polytopic_state_feedback_test COMMAND polytopic_state_feedback_test)
+  target_link_libraries(polytopic_state_feedback_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(polytopic_state_feedback_test PRIVATE ../include)
+  target_compile_options(polytopic_state_feedback_test PRIVATE ${UNIT_COMPILE_OPTS})
+
   add_executable(one_dof_pendulum_test unit/one_dof_pendulum_test.cpp)
   add_test(NAME one_dof_pendulum_test COMMAND one_dof_pendulum_test)
   target_link_libraries(one_dof_pendulum_test PRIVATE Catch2::Catch2WithMain)
@@ -176,6 +182,7 @@ set(AKREON_TEST_TARGETS
   linear_systems_test
   lqr_test
   state_feedback_test
+  polytopic_state_feedback_test
   one_dof_pendulum_test
   two_dof_pendulum_test
   one_dof_smd_test

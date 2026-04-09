@@ -75,25 +75,6 @@ struct MatrixPencil {
     }
     return F_blks;
   }
-
-  /**
-   * @brief apply sum
-   *
-   * Fs = sum(F_i)
-   *
-   * @param pencils (variadic pencils)
-   *
-   * @return Fs
-   */
-  template <typename... Pencils>
-  constexpr auto apply_sum(const Pencils&... pencils) const {
-    Fs F_blks{};
-    ((([&] {
-       for (size_t i = 0; i < Dim; ++i) F_blks(i) = F_blks(i) + pencils(i);
-     }())),
-     ...);
-    return F_blks;
-  }
 };
 
 }  // namespace linalg
