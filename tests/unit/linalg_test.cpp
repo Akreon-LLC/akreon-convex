@@ -750,6 +750,28 @@ TEST_CASE("Matrix Pencil") {
     STATIC_REQUIRE(F_blks(2) == F10);
     STATIC_REQUIRE(F_blks(3) == F11);
   }
+
+  SECTION("Parameter-pack blockwise sum") {
+    using Block = Matrixd<2, 2>;
+    constexpr linalg::MatrixPencil<Block, 3> pencil;
+
+    constexpr auto F0 = Vector<Block, 3>{
+        Block{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 2.0}},
+        Block{Vectord<2>{0.5, -1.0}, Vectord<2>{3.0, 0.25}},
+        Block{Vectord<2>{-2.0, 4.0}, Vectord<2>{1.5, 0.0}},
+    };
+    constexpr auto F1 = Vector<Block, 3>{
+        Block{Vectord<2>{-0.5, 1.0}, Vectord<2>{2.0, -1.0}},
+        Block{Vectord<2>{1.5, 2.0}, Vectord<2>{-3.0, 0.75}},
+        Block{Vectord<2>{3.0, -1.0}, Vectord<2>{0.5, 2.0}},
+    };
+
+    constexpr auto F_sum = pencil.apply_sum(F0, F1);
+
+    STATIC_REQUIRE(F_sum(0) == (F0(0) + F1(0)));
+    STATIC_REQUIRE(F_sum(1) == (F0(1) + F1(1)));
+    STATIC_REQUIRE(F_sum(2) == (F0(2) + F1(2)));
+  }
 }
 
 TEST_CASE("Cholesky Factorization") {
