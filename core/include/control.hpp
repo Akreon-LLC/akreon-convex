@@ -12,5 +12,6 @@
 
 #pragma once
 
-#include "control/design/lyapunov_certificate.hpp"
-#include "control/design/state_feedback.hpp"
+#include "control/feedback/lyapunov_certificate.hpp"
+#include "control/feedback/polytopic_state_feedback.hpp"
+#include "control/feedback/state_feedback.hpp"

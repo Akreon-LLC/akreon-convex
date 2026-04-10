@@ -10,6 +10,8 @@
  * from Akreon LLC.
  */
 
+#include "config/assert.hpp"
+#include "convex/convex_problem.hpp"
 #include "control/model/state_space.hpp"
 #include "convex/sets/lmi.hpp"
 #include "convex/variable.hpp"
@@ -127,5 +129,56 @@ struct StateFeedback {
     return std::tuple(K, linalg::NumericalEvent::NONE);
   }
 };
+
+/**
+ * @brief make state feedback problem
+ *
+ * @param ss (StateSpace)
+ * @param Q (Var)
+ *
+ * @return state feedback problem
+ */
+template <ContinuousStateSpaceLike SS, convex::AtomLike Var>
+constexpr auto make_state_feedback_problem(const SS& ss, const Var& Q,
+                                           const auto& obj,
+                                           ss_type_t<SS> margin = 1e-6) {
+  using T = ss_type_t<SS>;
+  constexpr size_t N = linalg::mat_rows_v<ss_plant_t<SS>>;
+
+  const auto I = linalg::make_identity<T, N>();
+
+  const auto Q_geq =
+      convex::Inequality<convex::InequalityType::GEQ, decltype(Q), decltype(I)>(
+          Q, margin * I);
+  const auto sf = StateFeedback<decltype(ss)>();
+  const auto lmi = sf(ss, Q);
+  const auto prob_constraints =
+      convex::make_problem(Q).add_constraint(Q_geq).in_set(lmi);
+  return prob_constraints.minimize(obj);
+}
+
+/**
+ * @brief make state feedback feasibility problem
+ *
+ * @param ss (StateSpace)
+ * @param Q (Var)
+ * @param margin (PSD margin)
+ *
+ * @return state feedback feasibility problem
+ */
+template <ContinuousStateSpaceLike SS, convex::AtomLike Var>
+constexpr auto make_state_feedback_problem(const SS& ss, const Var& Q,
+                                           ss_type_t<SS> margin = 1e-6) {
+  using T = ss_type_t<SS>;
+  constexpr size_t N = linalg::mat_rows_v<ss_plant_t<SS>>;
+
+  const auto I = linalg::make_identity<T, N>();
+  const auto Q_geq =
+      convex::Inequality<convex::InequalityType::GEQ, decltype(Q), decltype(I)>(
+          Q, margin * I);
+  const auto sf = StateFeedback<decltype(ss)>();
+  const auto lmi = sf(ss, Q);
+  return convex::make_problem(Q).add_constraint(Q_geq).in_set(lmi).feasibility();
+}
 
 }  // namespace control

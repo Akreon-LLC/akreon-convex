@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "linalg/linalg_util.hpp"
 #include "convex/sum.hpp"
 
 namespace convex {
