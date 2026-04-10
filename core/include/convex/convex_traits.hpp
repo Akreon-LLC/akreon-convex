@@ -14,6 +14,7 @@
 
 #include "affine/affine_traits.hpp"
 #include "cone_traits.hpp"
+#include "linalg/norms/norm_traits.hpp"
 
 namespace convex {
 
