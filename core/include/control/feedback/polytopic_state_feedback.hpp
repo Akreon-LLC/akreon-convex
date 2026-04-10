@@ -13,6 +13,9 @@
 #pragma once
 
 #include "control/model/state_space.hpp"
+#include "convex/composed/quad_form.hpp"
+#include "convex/composed/weighted_sum.hpp"
+#include "convex/convex_problem.hpp"
 #include "convex/intersection.hpp"
 #include "convex/sets/lmi.hpp"
 #include "convex/variable.hpp"
@@ -142,5 +145,121 @@ struct PolytopicStateFeedback {
     return std::tuple(K, linalg::NumericalEvent::NONE);
   }
 };
+
+/**
+ * @brief make PLDI Q >= margin I LMI over merged z = [svec(Q); vec(Y)]
+ *
+ * @param Z (merged decision var)
+ * @param margin (PSD margin)
+ *
+ * @return LMI selecting Q-block and constraining it to PSD
+ */
+template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+constexpr auto make_polytopic_state_feedback_q_constraint(
+    const ZVar& Z, ss_type_t<SS> margin = 1e-6) {
+  using T = ss_type_t<SS>;
+  using PSF = PolytopicStateFeedback<SS, N>;
+  using QMat = typename PSF::QMat;
+  using Fs = typename PSF::Fs;
+
+  const auto I = linalg::make_identity<T, PSF::StateDim>();
+  const auto Fq =
+      linalg::MatrixPencil<QMat, PSF::QDim>{}.template apply_sym_mat<QMat>(
+          [](const QMat& E) -> QMat { return E; });
+
+  Fs F_blks{};
+  for (size_t i = 0; i < PSF::QDim; ++i) F_blks(i) = Fq(i);
+  for (size_t i = 0; i < PSF::YDim; ++i) F_blks(PSF::QDim + i) = QMat{};
+
+  return convex::LMI(F_blks, T(-1) * margin * I, Z);
+}
+
+/**
+ * @brief make linear objective over merged PLDI variable
+ *
+ * obj(z) = q_w^T svec(Q) + y_w^T vec(Y)
+ *
+ * @param q_weights weights over svec(Q)
+ * @param y_weights weights over vec(Y)
+ * @param Z merged decision var
+ *
+ * @return linear objective atom
+ */
+template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+constexpr auto make_polytopic_state_feedback_linear_objective(
+    const linalg::Vector<ss_type_t<SS>,
+                         PolytopicStateFeedback<SS, N>::QDim>& q_weights,
+    const linalg::Vector<ss_type_t<SS>,
+                         PolytopicStateFeedback<SS, N>::YDim>& y_weights,
+    const ZVar& Z) {
+  using T = ss_type_t<SS>;
+  using PSF = PolytopicStateFeedback<SS, N>;
+
+  linalg::Vector<T, PSF::ZDim> c{};
+  for (size_t i = 0; i < PSF::QDim; ++i) c(i) = q_weights(i);
+  for (size_t i = 0; i < PSF::YDim; ++i) c(PSF::QDim + i) = y_weights(i);
+
+  return convex::WeightedSum<typename PSF::ZSpace>()(c, Z);
+}
+
+/**
+ * @brief make quadratic objective over merged PLDI variable
+ *
+ * obj(z) = 0.5 z^T P z + q^T z
+ *
+ * @param P quadratic weight over merged z
+ * @param q linear weight over merged z
+ * @param Z merged decision var
+ *
+ * @return quadratic objective atom
+ */
+template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+constexpr auto make_polytopic_state_feedback_quadratic_objective(
+    const linalg::Matrix<ss_type_t<SS>, PolytopicStateFeedback<SS, N>::ZDim,
+                         PolytopicStateFeedback<SS, N>::ZDim>& P,
+    const linalg::Vector<ss_type_t<SS>, PolytopicStateFeedback<SS, N>::ZDim>& q,
+    const ZVar& Z) {
+  using PSF = PolytopicStateFeedback<SS, N>;
+  return convex::QuadForm<typename PSF::ZSpace>()(P, q, Z);
+}
+
+/**
+ * @brief make PLDI problem with objective
+ *
+ * @param poly polytope vertices
+ * @param Z merged decision var [svec(Q); vec(Y)]
+ * @param obj objective atom over merged var
+ * @param margin PSD margin on Q block
+ *
+ * @return PLDI optimization problem
+ */
+template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+constexpr auto make_polytopic_state_feedback_problem(
+    const linalg::Vector<SS, N>& poly, const ZVar& Z, const auto& obj,
+    ss_type_t<SS> margin = 1e-6) {
+  const auto q_geq =
+      make_polytopic_state_feedback_q_constraint<SS, N>(Z, margin);
+  const auto pldi = PolytopicStateFeedback<SS, N>()(poly, Z);
+  return convex::make_problem(Z).in_set(q_geq).in_set(pldi).minimize(obj);
+}
+
+/**
+ * @brief make PLDI feasibility problem
+ *
+ * @param poly polytope vertices
+ * @param Z merged decision var [svec(Q); vec(Y)]
+ * @param margin PSD margin on Q block
+ *
+ * @return PLDI feasibility problem
+ */
+template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+constexpr auto make_polytopic_state_feedback_problem(
+    const linalg::Vector<SS, N>& poly, const ZVar& Z,
+    ss_type_t<SS> margin = 1e-6) {
+  const auto q_geq =
+      make_polytopic_state_feedback_q_constraint<SS, N>(Z, margin);
+  const auto pldi = PolytopicStateFeedback<SS, N>()(poly, Z);
+  return convex::make_problem(Z).in_set(q_geq).in_set(pldi).feasibility();
+}
 
 }  // namespace control

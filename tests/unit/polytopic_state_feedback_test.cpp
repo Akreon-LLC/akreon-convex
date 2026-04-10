@@ -24,6 +24,14 @@ using namespace config;
 
 static constexpr auto rel_tol{1e-3};
 
+template <typename T>
+static constexpr auto pldi_solver_config() {
+  auto cfg = config::PrimalDualIPMConfig<T>{};
+  cfg.steps = 64;
+  cfg.duality_gap_tol = T(1e-4);
+  return cfg;
+}
+
 TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
   using Space = Matrixd<2, 2>;
   constexpr auto I = make_identity<double, 2>();
@@ -98,32 +106,22 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     constexpr auto poly = Vector<decltype(ss0), 2>{ss0, ss1};
 
     constexpr auto psf = PolytopicStateFeedback<decltype(ss0), 2>();
-    constexpr auto pldi = psf(poly, solver_dec);
-
-    using Fs = Vector<Space, SolverZDim>;
-    const auto make_q_geq = [&]() {
-      const auto Fq =
-          MatrixPencil<Space, SolverQDim>{}.template apply_sym_mat<Space>(
-              [](const Space& E) -> Space { return E; });
-
-      Fs F_blks{};
-      for (size_t i = 0; i < SolverQDim; ++i) F_blks(i) = Fq(i);
-      for (size_t i = 0; i < SolverYDim; ++i) F_blks(SolverQDim + i) = Space{};
-
-      return LMI(F_blks, -1e-6 * I, solver_dec);
-    };
-
-    const auto q_geq = make_q_geq();
-    constexpr auto obj = Sum(solver_dec(0), solver_dec(2));
+    constexpr auto q_w = Vectord<SolverQDim>{1.0, 0.0, 1.0};
+    constexpr auto y_w = Vectord<SolverYDim>{0.0, 0.0};
+    constexpr auto obj =
+        make_polytopic_state_feedback_linear_objective<decltype(ss0), 2>(
+            q_w, y_w, solver_dec);
     const auto prob =
-        make_problem(solver_dec).in_set(q_geq).in_set(pldi).minimize(obj);
+        make_polytopic_state_feedback_problem<decltype(ss0), 2>(poly,
+                                                                solver_dec, obj);
 
     REQUIRE(is_problem_set_v<decltype(prob)>);
     REQUIRE(prob.validate());
     REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 3);
 
     using Solver = PrimalDualIPM<decltype(prob)>;
-    const Solver solver(prob);
+    const auto cfg = pldi_solver_config<double>();
+    const Solver solver(prob, cfg);
     const auto& res = solver.res;
 #ifdef AKREON_DEBUG
     const auto& trace = solver.trace;
@@ -174,5 +172,83 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     REQUIRE(lyap1_sym.is_valid());
     REQUIRE(lyap0_sym.is_psd());
     REQUIRE(lyap1_sym.is_psd());
+  }
+
+  SECTION("Quadratic objective helper solves lifted PLDI problem") {
+    using InputSpace = Matrixd<2, 1>;
+    using OutputSpace = Matrixd<1, 2>;
+    constexpr auto BCol = Matrixd<2, 1>{Vectord<1>{1.0}, Vectord<1>{0.5}};
+    constexpr auto CRow = Matrixd<1, 2>{Vectord<2>{1.0, 0.0}};
+    static constexpr size_t SolverQDim = 3;
+    static constexpr size_t SolverYDim = 2;
+    static constexpr size_t SolverZDim = SolverQDim + SolverYDim;
+    using SolverZSpace = Matrixd<1, SolverZDim>;
+    constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
+
+    constexpr auto A0 = MatBuilder(-1.0, 0.0, 0.0, -2.0);
+    constexpr auto A1 = MatBuilder(-0.5, 0.0, 0.0, -1.0);
+    constexpr auto B0 = BCol;
+    constexpr auto B1 = BCol;
+    constexpr auto C = CRow;
+
+    constexpr auto ss0 =
+        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
+            A0, B0, C);
+    constexpr auto ss1 =
+        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
+            A1, B1, C);
+    constexpr auto poly = Vector<decltype(ss0), 2>{ss0, ss1};
+
+    constexpr auto psf = PolytopicStateFeedback<decltype(ss0), 2>();
+    constexpr auto P = Matrixd<SolverZDim, SolverZDim>{
+        Vectord<SolverZDim>{1.0, 0.0, 0.0, 0.0, 0.0},
+        Vectord<SolverZDim>{0.0, 1.0, 0.0, 0.0, 0.0},
+        Vectord<SolverZDim>{0.0, 0.0, 1.0, 0.0, 0.0},
+        Vectord<SolverZDim>{0.0, 0.0, 0.0, 1.0, 0.0},
+        Vectord<SolverZDim>{0.0, 0.0, 0.0, 0.0, 1.0},
+    };
+    constexpr auto q = Vectord<SolverZDim>{};
+    constexpr auto obj =
+        make_polytopic_state_feedback_quadratic_objective<decltype(ss0), 2>(
+            P, q, solver_dec);
+    const auto prob =
+        make_polytopic_state_feedback_problem<decltype(ss0), 2>(poly,
+                                                                solver_dec, obj);
+
+    REQUIRE(prob.validate());
+    REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value > 3);
+
+    const auto cfg = pldi_solver_config<double>();
+    const PrimalDualIPM solver(prob, cfg);
+    const auto& res = solver.res;
+#ifdef AKREON_DEBUG
+    const auto& trace = solver.trace;
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+#endif
+
+    REQUIRE(res.tag == SolverResult::OPTIMAL);
+    REQUIRE(!res.stalled);
+
+    Vectord<SolverQDim> q_vec{};
+    for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
+    const auto Q_res = make_smat<2>(q_vec);
+
+    Matrixd<1, 2> Y_res{};
+    for (size_t j = 0; j < 2; ++j) Y_res(0)(j) = res.iterate.z(SolverQDim + j);
+
+    const auto [K_res, K_event] = psf.K(Q_res, Y_res);
+    REQUIRE(K_event == linalg::NumericalEvent::NONE);
+    REQUIRE(all_equal(Y_res, K_res * Q_res, 1e-4));
+
+    const auto cert0 = (-1.0) * (A0 * Q_res + Q_res * transpose(A0) +
+                                 B0 * Y_res + transpose(Y_res) * transpose(B0));
+    const auto cert1 = (-1.0) * (A1 * Q_res + Q_res * transpose(A1) +
+                                 B1 * Y_res + transpose(Y_res) * transpose(B1));
+    const auto cert0_sym = SymmetricMatrix(cert0, 1e-6);
+    const auto cert1_sym = SymmetricMatrix(cert1, 1e-6);
+    REQUIRE(cert0_sym.is_valid());
+    REQUIRE(cert1_sym.is_valid());
+    REQUIRE(cert0_sym.is_psd());
+    REQUIRE(cert1_sym.is_psd());
   }
 }
