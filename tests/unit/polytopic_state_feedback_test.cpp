@@ -116,7 +116,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     };
 
     const auto q_geq = make_q_geq();
-    constexpr auto obj = solver_dec(0);
+    constexpr auto obj = Sum(solver_dec(0), solver_dec(2));
     const auto prob =
         make_problem(solver_dec).in_set(q_geq).in_set(pldi).minimize(obj);
 
