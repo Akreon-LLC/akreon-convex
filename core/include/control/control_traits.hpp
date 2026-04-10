@@ -46,6 +46,21 @@ struct ss_traits<StateSpace<Type, PlantIn, ControlIn, OutputIn>> {
 template <typename StateSpace>
 using ss_type_t = typename ss_traits<linalg::remove_cvref_t<StateSpace>>::T;
 
+/// @brief ss plant type
+template <typename StateSpace>
+using ss_plant_t =
+    typename ss_traits<linalg::remove_cvref_t<StateSpace>>::Plant;
+
+/// @brief ss control type
+template <typename StateSpace>
+using ss_control_t =
+    typename ss_traits<linalg::remove_cvref_t<StateSpace>>::Control;
+
+/// @brief ss output type
+template <typename StateSpace>
+using ss_output_t =
+    typename ss_traits<linalg::remove_cvref_t<StateSpace>>::Output;
+
 /// @brief extract state vector
 template <typename StateSpace>
 using state_vec_t =

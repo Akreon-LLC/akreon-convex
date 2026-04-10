@@ -13,10 +13,13 @@
 #pragma once
 
 #include "control/model/state_space.hpp"
+#include "convex/composed/weighted_sum.hpp"
+#include "convex/convex_problem.hpp"
 #include "convex/sets/lmi.hpp"
 #include "convex/variable.hpp"
 #include "linalg/operator/matrix_inverse.hpp"
 #include "linalg/operator/matrix_pencil.hpp"
+#include "math.hpp"
 
 namespace control {
 /**
@@ -155,5 +158,48 @@ struct LyapunovCertificate {
     return std::tuple(K, linalg::NumericalEvent::NONE);
   }
 };
+
+/**
+ * @brief make lqr problem
+ *
+ * @param ss (StateSpace)
+ * @param Q (State Cost)
+ * @param R (Control Cost)
+ * @param P (var \in PSD)
+ * @param margin (tol to make P PD)
+ *
+ * @return lqr problem
+ */
+template <ContinuousStateSpaceLike SS, linalg::SquareMatrixLike StateCostMat,
+          linalg::SquareMatrixLike InputCostMat, convex::AtomLike Var>
+constexpr auto make_lqr_problem(const SS& ss, const StateCostMat& Q,
+                                const InputCostMat& R, const Var& P,
+                                ss_type_t<SS> margin = 1e-6) {
+  using T = ss_type_t<SS>;
+  using PDom = convex::meta_dom_t<convex::atom_meta_t<Var>>;
+  using PSpace = convex::dom_space_t<PDom>;
+  constexpr size_t N = linalg::mat_rows_v<ss_plant_t<SS>>;
+  constexpr size_t K = N * (N + 1) / 2;
+
+  const auto lyap =
+      LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
+  const auto lmi = lyap(ss, Q, R, P);
+
+  const auto I = linalg::make_identity<T, N>();
+
+  const auto P_geq =
+      convex::Inequality<convex::InequalityType::GEQ, decltype(P), decltype(I)>(
+          P, margin * I);
+  const auto prob_constraints =
+      convex::make_problem(P).add_constraint(P_geq).in_set(lmi);
+
+  linalg::Vector<T, K> c{};
+  for (size_t i = 0, idx = 0; i < N; ++i)
+    for (size_t j = 0; j < i + 1; ++j, ++idx)
+      if (i == j) c(idx) = T(1);
+
+  const auto obj = convex::WeightedSum<PSpace>()(c, P);
+  return prob_constraints.minimize(obj);
+}
 
 }  // namespace control

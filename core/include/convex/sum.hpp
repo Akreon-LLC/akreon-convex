@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "affine/affine_map.hpp"
 #include "cone_traits.hpp"
 #include "convex_traits.hpp"
 

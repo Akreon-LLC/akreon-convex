@@ -159,15 +159,9 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto P_geq =
-        Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
-    constexpr auto lqr = LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
-    constexpr auto lmi = lqr(ss, Q, R, P);
-    constexpr auto prob_constr =
-        make_problem(P).add_constraint(P_geq).in_set(lmi);
-    constexpr auto c = Vectord<3>{1.0, 0.0, 1.0};
-    constexpr auto obj = WeightedSum<PSpace>()(c, P);
-    constexpr auto prob = prob_constr.minimize(obj);
+    constexpr auto lqr =
+        LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto prob = make_lqr_problem(ss, Q, R, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -234,15 +228,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto P_geq =
-        Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
-    constexpr auto lqr = LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
-    constexpr auto lmi = lqr(ss, Q, R, P);
-    constexpr auto prob_constr =
-        make_problem(P).add_constraint(P_geq).in_set(lmi);
-    constexpr auto c = Vectord<3>{1.0, 0.0, 1.0};
-    constexpr auto obj = WeightedSum<PSpace>()(c, P);
-    constexpr auto prob = prob_constr.minimize(obj);
+    constexpr auto prob = make_lqr_problem(ss, Q, R, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -266,7 +252,6 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
 
 TEST_CASE("Small LQR 3x3", "[lqr_test]") {
   using Space = Matrixd<3, 3>;
-  using PSpace = SymmetricMatrix<Space>;
   constexpr auto P = Variable<PsdVarMeta<Space>>();
   constexpr auto I = make_identity<double, 3>();
   constexpr auto MatBuilder = mat_traits<Space>();
@@ -412,15 +397,9 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto P_geq =
-        Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
-    constexpr auto lqr = LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
-    constexpr auto lmi = lqr(ss, Q, R, P);
-    constexpr auto prob_constr =
-        make_problem(P).add_constraint(P_geq).in_set(lmi);
-    constexpr auto c = Vectord<6>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0};
-    constexpr auto obj = WeightedSum<PSpace>()(c, P);
-    constexpr auto prob = prob_constr.minimize(obj);
+    constexpr auto lqr =
+        LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto prob = make_lqr_problem(ss, Q, R, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -462,15 +441,9 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto P_geq =
-        Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
-    constexpr auto lqr = LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
-    constexpr auto lmi = lqr(ss, Q, R, P);
-    constexpr auto prob_constr =
-        make_problem(P).add_constraint(P_geq).in_set(lmi);
-    constexpr auto c = Vectord<6>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0};
-    constexpr auto obj = WeightedSum<PSpace>()(c, P);
-    constexpr auto prob = prob_constr.minimize(obj);
+    constexpr auto lqr =
+        LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto prob = make_lqr_problem(ss, Q, R, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());

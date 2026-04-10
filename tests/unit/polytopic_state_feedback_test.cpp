@@ -10,8 +10,6 @@
  * from Akreon LLC.
  */
 
-#include "control/design/polytopic_state_feedback.hpp"
-
 #include <catch2/catch_test_macros.hpp>
 
 #include "control.hpp"
