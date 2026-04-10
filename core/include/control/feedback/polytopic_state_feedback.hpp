@@ -52,6 +52,7 @@ struct PolytopicStateFeedback {
 
   using QMat = linalg::Matrix<T, StateDim, StateDim>;
   using YMat = linalg::Matrix<T, InputDim, StateDim>;
+  using KMat = linalg::Matrix<T, InputDim, StateDim>;
   using FMat = QMat;
 
   static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
@@ -122,6 +123,23 @@ struct PolytopicStateFeedback {
     };
 
     return form_intersection(std::make_index_sequence<N>{});
+  }
+
+  /**
+   * @brief K
+   *
+   * K = Y Q^{-1}
+   *
+   * @param Q (symmetric Lyapunov variable)
+   * @param Y (lifted feedback product Y = KQ)
+   *
+   * @return K
+   */
+  constexpr auto K(const QMat& Q, const YMat& Y) const {
+    const auto [Q_inv, event] = linalg::SymmetricMatrixInverse<QMat>()(Q);
+    if (event != linalg::NumericalEvent::NONE) return std::tuple(KMat{}, event);
+    const auto K = Y * Q_inv;
+    return std::tuple(K, linalg::NumericalEvent::NONE);
   }
 };
 

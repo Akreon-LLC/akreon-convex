@@ -148,6 +148,10 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     REQUIRE(Q_sym.is_valid());
     REQUIRE(Q_sym.is_psd());
 
+    const auto [K_res, K_event] = psf.K(Q_res, Y_res);
+    REQUIRE(K_event == linalg::NumericalEvent::NONE);
+    REQUIRE(all_equal(Y_res, K_res * Q_res, 1e-4));
+
     const auto cert0 = (-1.0) * (A0 * Q_res + Q_res * transpose(A0) +
                                  B0 * Y_res + transpose(Y_res) * transpose(B0));
     const auto cert1 = (-1.0) * (A1 * Q_res + Q_res * transpose(A1) +
@@ -159,5 +163,16 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     REQUIRE(cert1_sym.is_valid());
     REQUIRE(cert0_sym.is_psd());
     REQUIRE(cert1_sym.is_psd());
+
+    const auto cl0 = A0 + B0 * K_res;
+    const auto cl1 = A1 + B1 * K_res;
+    const auto lyap0 = (-1.0) * (cl0 * Q_res + Q_res * transpose(cl0));
+    const auto lyap1 = (-1.0) * (cl1 * Q_res + Q_res * transpose(cl1));
+    const auto lyap0_sym = SymmetricMatrix(lyap0, 1e-6);
+    const auto lyap1_sym = SymmetricMatrix(lyap1, 1e-6);
+    REQUIRE(lyap0_sym.is_valid());
+    REQUIRE(lyap1_sym.is_valid());
+    REQUIRE(lyap0_sym.is_psd());
+    REQUIRE(lyap1_sym.is_psd());
   }
 }
