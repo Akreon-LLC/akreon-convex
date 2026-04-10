@@ -24,6 +24,14 @@ using namespace config;
 
 static constexpr auto rel_tol{1e-3};
 
+template <typename T>
+static constexpr auto state_feedback_solver_config() {
+  auto cfg = config::PrimalDualIPMConfig<T>{};
+  cfg.steps = 64;
+  cfg.duality_gap_tol = T(1e-4);
+  return cfg;
+}
+
 TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
   using Space = Matrixd<2, 2>;
   using QSpace = SymmetricMatrix<Space>;
@@ -64,13 +72,8 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto Q_geq =
-        Inequality<InequalityType::GEQ, decltype(Q), Space>(Q, 1e-6 * I);
     constexpr auto sf = StateFeedback<decltype(ss)>();
-    constexpr auto lmi = sf(ss, Q);
-    constexpr auto prob_constr =
-        make_problem(Q).add_constraint(Q_geq).in_set(lmi);
-    constexpr auto prob = prob_constr.feasibility();
+    constexpr auto prob = make_state_feedback_problem(ss, Q);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -116,12 +119,7 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto Q_geq =
-        Inequality<InequalityType::GEQ, decltype(Q), Space>(Q, 1e-6 * I);
-    constexpr auto sf = StateFeedback<decltype(ss)>();
-    constexpr auto lmi = sf(ss, Q);
-    constexpr auto prob =
-        make_problem(Q).add_constraint(Q_geq).in_set(lmi).feasibility();
+    constexpr auto prob = make_state_feedback_problem(ss, Q);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -168,13 +166,7 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto Q_geq =
-        Inequality<InequalityType::GEQ, decltype(Q), Space>(Q, 1e-6 * I);
-    constexpr auto sf = StateFeedback<decltype(ss)>();
-    constexpr auto lmi = sf(ss, Q);
-    constexpr auto prob_constr =
-        make_problem(Q).add_constraint(Q_geq).in_set(lmi);
-    constexpr auto prob = prob_constr.feasibility();
+    constexpr auto prob = make_state_feedback_problem(ss, Q);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -211,12 +203,7 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto Q_geq =
-        Inequality<InequalityType::GEQ, decltype(Q), Space>(Q, 1e-6 * I);
-    constexpr auto sf = StateFeedback<decltype(ss)>();
-    constexpr auto lmi = sf(ss, Q);
-    constexpr auto prob =
-        make_problem(Q).add_constraint(Q_geq).in_set(lmi).feasibility();
+    constexpr auto prob = make_state_feedback_problem(ss, Q);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -247,6 +234,92 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
         Vectord<6>{x_feas(6), x_feas(7), x_feas(8),
                    x_feas(9), x_feas(10), x_feas(11)});
     const auto cert_sym = SymmetricMatrix(cert_slack, 1e-6);
+    REQUIRE(cert_sym.is_valid());
+    REQUIRE(cert_sym.is_psd());
+  }
+
+  SECTION("Linear objective helper minimizes trace-like weight on Q") {
+    constexpr auto A =
+        MatBuilder(-1.0, 0.2, 0.0, 0.0, -0.5, 0.3, 0.0, 0.0, -2.0);
+    constexpr auto B = I;
+    constexpr auto C = I;
+    constexpr auto ss =
+        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+
+    constexpr auto sf = StateFeedback<decltype(ss)>();
+    constexpr auto c = Vectord<6>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0};
+    constexpr auto obj = WeightedSum<SymmetricMatrix<Space>>()(c, Q);
+    constexpr auto prob = make_state_feedback_problem(ss, Q, obj);
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
+    STATIC_REQUIRE(prob.validate());
+
+    const PrimalDualIPM solver(prob);
+    const auto& res = solver.res;
+#ifdef AKREON_DEBUG
+    const auto& trace = solver.trace;
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+#endif
+
+    REQUIRE(res.tag == SolverResult::OPTIMAL);
+    REQUIRE(!res.stalled);
+
+    const auto Q_res = make_smat<3>(res.iterate.z);
+    REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
+
+    const auto [K_res, K_event] = sf.K(ss, Q_res);
+    REQUIRE(K_event == linalg::NumericalEvent::NONE);
+
+    const auto cert = (-1.0) * (A * Q_res + Q_res * transpose(A)) +
+                      B * transpose(B);
+    const auto cert_sym = linalg::SymmetricMatrix(cert);
+    REQUIRE(cert_sym.is_valid());
+    REQUIRE(cert_sym.is_psd());
+  }
+
+  SECTION("Quadratic objective helper solves with a lifted problem") {
+    constexpr auto A =
+        MatBuilder(-1.0, 0.2, 0.0, 0.0, -0.5, 0.3, 0.0, 0.0, -2.0);
+    constexpr auto B = I;
+    constexpr auto C = I;
+    constexpr auto ss =
+        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+
+    constexpr auto P = Matrixd<6, 6>{
+        Vectord<6>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+        Vectord<6>{0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+        Vectord<6>{0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
+        Vectord<6>{0.0, 0.0, 0.0, 1.0, 0.0, 0.0},
+        Vectord<6>{0.0, 0.0, 0.0, 0.0, 1.0, 0.0},
+        Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0},
+    };
+    constexpr auto q = Vectord<6>{};
+    constexpr auto obj = QuadForm<SymmetricMatrix<Space>>()(P, q, Q);
+    const auto prob = make_state_feedback_problem(ss, Q, obj);
+
+    STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
+    REQUIRE(prob.validate());
+    REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value > 2);
+
+    const auto cfg = state_feedback_solver_config<double>();
+    const PrimalDualIPM solver(prob, cfg);
+    const auto& res = solver.res;
+#ifdef AKREON_DEBUG
+    const auto& trace = solver.trace;
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+#endif
+
+    REQUIRE(res.tag == SolverResult::OPTIMAL);
+    REQUIRE(!res.stalled);
+
+    Vectord<6> q_res{};
+    for (size_t i = 0; i < 6; ++i) q_res(i) = res.iterate.z(i);
+    const auto Q_res = make_smat<3>(q_res);
+    REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
+
+    const auto cert = (-1.0) * (A * Q_res + Q_res * transpose(A)) +
+                      B * transpose(B);
+    const auto cert_sym = linalg::SymmetricMatrix(cert);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
   }
