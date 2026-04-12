@@ -11,8 +11,8 @@
  */
 
 #include "config/assert.hpp"
-#include "convex/convex_problem.hpp"
 #include "control/model/state_space.hpp"
+#include "convex/convex_problem.hpp"
 #include "convex/sets/lmi.hpp"
 #include "convex/variable.hpp"
 #include "linalg/operator/matrix_inverse.hpp"
@@ -135,6 +135,8 @@ struct StateFeedback {
  *
  * @param ss (StateSpace)
  * @param Q (Var)
+ * @param obj (objective)
+ * @param margin (PSD margin)
  *
  * @return state feedback problem
  */
@@ -178,7 +180,10 @@ constexpr auto make_state_feedback_problem(const SS& ss, const Var& Q,
           Q, margin * I);
   const auto sf = StateFeedback<decltype(ss)>();
   const auto lmi = sf(ss, Q);
-  return convex::make_problem(Q).add_constraint(Q_geq).in_set(lmi).feasibility();
+  return convex::make_problem(Q)
+      .add_constraint(Q_geq)
+      .in_set(lmi)
+      .feasibility();
 }
 
 }  // namespace control
