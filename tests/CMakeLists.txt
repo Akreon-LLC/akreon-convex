@@ -78,6 +78,12 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(lqr_test PRIVATE ../include)
   target_compile_options(lqr_test PRIVATE ${UNIT_COMPILE_OPTS})
 
+  add_executable(kalman_filter_test unit/kalman_filter_test.cpp)
+  add_test(NAME kalman_filter_test COMMAND kalman_filter_test)
+  target_link_libraries(kalman_filter_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(kalman_filter_test PRIVATE ../include)
+  target_compile_options(kalman_filter_test PRIVATE ${UNIT_COMPILE_OPTS})
+
   add_executable(state_feedback_test unit/state_feedback_test.cpp)
   add_test(NAME state_feedback_test COMMAND state_feedback_test)
   target_link_libraries(state_feedback_test PRIVATE Catch2::Catch2WithMain)
@@ -187,6 +193,7 @@ set(AKREON_TEST_TARGETS
   linalg_test
   linear_systems_test
   lqr_test
+  kalman_filter_test
   state_feedback_test
   luenberger_observer_test
   polytopic_state_feedback_test

@@ -10,6 +10,8 @@
  * from Akreon LLC.
  */
 
+#pragma once
+
 #include "config/assert.hpp"
 #include "control/model/state_space.hpp"
 #include "convex/convex_problem.hpp"

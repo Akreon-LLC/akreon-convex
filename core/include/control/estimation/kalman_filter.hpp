@@ -10,6 +10,8 @@
  * from Akreon LLC.
  */
 
+ #pragma once
+
 #include "config/assert.hpp"
 #include "control/model/state_space.hpp"
 #include "convex/composed/weighted_sum.hpp"
@@ -59,13 +61,13 @@ struct KalmanFilter {
 
   using T = ss_type_t<StateSpace>;
   using State = state_vec_t<StateSpace>;
-  using Output = output_vec_t<StateSpace>;
+  using OutputMap = ss_output_t<StateSpace>;
 
   static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t OutputDim = linalg::vec_size_v<Output>;
+  static constexpr size_t OutputDim = linalg::mat_rows_v<OutputMap>;
 
   using PMat = linalg::Matrix<T, StateDim, StateDim>;
-  using LMat = linalg::Matrix<T, OutputDim, StateDim>;
+  using LMat = linalg::Matrix<T, StateDim, OutputDim>;
 
   static_assert(linalg::mat_rows_v<StateCost> == StateDim,
                 "Expected Q mat row/col dim != State dim from SS");
@@ -130,13 +132,30 @@ struct KalmanFilter {
 
     FMat B{};
     B = linalg::set_block<0, StateDim, 0, StateDim>(B, T(-1) * Q);
-    const auto [R_inv, event] = linalg::SymmetricMatrixInverse<OutputCost>()(R);
-    B = linalg::set_block<StateDim, TotalDim, StateDim, TotalDim>(B, R_inv);
+    B = linalg::set_block<StateDim, TotalDim, StateDim, TotalDim>(B, R);
 
     linalg::MatrixPencil<FMat, PDim> pencil;
     const auto F_blks = pencil.template apply_sym_mat<PMat>(M);
 
-    return std::tuple(convex::LMI(F_blks, B, P), event);
+    return convex::LMI(F_blks, B, P);
+  }
+
+  /**
+   * @brief L (steady-state estimator gain)
+   *
+   * L = P C^T R^{-1}
+   *
+   * @param P (error covariance)
+   * @param ss (StateSpace)
+   * @param R (Output Cost)
+   *
+   * @return L
+   */
+  constexpr auto L(const PMat& P, const SS& ss, const OutputCostMat& R) const {
+    const auto [R_inv, event] = linalg::SymmetricMatrixInverse<OutputCost>()(R);
+    if (event != linalg::NumericalEvent::NONE) return std::tuple(LMat{}, event);
+    const auto L = P * linalg::transpose(ss.C) * R_inv;
+    return std::tuple(L, linalg::NumericalEvent::NONE);
   }
 };
 
@@ -163,7 +182,7 @@ constexpr auto make_lqe_problem(const SS& ss, const StateCostMat& Q,
   constexpr size_t K = N * (N + 1) / 2;
 
   const auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
-  const auto [lmi, event] = kf(ss, Q, R, P);
+  const auto lmi = kf(ss, Q, R, P);
 
   const auto I = linalg::make_identity<T, N>();
 
@@ -179,7 +198,7 @@ constexpr auto make_lqe_problem(const SS& ss, const StateCostMat& Q,
       if (i == j) c(idx) = T(1);
 
   const auto obj = convex::WeightedSum<PSpace>()(c, P);
-  return std::tuple(prob_constraints.minimize(obj), event);
+  return prob_constraints.minimize(obj);
 }
 
 }  // namespace control
