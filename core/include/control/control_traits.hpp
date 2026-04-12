@@ -39,6 +39,7 @@ struct ss_traits<StateSpace<Type, PlantIn, ControlIn, OutputIn>> {
   using T = linalg::mat_type_t<Plant>;
   using State = linalg::Vector<T, linalg::mat_cols_v<Plant>>;
   using Input = linalg::Vector<T, linalg::mat_cols_v<Control>>;
+  using OutVec = linalg::Vector<T, linalg::mat_cols_v<Output>>;
   static constexpr TimeDomainType DType = Type;
 };
 
@@ -66,10 +67,15 @@ template <typename StateSpace>
 using state_vec_t =
     typename ss_traits<linalg::remove_cvref_t<StateSpace>>::State;
 
-/// @brief extract state vector
+/// @brief extract input vector
 template <typename StateSpace>
 using input_vec_t =
     typename ss_traits<linalg::remove_cvref_t<StateSpace>>::Input;
+
+/// @brief extract output vector
+template <typename StateSpace>
+using output_vec_t =
+    typename ss_traits<linalg::remove_cvref_t<StateSpace>>::OutVec;
 
 /// @brief check if continuous or not
 template <typename StateSpace>
