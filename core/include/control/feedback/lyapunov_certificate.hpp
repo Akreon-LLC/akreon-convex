@@ -86,7 +86,7 @@ struct LyapunovCertificate {
    * @param ss (StateSpace)
    * @param Q (State Cost)
    * @param R (Control Cost)
-   * @param x (dec var child)
+   * @param P (dec var child)
    *
    * @return Lyapunov certificate as LMI
    */
@@ -102,7 +102,7 @@ struct LyapunovCertificate {
    * @param ss (StateSpace)
    * @param Q (State Cost)
    * @param R (Control Cost)
-   * @param x (dec var child)
+   * @param P (dec var child)
    *
    * @return Lyapunov certificate as LMI
    */
