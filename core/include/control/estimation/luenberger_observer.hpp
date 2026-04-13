@@ -56,10 +56,10 @@ struct LuenbergerObserver {
 
   using T = ss_type_t<StateSpace>;
   using State = state_vec_t<StateSpace>;
-  using OutputMap = ss_output_t<StateSpace>;
+  using Output = ss_output_t<StateSpace>;
 
   static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t OutputDim = linalg::mat_rows_v<OutputMap>;
+  static constexpr size_t OutputDim = linalg::mat_rows_v<Output>;
 
   using PMat = linalg::Matrix<T, StateDim, StateDim>;
   using LMat = linalg::Matrix<T, StateDim, OutputDim>;
