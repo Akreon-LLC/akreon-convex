@@ -96,6 +96,12 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(luenberger_observer_test PRIVATE ../include)
   target_compile_options(luenberger_observer_test PRIVATE ${UNIT_COMPILE_OPTS})
 
+  add_executable(polytopic_observer_test unit/polytopic_observer_test.cpp)
+  add_test(NAME polytopic_observer_test COMMAND polytopic_observer_test)
+  target_link_libraries(polytopic_observer_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(polytopic_observer_test PRIVATE ../include)
+  target_compile_options(polytopic_observer_test PRIVATE ${UNIT_COMPILE_OPTS})
+
   add_executable(polytopic_state_feedback_test unit/polytopic_state_feedback_test.cpp)
   add_test(NAME polytopic_state_feedback_test COMMAND polytopic_state_feedback_test)
   target_link_libraries(polytopic_state_feedback_test PRIVATE Catch2::Catch2WithMain)
@@ -196,6 +202,7 @@ set(AKREON_TEST_TARGETS
   kalman_filter_test
   state_feedback_test
   luenberger_observer_test
+  polytopic_observer_test
   polytopic_state_feedback_test
   one_dof_pendulum_test
   two_dof_pendulum_test

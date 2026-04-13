@@ -50,14 +50,14 @@ struct PolytopicObserver {
 
   using T = ss_type_t<StateSpace>;
   using State = state_vec_t<StateSpace>;
-  using Output = output_vec_t<StateSpace>;
+  using OutputMap = ss_output_t<StateSpace>;
 
   static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t OutputDim = linalg::vec_size_v<Output>;
+  static constexpr size_t OutputDim = linalg::mat_rows_v<OutputMap>;
 
   using PMat = linalg::Matrix<T, StateDim, StateDim>;
-  using WMat = linalg::Matrix<T, OutputDim, StateDim>;
-  using LMat = linalg::Matrix<T, OutputDim, StateDim>;
+  using WMat = linalg::Matrix<T, StateDim, OutputDim>;
+  using LMat = linalg::Matrix<T, StateDim, OutputDim>;
   using FMat = PMat;
 
   static constexpr size_t PDim = StateDim * (StateDim + 1) / 2;
@@ -97,7 +97,7 @@ struct PolytopicObserver {
                   "Merged decision var must be free");
     using ZVarSpace = convex::dom_space_t<ZDom>;
     static_assert(std::same_as<ZVarSpace, ZSpace>,
-                  "Expected merged decision size [svec(Q); vec(W)]");
+                  "Expected merged decision size [svec(P); vec(W)]");
 
     auto make_vertex_lmi = [&]<size_t idx>() {
       const auto& ss = poly(idx);
