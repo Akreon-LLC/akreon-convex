@@ -14,6 +14,7 @@
 
 #include "control/estimation/kalman_filter.hpp"
 #include "control/estimation/luenberger_observer.hpp"
+#include "control/estimation/polytopic_observer.hpp"
 #include "control/feedback/lyapunov_certificate.hpp"
 #include "control/feedback/polytopic_state_feedback.hpp"
 #include "control/feedback/state_feedback.hpp"
