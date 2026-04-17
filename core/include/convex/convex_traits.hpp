@@ -20,7 +20,7 @@ namespace convex {
 
 /// @brief alias for lifted var map
 template <typename T>
-using LiftedVarMat = linalg::Matrix<T, 1, 1>;
+using LiftedVarMat = linalg::RowVector<T, 1>;
 
 /// @brief alias for lifted var map
 template <typename T>

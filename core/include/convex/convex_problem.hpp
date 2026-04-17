@@ -105,7 +105,7 @@ struct ConvexProblem {
     static constexpr size_t EqN =
         linalg::mat_cols_v<decltype(builder.eq_map.linear_part())>;
     static constexpr size_t AugN = (ConeN > EqN) ? ConeN : EqN;
-    linalg::Matrix<T, 1, AugN> c{};
+    linalg::RowVector<T, AugN> c{};
     affine::AffineMap<decltype(c)> new_map(c);
 
     const auto new_builder =
@@ -141,7 +141,7 @@ struct ConvexProblem {
       static constexpr size_t EqN =
           linalg::mat_cols_v<decltype(builder.eq_map.linear_part())>;
       static constexpr size_t AugN = (ConeN > EqN) ? ConeN : EqN;
-      linalg::Matrix<T, 1, AugN> c{};
+      linalg::RowVector<T, AugN> c{};
       auto b = builder.coord_map.translation()(0) + atom.map.translation()(0);
       static constexpr size_t N =
           linalg::space_dim_v<conic::builder_dom_t<Builder>>;
@@ -170,7 +170,7 @@ struct ConvexProblem {
         static constexpr size_t ObjN =
             linalg::mat_cols_v<decltype(obj_builder.coord_map.linear_part())>;
 
-        linalg::Matrix<T, 1, FullN> c{};
+        linalg::RowVector<T, FullN> c{};
         constexpr size_t CopyN = (ObjN < FullN) ? ObjN : FullN;
         for (size_t i = 0; i < CopyN; ++i)
           c(0)(i) = obj_builder.coord_map.linear_part()(0)(i);

@@ -72,7 +72,7 @@ template <VectorLike Vec>
 constexpr auto as_col_vector(const Vec& X) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
-  Matrix<T, N, 1> A;
+  ColVector<T, N> A;
   for (size_t i = 0; i < N; ++i) A(i) = X(i);
   return A;
 }
@@ -88,7 +88,7 @@ template <VectorLike Vec>
 constexpr auto as_row_vector(const Vec& X) {
   using T = vec_type_t<Vec>;
   constexpr auto N = vec_size_v<Vec>;
-  Matrix<T, 1, N> A;
+  RowVector<T, N> A;
   for (size_t i = 0; i < N; ++i) A(0)(i) = X(i);
   return A;
 }
@@ -124,7 +124,7 @@ constexpr auto as_complex_matrix(const Mat& A) {
  */
 template <typename T, size_t N>
   requires(FieldLike<T>)
-constexpr auto as_vector(const Matrix<T, N, 1>& A) {
+constexpr auto as_vector(const ColVector<T, N>& A) {
   Vector<T, N> res;
   for (size_t i = 0; i < N; ++i) res(i) = A(i)(0);
   return res;
@@ -139,7 +139,7 @@ constexpr auto as_vector(const Matrix<T, N, 1>& A) {
  */
 template <typename T, size_t N>
   requires(FieldLike<T>)
-constexpr auto as_vector(const Matrix<T, 1, N>& A) {
+constexpr auto as_vector(const RowVector<T, N>& A) {
   Vector<T, N> res;
   for (size_t i = 0; i < N; ++i) res(i) = A(0)(i);
   return res;

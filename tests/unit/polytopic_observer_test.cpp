@@ -41,7 +41,7 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
   static constexpr size_t PDim = 3;
   static constexpr size_t WDim = 4;
   static constexpr size_t ZDim = PDim + WDim;
-  using ZSpace = Matrixd<1, ZDim>;
+  using ZSpace = RowVectord<ZDim>;
   constexpr auto dec = Variable<VarMeta<ZSpace>>();
 
   SECTION("Hand-checkable merged canonical LMI") {
@@ -81,14 +81,14 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
   }
 
   SECTION("Solver finds feasible merged z with PSD P block") {
-    using InputSpace = Matrixd<2, 1>;
-    using OutputSpace = Matrixd<1, 2>;
-    constexpr auto BCol = Matrixd<2, 1>{Vectord<1>{1.0}, Vectord<1>{0.5}};
-    constexpr auto CRow = Matrixd<1, 2>{Vectord<2>{1.0, 0.0}};
+    using InputSpace = ColVectord<2>;
+    using OutputSpace = RowVectord<2>;
+    constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
+    constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
     static constexpr size_t SolverPDim = 3;
     static constexpr size_t SolverWDim = 2;
     static constexpr size_t SolverZDim = SolverPDim + SolverWDim;
-    using SolverZSpace = Matrixd<1, SolverZDim>;
+    using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
     constexpr auto A0 = MatBuilder(-1.0, 0.0, 0.0, -2.0);
@@ -129,7 +129,7 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     for (size_t i = 0; i < SolverPDim; ++i) p_vec(i) = res.iterate.z(i);
     const auto P_res = make_smat<2>(p_vec);
 
-    Matrixd<2, 1> W_res{};
+    ColVectord<2> W_res{};
     for (size_t j = 0; j < 2; ++j) W_res(j)(0) = res.iterate.z(SolverPDim + j);
 
     REQUIRE(all_equal(P_res, transpose(P_res), rel_tol));
@@ -169,14 +169,14 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
   }
 
   SECTION("Quadratic objective helper solves lifted observer problem") {
-    using InputSpace = Matrixd<2, 1>;
-    using OutputSpace = Matrixd<1, 2>;
-    constexpr auto BCol = Matrixd<2, 1>{Vectord<1>{1.0}, Vectord<1>{0.5}};
-    constexpr auto CRow = Matrixd<1, 2>{Vectord<2>{1.0, 0.0}};
+    using InputSpace = ColVectord<2>;
+    using OutputSpace = RowVectord<2>;
+    constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
+    constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
     static constexpr size_t SolverPDim = 3;
     static constexpr size_t SolverWDim = 2;
     static constexpr size_t SolverZDim = SolverPDim + SolverWDim;
-    using SolverZSpace = Matrixd<1, SolverZDim>;
+    using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
     constexpr auto A0 = MatBuilder(-1.0, 0.0, 0.0, -2.0);
@@ -226,7 +226,7 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     for (size_t i = 0; i < SolverPDim; ++i) p_vec(i) = res.iterate.z(i);
     const auto P_res = make_smat<2>(p_vec);
 
-    Matrixd<2, 1> W_res{};
+    ColVectord<2> W_res{};
     for (size_t j = 0; j < 2; ++j) W_res(j)(0) = res.iterate.z(SolverPDim + j);
 
     const auto [L_res, L_event] = po.L(P_res, W_res);

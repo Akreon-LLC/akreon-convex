@@ -85,7 +85,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
 
   static constexpr size_t N = dom_size_v<meta_dom_t<atom_meta_t<Child>>>;
 
-  using SelMatT = linalg::Matrix<T, 1, N>;
+  using SelMatT = linalg::RowVector<T, N>;
   using TransT = linalg::Vector<T, 1>;
 
   /**
@@ -180,7 +180,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   using LinearMatT = linalg::Matrix<T, N, N>;
   using TransT = linalg::Vector<T, N>;
 
-  using ScalarDom = ConvexDomain<linalg::Matrix<T, 1, 1>, DomSign>;
+  using ScalarDom = ConvexDomain<linalg::RowVector<T, 1>, DomSign>;
   using ScalarMeta =
       ConvexAtomMeta<ScalarDom, ScalarDom, CurvatureType::AFFINE>;
   using ScalarViewT = ScalarView<ScalarMeta, Variable<Meta>>;
@@ -208,7 +208,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    */
   constexpr ScalarViewT operator()(const size_t& idx) const {
     AK_ASSERT(idx < N && "Variable index out of bounds");
-    affine::AffineMap<linalg::Matrix<T, 1, N>> scalar_map(
+    affine::AffineMap<linalg::RowVector<T, N>> scalar_map(
         this->map.linear_part()(idx), this->map.translation()(idx));
     return ScalarViewT(idx, *this, scalar_map);
   }

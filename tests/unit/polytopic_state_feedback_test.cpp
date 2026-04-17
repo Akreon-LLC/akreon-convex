@@ -41,7 +41,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
   static constexpr size_t QDim = 3;
   static constexpr size_t YDim = 4;
   static constexpr size_t ZDim = QDim + YDim;
-  using ZSpace = Matrixd<1, ZDim>;
+  using ZSpace = RowVectord<ZDim>;
   constexpr auto dec = Variable<VarMeta<ZSpace>>();
 
   SECTION("Hand-checkable merged canonical LMI") {
@@ -82,13 +82,13 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
 
   SECTION("Solver finds feasible merged z with PSD Q block") {
     using InputSpace = Matrixd<2, 1>;
-    using OutputSpace = Matrixd<1, 2>;
-    constexpr auto BCol = Matrixd<2, 1>{Vectord<1>{1.0}, Vectord<1>{0.5}};
-    constexpr auto CRow = Matrixd<1, 2>{Vectord<2>{1.0, 0.0}};
+    using OutputSpace = RowVectord<2>;
+    constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
+    constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
     static constexpr size_t SolverQDim = 3;
     static constexpr size_t SolverYDim = 2;
     static constexpr size_t SolverZDim = SolverQDim + SolverYDim;
-    using SolverZSpace = Matrixd<1, SolverZDim>;
+    using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
     constexpr auto A0 = MatBuilder(-1.0, 0.0, 0.0, -2.0);
@@ -135,7 +135,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
     const auto Q_res = make_smat<2>(q_vec);
 
-    Matrixd<1, 2> Y_res{};
+    RowVectord<2> Y_res{};
     for (size_t j = 0; j < 2; ++j) Y_res(0)(j) = res.iterate.z(SolverQDim + j);
 
     REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
@@ -176,13 +176,13 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
 
   SECTION("Quadratic objective helper solves lifted PLDI problem") {
     using InputSpace = Matrixd<2, 1>;
-    using OutputSpace = Matrixd<1, 2>;
-    constexpr auto BCol = Matrixd<2, 1>{Vectord<1>{1.0}, Vectord<1>{0.5}};
-    constexpr auto CRow = Matrixd<1, 2>{Vectord<2>{1.0, 0.0}};
+    using OutputSpace = RowVectord<2>;
+    constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
+    constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
     static constexpr size_t SolverQDim = 3;
     static constexpr size_t SolverYDim = 2;
     static constexpr size_t SolverZDim = SolverQDim + SolverYDim;
-    using SolverZSpace = Matrixd<1, SolverZDim>;
+    using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
     constexpr auto A0 = MatBuilder(-1.0, 0.0, 0.0, -2.0);
@@ -233,7 +233,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
     const auto Q_res = make_smat<2>(q_vec);
 
-    Matrixd<1, 2> Y_res{};
+    RowVectord<2> Y_res{};
     for (size_t j = 0; j < 2; ++j) Y_res(0)(j) = res.iterate.z(SolverQDim + j);
 
     const auto [K_res, K_event] = psf.K(Q_res, Y_res);

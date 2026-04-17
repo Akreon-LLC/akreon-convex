@@ -66,7 +66,7 @@ struct CanonicalFormBuilder {
               "CanonicalFormBuilder::make");
 
     sel(FullDom + idx) = lift_map.linear_part()(0)(0);
-    const auto sel_row = linalg::as_row_vector(sel);
+    const linalg::RowVector<T, FullDom> sel_row = linalg::as_row_vector(sel);
     const auto new_coord_map =
         affine::AffineMap<decltype(sel_row)>(sel_row, bias);
     const auto new_cb =

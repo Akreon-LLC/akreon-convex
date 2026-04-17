@@ -62,7 +62,7 @@ struct PolytopicStateFeedback {
   static constexpr size_t YDim = InputDim * StateDim;
   static constexpr size_t ZDim = QDim + YDim;
 
-  using ZSpace = linalg::Matrix<T, 1, ZDim>;
+  using ZSpace = linalg::RowVector<T, ZDim>;
   using Fs = linalg::Vector<FMat, ZDim>;
   using Polytope = linalg::Vector<SS, N>;
 

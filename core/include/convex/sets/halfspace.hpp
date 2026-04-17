@@ -155,7 +155,7 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    linalg::Matrix<T, 1, N> F;
+    linalg::RowVector<T, N> F;
     F = linalg::set_block<0, 1, 0, N>(F, T(-1) * linalg::as_row_vector(a));
     linalg::Vector<T, 1> g{b};
     const auto map = affine::AffineMap<decltype(F)>(F, g);

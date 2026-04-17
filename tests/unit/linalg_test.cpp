@@ -125,8 +125,8 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 
     constexpr auto G_col_vec = as_col_vector(G);
     constexpr auto G_row_vec = as_row_vector(G);
-    STATIC_REQUIRE(std::same_as<decltype(G_col_vec), const Matrixd<2, 1>>);
-    STATIC_REQUIRE(std::same_as<decltype(G_row_vec), const Matrixd<1, 2>>);
+    STATIC_REQUIRE(std::same_as<decltype(G_col_vec), const ColVectord<2>>);
+    STATIC_REQUIRE(std::same_as<decltype(G_row_vec), const RowVectord<2>>);
 
     constexpr auto G_outer_prod = outer_product(G_col_vec, G_row_vec);
     STATIC_REQUIRE(G_outer_prod(0)(0) == 4.0);

@@ -135,7 +135,7 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    const auto eq_map = affine::AffineMap<linalg::Matrix<T, 1, N>>(
+    const auto eq_map = affine::AffineMap<linalg::RowVector<T, N>>(
                             linalg::as_row_vector(a), linalg::Vector<T, 1>{b})
                             .compose(child_coord);
 

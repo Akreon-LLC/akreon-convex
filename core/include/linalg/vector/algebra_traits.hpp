@@ -30,6 +30,14 @@ struct Vector;
 template <typename T, size_t Rows, size_t Cols>
 using Matrix = Vector<Vector<T, Cols>, Rows>;
 
+/// @brief alias for column-vector matrix definition (N x 1)
+template <typename T, size_t N>
+using ColVector = Matrix<T, N, 1>;
+
+/// @brief alias for row-vector matrix definition (1 x N)
+template <typename T, size_t N>
+using RowVector = Matrix<T, 1, N>;
+
 /// @brief base type traits definition for vector
 template <class Vec>
 struct vec_traits;
@@ -265,20 +273,52 @@ using Vectorcf = Vector<std::complex<float>, N>;
 template <size_t Rows, size_t Cols>
 using Matrixd = Vector<Vectord<Cols>, Rows>;
 
+/// @brief alias for deducing column vector matrix of type double with N elements
+template <size_t N>
+using ColVectord = ColVector<double, N>;
+
+/// @brief alias for deducing row vector matrix of type double with N elements
+template <size_t N>
+using RowVectord = RowVector<double, N>;
+
 /// @brief alias for deducing matrix as vector of vectors of type float with
 /// Rows x Cols elements
 template <size_t Rows, size_t Cols>
 using Matrixf = Vector<Vectorf<Cols>, Rows>;
+
+/// @brief alias for deducing column vector matrix of type float with N elements
+template <size_t N>
+using ColVectorf = ColVector<float, N>;
+
+/// @brief alias for deducing row vector matrix of type float with N elements
+template <size_t N>
+using RowVectorf = RowVector<float, N>;
 
 /// @brief alias for deducing matrix as vector of vectors of type complex double
 /// with Rows x Cols elements
 template <size_t Rows, size_t Cols>
 using Matrixcd = Vector<Vectorcd<Cols>, Rows>;
 
+/// @brief alias for deducing column vector matrix of type complex double
+template <size_t N>
+using ColVectorcd = ColVector<std::complex<double>, N>;
+
+/// @brief alias for deducing row vector matrix of type complex double
+template <size_t N>
+using RowVectorcd = RowVector<std::complex<double>, N>;
+
 /// @brief alias for deducing matrix as vector of vectors of type complex float
 /// with Rows x Cols elements
 template <size_t Rows, size_t Cols>
 using Matrixcf = Vector<Vectorcf<Cols>, Rows>;
+
+/// @brief alias for deducing column vector matrix of type complex float
+template <size_t N>
+using ColVectorcf = ColVector<std::complex<float>, N>;
+
+/// @brief alias for deducing row vector matrix of type complex float
+template <size_t N>
+using RowVectorcf = RowVector<std::complex<float>, N>;
 
 /**
  * @brief FieldLike concept is obtained by floating point values
