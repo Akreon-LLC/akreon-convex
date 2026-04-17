@@ -240,7 +240,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
 TEST_CASE("PSD Feasibility", "[sdp_test]") {
   SECTION("2x2 SPD Feasp Test") {
     using Mat = Matrixd<2, 2>;
-    constexpr auto X = Variable<PsdVarMeta<Mat>>();
+    constexpr auto X = Variable<SymMatVarMeta<Mat>>();
     constexpr auto geq =
         Inequality<InequalityType::GEQ, decltype(X), double>(X, 0.0);
     constexpr auto prob_psd = make_problem(X).add_constraint(geq).feasibility();
@@ -279,7 +279,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
 
   SECTION("3x3 SPD Feasp Test") {
     using Mat = Matrixd<3, 3>;
-    constexpr auto X = Variable<PsdVarMeta<Mat>>();
+    constexpr auto X = Variable<SymMatVarMeta<Mat>>();
     constexpr auto I = make_identity<double, 3>();
     constexpr auto geq =
         Inequality<InequalityType::GEQ, decltype(X), Mat>(X, eps * I);
@@ -322,7 +322,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
 
   SECTION("4x4 SPD Feasp Test") {
     using Mat = Matrixd<4, 4>;
-    constexpr auto X = Variable<PsdVarMeta<Mat>>();
+    constexpr auto X = Variable<SymMatVarMeta<Mat>>();
     constexpr auto I = make_identity<double, 4>();
     constexpr auto geq =
         Inequality<InequalityType::GEQ, decltype(X), Mat>(X, eps * I);
@@ -373,7 +373,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
   SECTION("2x2 Shared Var Two-PSD Test") {
     using Mat = Matrixd<2, 2>;
     using SymSpace = SymmetricMatrix<Mat>;
-    constexpr auto X = Variable<PsdVarMeta<Mat>>();
+    constexpr auto X = Variable<SymMatVarMeta<Mat>>();
     constexpr auto I = make_identity<double, 2>();
 
     constexpr auto geq_psd =

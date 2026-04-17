@@ -35,7 +35,7 @@ static constexpr auto lqe_solver_config() {
 TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
   using Space = Matrixd<2, 2>;
   using PSpace = SymmetricMatrix<Space>;
-  constexpr auto P = Variable<PsdVarMeta<Space>>();
+  constexpr auto P = Variable<SymMatVarMeta<Space>>();
   constexpr auto MatBuilder = mat_traits<Space>();
 
   SECTION("Canonical LMI matches estimator Riccati Schur form") {
@@ -228,7 +228,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
 
 TEST_CASE("Small Kalman Filter 3x3", "[kalman_filter_test]") {
   using Space = Matrixd<3, 3>;
-  constexpr auto P = Variable<PsdVarMeta<Space>>();
+  constexpr auto P = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 3>();
 
   SECTION("Explicit 3x3 feasible point satisfies current estimator LMI") {

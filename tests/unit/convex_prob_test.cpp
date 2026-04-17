@@ -188,7 +188,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
 
   SECTION("PSD var -> cones") {
     using Mat = Matrixd<2, 2>;
-    constexpr auto X = Variable<PsdVarMeta<Mat>>();
+    constexpr auto X = Variable<SymMatVarMeta<Mat>>();
     using Space = dom_space_t<meta_dom_t<atom_meta_t<decltype(X)>>>;
     constexpr auto builder = create_empty_cblk_builder<Space>();
     constexpr auto builder2 = X.add_var_block<AtomType::VAR>(builder);
@@ -828,7 +828,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
 
   SECTION("PSD inequality emits PSD cone") {
     using Mat = Matrixd<2, 2>;
-    constexpr auto X = Variable<PsdVarMeta<Mat>>();
+    constexpr auto X = Variable<SymMatVarMeta<Mat>>();
     constexpr auto geq =
         Inequality<InequalityType::GEQ, decltype(X), double>(X, 0.0);
     constexpr auto prob2 = make_problem(X).add_constraint(geq);
@@ -841,8 +841,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
                    1);
 
     constexpr auto F_mat = mat_traits<Matrixd<3, 3>>();
-    constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
     STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F_exp));
     STATIC_REQUIRE(prob3.constraint_map().translation() == Vectord<3>{});
   }

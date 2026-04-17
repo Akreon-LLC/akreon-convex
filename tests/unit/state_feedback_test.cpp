@@ -35,7 +35,7 @@ static constexpr auto state_feedback_solver_config() {
 TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
   using Space = Matrixd<2, 2>;
   using QSpace = SymmetricMatrix<Space>;
-  constexpr auto Q = Variable<PsdVarMeta<Space>>();
+  constexpr auto Q = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 2>();
   constexpr auto Z = Matrixd<2, 2>{};
   constexpr auto MatBuilder = mat_traits<Space>();
@@ -65,7 +65,8 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
     STATIC_REQUIRE(cone_block.validate());
   }
 
-  SECTION("Solver finds feasible/stabilizing Q on unstable full-actuation plant") {
+  SECTION(
+      "Solver finds feasible/stabilizing Q on unstable full-actuation plant") {
     constexpr auto A = MatBuilder(0.2, 0.0, 0.0, 0.1);
     constexpr auto B = I;
     constexpr auto C = I;
@@ -77,8 +78,8 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob.constraint_cones())>::value == 2);
+    STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
+                   2);
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;
@@ -106,7 +107,8 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
     REQUIRE(closed_loop(0)(0) < 0.0);
     REQUIRE(closed_loop(1)(1) < 0.0);
 
-    const auto cert = (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
+    const auto cert =
+        (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
     const auto cert_sym = linalg::SymmetricMatrix(cert);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
@@ -136,16 +138,16 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
 
     const auto Q_feas = I;
     const auto z_feas = get_svec(Q_feas);
-    const auto x_feas =
-        prob.constraint_map().linear_part() * z_feas +
-        prob.constraint_map().translation();
+    const auto x_feas = prob.constraint_map().linear_part() * z_feas +
+                        prob.constraint_map().translation();
 
-    const auto Q_slack = make_smat<2>(Vectord<3>{x_feas(0), x_feas(1), x_feas(2)});
+    const auto Q_slack =
+        make_smat<2>(Vectord<3>{x_feas(0), x_feas(1), x_feas(2)});
     REQUIRE(Q_slack(0)(0) > 0.0);
     REQUIRE(Q_slack(1)(1) > 0.0);
 
-    const auto cert_slack = make_smat<2>(
-        Vectord<3>{x_feas(3), x_feas(4), x_feas(5)});
+    const auto cert_slack =
+        make_smat<2>(Vectord<3>{x_feas(3), x_feas(4), x_feas(5)});
     const auto cert_sym = SymmetricMatrix(cert_slack, 1e-6);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
@@ -154,7 +156,7 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
 
 TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
   using Space = Matrixd<3, 3>;
-  constexpr auto Q = Variable<PsdVarMeta<Space>>();
+  constexpr auto Q = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 3>();
   constexpr auto MatBuilder = mat_traits<Space>();
 
@@ -170,8 +172,8 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob.constraint_cones())>::value == 2);
+    STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
+                   2);
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;
@@ -189,7 +191,8 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     REQUIRE(Q_res(1)(1) > 1e-6);
     REQUIRE(Q_res(2)(2) > 1e-6);
 
-    const auto cert = (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
+    const auto cert =
+        (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
     const auto cert_sym = linalg::SymmetricMatrix(cert);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
@@ -220,19 +223,17 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
 
     const auto Q_feas = I;
     const auto z_feas = get_svec(Q_feas);
-    const auto x_feas =
-        prob.constraint_map().linear_part() * z_feas +
-        prob.constraint_map().translation();
+    const auto x_feas = prob.constraint_map().linear_part() * z_feas +
+                        prob.constraint_map().translation();
 
-    const auto Q_slack = make_smat<3>(Vectord<6>{x_feas(0), x_feas(1), x_feas(2),
-                                                 x_feas(3), x_feas(4), x_feas(5)});
+    const auto Q_slack = make_smat<3>(Vectord<6>{
+        x_feas(0), x_feas(1), x_feas(2), x_feas(3), x_feas(4), x_feas(5)});
     REQUIRE(Q_slack(0)(0) > 0.0);
     REQUIRE(Q_slack(1)(1) > 0.0);
     REQUIRE(Q_slack(2)(2) > 0.0);
 
-    const auto cert_slack = make_smat<3>(
-        Vectord<6>{x_feas(6), x_feas(7), x_feas(8),
-                   x_feas(9), x_feas(10), x_feas(11)});
+    const auto cert_slack = make_smat<3>(Vectord<6>{
+        x_feas(6), x_feas(7), x_feas(8), x_feas(9), x_feas(10), x_feas(11)});
     const auto cert_sym = SymmetricMatrix(cert_slack, 1e-6);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
@@ -270,8 +271,8 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     const auto [K_res, K_event] = sf.K(ss, Q_res);
     REQUIRE(K_event == linalg::NumericalEvent::NONE);
 
-    const auto cert = (-1.0) * (A * Q_res + Q_res * transpose(A)) +
-                      B * transpose(B);
+    const auto cert =
+        (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
     const auto cert_sym = linalg::SymmetricMatrix(cert);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
@@ -317,8 +318,8 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     const auto Q_res = make_smat<3>(q_res);
     REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
 
-    const auto cert = (-1.0) * (A * Q_res + Q_res * transpose(A)) +
-                      B * transpose(B);
+    const auto cert =
+        (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
     const auto cert_sym = linalg::SymmetricMatrix(cert);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());

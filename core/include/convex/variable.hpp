@@ -68,12 +68,12 @@ using NegVarMeta =
 
 /// @brief alias for nominal psd matrix variable domain
 template <linalg::SquareMatrixLike Mat>
-using PsdVarDom = ConvexDomain<linalg::SymmetricMatrix<Mat>, VarType::PSD>;
+using SymMatVarDom = ConvexDomain<linalg::SymmetricMatrix<Mat>, VarType::PSD>;
 
 /// @brief alias for nominal psd matrix
 template <linalg::SquareMatrixLike Mat>
-using PsdVarMeta =
-    ConvexAtomMeta<PsdVarDom<Mat>, PsdVarDom<Mat>, CurvatureType::AFFINE>;
+using SymMatVarMeta =
+    ConvexAtomMeta<SymMatVarDom<Mat>, SymMatVarDom<Mat>, CurvatureType::AFFINE>;
 
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)

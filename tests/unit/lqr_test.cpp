@@ -35,7 +35,7 @@ static constexpr auto lqr_solver_config() {
 TEST_CASE("Small LQR 2x2", "[lqr_test]") {
   using Space = Matrixd<2, 2>;
   using PSpace = SymmetricMatrix<Space>;
-  constexpr auto P = Variable<PsdVarMeta<Space>>();
+  constexpr auto P = Variable<SymMatVarMeta<Space>>();
   constexpr auto MatBuilder = mat_traits<Space>();
 
   SECTION("Canonical LMI matches Lyapunov form") {
@@ -252,7 +252,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
 
 TEST_CASE("Small LQR 3x3", "[lqr_test]") {
   using Space = Matrixd<3, 3>;
-  constexpr auto P = Variable<PsdVarMeta<Space>>();
+  constexpr auto P = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 3>();
   constexpr auto MatBuilder = mat_traits<Space>();
 

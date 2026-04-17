@@ -27,7 +27,7 @@ static constexpr auto rel_tol{1e-3};
 TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
   using Space = Matrixd<2, 2>;
   using QSpace = SymmetricMatrix<Space>;
-  constexpr auto P = Variable<PsdVarMeta<Space>>();
+  constexpr auto P = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 2>();
   constexpr auto Z = Matrixd<2, 2>{};
   constexpr auto MatBuilder = mat_traits<Space>();
@@ -143,7 +143,7 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
 
 TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
   using Space = Matrixd<3, 3>;
-  constexpr auto P = Variable<PsdVarMeta<Space>>();
+  constexpr auto P = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 3>();
   constexpr auto MatBuilder = mat_traits<Space>();
 
