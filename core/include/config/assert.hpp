@@ -14,7 +14,7 @@
 
 #include <cassert>
 
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
 #define AK_ASSERT(x) assert(x)
 #else
 #define AK_ASSERT(x) ((void)0)

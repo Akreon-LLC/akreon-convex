@@ -16,9 +16,18 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#ifdef AKREON_REPORT_OUTPUT
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#endif
 
+#include "config/assert.hpp"
 #include "config/solver_config.hpp"
+#include "convex/cone_traits.hpp"
+#include "convex/solver/pd_info.hpp"
 #include "convex/solver_traits.hpp"
+#include "linalg/norms/vector_norms.hpp"
 
 namespace detail {
 
@@ -60,6 +69,74 @@ constexpr const char* cone_type_name_v =
 }  // namespace detail
 
 namespace convex {
+
+template <size_t N, typename... Args>
+inline bool append_format(char* out, const size_t out_size, size_t& write_pos,
+                          const char (&fmt)[N], Args... xs) {
+  int bytes{0};
+  if constexpr (sizeof...(xs) == 0) {
+    bytes = std::snprintf(out + write_pos, out_size - write_pos, "%s", fmt);
+  } else {
+    bytes = std::snprintf(out + write_pos, out_size - write_pos, fmt, xs...);
+  }
+  if (bytes < 0) {
+    out[0] = '\0';
+    return false;
+  }
+  if (static_cast<size_t>(bytes) >= out_size - write_pos) {
+    out[out_size - 1] = '\0';
+    write_pos = out_size - 1;
+    return false;
+  }
+  write_pos += static_cast<size_t>(bytes);
+  return true;
+}
+
+inline constexpr const char* solver_result_to_cstr(
+    const config::SolverResult tag) {
+  switch (tag) {
+    case config::SolverResult::INFEASIBLE_OR_UNBOUNDED:
+      return "INFEASIBLE_OR_UNBOUNDED";
+    case config::SolverResult::OPTIMAL:
+      return "OPTIMAL";
+    case config::SolverResult::PRIMAL_FEASIBLE:
+      return "PRIMAL_FEASIBLE";
+    case config::SolverResult::DUAL_FEASIBLE:
+      return "DUAL_FEASIBLE";
+    case config::SolverResult::PRIMAL_DUAL_FEASIBLE:
+      return "PRIMAL_DUAL_FEASIBLE";
+    case config::SolverResult::PRIMAL_OPTIMAL:
+      return "PRIMAL_OPTIMAL";
+    case config::SolverResult::DUAL_OPTIMAL:
+      return "DUAL_OPTIMAL";
+    case config::SolverResult::INFEASIBLE_OPTIMAL:
+      return "INFEASIBLE_OPTIMAL";
+  }
+  return "UNKNOWN";
+}
+
+inline constexpr const char* numerical_event_to_cstr(
+    const linalg::NumericalEvent event) {
+  switch (event) {
+    case linalg::NumericalEvent::NONE:
+      return "NONE";
+    case linalg::NumericalEvent::RANK_DEFICIENCY:
+      return "RANK_DEFICIENCY";
+    case linalg::NumericalEvent::INDEFINITE_FACTORIZATION:
+      return "INDEFINITE_FACTORIZATION";
+    case linalg::NumericalEvent::NEAR_SINGULAR_TRIANGULAR_SOLVE:
+      return "NEAR_SINGULAR_TRIANGULAR_SOLVE";
+    case linalg::NumericalEvent::NUMERICAL_SAFEGUARD:
+      return "NUMERICAL_SAFEGUARD";
+    case linalg::NumericalEvent::DB_MAX_ITERS_REACHED:
+      return "DB_MAX_ITERS_REACHED";
+    case linalg::NumericalEvent::FACTORIZATION_FAILED:
+      return "FACTORIZATION_FAILED";
+    case linalg::NumericalEvent::EVD_FAILED:
+      return "EVD_FAILED";
+  }
+  return "UNKNOWN";
+}
 
 /**
  * @brief IterState
@@ -188,23 +265,9 @@ inline size_t iter_state_to_cstr(
   if (out == nullptr || out_size == 0) return 0;
 
   size_t write_pos{0};
-  const auto appendf = [&](const char* fmt, auto... xs) -> bool {
-    const int bytes =
-        std::snprintf(out + write_pos, out_size - write_pos, fmt, xs...);
-    if (bytes < 0) {
-      out[0] = '\0';
-      return false;
-    }
-    if (static_cast<size_t>(bytes) >= out_size - write_pos) {
-      out[out_size - 1] = '\0';
-      write_pos = out_size - 1;
-      return false;
-    }
-    write_pos += static_cast<size_t>(bytes);
-    return true;
-  };
 
-  if (!appendf(
+  if (!append_format(
+          out, out_size, write_pos,
           "mu=%g ax=%g ay=%g rd=%g rp=%g req=%g pz=%g pnu=%g px=%g py=%g "
           "tag=%hhX",
           static_cast<double>(state.mu), static_cast<double>(state.alpha_x),
@@ -226,11 +289,13 @@ inline size_t iter_state_to_cstr(
     if (!has_pred && !has_corr) continue;
 
     const char* cone_type = has_pred ? pred.cone_type : corr.cone_type;
-    if (!appendf("\n  cone[%zu:%s]", i, cone_type)) return write_pos;
-    if (!appendf("\n    pred: mu=%g rhs_c=%g pz_rhs=%g%s",
-                 static_cast<double>(pred.mu), static_cast<double>(pred.rhs_c),
-                 static_cast<double>(pred.pz_rhs),
-                 has_pred ? "" : " (inactive)"))
+    if (!append_format(out, out_size, write_pos, "\n  cone[%zu:%s]", i,
+                       cone_type))
+      return write_pos;
+    if (!append_format(
+            out, out_size, write_pos, "\n    pred: mu=%g rhs_c=%g pz_rhs=%g%s",
+            static_cast<double>(pred.mu), static_cast<double>(pred.rhs_c),
+            static_cast<double>(pred.pz_rhs), has_pred ? "" : " (inactive)"))
       return write_pos;
     if (has_pred) {
       char buf[2048];
@@ -238,7 +303,8 @@ inline size_t iter_state_to_cstr(
                                   const size_t size) -> bool {
         const size_t len = array_slice_to_cstr(vec, size, buf, sizeof(buf));
         if (len >= sizeof(buf)) return false;
-        return appendf("\n      -> %s: %s", label, buf);
+        return append_format(out, out_size, write_pos, "\n      -> %s: %s",
+                             label, buf);
       };
       if (!append_vec("xk", pred.xk, pred.cone_dim)) return write_pos;
       if (!append_vec("yk", pred.yk, pred.cone_dim)) return write_pos;
@@ -250,10 +316,10 @@ inline size_t iter_state_to_cstr(
       if (!append_vec("px", pred.px, pred.cone_dim)) return write_pos;
       if (!append_vec("py", pred.py, pred.cone_dim)) return write_pos;
     }
-    if (!appendf("\n    corr: mu=%g rhs_c=%g pz_rhs=%g%s",
-                 static_cast<double>(corr.mu), static_cast<double>(corr.rhs_c),
-                 static_cast<double>(corr.pz_rhs),
-                 has_corr ? "" : " (inactive)"))
+    if (!append_format(
+            out, out_size, write_pos, "\n    corr: mu=%g rhs_c=%g pz_rhs=%g%s",
+            static_cast<double>(corr.mu), static_cast<double>(corr.rhs_c),
+            static_cast<double>(corr.pz_rhs), has_corr ? "" : " (inactive)"))
       return write_pos;
     if (has_corr) {
       char buf[2048];
@@ -261,7 +327,8 @@ inline size_t iter_state_to_cstr(
                                   const size_t size) -> bool {
         const size_t len = array_slice_to_cstr(vec, size, buf, sizeof(buf));
         if (len >= sizeof(buf)) return false;
-        return appendf("\n      -> %s: %s", label, buf);
+        return append_format(out, out_size, write_pos, "\n      -> %s: %s",
+                             label, buf);
       };
       if (!append_vec("xk", corr.xk, corr.cone_dim)) return write_pos;
       if (!append_vec("yk", corr.yk, corr.cone_dim)) return write_pos;
@@ -380,6 +447,21 @@ inline size_t vec_to_cstr(const Vec& v, char* out, const size_t& out_size) {
 }
 
 /**
+ * @brief vector to json cstring
+ *
+ * @param vector
+ * @param buffer char string
+ * @param buffer size
+ *
+ * @return write position
+ */
+template <linalg::VectorLike Vec>
+inline size_t vec_to_json_cstr(const Vec& v, char* out,
+                               const size_t& out_size) {
+  return vec_to_cstr(v, out, out_size);
+}
+
+/**
  * @brief primal-dual result to cstring
  *
  * @param result
@@ -397,19 +479,7 @@ inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar, NuVar>& res,
 
   size_t write_pos{0};
   const auto append_text = [&](const char* text) -> bool {
-    const int bytes =
-        std::snprintf(out + write_pos, out_size - write_pos, "%s", text);
-    if (bytes < 0) {
-      out[0] = '\0';
-      return false;
-    }
-    if (static_cast<size_t>(bytes) >= out_size - write_pos) {
-      out[out_size - 1] = '\0';
-      write_pos = out_size - 1;
-      return false;
-    }
-    write_pos += static_cast<size_t>(bytes);
-    return true;
+    return append_format(out, out_size, write_pos, "%s", text);
   };
 
   const auto rd_norm = linalg::L2<decltype(res.rd)>()(res.rd);
@@ -486,5 +556,140 @@ inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar, NuVar>& res,
 
   return write_pos;
 }
+
+/**
+ * @brief primal-dual result to json cstring
+ *
+ * @param result
+ * @param buffer char string
+ * @param buffer size
+ *
+ * @return write position
+ */
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
+          linalg::VectorLike NuVar>
+inline size_t result_to_json_cstr(
+    const PrimalDualResult<Var, ConeVar, NuVar>& res, char* out,
+    const size_t& out_size) {
+  AK_ASSERT(out != nullptr && "result_to_json_cstr requires non-null output");
+  if (out == nullptr || out_size == 0) return 0;
+
+  size_t write_pos{0};
+  const auto append_json_vec = [&](const char* key, const auto& vec) -> bool {
+    char buf[8192];
+    const auto len = vec_to_json_cstr(vec, buf, sizeof(buf));
+    if (len >= sizeof(buf)) return false;
+    return append_format(out, out_size, write_pos, "\"%s\":%s", key, buf);
+  };
+
+  const auto rd_norm = linalg::L2<decltype(res.rd)>()(res.rd);
+  const auto rp_norm = linalg::L2<decltype(res.rp)>()(res.rp);
+  const auto req_norm = linalg::L2<decltype(res.req)>()(res.req);
+
+  if (!append_format(out, out_size, write_pos, "{")) return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"tag\":\"%s\",",
+                     solver_result_to_cstr(res.tag)))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"tag_code\":%u,",
+                     static_cast<unsigned>(res.tag)))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"event\":\"%s\",",
+                     numerical_event_to_cstr(res.event)))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"event_code\":%u,",
+                     static_cast<unsigned>(res.event)))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"stalled\":%s,",
+                     res.stalled ? "true" : "false"))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"num_iter\":%zu,",
+                     res.num_iter))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"mu\":%g,",
+                     static_cast<double>(res.mu)))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"convex_obj\":%g,",
+                     static_cast<double>(res.convex_obj)))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"dual_obj\":%g,",
+                     static_cast<double>(res.dual_obj)))
+    return write_pos;
+
+  if (!append_format(out, out_size, write_pos, "\"norms\":{")) return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"rd\":%g,",
+                     static_cast<double>(rd_norm)))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"rp\":%g,",
+                     static_cast<double>(rp_norm)))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, "\"req\":%g}",
+                     static_cast<double>(req_norm)))
+    return write_pos;
+
+  if (!append_format(out, out_size, write_pos, ",\"iterate\":{"))
+    return write_pos;
+  if (!append_json_vec("z", res.iterate.z)) return write_pos;
+  if (!append_format(out, out_size, write_pos, ",")) return write_pos;
+  if (!append_json_vec("x", res.iterate.x)) return write_pos;
+  if (!append_format(out, out_size, write_pos, ",")) return write_pos;
+  if (!append_json_vec("y", res.iterate.y)) return write_pos;
+  if (!append_format(out, out_size, write_pos, ",")) return write_pos;
+  if (!append_json_vec("nu", res.iterate.nu)) return write_pos;
+  if (!append_format(out, out_size, write_pos, "}")) return write_pos;
+
+  if (!append_format(out, out_size, write_pos, ",\"residuals\":{"))
+    return write_pos;
+  if (!append_json_vec("rd", res.rd)) return write_pos;
+  if (!append_format(out, out_size, write_pos, ",")) return write_pos;
+  if (!append_json_vec("rp", res.rp)) return write_pos;
+  if (!append_format(out, out_size, write_pos, ",")) return write_pos;
+  if (!append_json_vec("req", res.req)) return write_pos;
+  if (!append_format(out, out_size, write_pos, "}")) return write_pos;
+
+  if (!append_format(out, out_size, write_pos, "}")) return write_pos;
+  return write_pos;
+}
+
+#ifdef AKREON_REPORT_OUTPUT
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
+          linalg::VectorLike NuVar>
+inline void print_result(std::ostream& os,
+                         const PrimalDualResult<Var, ConeVar, NuVar>& res) {
+  char buf[64000];
+  result_to_cstr(res, buf, sizeof(buf));
+  os << buf;
+}
+
+template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
+          size_t VarDim, size_t EqDim, size_t N>
+inline void print_trace(
+    std::ostream& os, const size_t& num_iter,
+    const std::array<IterState<T, NumCones, MaxConeDim, VarDim, EqDim>, N>&
+        trace) {
+  char buf[64000];
+  trace_to_cstr(num_iter, trace, buf, sizeof(buf));
+  os << buf;
+}
+
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
+          linalg::VectorLike NuVar>
+inline void report_result_json(
+    std::ostream& os, const PrimalDualResult<Var, ConeVar, NuVar>& res) {
+  char buf[64000];
+  result_to_json_cstr(res, buf, sizeof(buf));
+  os << buf;
+}
+
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
+          linalg::VectorLike NuVar>
+inline bool write_result_json(
+    const std::filesystem::path& path,
+    const PrimalDualResult<Var, ConeVar, NuVar>& res) {
+  std::ofstream out(path);
+  if (!out.is_open()) return false;
+  report_result_json(out, res);
+  return static_cast<bool>(out);
+}
+#endif
 
 }  // namespace convex

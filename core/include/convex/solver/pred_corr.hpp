@@ -17,8 +17,8 @@
 #include "equality_coupling.hpp"
 #include "linalg/linalg_util.hpp"
 #include "newton_step.hpp"
-#ifdef AKREON_DEBUG
-#include "pd_ipm_debug.hpp"
+#ifdef AKREON_REPORT_OUTPUT
+#include "pd_ipm_output.hpp"
 #endif
 
 namespace convex {
@@ -58,7 +58,7 @@ struct PredictorCorrector {
                            const auto& eq, const ConeMat& F, const ConeVar& rp,
                            const Var& rd, const NuVar& req, const ConeVar& x,
                            const ConeVar& y
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
                            ,
                            IterState<T, NumCones, linalg::mat_rows_v<ConeMat>,
                                      N, EqRows>& trace_state
@@ -92,7 +92,7 @@ struct PredictorCorrector {
       ConePoint rhs_c = yk;
 
       pz_rhs = pz_rhs - F_blk_T * P.apply(rpk) - F_blk_T * rhs_c;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
       auto& cone_trace = trace_state.predictor[idx];
       cone_trace.mu = Ki.trace(xk, yk) / Ki.nu();
       cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
@@ -108,7 +108,7 @@ struct PredictorCorrector {
 
       auto [new_pz_rhs, step, next_event] = predictor<idx + 1, End>(
           std::move(pz_rhs), K, M_inv, eq, F, rp, rd, req, x, y
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
           ,
           trace_state
 #endif
@@ -132,7 +132,7 @@ struct PredictorCorrector {
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         step.px(i) = px_local(j), step.py(i) = py_local(j);
       }
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
       for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = step.pz(j);
       for (size_t j = 0; j < EqRows; ++j) cone_trace.pnu[j] = step.pnu(j);
       for (size_t j = 0; j < End - Start; ++j) {
@@ -169,7 +169,7 @@ struct PredictorCorrector {
                            const auto& M_inv, const auto& eq,
                            const ConeMat& F, const ConeVar& rp, const Var& rd,
                            const NuVar& req, const ConeVar& x, const ConeVar& y
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
                            ,
                            IterState<T, NumCones, linalg::mat_rows_v<ConeMat>,
                                      N, EqRows>& trace_state
@@ -210,7 +210,7 @@ struct PredictorCorrector {
       ConePoint rhs_c = yk + mu_k * grad_xk + Ki.circ(px_aff_k, py_aff_k);
 
       pz_rhs = pz_rhs - F_blk_T * P.apply(rpk) - F_blk_T * rhs_c;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
       auto& cone_trace = trace_state.corrector[idx];
       cone_trace.mu = mu_k;
       cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
@@ -227,7 +227,7 @@ struct PredictorCorrector {
       auto [new_pz_rhs, step, next_event] =
           corrector<idx + 1, End>(std::move(pz_rhs), px_aff, py_aff, K, M_inv,
                                   eq, F, rp, rd, req, x, y
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
                                   ,
                                   trace_state
 #endif
@@ -251,7 +251,7 @@ struct PredictorCorrector {
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         step.px(i) = px_local(j), step.py(i) = py_local(j);
       }
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
       for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = step.pz(j);
       for (size_t j = 0; j < EqRows; ++j) cone_trace.pnu[j] = step.pnu(j);
       for (size_t j = 0; j < End - Start; ++j) {

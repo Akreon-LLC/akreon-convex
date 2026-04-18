@@ -171,7 +171,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     const auto cfg = lqe_solver_config<double>();
     const Solver solver(prob, cfg);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif
@@ -217,7 +217,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     const auto cfg = lqe_solver_config<double>();
     const Solver solver(prob, cfg);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     if (res.tag == SolverResult::OPTIMAL && !res.stalled) log(res, trace);
 #endif

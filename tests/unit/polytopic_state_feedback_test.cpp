@@ -123,7 +123,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     const auto cfg = pldi_solver_config<double>();
     const Solver solver(prob, cfg);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif
@@ -221,7 +221,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     const auto cfg = pldi_solver_config<double>();
     const PrimalDualIPM solver(prob, cfg);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif

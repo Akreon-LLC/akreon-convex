@@ -74,7 +74,7 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif
@@ -165,7 +165,7 @@ TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif

@@ -19,8 +19,8 @@
 #include "pd_info.hpp"
 #include "pred_corr.hpp"
 #include "residual_state.hpp"
-#ifdef AKREON_DEBUG
-#include "pd_ipm_debug.hpp"
+#ifdef AKREON_REPORT_OUTPUT
+#include "pd_ipm_output.hpp"
 #endif
 
 namespace convex {
@@ -187,7 +187,7 @@ struct PrimalDualIPM {
   bool dual_feas{false};    ///< status flag for dual feasibility
   bool primal_feas{false};  ///< status flag for primal feasibility
   bool gap_min{false};      ///< status flag for duality gap minimized
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
   std::array<IterState<T, NumCones, M, N, EqRows>, PD_IPM_STEPS>
       trace;  ///< debug iteration trace
 #endif
@@ -229,7 +229,7 @@ struct PrimalDualIPM {
     for (i = 0; i < config.steps && tag != config::SolverResult::OPTIMAL &&
                 !res.stalled;
          ++i) {
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
       trace[i].reset_pc_trace();
 #endif
 
@@ -262,7 +262,7 @@ struct PrimalDualIPM {
       /// (dakre) 3 - predictor step
       const auto [pred_rhs, pred_step, pred_event] =
           pc.predictor(Var{}, K, M_ldl, eq, F, rp, rd, req, x, y
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
                        ,
                        trace[i]
 #endif
@@ -277,7 +277,7 @@ struct PrimalDualIPM {
       /// (dakre) 4 - corrector step
       const auto [corr_rhs, corr_step, corr_event] = pc.corrector(
           Var{}, pred_step.px, pred_step.py, K, M_ldl, eq, F, rp, rd, req, x, y
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
           ,
           trace[i]
 #endif
@@ -302,7 +302,7 @@ struct PrimalDualIPM {
       res.stalled = accepted ? 0 : 1;
 
       res.mu = mu(x, y, barrier_param);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
       trace[i].mu = res.mu;
       trace[i].rd_norm = rd_norm;
       trace[i].rp_norm = rp_norm;
@@ -328,7 +328,7 @@ struct PrimalDualIPM {
       gap_min = res.mu >= T(0) && res.mu <= config.duality_gap_tol;
 
       tag = get_tag();
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
       trace[i].tag = tag;
 #endif
     }

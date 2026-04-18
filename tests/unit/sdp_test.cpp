@@ -78,17 +78,17 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     cfg.duality_gap_tol = 1e-4;
     const PrimalDualIPM solver(prob_min, cfg);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
 #endif
 
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(res.num_iter > 0);
     REQUIRE(res.num_iter <= PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
     REQUIRE(!res.stalled);
@@ -137,7 +137,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     cfg.duality_gap_tol = 1e-4;
     const PrimalDualIPM solver(prob_min, cfg);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif
@@ -145,7 +145,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(res.num_iter > 0);
     REQUIRE(res.num_iter <= PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
     REQUIRE(!res.stalled);
@@ -220,7 +220,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     cfg.duality_gap_tol = 1e-4;
     const PrimalDualIPM solver(prob_min, cfg);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif
@@ -228,7 +228,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(res.num_iter > 0);
     REQUIRE(res.num_iter <= PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
     REQUIRE(!res.stalled);
@@ -258,7 +258,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
 
     const PrimalDualIPM solver(prob_psd);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
@@ -302,7 +302,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
 
     const PrimalDualIPM solver(prob_psd);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
@@ -351,7 +351,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
 
     const PrimalDualIPM solver(prob_psd);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
@@ -396,7 +396,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
     if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
 #endif

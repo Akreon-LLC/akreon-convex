@@ -171,7 +171,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
 
     const Solver cold_solver(prob, cfg);
     const auto& cold_res = cold_solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& cold_trace = cold_solver.trace;
     if (cold_res.tag != SolverResult::OPTIMAL || cold_res.stalled)
       log(cold_res, cold_trace);
@@ -190,7 +190,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
 
     const Solver warm_solver(prob, warm, cfg);
     const auto& warm_res = warm_solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& warm_trace = warm_solver.trace;
     if (warm_res.tag != SolverResult::OPTIMAL || warm_res.stalled)
       log(warm_res, warm_trace);
@@ -240,7 +240,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
     // -(2 a P + I) - P^2, which is strictly negative for every P \succeq 0.
     const Solver cold_solver(prob, cfg);
     const auto& cold_res = cold_solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& cold_trace = cold_solver.trace;
     if (cold_res.tag == SolverResult::OPTIMAL && !cold_res.stalled)
       log(cold_res, cold_trace);
@@ -409,7 +409,7 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
 
     const Solver cold_solver(prob, cfg);
     const auto& cold_res = cold_solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& cold_trace = cold_solver.trace;
     if (cold_res.tag != SolverResult::OPTIMAL || cold_res.stalled)
       log(cold_res, cold_trace);
@@ -460,7 +460,7 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
 
     const Solver cold_solver(prob, cfg);
     const auto& cold_res = cold_solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& cold_trace = cold_solver.trace;
     if (cold_res.tag != SolverResult::OPTIMAL || cold_res.stalled)
       log(cold_res, cold_trace);
@@ -479,7 +479,7 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
 
     const Solver warm_solver(prob, warm, cfg);
     const auto& warm_res = warm_solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& warm_trace = warm_solver.trace;
     if (warm_res.tag != SolverResult::OPTIMAL || warm_res.stalled)
       log(warm_res, warm_trace);
@@ -498,7 +498,7 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
 
     const Solver near_solver(prob, near, cfg);
     const auto& near_res = near_solver.res;
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     const auto& near_trace = near_solver.trace;
     if (near_res.tag != SolverResult::OPTIMAL || near_res.stalled)
       log(near_res, near_trace);

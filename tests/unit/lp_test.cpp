@@ -65,7 +65,7 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
 
-#if AKREON_DEBUG
+#if AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -94,7 +94,7 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
     STATIC_REQUIRE(constexpr_abs(res.iterate.z(1)) < rel_tol);
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -125,7 +125,7 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -157,7 +157,7 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -261,7 +261,7 @@ TEST_CASE("Polyhedron and Affine Subspace LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -313,7 +313,7 @@ TEST_CASE("L1 Ball LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -362,7 +362,7 @@ TEST_CASE("Linf Ball LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -413,7 +413,7 @@ TEST_CASE("L1 Function LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -463,7 +463,7 @@ TEST_CASE("Linf Function LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -514,7 +514,7 @@ TEST_CASE("Max Function LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -567,7 +567,7 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -610,7 +610,7 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -650,7 +650,7 @@ TEST_CASE("Abs Function LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto trace = solver.trace;
     STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
                    config::SolverResult::OPTIMAL);
@@ -687,7 +687,7 @@ TEST_CASE("Warm Start LP Test", "[lp_test]") {
 
     STATIC_REQUIRE(cold_res.tag == SolverResult::OPTIMAL);
     STATIC_REQUIRE(warm_res.tag == SolverResult::OPTIMAL);
-#ifdef AKREON_DEBUG
+#ifdef AKREON_REPORT_OUTPUT
     constexpr auto cold_trace = cold_solver.trace;
     constexpr auto warm_trace = warm_solver.trace;
     STATIC_REQUIRE(cold_trace[cold_res.num_iter - 1].tag ==

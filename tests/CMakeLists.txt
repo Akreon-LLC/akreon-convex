@@ -18,7 +18,7 @@ set(UNIT_COMPILE_OPTS
   -fno-rtti
   -flto
   -Oz
-  -DAKREON_DEBUG
+  -DAKREON_REPORT_OUTPUT
 )
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -43,7 +43,7 @@ set(FUNC_COMPILE_OPTS
   -fno-unwind-tables
   -fno-asynchronous-unwind-tables
   -Oz
-  -DAKREON_DEBUG
+  -DAKREON_REPORT_OUTPUT
 )
 
 if(BUILD_UNIT_TESTS)
@@ -150,6 +150,12 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(convex_prob_test PRIVATE ../include)
   target_compile_options(convex_prob_test PRIVATE ${UNIT_COMPILE_OPTS})
 
+  add_executable(pd_ipm_output_test unit/pd_ipm_output_test.cpp)
+  add_test(NAME pd_ipm_output_test COMMAND pd_ipm_output_test)
+  target_link_libraries(pd_ipm_output_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(pd_ipm_output_test PRIVATE ../include)
+  target_compile_options(pd_ipm_output_test PRIVATE ${UNIT_COMPILE_OPTS})
+
   add_executable(cone_test unit/cone_test.cpp)
   add_test(NAME cone_test COMMAND cone_test)
   target_link_libraries(cone_test PRIVATE Catch2::Catch2WithMain)
@@ -211,6 +217,7 @@ set(AKREON_TEST_TARGETS
   convex_set_test
   convex_fn_test
   convex_prob_test
+  pd_ipm_output_test
   cone_test
   lp_test
   qp_test
