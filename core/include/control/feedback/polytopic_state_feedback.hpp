@@ -199,7 +199,7 @@ constexpr auto make_polytopic_state_feedback_linear_objective(
   for (size_t i = 0; i < PSF::QDim; ++i) c(i) = q_weights(i);
   for (size_t i = 0; i < PSF::YDim; ++i) c(PSF::QDim + i) = y_weights(i);
 
-  return convex::WeightedSum<typename PSF::ZSpace>()(c, Z);
+  return convex::make_weighted_sum(c, Z);
 }
 
 /**
@@ -219,8 +219,7 @@ constexpr auto make_polytopic_state_feedback_quadratic_objective(
                          PolytopicStateFeedback<SS, N>::ZDim>& P,
     const linalg::Vector<ss_type_t<SS>, PolytopicStateFeedback<SS, N>::ZDim>& q,
     const ZVar& Z) {
-  using PSF = PolytopicStateFeedback<SS, N>;
-  return convex::QuadForm<typename PSF::ZSpace>()(P, q, Z);
+  return convex::make_quad_form(P, q, Z);
 }
 
 /**

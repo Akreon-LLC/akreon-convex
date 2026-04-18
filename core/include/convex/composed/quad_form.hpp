@@ -147,4 +147,85 @@ struct QuadForm {
   }
 };
 
+/**
+ * @brief make scalar quad form with domain deduced from the scalar affine atom
+ *
+ * @param p scalar quadratic coefficient
+ * @param q scalar linear coefficient
+ * @param r scalar constant offset
+ * @param x scalar affine atom
+ *
+ * @return 0.5 p x^2 + q x + r
+ */
+template <AtomLike Var>
+constexpr auto make_scalar_quad_form(
+    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& p,
+    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& q,
+    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& r,
+    const Var& x) {
+  using T = dom_type_t<meta_codom_t<atom_meta_t<Var>>>;
+  return ScalarQuadForm<T>()(p, q, r, x);
+}
+
+/**
+ * @brief make scalar quad form without constant offset
+ *
+ * @param p scalar quadratic coefficient
+ * @param q scalar linear coefficient
+ * @param x scalar affine atom
+ *
+ * @return 0.5 p x^2 + q x
+ */
+template <AtomLike Var>
+constexpr auto make_scalar_quad_form(
+    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& p,
+    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& q,
+    const Var& x) {
+  using T = dom_type_t<meta_codom_t<atom_meta_t<Var>>>;
+  return ScalarQuadForm<T>()(p, q, x);
+}
+
+/**
+ * @brief make quadratic form with domain deduced from the variable atom
+ *
+ * @param P \in S^n_+
+ * @param q \in R^n
+ * @param r \in R
+ * @param x decision variable atom
+ *
+ * @return 0.5 x^T P x + q^T x + r
+ */
+template <AtomLike Var>
+constexpr auto make_quad_form(
+    const linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Var>>>,
+                         dom_size_v<meta_codom_t<atom_meta_t<Var>>>,
+                         dom_size_v<meta_codom_t<atom_meta_t<Var>>>>& P,
+    const linalg::Vector<dom_type_t<meta_codom_t<atom_meta_t<Var>>>,
+                         dom_size_v<meta_codom_t<atom_meta_t<Var>>>>& q,
+    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& r, const Var& x) {
+  using Space = dom_space_t<meta_codom_t<atom_meta_t<Var>>>;
+  return QuadForm<Space>()(P, q, r, x);
+}
+
+/**
+ * @brief make quadratic form without constant offset
+ *
+ * @param P \in S^n_+
+ * @param q \in R^n
+ * @param x decision variable atom
+ *
+ * @return 0.5 x^T P x + q^T x
+ */
+template <AtomLike Var>
+constexpr auto make_quad_form(
+    const linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Var>>>,
+                         dom_size_v<meta_codom_t<atom_meta_t<Var>>>,
+                         dom_size_v<meta_codom_t<atom_meta_t<Var>>>>& P,
+    const linalg::Vector<dom_type_t<meta_codom_t<atom_meta_t<Var>>>,
+                         dom_size_v<meta_codom_t<atom_meta_t<Var>>>>& q,
+    const Var& x) {
+  using Space = dom_space_t<meta_codom_t<atom_meta_t<Var>>>;
+  return QuadForm<Space>()(P, q, x);
+}
+
 }  // namespace convex
