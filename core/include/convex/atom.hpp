@@ -158,8 +158,8 @@ struct Atom {
           }
           case VarType::PSD: {
             AK_ASSERT(
-                (child_sign == VarType::PSD || child_sign == VarType::PD) &&
-                "Parent PSD domain expects PSD/PD child codomain");
+                child_sign == VarType::PSD &&
+                "Parent PSD domain expects PSD child codomain");
             break;
           }
           case VarType::FREE:
