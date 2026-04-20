@@ -39,7 +39,7 @@ struct ss_traits<StateSpace<Type, PlantIn, ControlIn, OutputIn>> {
   using T = linalg::mat_type_t<Plant>;
   using State = linalg::Vector<T, linalg::mat_cols_v<Plant>>;
   using Input = linalg::Vector<T, linalg::mat_cols_v<Control>>;
-  using OutVec = linalg::Vector<T, linalg::mat_cols_v<Output>>;
+  using OutVec = linalg::Vector<T, linalg::mat_rows_v<Output>>;
   static constexpr TimeDomainType DType = Type;
 };
 

@@ -20,4 +20,3 @@
 #include "spectral/matrix_exp.hpp"
 #include "spectral/qr.hpp"
 #include "spectral/svd.hpp"
-#include "vector/inner_product_space.hpp"

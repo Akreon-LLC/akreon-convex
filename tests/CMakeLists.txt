@@ -185,6 +185,12 @@ if(BUILD_UNIT_TESTS)
   target_link_libraries(sdp_test PRIVATE Catch2::Catch2WithMain)
   target_include_directories(sdp_test PRIVATE ../include)
   target_compile_options(sdp_test PRIVATE ${UNIT_COMPILE_OPTS})
+
+  add_executable(closed_loop_test unit/closed_loop_test.cpp)
+  add_test(NAME closed_loop_test COMMAND closed_loop_test)
+  target_link_libraries(closed_loop_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(closed_loop_test PRIVATE ../include)
+  target_compile_options(closed_loop_test PRIVATE ${UNIT_COMPILE_OPTS})
 endif()
 
 if(BUILD_FUNCTIONAL_TESTS)
@@ -222,6 +228,7 @@ set(AKREON_TEST_TARGETS
   lp_test
   qp_test
   socp_test
+  closed_loop_test
   linalg_fuzz_test
   lp_fuzz_test
   qp_fuzz_test
