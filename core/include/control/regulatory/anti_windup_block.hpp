@@ -27,7 +27,6 @@ struct AntiWindupBlock {
   using StateSpace = linalg::remove_cvref_t<SS>;
   using T = ss_type_t<StateSpace>;
   using Input = input_vec_t<StateSpace>;
-  using IntState = linalg::Vector<T, ErrorDim>;
   using KawMat = linalg::Matrix<T, ErrorDim, linalg::vec_size_v<Input>>;
 
   /**

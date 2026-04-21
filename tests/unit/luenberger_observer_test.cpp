@@ -37,7 +37,7 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto obs = LuenbergerObserver<decltype(ss)>();
     constexpr auto lmi = obs(ss, P);
@@ -62,7 +62,7 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto obs = LuenbergerObserver<decltype(ss)>();
     constexpr auto prob = make_observer_problem(ss, P);
@@ -116,7 +116,7 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto prob = make_observer_problem(ss, P);
 
@@ -153,7 +153,7 @@ TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto obs = LuenbergerObserver<decltype(ss)>();
     constexpr auto prob = make_observer_problem(ss, P);
@@ -202,7 +202,7 @@ TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto prob = make_observer_problem(ss, P);
 

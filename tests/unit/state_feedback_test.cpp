@@ -45,7 +45,7 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto sf = StateFeedback<decltype(ss)>();
     constexpr auto lmi = sf(ss, Q);
@@ -71,7 +71,7 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto sf = StateFeedback<decltype(ss)>();
     constexpr auto prob = make_state_feedback_problem(ss, Q);
@@ -119,7 +119,7 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto prob = make_state_feedback_problem(ss, Q);
 
@@ -166,7 +166,7 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto prob = make_state_feedback_problem(ss, Q);
 
@@ -204,7 +204,7 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto prob = make_state_feedback_problem(ss, Q);
 
@@ -245,7 +245,7 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto sf = StateFeedback<decltype(ss)>();
     constexpr auto c = Vectord<6>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0};
@@ -284,7 +284,7 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto P = Matrixd<6, 6>{
         Vectord<6>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0},

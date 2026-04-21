@@ -19,7 +19,7 @@ namespace control {
 /**
  * @brief ClosedLoopBuilder
  */
-template <ContinuousStateSpaceLike SS, typename Controller = NoController,
+template <StateSpaceLike SS, typename Controller = NoController,
           typename Observer = NoObserver, typename Reference = NoReference,
           typename Integrator = NoIntegrator, typename Saturator = NoSaturator,
           typename AntiWindup = NoAntiWindup>
@@ -140,7 +140,7 @@ struct ClosedLoopBuilder {
  *
  * @return ClosedLoopBuilder
  */
-template <ContinuousStateSpaceLike SS>
+template <StateSpaceLike SS>
 constexpr auto loop(const SS& ss) {
   return ClosedLoopBuilder<linalg::remove_cvref_t<SS>>{ss};
 }

@@ -20,7 +20,7 @@ namespace control {
  * @brief OutputIntegrator
  *
  * e = r - y
- * zdot = e
+ * z_next = z + dt e
  *
  * u_i = -Ki z
  */
@@ -39,16 +39,16 @@ struct OutputIntegratorBlock {
                 "Invalid ErrorDim set on the integrator block");
 
   /**
-   * @brief zdot
+   * @brief z_delta
    *
-   * zdot = e = r - y
+   * z_delta = e = r - y
    *
    * @param r (Reference)
    * @param y (Output)
    *
-   * @return zdot
+   * @return z_delta
    */
-  constexpr auto z_dot(const Output& r, const Output& y) const {
+  constexpr auto z_delta(const Output& r, const Output& y) const {
     return S * (r - y);
   }
 

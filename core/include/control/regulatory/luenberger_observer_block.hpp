@@ -21,7 +21,7 @@ namespace control {
  *
  * yhat = C x + D u
  * e = y - yhat
- * xhat_dot = A xhat + B u + L e
+ * xhat_next = xhat + dt (A xhat + B u + L e)
  */
 template <StateSpaceLike SS>
 struct LuenbergerObserverBlock {
@@ -35,17 +35,17 @@ struct LuenbergerObserverBlock {
       linalg::Matrix<T, linalg::vec_size_v<State>, linalg::vec_size_v<Output>>;
 
   /**
-   * @brief xhat_dot
+   * @brief xhat_delta
    *
    * @param ss (StateSpace)
    * @param xhat (Estimated State)
    * @param u (Input)
    * @param y (Output)
    *
-   * @return dot(xhat)
+   * @return xhat_delta
    */
-  constexpr auto xhat_dot(const StateSpace& ss, const State& xhat,
-                          const Input& u, const Output& y) const {
+  constexpr auto xhat_delta(const StateSpace& ss, const State& xhat,
+                            const Input& u, const Output& y) const {
     const auto yhat =
         ss.D.has_value() ? ss.C * xhat + (*ss.D) * u : ss.C * xhat;
     return ss.A * xhat + ss.B * u + L * (y - yhat);

@@ -52,9 +52,9 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     constexpr auto C = I;
 
     constexpr auto ss0 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A0, B0, C);
+        StateSpace<Space, Space, Space>(A0, B0, C);
     constexpr auto ss1 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A1, B1, C);
+        StateSpace<Space, Space, Space>(A1, B1, C);
     constexpr auto poly = Vector<decltype(ss0), 2>{ss0, ss1};
 
     constexpr auto psf = PolytopicStateFeedback<decltype(ss0), 2>();
@@ -98,10 +98,10 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     constexpr auto C = CRow;
 
     constexpr auto ss0 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
+        StateSpace<Space, InputSpace, OutputSpace>(
             A0, B0, C);
     constexpr auto ss1 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
+        StateSpace<Space, InputSpace, OutputSpace>(
             A1, B1, C);
     constexpr auto poly = Vector<decltype(ss0), 2>{ss0, ss1};
 
@@ -192,10 +192,10 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     constexpr auto C = CRow;
 
     constexpr auto ss0 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
+        StateSpace<Space, InputSpace, OutputSpace>(
             A0, B0, C);
     constexpr auto ss1 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
+        StateSpace<Space, InputSpace, OutputSpace>(
             A1, B1, C);
     constexpr auto poly = Vector<decltype(ss0), 2>{ss0, ss1};
 

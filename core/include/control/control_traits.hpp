@@ -16,12 +16,9 @@
 
 namespace control {
 
-/// @brief time domain type
-enum struct TimeDomainType : uint8_t { CONTINUOUS = 0, DISCRETE };
-
 /// @brief forward decl of state space
-template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
-          linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>
+template <linalg::SquareMatrixLike PlantIn, linalg::MatrixLike ControlIn,
+          linalg::MatrixLike OutputIn>
 struct StateSpace;
 
 /// @brief base type traits for state space
@@ -29,9 +26,9 @@ template <class StateSpace>
 struct ss_traits;
 
 /// @brief explicit type traits for state space
-template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
-          linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>
-struct ss_traits<StateSpace<Type, PlantIn, ControlIn, OutputIn>> {
+template <linalg::SquareMatrixLike PlantIn, linalg::MatrixLike ControlIn,
+          linalg::MatrixLike OutputIn>
+struct ss_traits<StateSpace<PlantIn, ControlIn, OutputIn>> {
   using Plant = linalg::remove_cvref_t<PlantIn>;
   using Control = linalg::remove_cvref_t<ControlIn>;
   using Output = linalg::remove_cvref_t<OutputIn>;
@@ -40,7 +37,6 @@ struct ss_traits<StateSpace<Type, PlantIn, ControlIn, OutputIn>> {
   using State = linalg::Vector<T, linalg::mat_cols_v<Plant>>;
   using Input = linalg::Vector<T, linalg::mat_cols_v<Control>>;
   using OutVec = linalg::Vector<T, linalg::mat_rows_v<Output>>;
-  static constexpr TimeDomainType DType = Type;
 };
 
 /// @brief extract scalar type from ss
@@ -77,12 +73,6 @@ template <typename StateSpace>
 using output_vec_t =
     typename ss_traits<linalg::remove_cvref_t<StateSpace>>::OutVec;
 
-/// @brief check if continuous or not
-template <typename StateSpace>
-inline constexpr bool is_continuous_v =
-    ss_traits<linalg::remove_cvref_t<StateSpace>>::DType ==
-    TimeDomainType::CONTINUOUS;
-
 /// @brief StateSpace concept
 template <typename StateSpace>
 concept StateSpaceLike = requires(const StateSpace& ss) {
@@ -91,14 +81,12 @@ concept StateSpaceLike = requires(const StateSpace& ss) {
   { ss.C };
 };
 
-/// @brief ContinuousStateSpace concept
+/// @brief compatibility concept retained until synthesis is migrated
 template <typename StateSpace>
-concept ContinuousStateSpaceLike =
-    is_continuous_v<StateSpace> && StateSpaceLike<StateSpace>;
+concept ContinuousStateSpaceLike = StateSpaceLike<StateSpace>;
 
-/// @brief ContinuousStateSpace concept
+/// @brief compatibility concept retained until synthesis is migrated
 template <typename StateSpace>
-concept DiscreteStateSpaceLike =
-    !is_continuous_v<StateSpace> && StateSpaceLike<StateSpace>;
+concept DiscreteStateSpaceLike = StateSpaceLike<StateSpace>;
 
 }  // namespace control

@@ -47,7 +47,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
     constexpr auto lmi = kf(ss, Q, R, P);
@@ -86,7 +86,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
     constexpr auto kf =
         KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
 
@@ -120,7 +120,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto kf =
         KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
@@ -158,7 +158,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto kf =
         KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
@@ -206,7 +206,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto prob = make_lqe_problem(ss, Q, R, P);
 
@@ -238,7 +238,7 @@ TEST_CASE("Small Kalman Filter 3x3", "[kalman_filter_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto kf =
         KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();

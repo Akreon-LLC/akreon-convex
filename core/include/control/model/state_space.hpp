@@ -19,11 +19,11 @@ namespace control {
 /**
  * @brief StateSpace
  *
- * \dot{x} = A x(t) + B u(t)
- * y = C x(t) + D u(t)
+ * x_next = x + dt (A x + B u)
+ * y = C x + D u
  */
-template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
-          linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>
+template <linalg::SquareMatrixLike PlantIn, linalg::MatrixLike ControlIn,
+          linalg::MatrixLike OutputIn>
 struct StateSpace {
   /// @brief extract type and alias
   using Plant = linalg::remove_cvref_t<PlantIn>;
@@ -46,6 +46,7 @@ struct StateSpace {
   /// @brief state vector
   using State = linalg::Vector<T, PlantCols>;
   using Input = linalg::Vector<T, ControlCols>;
+  using OutVec = linalg::Vector<T, OutputRows>;
 
   /**
    * @brief CTOR
@@ -69,6 +70,35 @@ struct StateSpace {
   constexpr explicit StateSpace(const Plant& A_in, const Control& B_in,
                                 const Output& C_in, const Feedthrough& D_in)
       : A(A_in), B(B_in), C(C_in), D(D_in) {}
+
+  /**
+   * @brief x_next
+   *
+   * Euler-discretized propagation with sample time dt.
+   *
+   * @param x (State)
+   * @param u (Input)
+   * @param dt (time step)
+   *
+   * @return xdot
+   */
+  constexpr auto x_next(const State& x, const Input& u, const T& dt) const {
+    return x + dt * (A * x + B * u);
+  }
+
+  /**
+   * @brief y
+   *
+   * y = C x + D u
+   *
+   * @param x (State)
+   * @param u (Input)
+   *
+   * @return y
+   */
+  constexpr auto y(const State& x, const Input& u) const {
+    return D.has_value() ? C * x + (*D) * u : C * x;
+  }
 
   /** @brief member var */
   Plant A;                       ///< Plant matrix

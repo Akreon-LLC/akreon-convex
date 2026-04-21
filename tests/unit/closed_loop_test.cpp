@@ -28,7 +28,7 @@ TEST_CASE("Closed-loop regulatory blocks compose and step coherently",
   constexpr auto B = Space{3.0};
   constexpr auto C = Space{1.0};
   constexpr auto ss =
-      StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+      StateSpace<Space, Space, Space>(A, B, C);
 
   constexpr auto K = Space{4.0};
   constexpr auto L = Space{7.0};
@@ -56,8 +56,8 @@ TEST_CASE("Closed-loop regulatory blocks compose and step coherently",
     REQUIRE_THAT(controller.u_fb(x)(0), WithinAbs(-2.0, 1e-12));
     REQUIRE_THAT(reference.u_ff(r)(0), WithinAbs(10.0, 1e-12));
     REQUIRE_THAT(integrator.u_i(z)(0), WithinAbs(-1.5, 1e-12));
-    REQUIRE_THAT(integrator.z_dot(r, y)(0), WithinAbs(1.0, 1e-12));
-    REQUIRE_THAT(observer.xhat_dot(ss, x, u, y)(0), WithinAbs(24.0, 1e-12));
+    REQUIRE_THAT(integrator.z_delta(r, y)(0), WithinAbs(1.0, 1e-12));
+    REQUIRE_THAT(observer.xhat_delta(ss, x, u, y)(0), WithinAbs(24.0, 1e-12));
     REQUIRE_THAT(saturator.u(Vec{2.5})(0), WithinAbs(1.0, 1e-12));
     REQUIRE_THAT(anti_windup.z_correction(Vec{2.5}, Vec{1.0})(0),
                  WithinAbs(-12.0, 1e-12));
@@ -161,7 +161,7 @@ TEST_CASE("Closed-loop regulatory blocks compose and step coherently",
     const auto u_cmd = cl.control_from_state(x, z, r);
     const auto u_sat = cl.saturate_input(u_cmd);
     const auto y = cl.plant_output(x, u_sat);
-    const auto zdot = cl.integrator_dynamics(r, y, u_cmd, u_sat);
+    const auto zdot = cl.integrator_delta(r, y, u_cmd, u_sat);
 
     REQUIRE_THAT(u_cmd(0), WithinAbs(4.5, 1e-12));
     REQUIRE_THAT(u_sat(0), WithinAbs(1.0, 1e-12));

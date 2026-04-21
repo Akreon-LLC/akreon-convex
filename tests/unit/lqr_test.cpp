@@ -47,7 +47,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto lqr = LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
     constexpr auto lmi = lqr(ss, Q, R, P);
@@ -86,7 +86,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
     constexpr auto lqr = LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
 
     const auto P_star = I;
@@ -119,7 +119,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto P_geq =
         Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
@@ -157,7 +157,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto lqr =
         LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
@@ -226,7 +226,7 @@ TEST_CASE("Small LQR 2x2", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto prob = make_lqr_problem(ss, Q, R, P);
 
@@ -264,7 +264,7 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
     constexpr auto lqr = LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
 
     const auto p1 = 2.0 - constexpr_sqrt_safe(3.0);
@@ -319,7 +319,7 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
     constexpr auto lqr = LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
 
     const auto p1 = 1.2 * (2.0 - constexpr_sqrt_safe(3.0));
@@ -354,7 +354,7 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto P_geq =
         Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
@@ -395,7 +395,7 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto lqr =
         LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
@@ -439,7 +439,7 @@ TEST_CASE("Small LQR 3x3", "[lqr_test]") {
     constexpr auto B = I;
     constexpr auto C = I;
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<Space, Space, Space>(A, B, C);
 
     constexpr auto lqr =
         LyapunovCertificate<decltype(ss), decltype(Q), decltype(R)>();
