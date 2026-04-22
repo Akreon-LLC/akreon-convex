@@ -96,8 +96,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
    */
   constexpr explicit ScalarView(const size_t& idx_in, const Child& child_in)
       : BaseT(std::make_tuple(child_in)),
-        map(affine::make_selector_map<SelMatT>(idx_in)),
-        idx(idx_in) {
+        map(affine::make_selector_map<SelMatT>(idx_in)), idx(idx_in) {
     AK_ASSERT(is_var_type_v<Child> &&
               "ScalarView child must be the decision variable type");
   }
@@ -159,8 +158,8 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   }
 
   /** @brief member var */
-  affine::AffineMap<SelMatT> map;  ///< selector map of scalar view onto var
-  size_t idx;                      ///< index of orig var
+  affine::AffineMap<SelMatT> map; ///< selector map of scalar view onto var
+  size_t idx;                     ///< index of orig var
 };
 
 /**
@@ -304,4 +303,4 @@ struct Variable : Atom<Meta, Variable<Meta>> {
   affine::AffineMap<LinearMatT> map;
 };
 
-}  // namespace convex
+} // namespace convex

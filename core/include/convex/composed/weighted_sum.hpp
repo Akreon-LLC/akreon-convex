@@ -66,12 +66,11 @@ struct WeightedSum {
  */
 template <AtomLike Var>
 constexpr auto make_weighted_sum(
-    const linalg::Vector<
-        dom_type_t<meta_codom_t<atom_meta_t<Var>>>,
-        dom_size_v<meta_codom_t<atom_meta_t<Var>>>>& q,
+    const linalg::Vector<dom_type_t<meta_codom_t<atom_meta_t<Var>>>,
+                         dom_size_v<meta_codom_t<atom_meta_t<Var>>>>& q,
     const Var& x) {
   using Space = dom_space_t<meta_codom_t<atom_meta_t<Var>>>;
   return WeightedSum<Space>()(q, x);
 }
 
-}  // namespace convex
+} // namespace convex

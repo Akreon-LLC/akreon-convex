@@ -166,9 +166,9 @@ struct PredictorCorrector {
   template <size_t idx = 0, size_t Start = 0>
   constexpr auto corrector(Var&& pz_rhs, const ConeVar& px_aff,
                            const ConeVar& py_aff, const auto& K,
-                           const auto& M_inv, const auto& eq,
-                           const ConeMat& F, const ConeVar& rp, const Var& rd,
-                           const NuVar& req, const ConeVar& x, const ConeVar& y
+                           const auto& M_inv, const auto& eq, const ConeMat& F,
+                           const ConeVar& rp, const Var& rd, const NuVar& req,
+                           const ConeVar& x, const ConeVar& y
 #ifdef AKREON_REPORT_OUTPUT
                            ,
                            IterState<T, NumCones, linalg::mat_rows_v<ConeMat>,
@@ -224,14 +224,13 @@ struct PredictorCorrector {
       cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
 #endif
 
-      auto [new_pz_rhs, step, next_event] =
-          corrector<idx + 1, End>(std::move(pz_rhs), px_aff, py_aff, K, M_inv,
-                                  eq, F, rp, rd, req, x, y
+      auto [new_pz_rhs, step, next_event] = corrector<idx + 1, End>(
+          std::move(pz_rhs), px_aff, py_aff, K, M_inv, eq, F, rp, rd, req, x, y
 #ifdef AKREON_REPORT_OUTPUT
-                                  ,
-                                  trace_state
+          ,
+          trace_state
 #endif
-          );
+      );
       if (linalg::is_fatal_event(next_event))
         return std::tuple(std::move(new_pz_rhs), std::move(step), next_event);
 
@@ -266,4 +265,4 @@ struct PredictorCorrector {
   }
 };
 
-}  // namespace convex
+} // namespace convex

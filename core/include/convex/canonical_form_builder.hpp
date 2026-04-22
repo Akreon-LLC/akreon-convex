@@ -95,11 +95,11 @@ struct CanonicalFormBuilder {
   }
 
   /** @brief member vars **/
-  CoordMap coord_map;  ///< cone coordinate map
-  CB cb;         ///< cone block (includes tuple of cones + F & g affine map)
-  EqMap eq_map;  ///< A x = b map
+  CoordMap coord_map; ///< cone coordinate map
+  CB cb;        ///< cone block (includes tuple of cones + F & g affine map)
+  EqMap eq_map; ///< A x = b map
 
- private:
+private:
   /**
    * @brief update map
    *
@@ -263,4 +263,4 @@ constexpr auto create_empty_cblk_builder() {
                               decltype(eq_map)>(cblk.map, cblk, eq_map);
 }
 
-}  // namespace conic
+} // namespace conic

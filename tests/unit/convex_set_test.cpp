@@ -98,8 +98,7 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
     constexpr auto cone_block = new_builder.cb;
     constexpr auto A = as_row_vector(point);
 
-    STATIC_REQUIRE(new_builder.eq_map ==
-                   affine::AffineMap(A, Vectord<1>{b}));
+    STATIC_REQUIRE(new_builder.eq_map == affine::AffineMap(A, Vectord<1>{b}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
@@ -195,11 +194,9 @@ TEST_CASE("Test LMI", "[convex_sets]") {
         set.template canonicalize<AtomType::SET>(builder).cb;
 
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
-    constexpr auto F =
-        F_mat(1.0, 2.0, 0.5 * sqrt2, -0.25 * sqrt2, 2.0, 1.5);
-    STATIC_REQUIRE(
-        cone_block.map ==
-        affine::AffineMap(F, Vectord<3>{3.0, sqrt2, 4.0}));
+    constexpr auto F = F_mat(1.0, 2.0, 0.5 * sqrt2, -0.25 * sqrt2, 2.0, 1.5);
+    STATIC_REQUIRE(cone_block.map ==
+                   affine::AffineMap(F, Vectord<3>{3.0, sqrt2, 4.0}));
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;

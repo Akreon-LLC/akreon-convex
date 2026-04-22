@@ -202,4 +202,4 @@ constexpr auto Solve(
   return std::tuple{Q, A, B};
 }
 
-}  // namespace dynamics
+} // namespace dynamics

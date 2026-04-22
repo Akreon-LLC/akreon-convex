@@ -161,8 +161,7 @@ template <AtomLike Var>
 constexpr auto make_scalar_quad_form(
     const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& p,
     const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& q,
-    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& r,
-    const Var& x) {
+    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& r, const Var& x) {
   using T = dom_type_t<meta_codom_t<atom_meta_t<Var>>>;
   return ScalarQuadForm<T>()(p, q, r, x);
 }
@@ -179,8 +178,7 @@ constexpr auto make_scalar_quad_form(
 template <AtomLike Var>
 constexpr auto make_scalar_quad_form(
     const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& p,
-    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& q,
-    const Var& x) {
+    const dom_type_t<meta_codom_t<atom_meta_t<Var>>>& q, const Var& x) {
   using T = dom_type_t<meta_codom_t<atom_meta_t<Var>>>;
   return ScalarQuadForm<T>()(p, q, x);
 }
@@ -228,4 +226,4 @@ constexpr auto make_quad_form(
   return QuadForm<Space>()(P, q, x);
 }
 
-}  // namespace convex
+} // namespace convex

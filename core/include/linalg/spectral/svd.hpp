@@ -43,12 +43,12 @@ struct SVD {
   constexpr SVD(const Mat& A) : converged(false) { svd(A); }
 
   /** @brief SVD member variables */
-  Matrix<Complex, Cols, Cols> VT;  ///< right singular vectors
-  Matrix<Complex, Rows, Rows> U;   ///< left singular vectors
-  Matrix<Real, Rows, Cols> S;      ///< singular values
-  bool converged;                  ///< converged
+  Matrix<Complex, Cols, Cols> VT; ///< right singular vectors
+  Matrix<Complex, Rows, Rows> U;  ///< left singular vectors
+  Matrix<Real, Rows, Cols> S;     ///< singular values
+  bool converged;                 ///< converged
 
- private:
+private:
   /**
    * @brief solve A = U \Sigma V^T
    *
@@ -59,10 +59,8 @@ struct SVD {
   constexpr void svd(const Mat& A) {
     // 1. compute A^T A then solve eigen decomposition
     Matrix<T, Cols, Cols> M;
-    if constexpr (RealLike<T>)
-      M = transpose(A) * A;
-    else
-      M = conjugate_transpose(A) * A;
+    if constexpr (RealLike<T>) M = transpose(A) * A;
+    else M = conjugate_transpose(A) * A;
 
     const auto result = EigenDecomposition(M);
     converged = result.converged;
@@ -134,4 +132,4 @@ struct SVD {
   }
 };
 
-}  // namespace linalg
+} // namespace linalg

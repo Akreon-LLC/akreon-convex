@@ -202,4 +202,4 @@ constexpr auto make_lqr_problem(const SS& ss, const StateCostMat& Q,
   return prob_constraints.minimize(obj);
 }
 
-}  // namespace control
+} // namespace control

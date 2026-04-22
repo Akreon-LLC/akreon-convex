@@ -68,8 +68,8 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Log(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -89,8 +89,7 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
   constexpr MonotonicityType monotonicity() const {
     if constexpr (Tag == CurvatureType::CONCAVE)
       return MonotonicityType::NONDEC;
-    else
-      return MonotonicityType::NONINC;
+    else return MonotonicityType::NONINC;
   }
 
   /**
@@ -116,8 +115,7 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONCAVE)
       return alpha * linalg::constexpr_ln(x(0)).value() + beta;
-    else
-      return T(-1) * alpha * linalg::constexpr_ln(x(0)).value() + beta;
+    else return T(-1) * alpha * linalg::constexpr_ln(x(0)).value() + beta;
   }
 
   /**
@@ -226,8 +224,7 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
 };
 
 template <typename Child>
-Log(const Child&)
-    -> Log<LogMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-           atom_decay_t<Child>>;
+Log(const Child&) -> Log<LogMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+                         atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

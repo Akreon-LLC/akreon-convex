@@ -81,4 +81,4 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC> {
   }
 };
 
-}  // namespace conic
+} // namespace conic

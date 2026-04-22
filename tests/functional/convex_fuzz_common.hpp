@@ -178,4 +178,4 @@ bool run_trials(const char* name, const size_t trials, Fn&& fn) {
   return true;
 }
 
-}  // namespace functional_test
+} // namespace functional_test

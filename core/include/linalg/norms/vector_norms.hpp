@@ -33,8 +33,7 @@ struct L2 {
   using ScalarT = scalar_type_t<vec_type_t<Vec>>;
   constexpr auto operator()(const Vec& x) const {
     ScalarT result = 0;
-    if constexpr (RealLike<T>)
-      result = dot(x, x);
+    if constexpr (RealLike<T>) result = dot(x, x);
     else {
       const auto tmp = dot(conjugate(x), x);
       AK_ASSERT(is_real(tmp) && "L2 complex norm expects real inner product");
@@ -84,4 +83,4 @@ struct Linf {
   }
 };
 
-}  // namespace linalg
+} // namespace linalg

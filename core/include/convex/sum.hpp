@@ -157,9 +157,8 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
    * @return new sum
    */
   constexpr auto add(const T& beta) const {
-    affine::AffineMap<MatT> new_map(map.linear_part(),
-                                    linalg::Vector<T, 1>{beta} +
-                                        map.translation());
+    affine::AffineMap<MatT> new_map(
+        map.linear_part(), linalg::Vector<T, 1>{beta} + map.translation());
     return Sum<Meta, Cs...>(new_map, this->children);
   }
 
@@ -187,10 +186,9 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
         affine::AffineMap<decltype(selector.linear_part())>(F, g);
 
     const auto new_builder = std::get<1>(res);
-    return conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
-                                       decltype(new_selector),
-                                       decltype(new_builder.cb),
-                                       decltype(new_builder.eq_map)>(
+    return conic::CanonicalFormBuilder<
+        conic::builder_dom_t<Builder>, decltype(new_selector),
+        decltype(new_builder.cb), decltype(new_builder.eq_map)>(
         new_selector, new_builder.cb, new_builder.eq_map);
   }
 
@@ -200,10 +198,9 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
 
 template <typename C0, typename... Cs>
 Sum(const C0&, const Cs&...)
-    -> Sum<SumMeta<linalg::Matrix<
-                       dom_type_t<meta_dom_t<atom_meta_t<C0>>>, 1,
-                       1 + sizeof...(Cs)>,
+    -> Sum<SumMeta<linalg::Matrix<dom_type_t<meta_dom_t<atom_meta_t<C0>>>, 1,
+                                  1 + sizeof...(Cs)>,
                    dom_space_t<meta_codom_t<atom_meta_t<C0>>>>,
            atom_decay_t<C0>, atom_decay_t<Cs>...>;
 
-}  // namespace convex
+} // namespace convex

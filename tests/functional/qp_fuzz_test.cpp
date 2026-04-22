@@ -48,14 +48,14 @@ bool run_qp_trial(std::mt19937& rng) {
   return sum_decision<N>(res.iterate.z) <= cap + TOL;
 }
 
-}  // namespace functional_test
+} // namespace functional_test
 
 int main() {
-  return functional_test::run_trials(
-             "convex_qp_fuzz", functional_test::TRIALS,
-             [](std::mt19937& rng) {
-               return functional_test::run_qp_trial<6>(rng);
-             })
+  return functional_test::run_trials("convex_qp_fuzz", functional_test::TRIALS,
+                                     [](std::mt19937& rng) {
+                                       return functional_test::run_qp_trial<6>(
+                                           rng);
+                                     })
              ? 0
              : -1;
 }

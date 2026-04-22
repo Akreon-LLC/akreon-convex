@@ -73,11 +73,11 @@ struct EigenDecomposition {
   }
 
   /** @brief eigendecomposition member variables */
-  Vector<Complex, N> lambda;  ///< eigenvalues
-  Matrix<Complex, N, N> V;    ///< eigenvectors
-  bool converged{false};      ///< eigenvalue convergence flag
+  Vector<Complex, N> lambda; ///< eigenvalues
+  Matrix<Complex, N, N> V;   ///< eigenvectors
+  bool converged{false};     ///< eigenvalue convergence flag
 
- private:
+private:
   /**
    * @brief solve A X = \Lambda X via QR
    *
@@ -159,8 +159,7 @@ struct EigenDecomposition {
           for (size_t c = 0; c < r - 1; ++c) {
             if constexpr (ComplexLike<T>)
               res += (std::conj(H(r)(c)) * H(r)(c)).real();
-            else
-              res += H(r)(c) * H(r)(c);
+            else res += H(r)(c) * H(r)(c);
           }
         }
 
@@ -356,10 +355,8 @@ struct EigenDecomposition {
       for (int c = r + 1; c <= idx; ++c) sum += Complex(H(r)(c)) * x(c);
 
       const auto denom = Complex(H(r)(r)) - lambda(idx);
-      if (denom == Complex(0))
-        x(r) = Complex(0);
-      else
-        x(r) = -sum / denom;
+      if (denom == Complex(0)) x(r) = Complex(0);
+      else x(r) = -sum / denom;
     }
   }
 
@@ -381,10 +378,8 @@ struct EigenDecomposition {
       Complex sum(0);
       for (int c = r + 1; c < int(N); ++c) sum += H(r)(c) * x(c);
       const auto denom = Complex(H(r)(r)) - eig;
-      if (denom == Complex(0))
-        x(r) = Complex(0);
-      else
-        x(r) = (rhs(r) - sum) / denom;
+      if (denom == Complex(0)) x(r) = Complex(0);
+      else x(r) = (rhs(r) - sum) / denom;
     }
   }
 
@@ -464,4 +459,4 @@ struct EigenDecomposition {
   config::FactorConfig<Real> config;
 };
 
-}  // namespace linalg
+} // namespace linalg

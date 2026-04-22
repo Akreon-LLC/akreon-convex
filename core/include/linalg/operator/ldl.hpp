@@ -127,7 +127,7 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
     return std::tuple(A_inv_Y, linalg::NumericalEvent::NONE);
   }
 
- private:
+private:
   /**
    * @brief LDL^T of a square matrix
    *
@@ -139,8 +139,7 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
     const auto& tol = config.tol;
     auto ldl_t = [&]<size_t j = 0>(this auto&& self) -> bool {
       /// (dakre) base case for recursion
-      if constexpr (j >= SymmetricBase::N)
-        return true;
+      if constexpr (j >= SymmetricBase::N) return true;
       else {
         /// (dakre) handle j = 0 iteration separately (don't have prior intertia
         /// build up, only need to scale first col by first diag elem)
@@ -247,9 +246,9 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   }
 
   /** @brief member variables */
-  config::FactorConfig<T> config;  ///< factor config
-  Vector<T, DIM - N> L_vec;        ///< lower left triangle of factorization
-  Vector<T, N> D_vec;              ///< diag of factorization
+  config::FactorConfig<T> config; ///< factor config
+  Vector<T, DIM - N> L_vec;       ///< lower left triangle of factorization
+  Vector<T, N> D_vec;             ///< diag of factorization
 };
 
-}  // namespace linalg
+} // namespace linalg

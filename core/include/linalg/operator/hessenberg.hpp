@@ -58,8 +58,7 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
       if constexpr (ComplexLike<T>)
         H_block_kn =
             H_block_kn - (beta(k) * v * conjugate_transpose(v)) * H_block_kn;
-      else
-        H_block_kn = H_block_kn - (beta(k) * v * transpose(v)) * H_block_kn;
+      else H_block_kn = H_block_kn - (beta(k) * v * transpose(v)) * H_block_kn;
 
       for (size_t i = k + 1, a = 0; i < N; ++i, ++a)
         for (size_t j = k, b = 0; j < N; ++j, ++b)
@@ -69,8 +68,7 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
       auto H_zn_kn = get_block<0, N, k + 1, N>(H_pack);
       if constexpr (ComplexLike<T>)
         H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * conjugate_transpose(v));
-      else
-        H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * transpose(v));
+      else H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * transpose(v));
 
       for (size_t i = 0, a = 0; i < N; ++i, ++a)
         for (size_t j = k + 1, b = 0; j < N; ++j, ++b)
@@ -120,8 +118,7 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
       if constexpr (ComplexLike<T>)
         U_block = U_block -
                   beta(k) * (U_block * (v_col * conjugate_transpose(v_col)));
-      else
-        U_block = U_block - beta(k) * (U_block * (v_col * transpose(v_col)));
+      else U_block = U_block - beta(k) * (U_block * (v_col * transpose(v_col)));
 
       for (size_t r = 0; r < N; ++r)
         for (size_t c = k + 1, a = 0; c < N; ++c, ++a) U(r)(c) = U_block(r)(a);
@@ -143,10 +140,10 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
   }
 
   /** @brief Vector member variables */
-  Vector<T, N> beta;  ///< beta vector from householder reflections
- private:
+  Vector<T, N> beta; ///< beta vector from householder reflections
+private:
   Matrix<T, N, N>
-      H_pack;  ///< Hessenberg matrix (packed w/ householder below diag)
+      H_pack; ///< Hessenberg matrix (packed w/ householder below diag)
 };
 
-}  // namespace linalg
+} // namespace linalg

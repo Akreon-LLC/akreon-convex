@@ -325,11 +325,10 @@ struct SecondOrderCone
       return std::tuple(
           linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(e_impl()),
           inv_event);
-    const auto out_event =
-        (event != linalg::NumericalEvent::NONE ||
-         inv_event != linalg::NumericalEvent::NONE)
-            ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
-            : linalg::NumericalEvent::NONE;
+    const auto out_event = (event != linalg::NumericalEvent::NONE ||
+                            inv_event != linalg::NumericalEvent::NONE)
+                               ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                               : linalg::NumericalEvent::NONE;
     return std::tuple(linalg::QuadraticRep<HessianMat, SOCCirc<Slack>>(w_inv),
                       out_event);
   }
@@ -404,8 +403,7 @@ struct SecondOrderCone
 
     const auto b = P.apply(y);
     const auto [inner, event] = inv_impl(sqrt(b));
-    if (linalg::is_fatal_event(event))
-      return std::tuple(Slack{}, event);
+    if (linalg::is_fatal_event(event)) return std::tuple(Slack{}, event);
 
     return std::tuple(P.apply(inner), event);
   }
@@ -543,4 +541,4 @@ struct SecondOrderCone
   }
 };
 
-}  // namespace conic
+} // namespace conic

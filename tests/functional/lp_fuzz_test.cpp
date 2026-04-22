@@ -58,14 +58,14 @@ bool run_lp_trial(std::mt19937& rng) {
   return true;
 }
 
-}  // namespace functional_test
+} // namespace functional_test
 
 int main() {
-  return functional_test::run_trials(
-             "convex_lp_fuzz", functional_test::TRIALS,
-             [](std::mt19937& rng) {
-               return functional_test::run_lp_trial<6>(rng);
-             })
+  return functional_test::run_trials("convex_lp_fuzz", functional_test::TRIALS,
+                                     [](std::mt19937& rng) {
+                                       return functional_test::run_lp_trial<6>(
+                                           rng);
+                                     })
              ? 0
              : -1;
 }

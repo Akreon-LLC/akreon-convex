@@ -171,8 +171,8 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
   }
 
   /** @brief member variables in the halfspace */
-  PointT a;  //< n-dim vector of type T
-  T b;       //< bias scalar of type T
+  PointT a; //< n-dim vector of type T
+  T b;      //< bias scalar of type T
 };
 
-}  // namespace convex
+} // namespace convex

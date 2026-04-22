@@ -66,8 +66,8 @@ struct Sqrt : Atom<Meta, Sqrt<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Sqrt(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -229,4 +229,4 @@ Sqrt(const Child&)
     -> Sqrt<SqrtMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
             atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

@@ -66,8 +66,8 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit GeoMean(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -87,8 +87,7 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
   constexpr MonotonicityType monotonicity() const {
     if constexpr (Tag == CurvatureType::CONCAVE)
       return MonotonicityType::NONDEC;
-    else
-      return MonotonicityType::NONINC;
+    else return MonotonicityType::NONINC;
   }
 
   /**
@@ -114,8 +113,7 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
       return T(-1) * alpha * linalg::constexpr_nrt_safe<T>(prod, N) + beta;
-    else
-      return alpha * linalg::constexpr_nrt_safe<T>(prod, N) + beta;
+    else return alpha * linalg::constexpr_nrt_safe<T>(prod, N) + beta;
   }
 
   /**
@@ -225,11 +223,10 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
 };
 
 template <typename Child>
-GeoMean(const Child&)
-    -> GeoMean<
-        GeoMeanMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
-                    linalg::Matrix<
-                        dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
-        atom_decay_t<Child>>;
+GeoMean(const Child&) -> GeoMean<
+    GeoMeanMeta<
+        dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+        linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
+    atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

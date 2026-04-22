@@ -188,4 +188,4 @@ constexpr auto make_observer_problem(const SS& ss, const Var& P,
   return prob_constraints.feasibility();
 }
 
-}  // namespace control
+} // namespace control

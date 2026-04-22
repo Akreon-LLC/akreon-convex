@@ -61,7 +61,7 @@ struct Cholesky : SymmetricOperator<Mat, Cholesky<Mat>> {
    */
   constexpr auto G() const { return make_lower_triangle<Mat>(G_vec); }
 
- private:
+private:
   /**
    * @brief GG^T of A \in S^n_++
    *
@@ -97,8 +97,8 @@ struct Cholesky : SymmetricOperator<Mat, Cholesky<Mat>> {
   }
 
   /** @brief member vars */
-  config::FactorConfig<T> config;  ///< factor config
-  Vector<T, DIM> G_vec;            ///< lower left triangle of chol
+  config::FactorConfig<T> config; ///< factor config
+  Vector<T, DIM> G_vec;           ///< lower left triangle of chol
 };
 
-}  // namespace linalg
+} // namespace linalg

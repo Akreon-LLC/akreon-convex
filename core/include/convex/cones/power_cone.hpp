@@ -22,8 +22,7 @@ namespace conic {
  * } a \in Q (set of rational numbers)
  */
 template <linalg::VectorLike Slack>
-struct PowerCone
-    : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
+struct PowerCone : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
   /// @brief bring into scope alias from cone base
   using ConeBase = Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC>;
 
@@ -70,7 +69,8 @@ struct PowerCone
         if (!(x(i) > T(0))) return false;
         res += alphas(i) * linalg::constexpr_ln_safe(x(i));
       }
-      const auto rhs = linalg::constexpr_ln_safe(linalg::constexpr_abs(x(M - 1)));
+      const auto rhs =
+          linalg::constexpr_ln_safe(linalg::constexpr_abs(x(M - 1)));
       return res > rhs;
     }
   }
@@ -94,4 +94,4 @@ struct PowerCone
   AlphaVec alphas;
 };
 
-}  // namespace conic
+} // namespace conic

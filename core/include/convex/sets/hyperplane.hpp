@@ -166,14 +166,13 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
   }
 
   /** @brief member var in hyperplane */
-  PointT a;  //< n-dim vec of type T
-  T b;       //< bias scalar of type T
+  PointT a; //< n-dim vec of type T
+  T b;      //< bias scalar of type T
 };
 
 template <typename Point, typename T, typename Child>
 Hyperplane(const Point&, const T&, const Child&)
-    -> Hyperplane<
-        HyperplaneMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-        atom_decay_t<Child>>;
+    -> Hyperplane<HyperplaneMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+                  atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

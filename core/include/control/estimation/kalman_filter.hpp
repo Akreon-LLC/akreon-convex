@@ -10,7 +10,7 @@
  * from Akreon LLC.
  */
 
- #pragma once
+#pragma once
 
 #include "config/assert.hpp"
 #include "control/model/state_space.hpp"
@@ -201,4 +201,4 @@ constexpr auto make_lqe_problem(const SS& ss, const StateCostMat& Q,
   return prob_constraints.minimize(obj);
 }
 
-}  // namespace control
+} // namespace control

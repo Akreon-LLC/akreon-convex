@@ -26,4 +26,4 @@ template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar>
 struct PrimalDualResult;
 
-}  // namespace convex
+} // namespace convex

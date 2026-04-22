@@ -63,12 +63,10 @@ struct MatrixPencil {
     for (size_t i = 0, idx = 0; i < N; ++i) {
       for (size_t j = 0; j < N; ++j) {
         SymMat E{};
-        if (i == j)
-          E(i)(j) = T(1);
+        if (i == j) E(i)(j) = T(1);
         else if (i < j)
           E(i)(j) = E(j)(i) = T(1) / linalg::constexpr_sqrt_safe(T(2));
-        else
-          continue;
+        else continue;
 
         F_blks(idx++) = op(E);
       }
@@ -77,4 +75,4 @@ struct MatrixPencil {
   }
 };
 
-}  // namespace linalg
+} // namespace linalg

@@ -104,10 +104,10 @@ struct StateSpace {
   }
 
   /** @brief member var */
-  Plant A;                       ///< Plant matrix
-  Control B;                     ///< Control matrix
-  Output C;                      ///< Output matrix
-  std::optional<Feedthrough> D;  ///< Feedthrough matrix
+  Plant A;                      ///< Plant matrix
+  Control B;                    ///< Control matrix
+  Output C;                     ///< Output matrix
+  std::optional<Feedthrough> D; ///< Feedthrough matrix
 };
 
-}  // namespace control
+} // namespace control

@@ -107,15 +107,13 @@ struct QR {
     const auto U = Q();
     const auto LT = R();
 
-    if constexpr (ComplexLike<T>)
-      c = conjugate_transpose(U) * b;
-    else
-      c = transpose(U) * b;
+    if constexpr (ComplexLike<T>) c = conjugate_transpose(U) * b;
+    else c = transpose(U) * b;
 
     return back_solve(LT, c);
   }
 
- private:
+private:
   /**
    * @brief construct householder matrix from A (solve QR where Q is compact
    * form)
@@ -151,8 +149,7 @@ struct QR {
       auto Q_jm_jn = get_n_cols<j, Cols>(Q_jm);
       if constexpr (ComplexLike<T>)
         Q_jm_jn = Q_jm_jn - (beta(j) * v) * (conjugate_transpose(v) * Q_jm_jn);
-      else
-        Q_jm_jn = Q_jm_jn - (beta(j) * v) * (transpose(v) * Q_jm_jn);
+      else Q_jm_jn = Q_jm_jn - (beta(j) * v) * (transpose(v) * Q_jm_jn);
 
       for (size_t k = j, a = 0; k < Rows; ++k, ++a)
         for (size_t l = j, b = 0; l < Cols; ++l, ++b) H(k)(l) = Q_jm_jn(a)(b);
@@ -183,8 +180,7 @@ struct QR {
       if constexpr (ComplexLike<T>)
         Q_block = Q_block -
                   (beta(j) * v_col) * (conjugate_transpose(v_col) * Q_block);
-      else
-        Q_block = Q_block - (beta(j) * v_col) * (transpose(v_col) * Q_block);
+      else Q_block = Q_block - (beta(j) * v_col) * (transpose(v_col) * Q_block);
 
       for (size_t r = j, a = 0; r < Rows; ++r, ++a)
         for (size_t c = 0; c < Rows; ++c) U(r)(c) = Q_block(a)(c);
@@ -226,10 +222,10 @@ struct QR {
   }
 
   /** @brief QR decomposition for matrix input A */
-  Mat H;                 ///< orthonormal basis Q (slighty different than GS
-                         ///< as its fully compact and can use straight up)
-  Vector<T, Rows> beta;  ///< beta scalars
-  config::FactorConfig<ScalarT> config;  ///< Factor config
+  Mat H;                ///< orthonormal basis Q (slighty different than GS
+                        ///< as its fully compact and can use straight up)
+  Vector<T, Rows> beta; ///< beta scalars
+  config::FactorConfig<ScalarT> config; ///< Factor config
 };
 
-}  // namespace linalg
+} // namespace linalg

@@ -173,11 +173,10 @@ struct NonnegOrthantCone
       w_inv(i) = T(1) / wi_safe;
     }
     const auto out_event =
-        linalg::is_fatal_event(event)
-            ? event
-            : (event != linalg::NumericalEvent::NONE || safeguarded)
-                  ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
-                  : linalg::NumericalEvent::NONE;
+        linalg::is_fatal_event(event) ? event
+        : (event != linalg::NumericalEvent::NONE || safeguarded)
+            ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+            : linalg::NumericalEvent::NONE;
     return std::tuple(linalg::QuadraticRep<HessianMat, RplusCirc<Slack>>(w_inv),
                       out_event);
   }
@@ -321,4 +320,4 @@ struct NonnegOrthantCone
   }
 };
 
-}  // namespace conic
+} // namespace conic

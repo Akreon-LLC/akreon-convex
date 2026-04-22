@@ -52,7 +52,7 @@ using InvPosConcaveMeta =
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
 struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
- public:
+public:
   /// @brief bring into scope convex fn alias / helpers
   using ConvexBase = Atom<Meta, InvPos<Meta, Child>, Child>;
   using ConvexBase::N;
@@ -71,8 +71,8 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit InvPos(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -90,10 +90,8 @@ struct InvPos : Atom<Meta, InvPos<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    if constexpr (Tag == CurvatureType::CONVEX)
-      return MonotonicityType::NONINC;
-    else
-      return MonotonicityType::NONDEC;
+    if constexpr (Tag == CurvatureType::CONVEX) return MonotonicityType::NONINC;
+    else return MonotonicityType::NONDEC;
   }
 
   /**
@@ -235,4 +233,4 @@ InvPos(const Child&)
     -> InvPos<InvPosMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
               atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

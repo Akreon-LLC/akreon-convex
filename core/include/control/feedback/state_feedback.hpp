@@ -186,4 +186,4 @@ constexpr auto make_state_feedback_problem(const SS& ss, const Var& Q,
       .feasibility();
 }
 
-}  // namespace control
+} // namespace control

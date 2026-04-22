@@ -66,7 +66,7 @@ template <typename Cone>
 constexpr const char* cone_type_name_v =
     ConeTypeName<linalg::remove_cvref_t<Cone>>::value;
 
-}  // namespace detail
+} // namespace detail
 
 namespace convex {
 
@@ -143,9 +143,9 @@ inline constexpr const char* numerical_event_to_cstr(
  */
 template <linalg::FieldLike T, size_t MaxConeDim, size_t VarDim, size_t EqDim>
 struct PredictorCorrectorConeTrace {
-  T mu{};      ///< local normalized duality gap (per cone)
-  T rhs_c{};   ///< ||rhs_c||_2 in local cone block
-  T pz_rhs{};  ///< ||pz_rhs||_2 after cone contribution
+  T mu{};     ///< local normalized duality gap (per cone)
+  T rhs_c{};  ///< ||rhs_c||_2 in local cone block
+  T pz_rhs{}; ///< ||pz_rhs||_2 after cone contribution
   std::array<T, MaxConeDim> xk{};
   std::array<T, MaxConeDim> yk{};
   std::array<T, MaxConeDim> rhs_c_vec{};
@@ -163,23 +163,23 @@ struct PredictorCorrectorConeTrace {
 template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
           size_t VarDim, size_t EqDim>
 struct IterState {
-  T mu{};        ///< normalized duality gap
-  T alpha_x{};   ///< max step to dK size
-  T alpha_y{};   ///< max step to dK^* size
-  T rd_norm{};   ///< dual norm residual size
-  T rp_norm{};   ///< primal norm residual size
-  T req_norm{};  ///< equality norm residual size
-  T pz_norm{};   ///< newton step in z \in R^n size
-  T pnu_norm{};  ///< newton step in nu size
-  T px_norm{};   ///< newton step in x \in K size
-  T py_norm{};   ///< newton step in y \in K^* size
+  T mu{};       ///< normalized duality gap
+  T alpha_x{};  ///< max step to dK size
+  T alpha_y{};  ///< max step to dK^* size
+  T rd_norm{};  ///< dual norm residual size
+  T rp_norm{};  ///< primal norm residual size
+  T req_norm{}; ///< equality norm residual size
+  T pz_norm{};  ///< newton step in z \in R^n size
+  T pnu_norm{}; ///< newton step in nu size
+  T px_norm{};  ///< newton step in x \in K size
+  T py_norm{};  ///< newton step in y \in K^* size
   std::array<PredictorCorrectorConeTrace<T, MaxConeDim, VarDim, EqDim>,
              NumCones>
       predictor{};
   std::array<PredictorCorrectorConeTrace<T, MaxConeDim, VarDim, EqDim>,
              NumCones>
       corrector{};
-  config::SolverResult tag{};  ///< tag of current iterate
+  config::SolverResult tag{}; ///< tag of current iterate
 
   constexpr void reset_pc_trace() {
     for (size_t i = 0; i < NumCones; ++i) {
@@ -768,9 +768,10 @@ inline void report_result_json(
 
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar, linalg::MatrixLike Mat>
-inline void report_result_json(
-    std::ostream& os, const PrimalDualResult<Var, ConeVar, NuVar>& res,
-    const char* synthesized_kind, const Mat& matrix) {
+inline void report_result_json(std::ostream& os,
+                               const PrimalDualResult<Var, ConeVar, NuVar>& res,
+                               const char* synthesized_kind,
+                               const Mat& matrix) {
   char buf[64000];
   result_to_json_cstr(res, synthesized_kind, matrix, buf, sizeof(buf));
   os << buf;
@@ -789,10 +790,9 @@ inline bool write_result_json(
 
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar, linalg::MatrixLike Mat>
-inline bool write_result_json(
-    const std::filesystem::path& path,
-    const PrimalDualResult<Var, ConeVar, NuVar>& res,
-    const char* synthesized_kind, const Mat& matrix) {
+inline bool write_result_json(const std::filesystem::path& path,
+                              const PrimalDualResult<Var, ConeVar, NuVar>& res,
+                              const char* synthesized_kind, const Mat& matrix) {
   std::ofstream out(path);
   if (!out.is_open()) return false;
   report_result_json(out, res, synthesized_kind, matrix);
@@ -800,4 +800,4 @@ inline bool write_result_json(
 }
 #endif
 
-}  // namespace convex
+} // namespace convex

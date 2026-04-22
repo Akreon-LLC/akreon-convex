@@ -193,14 +193,14 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     // PSD(3) contributes 6 lower-triangular coordinates, then 2 R_+
     // constraints.
     constexpr auto F_exp = Matrixd<8, 2>{
-        Vectord<2>{-1.0, -3.0},  // (0,0)
-        Vectord<2>{0.0, 0.0},    // (1,0)
-        Vectord<2>{-2.0, -2.0},  // (1,1)
-        Vectord<2>{0.0, 0.0},    // (2,0)
-        Vectord<2>{0.0, 0.0},    // (2,1)
-        Vectord<2>{-3.0, -1.0},  // (2,2)
-        Vectord<2>{1.0, 0.0},    // x0 >= 0
-        Vectord<2>{0.0, 1.0},    // x1 >= 0
+        Vectord<2>{-1.0, -3.0}, // (0,0)
+        Vectord<2>{0.0, 0.0},   // (1,0)
+        Vectord<2>{-2.0, -2.0}, // (1,1)
+        Vectord<2>{0.0, 0.0},   // (2,0)
+        Vectord<2>{0.0, 0.0},   // (2,1)
+        Vectord<2>{-3.0, -1.0}, // (2,2)
+        Vectord<2>{1.0, 0.0},   // x0 >= 0
+        Vectord<2>{0.0, 1.0},   // x1 >= 0
     };
 
     const auto F = prob_min.constraint_map().linear_part();

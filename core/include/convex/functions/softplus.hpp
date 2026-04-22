@@ -69,8 +69,8 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Softplus(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -88,10 +88,8 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    if constexpr (Tag == CurvatureType::CONVEX)
-      return MonotonicityType::NONDEC;
-    else
-      return MonotonicityType::NONINC;
+    if constexpr (Tag == CurvatureType::CONVEX) return MonotonicityType::NONDEC;
+    else return MonotonicityType::NONINC;
   }
 
   /**
@@ -258,4 +256,4 @@ Softplus(const Child&)
     -> Softplus<SoftplusMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
                 atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

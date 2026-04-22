@@ -111,9 +111,8 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     constexpr auto obj =
         make_polytopic_state_feedback_linear_objective<decltype(ss0), 2>(
             q_w, y_w, solver_dec);
-    const auto prob =
-        make_polytopic_state_feedback_problem<decltype(ss0), 2>(poly,
-                                                                solver_dec, obj);
+    const auto prob = make_polytopic_state_feedback_problem<decltype(ss0), 2>(
+        poly, solver_dec, obj);
 
     REQUIRE(is_problem_set_v<decltype(prob)>);
     REQUIRE(prob.validate());
@@ -211,9 +210,8 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     constexpr auto obj =
         make_polytopic_state_feedback_quadratic_objective<decltype(ss0), 2>(
             P, q, solver_dec);
-    const auto prob =
-        make_polytopic_state_feedback_problem<decltype(ss0), 2>(poly,
-                                                                solver_dec, obj);
+    const auto prob = make_polytopic_state_feedback_problem<decltype(ss0), 2>(
+        poly, solver_dec, obj);
 
     REQUIRE(prob.validate());
     REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value > 3);

@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #include <catch2/catch_test_macros.hpp>
 
 #include "dynamics.hpp"
@@ -23,12 +22,11 @@ using namespace linalg;
 template <typename ScalarT, size_t DoF = 1, size_t Nu = 0>
 class Pendulum
     : public DynamicalSystem<ScalarT, DoF, Nu, Pendulum<ScalarT, DoF, Nu>> {
- public:
+public:
   constexpr explicit Pendulum(const Matrix<ScalarT, DoF, 3>& coords,
                               const ScalarT& len, const ScalarT& m)
       : DynamicalSystem<ScalarT, DoF, Nu, Pendulum<ScalarT, DoF, Nu>>(coords),
-        length(len),
-        mass(m) {}
+        length(len), mass(m) {}
 
   constexpr ScalarT T_impl(const Vector<ScalarT, DoF>& q0,
                            const Vector<ScalarT, DoF>& q1) const {
@@ -48,7 +46,7 @@ class Pendulum
     return Vector<ScalarT, DoF>();
   }
 
- private:
+private:
   ScalarT length;
   ScalarT mass;
   static constexpr ScalarT G = 9.81;

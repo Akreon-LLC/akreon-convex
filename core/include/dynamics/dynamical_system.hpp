@@ -19,7 +19,7 @@ namespace dynamics {
 template <typename ScalarT, size_t DoF, size_t Nu, typename DerivedSystem>
   requires(linalg::FieldLike<ScalarT>)
 class DynamicalSystem {
- public:
+public:
   constexpr explicit DynamicalSystem(
       const linalg::Matrix<ScalarT, DoF, 3>& coords)
     requires(Nu == 0)
@@ -56,11 +56,11 @@ class DynamicalSystem {
 
   constexpr auto get_U() const { return U; }
 
- protected:
+protected:
   linalg::Matrix<ScalarT, DoF, 3> Q;
   linalg::Vector<ScalarT, Nu> U;
 
- private:
+private:
   constexpr const DerivedSystem& self() const {
     return static_cast<const DerivedSystem&>(*this);
   }
@@ -78,4 +78,4 @@ constexpr auto seed_Q(const linalg::Vector<ScalarT, DoF>& ic,
   return Q;
 }
 
-}  // namespace dynamics
+} // namespace dynamics

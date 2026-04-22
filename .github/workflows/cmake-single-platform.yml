@@ -25,7 +25,11 @@ jobs:
         if: matrix.compiler == 'gcc14'
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++-14
+          sudo apt-get install -y g++-14 wget
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 22
+          sudo apt-get install -y clang-format-22
 
       # --- Set CC/CXX for subsequent steps ---
       - name: Select compiler
@@ -38,6 +42,10 @@ jobs:
           echo "Using CC=$CC, CXX=$CXX"
           $CC --version
           $CXX --version
+          clang-format-22 --version
+
+      - name: Select clang-format
+        run: echo "PATH=/usr/lib/llvm-22/bin:$PATH" >> $GITHUB_ENV
 
       # --- Configure ---
       - name: Configure CMake (Preset)
@@ -50,6 +58,9 @@ jobs:
       # --- Build ---
       - name: Build
         run: cmake --build --preset ${{ env.PRESET }} --parallel
+
+      - name: Check clang-format
+        run: cmake --build --preset ${{ env.PRESET }} --target clang_format_check
 
       # --- Test ---
       - name: Run tests

@@ -192,9 +192,9 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
   }
 
   /** @brief member variables in the ellipsoid */
-  PointT c;  //< n-dim vector of type T representing center of ellipsoid
-  Mat P;     //< square matrix representing directions for ellipsoid (valid \in
-             // S^n_+)
+  PointT c; //< n-dim vector of type T representing center of ellipsoid
+  Mat P;    //< square matrix representing directions for ellipsoid (valid \in
+            // S^n_+)
 };
 
 template <typename Point, typename Mat, typename Child>
@@ -202,4 +202,4 @@ Ellipsoid(const Point&, const Mat&, const Child&)
     -> Ellipsoid<EllipsoidMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
                  atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

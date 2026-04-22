@@ -121,7 +121,7 @@ struct Vector {
    */
   constexpr auto size() const { return N; }
 
- private:
+private:
   /**
    * @brief check if given vector's coordinates are equivalent to this
    * coordinates
@@ -135,7 +135,7 @@ struct Vector {
   }
 
   /** @brief Vector member variables */
-  std::array<T, N> coordinates;  ///< coordinates of vector
+  std::array<T, N> coordinates; ///< coordinates of vector
 };
 
-}  // namespace linalg
+} // namespace linalg

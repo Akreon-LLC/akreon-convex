@@ -425,10 +425,8 @@ constexpr auto make_smat(const Vec& L) {
   Matrix<T, N, N> res{};
   for (size_t i = 0; i < N; ++i) {
     for (size_t j = 0; j < N; ++j) {
-      if (i >= j)
-        res(i)(j) = S(i)(j);
-      else
-        res(i)(j) = S_T(i)(j);
+      if (i >= j) res(i)(j) = S(i)(j);
+      else res(i)(j) = S_T(i)(j);
     }
   }
   return res;
@@ -570,4 +568,4 @@ constexpr auto make_lower_triangle(const Vec& x) {
   return L;
 }
 
-}  // namespace linalg
+} // namespace linalg

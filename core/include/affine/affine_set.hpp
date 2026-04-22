@@ -25,7 +25,7 @@ namespace affine {
  */
 template <linalg::MatrixLike Mat>
 class ParametricAffineSet {
- public:
+public:
   /// @brief alias to extract underlying type of affine set
   using T = linalg::mat_type_t<Mat>;
 
@@ -109,9 +109,9 @@ class ParametricAffineSet {
    * @return parametric affine set object
    */
   constexpr auto transform(const AffineMap<Mat>& map) const {
-    return ParametricAffineSet(
-        map.linear_part() * U,
-        map.linear_part() * this->x0 + map.translation());
+    return ParametricAffineSet(map.linear_part() * U,
+                               map.linear_part() * this->x0 +
+                                   map.translation());
   }
 
   /**
@@ -155,7 +155,7 @@ class ParametricAffineSet {
     return !is_equal(other);
   }
 
- private:
+private:
   /**
    * @brief equality comparison
    *
@@ -170,8 +170,8 @@ class ParametricAffineSet {
   }
 
   /** @brief member variables in the base class */
-  Mat U;          //< basis matrix for the affine set
-  AmbientVec x0;  ///< reference point that lies in the affine set S \subset R^m
+  Mat U;         //< basis matrix for the affine set
+  AmbientVec x0; ///< reference point that lies in the affine set S \subset R^m
 };
 
-}  // namespace affine
+} // namespace affine

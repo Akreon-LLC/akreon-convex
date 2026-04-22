@@ -27,8 +27,7 @@ void print_scalar(const T& x) {
   if constexpr (is_complex_v<T>)
     std::printf("(%g, %g) ", static_cast<double>(x.real()),
                 static_cast<double>(x.imag()));
-  else
-    std::printf("%g ", static_cast<double>(x));
+  else std::printf("%g ", static_cast<double>(x));
 }
 
 template <typename T, size_t Rows, size_t Cols>
@@ -184,8 +183,8 @@ int main() {
 
     std::printf("Starting float tall skinny test %zu rows by 2 cols\n", i);
     if (!fuzz_test<float, i, 2>(1e-3)) {
-      std::fprintf(stderr, "float tall skinny fuzz test failed for size %zux2\n",
-                   i);
+      std::fprintf(stderr,
+                   "float tall skinny fuzz test failed for size %zux2\n", i);
       ok = false;
     }
   });

@@ -49,7 +49,7 @@ struct SymmetricMatrix : SymmetricOperator<Mat, SymmetricMatrix<Mat>> {
     factor(A, tol);
   }
 
- private:
+private:
   /**
    * @brief QR factorization
    *
@@ -61,10 +61,8 @@ struct SymmetricMatrix : SymmetricOperator<Mat, SymmetricMatrix<Mat>> {
   constexpr void factor(const Mat& A, const ScalarT& tol) {
     // (0) First see if the incoming matrix is symmetric
     bool valid = false;
-    if constexpr (RealLike<T>)
-      valid = all_equal(A, transpose(A));
-    else
-      valid = all_equal(A, conjugate_transpose(A));
+    if constexpr (RealLike<T>) valid = all_equal(A, transpose(A));
+    else valid = all_equal(A, conjugate_transpose(A));
 
     // (1) No need to set data for invalid one and set type
     // likewise if it is symmetric we can store it temporarily
@@ -84,4 +82,4 @@ struct SymmetricMatrix : SymmetricOperator<Mat, SymmetricMatrix<Mat>> {
   }
 };
 
-}  // namespace linalg
+} // namespace linalg

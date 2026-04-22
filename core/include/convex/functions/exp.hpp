@@ -68,8 +68,8 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Exp(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -87,10 +87,8 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    if constexpr (Tag == CurvatureType::CONVEX)
-      return MonotonicityType::NONDEC;
-    else
-      return MonotonicityType::NONINC;
+    if constexpr (Tag == CurvatureType::CONVEX) return MonotonicityType::NONDEC;
+    else return MonotonicityType::NONINC;
   }
 
   /**
@@ -114,8 +112,7 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
       return alpha * linalg::constexpr_exp(x(0)) + beta;
-    else
-      return T(-1) * alpha * linalg::constexpr_exp(x(0)) + beta;
+    else return T(-1) * alpha * linalg::constexpr_exp(x(0)) + beta;
   }
 
   /**
@@ -223,8 +220,7 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
 };
 
 template <typename Child>
-Exp(const Child&)
-    -> Exp<ExpMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-           atom_decay_t<Child>>;
+Exp(const Child&) -> Exp<ExpMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+                         atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

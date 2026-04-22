@@ -105,7 +105,7 @@ struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
   }
 
   /** @brief member variables */
-  Mat H;  ///< hessian mat
+  Mat H; ///< hessian mat
 };
 
-}  // namespace linalg
+} // namespace linalg

@@ -70,8 +70,8 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Square(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -131,8 +131,7 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
       return alpha * x(0) * x(0) + beta;
-    else
-      return T(-1) * alpha * x(0) * x(0) + beta;
+    else return T(-1) * alpha * x(0) * x(0) + beta;
   }
 
   /**
@@ -249,4 +248,4 @@ Square(const Child&)
     -> Square<SquareMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
               atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex
