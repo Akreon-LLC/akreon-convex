@@ -694,11 +694,12 @@ inline size_t result_to_json_cstr(
 }
 
 /**
- * @brief primal-dual result to json cstring with additional matrix field
+ * @brief primal-dual result to json cstring with synthesized matrix object
  *
  * @param result
- * @param field_name json key for the matrix field
- * @param matrix additional matrix payload such as synthesized K or L
+ * @param synthesized_kind tagged synthesized object kind, e.g.
+ *        "state_feedback_gain" or "observer_gain"
+ * @param matrix synthesized matrix payload such as K or L
  * @param buffer char string
  * @param buffer size
  *
@@ -707,12 +708,13 @@ inline size_t result_to_json_cstr(
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar, linalg::MatrixLike Mat>
 inline size_t result_to_json_cstr(
-    const PrimalDualResult<Var, ConeVar, NuVar>& res, const char* field_name,
-    const Mat& matrix, char* out, const size_t& out_size) {
-  AK_ASSERT(field_name != nullptr &&
-            "result_to_json_cstr requires non-null field name");
+    const PrimalDualResult<Var, ConeVar, NuVar>& res,
+    const char* synthesized_kind, const Mat& matrix, char* out,
+    const size_t& out_size) {
+  AK_ASSERT(synthesized_kind != nullptr &&
+            "result_to_json_cstr requires non-null synthesized kind");
   AK_ASSERT(out != nullptr && "result_to_json_cstr requires non-null output");
-  if (field_name == nullptr || out == nullptr || out_size == 0) return 0;
+  if (synthesized_kind == nullptr || out == nullptr || out_size == 0) return 0;
 
   char base_buf[64000];
   const auto base_len = result_to_json_cstr(res, base_buf, sizeof(base_buf));
@@ -727,8 +729,9 @@ inline size_t result_to_json_cstr(
   if (!append_format(out, out_size, write_pos, "%.*s",
                      static_cast<int>(base_len - 1), base_buf))
     return write_pos;
-  if (!append_format(out, out_size, write_pos, ",\"%s\":%s}", field_name,
-                     mat_buf))
+  if (!append_format(out, out_size, write_pos,
+                     ",\"synthesized_object\":{\"kind\":\"%s\",\"matrix\":%s}}",
+                     synthesized_kind, mat_buf))
     return write_pos;
   return write_pos;
 }
@@ -767,9 +770,9 @@ template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar, linalg::MatrixLike Mat>
 inline void report_result_json(
     std::ostream& os, const PrimalDualResult<Var, ConeVar, NuVar>& res,
-    const char* field_name, const Mat& matrix) {
+    const char* synthesized_kind, const Mat& matrix) {
   char buf[64000];
-  result_to_json_cstr(res, field_name, matrix, buf, sizeof(buf));
+  result_to_json_cstr(res, synthesized_kind, matrix, buf, sizeof(buf));
   os << buf;
 }
 
@@ -788,11 +791,11 @@ template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar, linalg::MatrixLike Mat>
 inline bool write_result_json(
     const std::filesystem::path& path,
-    const PrimalDualResult<Var, ConeVar, NuVar>& res, const char* field_name,
-    const Mat& matrix) {
+    const PrimalDualResult<Var, ConeVar, NuVar>& res,
+    const char* synthesized_kind, const Mat& matrix) {
   std::ofstream out(path);
   if (!out.is_open()) return false;
-  report_result_json(out, res, field_name, matrix);
+  report_result_json(out, res, synthesized_kind, matrix);
   return static_cast<bool>(out);
 }
 #endif

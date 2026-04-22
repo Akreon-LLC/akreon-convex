@@ -64,7 +64,7 @@ TEST_CASE("PD-IPM output serializes result as JSON", "[pd_ipm_output]") {
                     "0.5],\"req\":[0.6]}") != std::string::npos);
 }
 
-TEST_CASE("PD-IPM output serializes synthesized gain matrix as JSON",
+TEST_CASE("PD-IPM output serializes synthesized gain object as JSON",
           "[pd_ipm_output]") {
   using Var = Vectord<2>;
   using ConeVar = Vectord<1>;
@@ -80,12 +80,15 @@ TEST_CASE("PD-IPM output serializes synthesized gain matrix as JSON",
   constexpr auto K = Gain{Vectord<2>{-1.0, 0.5}, Vectord<2>{0.25, -2.0}};
 
   char buf[8192];
-  const auto len = result_to_json_cstr(res, "K", K, buf, sizeof(buf));
+  const auto len =
+      result_to_json_cstr(res, "state_feedback_gain", K, buf, sizeof(buf));
   REQUIRE(len > 0);
 
   const std::string json(buf);
   REQUIRE(json.find("\"tag\":\"OPTIMAL\"") != std::string::npos);
-  REQUIRE(json.find("\"K\":[[-1, 0.5],[0.25, -2]]") != std::string::npos);
+  REQUIRE(json.find("\"synthesized_object\":{\"kind\":\"state_feedback_gain\","
+                    "\"matrix\":[[-1, 0.5],[0.25, -2]]}") !=
+          std::string::npos);
 }
 
 TEST_CASE("PD-IPM output reports JSON to stream and file", "[pd_ipm_output]") {
@@ -124,7 +127,7 @@ TEST_CASE("PD-IPM output reports JSON to stream and file", "[pd_ipm_output]") {
   std::filesystem::remove(path);
 }
 
-TEST_CASE("PD-IPM output reports synthesized gain matrix to stream and file",
+TEST_CASE("PD-IPM output reports synthesized gain object to stream and file",
           "[pd_ipm_output]") {
   using Var = Vectord<1>;
   using ConeVar = Vectord<1>;
@@ -140,13 +143,15 @@ TEST_CASE("PD-IPM output reports synthesized gain matrix to stream and file",
   constexpr auto L = Gain{Vectord<2>{4.5, -0.75}};
 
   std::ostringstream out;
-  report_result_json(out, res, "L", L);
+  report_result_json(out, res, "observer_gain", L);
   const auto stream_json = out.str();
-  REQUIRE(stream_json.find("\"L\":[[4.5, -0.75]]") != std::string::npos);
+  REQUIRE(stream_json.find(
+              "\"synthesized_object\":{\"kind\":\"observer_gain\","
+              "\"matrix\":[[4.5, -0.75]]}") != std::string::npos);
 
   const auto path = std::filesystem::temp_directory_path() /
                     "akreon_pd_ipm_output_gain_test.json";
-  REQUIRE(write_result_json(path, res, "L", L));
+  REQUIRE(write_result_json(path, res, "observer_gain", L));
 
   std::ifstream in(path);
   REQUIRE(in.is_open());
