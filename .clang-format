@@ -11,5 +11,5 @@ AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: AllIfsAndElse
 AllowShortLoopsOnASingleLine: true
 SpaceBeforeParens: ControlStatements
-BreakTemplateDeclarations: Yes
+AlwaysBreakTemplateDeclarations: Yes
 PenaltyReturnTypeOnItsOwnLine: 1000
