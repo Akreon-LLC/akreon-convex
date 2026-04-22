@@ -462,6 +462,49 @@ inline size_t vec_to_json_cstr(const Vec& v, char* out,
 }
 
 /**
+ * @brief matrix to json cstring
+ *
+ * @param matrix
+ * @param buffer char string
+ * @param buffer size
+ *
+ * @return write position
+ */
+template <linalg::MatrixLike Mat>
+inline size_t mat_to_json_cstr(const Mat& M, char* out,
+                               const size_t& out_size) {
+  AK_ASSERT(out != nullptr && "mat_to_json_cstr requires non-null output");
+  if (out == nullptr || out_size == 0) return 0;
+
+  constexpr size_t Rows = linalg::mat_rows_v<Mat>;
+  constexpr size_t Cols = linalg::mat_cols_v<Mat>;
+
+  size_t write_pos{0};
+  if (!append_format(out, out_size, write_pos, "[")) return write_pos;
+  for (size_t i = 0; i < Rows; ++i) {
+    if (!append_format(out, out_size, write_pos, "[")) return write_pos;
+    for (size_t j = 0; j < Cols; ++j) {
+      if (j + 1 == Cols) {
+        if (!append_format(out, out_size, write_pos, "%g",
+                           static_cast<double>(M(i)(j))))
+          return write_pos;
+      } else {
+        if (!append_format(out, out_size, write_pos, "%g, ",
+                           static_cast<double>(M(i)(j))))
+          return write_pos;
+      }
+    }
+    if (i + 1 == Rows) {
+      if (!append_format(out, out_size, write_pos, "]")) return write_pos;
+    } else {
+      if (!append_format(out, out_size, write_pos, "],")) return write_pos;
+    }
+  }
+  if (!append_format(out, out_size, write_pos, "]")) return write_pos;
+  return write_pos;
+}
+
+/**
  * @brief primal-dual result to cstring
  *
  * @param result
@@ -650,6 +693,46 @@ inline size_t result_to_json_cstr(
   return write_pos;
 }
 
+/**
+ * @brief primal-dual result to json cstring with additional matrix field
+ *
+ * @param result
+ * @param field_name json key for the matrix field
+ * @param matrix additional matrix payload such as synthesized K or L
+ * @param buffer char string
+ * @param buffer size
+ *
+ * @return write position
+ */
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
+          linalg::VectorLike NuVar, linalg::MatrixLike Mat>
+inline size_t result_to_json_cstr(
+    const PrimalDualResult<Var, ConeVar, NuVar>& res, const char* field_name,
+    const Mat& matrix, char* out, const size_t& out_size) {
+  AK_ASSERT(field_name != nullptr &&
+            "result_to_json_cstr requires non-null field name");
+  AK_ASSERT(out != nullptr && "result_to_json_cstr requires non-null output");
+  if (field_name == nullptr || out == nullptr || out_size == 0) return 0;
+
+  char base_buf[64000];
+  const auto base_len = result_to_json_cstr(res, base_buf, sizeof(base_buf));
+  if (base_len == 0 || base_len >= sizeof(base_buf)) return 0;
+
+  char mat_buf[8192];
+  const auto mat_len = mat_to_json_cstr(matrix, mat_buf, sizeof(mat_buf));
+  if (mat_len == 0 || mat_len >= sizeof(mat_buf)) return 0;
+
+  size_t write_pos{0};
+  if (base_len < 1 || base_buf[base_len - 1] != '}') return 0;
+  if (!append_format(out, out_size, write_pos, "%.*s",
+                     static_cast<int>(base_len - 1), base_buf))
+    return write_pos;
+  if (!append_format(out, out_size, write_pos, ",\"%s\":%s}", field_name,
+                     mat_buf))
+    return write_pos;
+  return write_pos;
+}
+
 #ifdef AKREON_REPORT_OUTPUT
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar>
@@ -681,6 +764,16 @@ inline void report_result_json(
 }
 
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
+          linalg::VectorLike NuVar, linalg::MatrixLike Mat>
+inline void report_result_json(
+    std::ostream& os, const PrimalDualResult<Var, ConeVar, NuVar>& res,
+    const char* field_name, const Mat& matrix) {
+  char buf[64000];
+  result_to_json_cstr(res, field_name, matrix, buf, sizeof(buf));
+  os << buf;
+}
+
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar>
 inline bool write_result_json(
     const std::filesystem::path& path,
@@ -688,6 +781,18 @@ inline bool write_result_json(
   std::ofstream out(path);
   if (!out.is_open()) return false;
   report_result_json(out, res);
+  return static_cast<bool>(out);
+}
+
+template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
+          linalg::VectorLike NuVar, linalg::MatrixLike Mat>
+inline bool write_result_json(
+    const std::filesystem::path& path,
+    const PrimalDualResult<Var, ConeVar, NuVar>& res, const char* field_name,
+    const Mat& matrix) {
+  std::ofstream out(path);
+  if (!out.is_open()) return false;
+  report_result_json(out, res, field_name, matrix);
   return static_cast<bool>(out);
 }
 #endif
