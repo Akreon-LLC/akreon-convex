@@ -90,6 +90,12 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(state_feedback_test PRIVATE ../include)
   target_compile_options(state_feedback_test PRIVATE ${UNIT_COMPILE_OPTS})
 
+  add_executable(controller_test unit/controller_test.cpp)
+  add_test(NAME controller_test COMMAND controller_test)
+  target_link_libraries(controller_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(controller_test PRIVATE ../include)
+  target_compile_options(controller_test PRIVATE ${UNIT_COMPILE_OPTS})
+
   add_executable(luenberger_observer_test unit/luenberger_observer_test.cpp)
   add_test(NAME luenberger_observer_test COMMAND luenberger_observer_test)
   target_link_libraries(luenberger_observer_test PRIVATE Catch2::Catch2WithMain)
@@ -207,6 +213,7 @@ set(AKREON_TEST_TARGETS
   lqr_test
   kalman_filter_test
   state_feedback_test
+  controller_test
   luenberger_observer_test
   polytopic_observer_test
   polytopic_state_feedback_test
