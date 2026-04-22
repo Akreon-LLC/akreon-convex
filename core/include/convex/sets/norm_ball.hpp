@@ -125,10 +125,8 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
     if constexpr (Type == NormBallType::L2) {
       const auto point = U * c + t;
       Mat U_T;
-      if constexpr (linalg::is_complex_v<T>)
-        U_T = conjugate_transpose(U);
-      else
-        U_T = transpose(U);
+      if constexpr (linalg::is_complex_v<T>) U_T = conjugate_transpose(U);
+      else U_T = transpose(U);
       const auto P = (r * r) * (U * U_T);
 
       return Ellipsoid<EllipsoidMeta<linalg::Matrix<T, 1, N>>, Child>(
@@ -183,10 +181,8 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto c_plus_U_inv_t = c + U_inv * t;
       for (size_t i = 1; i < 2 * N + 1; ++i) {
         const size_t idx = (i - 1) % N;
-        if (i < N + 1)
-          b(i) = T(-1) * c_plus_U_inv_t(idx);
-        else
-          b(i) = c_plus_U_inv_t(idx);
+        if (i < N + 1) b(i) = T(-1) * c_plus_U_inv_t(idx);
+        else b(i) = c_plus_U_inv_t(idx);
       }
 
       const auto I = linalg::make_identity<T, N>();
@@ -236,10 +232,8 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
       const auto c_plus_U_inv_t = c + U_inv * t;
       for (size_t i = 0; i < 2 * N; ++i) {
         const auto idx = i % N;
-        if (i < N)
-          b(i) = r + c_plus_U_inv_t(idx);
-        else
-          b(i) = r - c_plus_U_inv_t(idx);
+        if (i < N) b(i) = r + c_plus_U_inv_t(idx);
+        else b(i) = r - c_plus_U_inv_t(idx);
       }
 
       A = linalg::set_block<0, N, 0, N>(A, U_inv);
@@ -350,8 +344,8 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
   }
 
   /** @brief member variables in the norm ball */
-  PointT c;  //< n-dim vector of type T representing center of ball
-  T r;       //< scalar of type T representing radius
+  PointT c; //< n-dim vector of type T representing center of ball
+  T r;      //< scalar of type T representing radius
 };
 
-}  // namespace convex
+} // namespace convex

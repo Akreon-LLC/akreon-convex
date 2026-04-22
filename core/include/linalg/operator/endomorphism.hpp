@@ -70,4 +70,4 @@ struct Endomorphism {
   }
 };
 
-}  // namespace linalg
+} // namespace linalg

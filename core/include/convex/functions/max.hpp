@@ -66,8 +66,8 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Max(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -85,10 +85,8 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    if constexpr (Tag == CurvatureType::CONVEX)
-      return MonotonicityType::NONDEC;
-    else
-      return MonotonicityType::NONINC;
+    if constexpr (Tag == CurvatureType::CONVEX) return MonotonicityType::NONDEC;
+    else return MonotonicityType::NONINC;
   }
 
   /**
@@ -115,10 +113,8 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
 
     const auto alpha = lift_map.linear_part()(0)(0);
     const auto beta = lift_map.translation()(0);
-    if constexpr (Tag == CurvatureType::CONVEX)
-      return alpha * mx + beta;
-    else
-      return T(-1) * alpha * mx + beta;
+    if constexpr (Tag == CurvatureType::CONVEX) return alpha * mx + beta;
+    else return T(-1) * alpha * mx + beta;
   }
 
   /**
@@ -228,10 +224,9 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
 };
 
 template <typename Child>
-Max(const Child&)
-    -> Max<MaxMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
-                   linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Child>>>,
-                                  1, 1>>,
-           atom_decay_t<Child>>;
+Max(const Child&) -> Max<
+    MaxMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+            linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
+    atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

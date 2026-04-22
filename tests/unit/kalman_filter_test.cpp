@@ -87,8 +87,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto C = I;
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
-    constexpr auto kf =
-        KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
 
     const auto P_star = I;
     const auto [L_res, L_event] = kf.L(P_star, ss, R);
@@ -98,7 +97,8 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     Matrixd<4, 4> lmi_block{};
     lmi_block = set_block<0, 2, 0, 2>(
         lmi_block, (-1.0) * (A * P_star + P_star * transpose(A) + Q));
-    lmi_block = set_block<0, 2, 2, 4>(lmi_block, (-1.0) * (P_star * transpose(C)));
+    lmi_block =
+        set_block<0, 2, 2, 4>(lmi_block, (-1.0) * (P_star * transpose(C)));
     lmi_block = set_block<2, 4, 0, 2>(lmi_block, (-1.0) * (C * P_star));
     lmi_block = set_block<2, 4, 2, 4>(lmi_block, R);
 
@@ -106,9 +106,8 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     REQUIRE(lmi_sym.is_valid());
     REQUIRE(lmi_sym.is_psd());
 
-    const auto schur_res =
-        A * P_star + P_star * transpose(A) + Q +
-        P_star * transpose(C) * C * P_star;
+    const auto schur_res = A * P_star + P_star * transpose(A) + Q +
+                           P_star * transpose(C) * C * P_star;
     REQUIRE(all_equal(schur_res, Matrixd<2, 2>{}, 1e-6));
   }
 
@@ -122,8 +121,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto kf =
-        KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
     constexpr auto lmi = kf(ss, Q, R, P);
 
     constexpr auto P_geq =
@@ -142,7 +140,8 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     Matrixd<4, 4> lmi_slack{};
     lmi_slack = set_block<0, 2, 0, 2>(
         lmi_slack, (-1.0) * (A * P_feas + P_feas * transpose(A) + Q));
-    lmi_slack = set_block<0, 2, 2, 4>(lmi_slack, (-1.0) * (P_feas * transpose(C)));
+    lmi_slack =
+        set_block<0, 2, 2, 4>(lmi_slack, (-1.0) * (P_feas * transpose(C)));
     lmi_slack = set_block<2, 4, 0, 2>(lmi_slack, (-1.0) * (C * P_feas));
     lmi_slack = set_block<2, 4, 2, 4>(lmi_slack, R);
     const auto lmi_sym = SymmetricMatrix(lmi_slack, 1e-6);
@@ -160,8 +159,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto kf =
-        KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
     constexpr auto prob = make_lqe_problem(ss, Q, R, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
@@ -189,16 +187,15 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     REQUIRE(L_res(0)(0) > 0.0);
     REQUIRE(L_res(1)(1) > 0.0);
 
-    const auto cert =
-        (-1.0) * (A * P_res + P_res * transpose(A) + Q) +
-        P_res * transpose(C) * C * P_res;
+    const auto cert = (-1.0) * (A * P_res + P_res * transpose(A) + Q) +
+                      P_res * transpose(C) * C * P_res;
     const auto cert_sym = SymmetricMatrix(cert, 1e-5);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
   }
 
-  SECTION(
-      "Unstable observable plant is infeasible under current P-only Kalman LMI") {
+  SECTION("Unstable observable plant is infeasible under current P-only Kalman "
+          "LMI") {
     constexpr auto I = make_identity<double, 2>();
     constexpr auto Q = MatBuilder(1.0, 0.0, 0.0, 1.0);
     constexpr auto R = MatBuilder(1.0, 0.0, 0.0, 1.0);
@@ -240,8 +237,7 @@ TEST_CASE("Small Kalman Filter 3x3", "[kalman_filter_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto kf =
-        KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
     constexpr auto lmi = kf(ss, Q, R, P);
     constexpr auto P_geq =
         Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
@@ -255,9 +251,8 @@ TEST_CASE("Small Kalman Filter 3x3", "[kalman_filter_test]") {
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
     REQUIRE(all_equal(L_res, I, 1e-6));
 
-    const auto cert =
-        (-1.0) * (A * P_feas + P_feas * transpose(A) + Q) +
-        P_feas * transpose(C) * C * P_feas;
+    const auto cert = (-1.0) * (A * P_feas + P_feas * transpose(A) + Q) +
+                      P_feas * transpose(C) * C * P_feas;
     const auto cert_sym = SymmetricMatrix(cert, 1e-5);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());

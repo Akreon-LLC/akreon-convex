@@ -62,8 +62,8 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
    * @param child
    */
   constexpr explicit Norm(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -123,8 +123,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
       return alpha * NormFunc()(x) + beta;
-    else
-      return T(-1) * alpha * NormFunc()(x) + beta;
+    else return T(-1) * alpha * NormFunc()(x) + beta;
   }
 
   /**
@@ -344,4 +343,4 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
   const int idx{-1};
 };
 
-}  // namespace convex
+} // namespace convex

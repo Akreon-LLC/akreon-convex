@@ -67,4 +67,4 @@ inline constexpr bool is_norm_v = norm_traits<Norm>{};
 template <class Norm>
 concept NormLike = is_norm_v<Norm>;
 
-}  // namespace linalg
+} // namespace linalg

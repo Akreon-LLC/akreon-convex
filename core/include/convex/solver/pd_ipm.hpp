@@ -183,16 +183,16 @@ struct PrimalDualIPM {
   }
 
   /** @brief member vars */
-  PrimalDualResult<Var, ConeVar, NuVar> res;  ///< PD-IPM result
-  bool dual_feas{false};    ///< status flag for dual feasibility
-  bool primal_feas{false};  ///< status flag for primal feasibility
-  bool gap_min{false};      ///< status flag for duality gap minimized
+  PrimalDualResult<Var, ConeVar, NuVar> res; ///< PD-IPM result
+  bool dual_feas{false};   ///< status flag for dual feasibility
+  bool primal_feas{false}; ///< status flag for primal feasibility
+  bool gap_min{false};     ///< status flag for duality gap minimized
 #ifdef AKREON_REPORT_OUTPUT
   std::array<IterState<T, NumCones, M, N, EqRows>, PD_IPM_STEPS>
-      trace;  ///< debug iteration trace
+      trace; ///< debug iteration trace
 #endif
 
- private:
+private:
   /**
    * @brief solve
    *
@@ -406,8 +406,7 @@ struct PrimalDualIPM {
   template <size_t idx = 0, size_t Start = 0>
   constexpr T seed_prob(const auto& K, ConeVar& x, ConeVar& y,
                         const bool& warm_start) const {
-    if constexpr (idx >= NumCones)
-      return T(0);
+    if constexpr (idx >= NumCones) return T(0);
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
@@ -590,10 +589,8 @@ struct PrimalDualIPM {
    */
   constexpr auto dual_residual(const ConeMat& F, const EqMat& A, const Var& c,
                                const NuVar& nu, const ConeVar& y) const {
-    if constexpr (EqRows == 0)
-      return linalg::transpose(F) * y - c;
-    else
-      return linalg::transpose(F) * y - linalg::transpose(A) * nu - c;
+    if constexpr (EqRows == 0) return linalg::transpose(F) * y - c;
+    else return linalg::transpose(F) * y - linalg::transpose(A) * nu - c;
   }
 
   /**
@@ -626,10 +623,8 @@ struct PrimalDualIPM {
    */
   constexpr auto equality_residual(const EqMat& A, const NuVar& b,
                                    const Var& z) const {
-    if constexpr (EqRows == 0)
-      return NuVar{};
-    else
-      return b - A * z;
+    if constexpr (EqRows == 0) return NuVar{};
+    else return b - A * z;
   }
 
   /**
@@ -737,23 +732,17 @@ struct PrimalDualIPM {
       tag = config::SolverResult::OPTIMAL;
     else if (primal_feas && dual_feas)
       tag = config::SolverResult::PRIMAL_DUAL_FEASIBLE;
-    else if (primal_feas && gap_min)
-      tag = config::SolverResult::PRIMAL_OPTIMAL;
-    else if (dual_feas && gap_min)
-      tag = config::SolverResult::DUAL_OPTIMAL;
-    else if (primal_feas)
-      tag = config::SolverResult::PRIMAL_FEASIBLE;
-    else if (dual_feas)
-      tag = config::SolverResult::DUAL_FEASIBLE;
-    else if (gap_min)
-      tag = config::SolverResult::INFEASIBLE_OPTIMAL;
-    else
-      tag = config::SolverResult::INFEASIBLE_OR_UNBOUNDED;
+    else if (primal_feas && gap_min) tag = config::SolverResult::PRIMAL_OPTIMAL;
+    else if (dual_feas && gap_min) tag = config::SolverResult::DUAL_OPTIMAL;
+    else if (primal_feas) tag = config::SolverResult::PRIMAL_FEASIBLE;
+    else if (dual_feas) tag = config::SolverResult::DUAL_FEASIBLE;
+    else if (gap_min) tag = config::SolverResult::INFEASIBLE_OPTIMAL;
+    else tag = config::SolverResult::INFEASIBLE_OR_UNBOUNDED;
     return tag;
   }
 
   /** @brief member vars */
-  config::PrimalDualIPMConfig<T> config;  ///< PD-IPM config
+  config::PrimalDualIPMConfig<T> config; ///< PD-IPM config
 };
 
-}  // namespace convex
+} // namespace convex

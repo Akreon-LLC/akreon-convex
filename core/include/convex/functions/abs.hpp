@@ -68,8 +68,8 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Abs(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -129,8 +129,7 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
       return alpha * linalg::constexpr_abs(x(0)) + beta;
-    else
-      return T(-1) * alpha * linalg::constexpr_abs(x(0)) + beta;
+    else return T(-1) * alpha * linalg::constexpr_abs(x(0)) + beta;
   }
 
   /**
@@ -272,8 +271,7 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
 };
 
 template <typename Child>
-Abs(const Child&)
-    -> Abs<AbsMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
-           atom_decay_t<Child>>;
+Abs(const Child&) -> Abs<AbsMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
+                         atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

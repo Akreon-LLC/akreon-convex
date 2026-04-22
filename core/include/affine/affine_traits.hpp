@@ -52,4 +52,4 @@ concept AffineMapLike = requires(const Map& map) {
   { map.translation() };
 };
 
-}  // namespace affine
+} // namespace affine

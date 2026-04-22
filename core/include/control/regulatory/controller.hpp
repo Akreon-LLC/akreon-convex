@@ -60,8 +60,8 @@ struct Controller {
   }
 
   /** @brief member vars **/
-  SS ss;  ///< Dynamic controller as SS
-  T dt;   ///< Time step
+  SS ss; ///< Dynamic controller as SS
+  T dt;  ///< Time step
 };
 
-}  // namespace control
+} // namespace control

@@ -189,4 +189,4 @@ template <typename Builder>
 using builder_eq_t =
     typename builder_traits<linalg::remove_cvref_t<Builder>>::EqualityMap;
 
-}  // namespace conic
+} // namespace conic

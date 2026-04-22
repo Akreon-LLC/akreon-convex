@@ -234,4 +234,4 @@ constexpr auto make_polytopic_observer_problem(
   return convex::make_problem(Z).in_set(p_geq).in_set(pldi).feasibility();
 }
 
-}  // namespace control
+} // namespace control

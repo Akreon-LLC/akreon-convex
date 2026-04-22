@@ -157,10 +157,8 @@ constexpr T constexpr_sqrt_safe(const T& x, const T& floor = T(0), T g = 1e-10,
  */
 template <FieldLike T>
 constexpr auto constexpr_abs(const T& x) {
-  if constexpr (RealLike<T>)
-    return x < 0 ? -1 * x : x;
-  else
-    return constexpr_sqrt_safe(x.real() * x.real() + x.imag() * x.imag());
+  if constexpr (RealLike<T>) return x < 0 ? -1 * x : x;
+  else return constexpr_sqrt_safe(x.real() * x.real() + x.imag() * x.imag());
 }
 
 /**
@@ -482,4 +480,4 @@ constexpr auto argsort_desc(const Vec& x) {
 template <FieldLike T>
 inline constexpr T ln2_v{linalg::constexpr_ln_safe(T(2))};
 
-}  // namespace linalg
+} // namespace linalg

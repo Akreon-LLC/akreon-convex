@@ -6,6 +6,32 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_program(CLANG_FORMAT_BIN NAMES clang-format)
+
+file(
+  GLOB_RECURSE AKREON_FORMAT_FILES
+  CONFIGURE_DEPENDS
+  "${CMAKE_SOURCE_DIR}/core/include/*.hpp"
+  "${CMAKE_SOURCE_DIR}/tests/*.hpp"
+  "${CMAKE_SOURCE_DIR}/tests/*.cpp"
+)
+
+if(CLANG_FORMAT_BIN)
+  add_custom_target(
+    clang_format_check
+    COMMAND ${CLANG_FORMAT_BIN} --dry-run --Werror ${AKREON_FORMAT_FILES}
+    COMMENT "Checking C/C++ formatting with clang-format"
+    VERBATIM
+  )
+
+  add_custom_target(
+    clang_format_fix
+    COMMAND ${CLANG_FORMAT_BIN} -i ${AKREON_FORMAT_FILES}
+    COMMENT "Formatting C/C++ sources with clang-format"
+    VERBATIM
+  )
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Werror)
 endif()

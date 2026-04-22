@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #include <catch2/catch_test_macros.hpp>
 
 #include "dynamics.hpp"
@@ -22,13 +21,11 @@ using namespace linalg;
 
 template <typename ScalarT, size_t DoF = 1, size_t Nu = 0>
 class SMD : public DynamicalSystem<ScalarT, DoF, Nu, SMD<ScalarT, DoF, Nu>> {
- public:
+public:
   constexpr explicit SMD(const Matrix<ScalarT, DoF, 3>& coords,
                          const ScalarT& k, const ScalarT& c, const ScalarT& m)
-      : DynamicalSystem<ScalarT, DoF, Nu, SMD<ScalarT, DoF, Nu>>(coords),
-        K(k),
-        C(c),
-        mass(m) {}
+      : DynamicalSystem<ScalarT, DoF, Nu, SMD<ScalarT, DoF, Nu>>(coords), K(k),
+        C(c), mass(m) {}
 
   constexpr ScalarT T_impl(const Vector<ScalarT, DoF>& q0,
                            const Vector<ScalarT, DoF>& q1) const {
@@ -48,7 +45,7 @@ class SMD : public DynamicalSystem<ScalarT, DoF, Nu, SMD<ScalarT, DoF, Nu>> {
     return Vector<ScalarT, 1>{(-1 * C * (q1(0) - q0(0))) / (2 * h)};
   }
 
- private:
+private:
   ScalarT K, C, mass;
   static constexpr ScalarT G = 9.81;
 };

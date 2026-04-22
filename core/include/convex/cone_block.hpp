@@ -70,8 +70,8 @@ struct ConeBlock {
   }
 
   /** @brief member vars for cone block */
-  Map map;                  ///< affine map taking the decision variables -> cone coords
-  std::tuple<Cs...> cones;  ///< tuple of cones aligned with map
+  Map map; ///< affine map taking the decision variables -> cone coords
+  std::tuple<Cs...> cones; ///< tuple of cones aligned with map
 };
 
-}  // namespace conic
+} // namespace conic

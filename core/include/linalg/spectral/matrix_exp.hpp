@@ -126,7 +126,7 @@ constexpr auto matrix_exp(const Mat& A) {
 
   const auto p = make_group_permutation(D);
   const auto p_inv = invert_permutation(p);
-  const auto Jp = permute_ptjp(J, p);  // P^T J P
+  const auto Jp = permute_ptjp(J, p); // P^T J P
 
   Matrix<Complex, N, N> exp_Jp;
   size_t i = 0;
@@ -185,4 +185,4 @@ constexpr auto matrix_exp(const Mat& A) {
   return V * (exp_J * V_inv);
 }
 
-}  // namespace linalg
+} // namespace linalg

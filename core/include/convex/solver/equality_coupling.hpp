@@ -98,8 +98,8 @@ struct SchurEqualityCoupling {
   }
 
   /** @brief member vars **/
-  EqMat A{};          ///< Equality mat
-  SchurFactor S_inv;  ///< Schur factor S = (A M^{-1} A^T)^{-1}
+  EqMat A{};         ///< Equality mat
+  SchurFactor S_inv; ///< Schur factor S = (A M^{-1} A^T)^{-1}
 };
 
 /**
@@ -151,8 +151,8 @@ struct ScalarEqualityCoupling {
   }
 
   /** @brief member vars **/
-  EqMat A{};   ///< Equality matrix
-  Scalar s{};  ///< scalar for S
+  EqMat A{};  ///< Equality matrix
+  Scalar s{}; ///< scalar for S
 };
 
-}  // namespace convex
+} // namespace convex

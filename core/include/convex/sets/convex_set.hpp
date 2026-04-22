@@ -55,7 +55,7 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
    */
   constexpr void validate_domain_impl() const {
     AK_ASSERT(self().is_well_formed_impl() &&
-           "ConvexSet::validate_domain_impl expects set it to be good");
+              "ConvexSet::validate_domain_impl expects set it to be good");
   }
 
   /**
@@ -131,4 +131,4 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
   constexpr auto self() const { return static_cast<const Derived&>(*this); }
 };
 
-}  // namespace convex
+} // namespace convex

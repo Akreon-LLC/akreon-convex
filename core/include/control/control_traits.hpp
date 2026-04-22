@@ -101,4 +101,4 @@ template <typename StateSpace>
 concept DiscreteStateSpaceLike =
     !is_continuous_v<StateSpace> && StateSpaceLike<StateSpace>;
 
-}  // namespace control
+} // namespace control

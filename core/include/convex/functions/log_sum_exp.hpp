@@ -64,8 +64,8 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit LogSumExp(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -83,10 +83,8 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
    * @return monotonicity
    */
   constexpr MonotonicityType monotonicity() const {
-    if constexpr (Tag == CurvatureType::CONVEX)
-      return MonotonicityType::NONDEC;
-    else
-      return MonotonicityType::NONINC;
+    if constexpr (Tag == CurvatureType::CONVEX) return MonotonicityType::NONDEC;
+    else return MonotonicityType::NONINC;
   }
 
   /**
@@ -112,11 +110,8 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
 
     const auto res = linalg::constexpr_ln_safe(sum);
 
-    if constexpr (Tag == CurvatureType::CONVEX)
-      return res;
-    else {
-      return T(-1) * res;
-    }
+    if constexpr (Tag == CurvatureType::CONVEX) return res;
+    else { return T(-1) * res; }
   }
 
   /**
@@ -251,11 +246,10 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
 };
 
 template <typename Child>
-LogSumExp(const Child&)
-    -> LogSumExp<
-        LogSumExpMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
-                      linalg::Matrix<
-                          dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
-        atom_decay_t<Child>>;
+LogSumExp(const Child&) -> LogSumExp<
+    LogSumExpMeta<
+        dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+        linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
+    atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

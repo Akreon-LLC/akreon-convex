@@ -174,8 +174,8 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
   }
 
   /** @brief member vars for LMI */
-  linalg::Vector<Mat, N> A;  ///< LMI of As
-  Mat B;                     ///< B offset
+  linalg::Vector<Mat, N> A; ///< LMI of As
+  Mat B;                    ///< B offset
 };
 
 /// (dakre) CTAD - class template argument deduction for egononic use of LMI
@@ -185,4 +185,4 @@ LMI(const linalg::Vector<Mat, N>&, const Mat&, const Child&)
     -> LMI<LMIMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
            atom_decay_t<Child>, Mat>;
 
-}  // namespace convex
+} // namespace convex

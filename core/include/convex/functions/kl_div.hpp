@@ -63,8 +63,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
    * @param child q
    */
   constexpr explicit KLDivergence(const PointT& p_in, const Child& child_in)
-      : ConvexBase(child_in),
-        p(p_in),
+      : ConvexBase(child_in), p(p_in),
         lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
     for (const auto& x : p) {
       AK_ASSERT(x < T(0) &&
@@ -125,10 +124,8 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
       res += p(i) * linalg::constexpr_ln(p(i) / q(i)).value();
     }
 
-    if constexpr (Tag == CurvatureType::CONVEX)
-      return res;
-    else
-      return T(-1) * res;
+    if constexpr (Tag == CurvatureType::CONVEX) return res;
+    else return T(-1) * res;
   }
 
   /**
@@ -227,8 +224,7 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
     const auto I = linalg::make_identity<T, N>();
     if constexpr (Tag == CurvatureType::CONVEX)
       F = linalg::set_block<0, N, 2 * N, 3 * N>(F, T(-1) * I);
-    else
-      F = linalg::set_block<0, N, 2 * N, 3 * N>(F, I);
+    else F = linalg::set_block<0, N, 2 * N, 3 * N>(F, I);
 
     F = linalg::set_block<N, 2 * N, 0, N>(F, I);
     F = linalg::set_block<2 * N, 3 * N, N, 2 * N>(F, child_coord.linear_part());
@@ -256,11 +252,10 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
 };
 
 template <typename Point, typename Child>
-KLDivergence(const Point&, const Child&)
-    -> KLDivergence<
-        KLDivMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
-                  linalg::Matrix<
-                      dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
-        atom_decay_t<Child>>;
+KLDivergence(const Point&, const Child&) -> KLDivergence<
+    KLDivMeta<
+        dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+        linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
+    atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

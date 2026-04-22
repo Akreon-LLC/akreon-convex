@@ -47,9 +47,9 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
    *
    * @param row index
    * @param col index
-  *
-  * @return element
-  */
+   *
+   * @return element
+   */
   constexpr auto operator()(const size_t& i, const size_t& j) const {
     const auto x = svec(index(i, j));
     if (i == j) return x;
@@ -132,12 +132,9 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
     size_t npos = 0, nneg = 0, nzero = 0;
 
     auto classify_scalar = [&](const auto& d_real) {
-      if (d_real > tol)
-        ++npos;
-      else if (d_real < -tol)
-        ++nneg;
-      else
-        ++nzero;
+      if (d_real > tol) ++npos;
+      else if (d_real < -tol) ++nneg;
+      else ++nzero;
     };
 
     if constexpr (is_complex_v<DiagT>) {
@@ -146,16 +143,11 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
       for (const auto& d : diag) classify_scalar(d);
     }
 
-    if (nneg == 0 && nzero == 0)
-      type = SymmetricOperatorType::PD;
-    else if (nneg == 0 && nzero > 0)
-      type = SymmetricOperatorType::PSD;
-    else if (npos == 0 && nzero == 0)
-      type = SymmetricOperatorType::ND;
-    else if (npos == 0 && nzero > 0)
-      type = SymmetricOperatorType::NSD;
-    else
-      type = SymmetricOperatorType::IND;
+    if (nneg == 0 && nzero == 0) type = SymmetricOperatorType::PD;
+    else if (nneg == 0 && nzero > 0) type = SymmetricOperatorType::PSD;
+    else if (npos == 0 && nzero == 0) type = SymmetricOperatorType::ND;
+    else if (npos == 0 && nzero > 0) type = SymmetricOperatorType::NSD;
+    else type = SymmetricOperatorType::IND;
   }
 
   /**
@@ -166,9 +158,9 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
   constexpr const Derived& self() const { return static_cast<Derived&>(*this); }
 
   /** @brief member variables */
-  SymmetricOperatorType type;  //< SymmetricOperatorType value
-  Vector<T, DIM> svec;  //< Data stored as svec(A): lower triangle with
-                        // sqrt(2)-scaled off-diagonals
+  SymmetricOperatorType type; //< SymmetricOperatorType value
+  Vector<T, DIM> svec;        //< Data stored as svec(A): lower triangle with
+                              // sqrt(2)-scaled off-diagonals
 };
 
-}  // namespace linalg
+} // namespace linalg

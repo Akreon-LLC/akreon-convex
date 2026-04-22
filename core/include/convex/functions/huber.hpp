@@ -65,8 +65,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit Huber(const T& delta_in, const Child& child_in)
-      : ConvexBase(child_in),
-        delta(delta_in),
+      : ConvexBase(child_in), delta(delta_in),
         lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
     AK_ASSERT(delta_in >= T(0) && "Huber expects delta >= 0");
   }
@@ -132,8 +131,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
     if (linalg::constexpr_abs(x(0)) <= delta) {
       if constexpr (Tag == CurvatureType::CONVEX)
         return alpha * T(0.5) * x(0) * x(0) + beta;
-      else
-        return T(-0.5) * alpha * x(0) * x(0) + beta;
+      else return T(-0.5) * alpha * x(0) * x(0) + beta;
     } else {
       if constexpr (Tag == CurvatureType::CONVEX)
         return alpha * delta * (linalg::constexpr_abs(x(0)) - T(0.5) * delta) +
@@ -293,4 +291,4 @@ Huber(const T&, const Child&)
     -> Huber<HuberMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
              atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

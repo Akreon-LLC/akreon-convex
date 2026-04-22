@@ -51,6 +51,9 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{ env.PRESET }} --parallel
 
+      - name: Check clang-format
+        run: cmake --build --preset ${{ env.PRESET }} --target clang_format_check
+
       # --- Test ---
       - name: Run tests
         run: ctest --test-dir out/build/host-default/tests --output-on-failure -C ${{ env.BUILD_TYPE }}

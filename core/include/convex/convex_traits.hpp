@@ -496,4 +496,4 @@ inline constexpr bool is_cap_type_v = atom_type_v<Atom> == AtomType::CAP;
 template <AtomLike Atom>
 inline constexpr bool is_index_type_v = atom_type_v<Atom> == AtomType::INDEX;
 
-}  // namespace convex
+} // namespace convex

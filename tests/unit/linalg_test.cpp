@@ -255,10 +255,10 @@ TEST_CASE("Test vector space types", "[vector_space]") {
 
     STATIC_REQUIRE(trace(B) == 3.0);
 
-    constexpr auto c = std::complex<double>(1.0, 2.0);   // 1 + 2i
-    constexpr auto c_conj = std::conj(c);                // 1 - 2i
-    constexpr auto d = std::complex<double>(5.0, -1.0);  // 5 - 1i
-    constexpr auto d_conj = std::conj(d);                // 5 + 1i
+    constexpr auto c = std::complex<double>(1.0, 2.0);  // 1 + 2i
+    constexpr auto c_conj = std::conj(c);               // 1 - 2i
+    constexpr auto d = std::complex<double>(5.0, -1.0); // 5 - 1i
+    constexpr auto d_conj = std::conj(d);               // 5 + 1i
     constexpr auto J = Vectorcd<2>{c, d};
     constexpr auto K = Matrixcd<2, 2>{J, J};
     // K = [[c d]; [c d]] -> K^* = [[\bar{c} \bar{c}] [\bar{d} \bar{d}]]
@@ -459,8 +459,8 @@ TEST_CASE("Matrix square root", "[matrix_sqrt]") {
     STATIC_REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
     STATIC_REQUIRE(all_equal(A_inv_sqrt, A_inv_sqrt_exp, 1e-5));
     STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
-    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 2>(),
-                             1e-5));
+    STATIC_REQUIRE(
+        all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 2>(), 1e-5));
   }
 
   SECTION("3x3 diagonal") {
@@ -477,8 +477,8 @@ TEST_CASE("Matrix square root", "[matrix_sqrt]") {
     STATIC_REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
     STATIC_REQUIRE(all_equal(A_inv_sqrt, A_inv_sqrt_exp, 1e-5));
     STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
-    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 3>(),
-                             1e-5));
+    STATIC_REQUIRE(
+        all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 3>(), 1e-5));
   }
 
   SECTION("2x2 SPD") {
@@ -490,8 +490,8 @@ TEST_CASE("Matrix square root", "[matrix_sqrt]") {
 
     STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
     STATIC_REQUIRE(all_equal(A_sqrt, transpose(A_sqrt), 1e-5));
-    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 2>(),
-                             1e-5));
+    STATIC_REQUIRE(
+        all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 2>(), 1e-5));
   }
 
   SECTION("3x3 SPD") {
@@ -503,8 +503,8 @@ TEST_CASE("Matrix square root", "[matrix_sqrt]") {
 
     STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
     STATIC_REQUIRE(all_equal(A_sqrt, transpose(A_sqrt), 1e-5));
-    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 3>(),
-                             1e-5));
+    STATIC_REQUIRE(
+        all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 3>(), 1e-5));
   }
 
   SECTION("4x4 diagonal") {
@@ -517,14 +517,14 @@ TEST_CASE("Matrix square root", "[matrix_sqrt]") {
     constexpr auto A_sqrt_exp = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0,
                                       0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 4.0);
     constexpr auto A_inv_sqrt_exp =
-        A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0,
-              1.0 / 3.0, 0.0, 0.0, 0.0, 0.0, 0.25);
+        A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 1.0 / 3.0, 0.0,
+              0.0, 0.0, 0.0, 0.25);
 
     STATIC_REQUIRE(all_equal(A_sqrt, A_sqrt_exp, 1e-5));
     STATIC_REQUIRE(all_equal(A_inv_sqrt, A_inv_sqrt_exp, 1e-5));
     STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
-    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 4>(),
-                             1e-5));
+    STATIC_REQUIRE(
+        all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 4>(), 1e-5));
   }
 
   SECTION("4x4 SPD") {
@@ -537,8 +537,8 @@ TEST_CASE("Matrix square root", "[matrix_sqrt]") {
 
     STATIC_REQUIRE(all_equal(A_sqrt * A_sqrt, A, 1e-5));
     STATIC_REQUIRE(all_equal(A_sqrt, transpose(A_sqrt), 1e-5));
-    STATIC_REQUIRE(all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 4>(),
-                             1e-5));
+    STATIC_REQUIRE(
+        all_equal(A_inv_sqrt * A_sqrt, make_identity<double, 4>(), 1e-5));
   }
 }
 
@@ -750,7 +750,6 @@ TEST_CASE("Matrix Pencil") {
     STATIC_REQUIRE(F_blks(2) == F10);
     STATIC_REQUIRE(F_blks(3) == F11);
   }
-
 }
 
 TEST_CASE("Cholesky Factorization") {

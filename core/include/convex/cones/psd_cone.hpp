@@ -135,10 +135,8 @@ struct PositiveSemidefiniteCone
     T lo{0}, hi{1};
     for (size_t i = 0; i < steps; ++i) {
       const T mid = T(0.5) * (lo + hi);
-      if (in_cone_impl(x + mid * p))
-        lo = mid;
-      else
-        hi = mid;
+      if (in_cone_impl(x + mid * p)) lo = mid;
+      else hi = mid;
     }
     return eta * lo;
   }
@@ -340,4 +338,4 @@ struct PositiveSemidefiniteCone
   }
 };
 
-}  // namespace conic
+} // namespace conic

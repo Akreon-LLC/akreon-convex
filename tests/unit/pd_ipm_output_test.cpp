@@ -87,8 +87,7 @@ TEST_CASE("PD-IPM output serializes synthesized gain object as JSON",
   const std::string json(buf);
   REQUIRE(json.find("\"tag\":\"OPTIMAL\"") != std::string::npos);
   REQUIRE(json.find("\"synthesized_object\":{\"kind\":\"state_feedback_gain\","
-                    "\"matrix\":[[-1, 0.5],[0.25, -2]]}") !=
-          std::string::npos);
+                    "\"matrix\":[[-1, 0.5],[0.25, -2]]}") != std::string::npos);
 }
 
 TEST_CASE("PD-IPM output reports JSON to stream and file", "[pd_ipm_output]") {
@@ -145,9 +144,8 @@ TEST_CASE("PD-IPM output reports synthesized gain object to stream and file",
   std::ostringstream out;
   report_result_json(out, res, "observer_gain", L);
   const auto stream_json = out.str();
-  REQUIRE(stream_json.find(
-              "\"synthesized_object\":{\"kind\":\"observer_gain\","
-              "\"matrix\":[[4.5, -0.75]]}") != std::string::npos);
+  REQUIRE(stream_json.find("\"synthesized_object\":{\"kind\":\"observer_gain\","
+                           "\"matrix\":[[4.5, -0.75]]}") != std::string::npos);
 
   const auto path = std::filesystem::temp_directory_path() /
                     "akreon_pd_ipm_output_gain_test.json";

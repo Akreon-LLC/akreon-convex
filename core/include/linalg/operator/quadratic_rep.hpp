@@ -83,7 +83,7 @@ struct QuadraticRep {
   }
 
   /** @brief member var */
-  J x;  ///< x in domain of P (i.e., P(x))
+  J x; ///< x in domain of P (i.e., P(x))
 };
 
-}  // namespace linalg
+} // namespace linalg

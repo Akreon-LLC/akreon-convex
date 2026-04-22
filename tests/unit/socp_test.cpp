@@ -199,9 +199,9 @@ TEST_CASE("Warm Start SOCP Test", "[socp_test]") {
                    rel_tol);
     STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(3) - (6.0 - 2.0 * sqrt5)) <
                    rel_tol);
-    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0) - cold_res.iterate.z(0)) <
-                   rel_tol);
-    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - cold_res.iterate.z(1)) <
-                   rel_tol);
+    STATIC_REQUIRE(
+        constexpr_abs(warm_res.iterate.z(0) - cold_res.iterate.z(0)) < rel_tol);
+    STATIC_REQUIRE(
+        constexpr_abs(warm_res.iterate.z(1) - cold_res.iterate.z(1)) < rel_tol);
   }
 }

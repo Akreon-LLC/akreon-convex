@@ -41,10 +41,10 @@ struct HouseholderVector {
   }
 
   /** @brief Vector member variables */
-  Vector<T, N> v;         ///< householder vector
-  scalar_type_t<T> beta;  ///< scalar to form P
+  Vector<T, N> v;        ///< householder vector
+  scalar_type_t<T> beta; ///< scalar to form P
 
- private:
+private:
   /**
    * @brief from a vector X create a householder vector
    *
@@ -83,16 +83,12 @@ struct HouseholderVector {
 
       v = x;
       v(0) = 1;
-      if (sigma == 0 && x(0) >= T(0))
-        beta = T(0);
-      else if (sigma == 0 && x(0) < T(0))
-        beta = T(-2);
+      if (sigma == 0 && x(0) >= T(0)) beta = T(0);
+      else if (sigma == 0 && x(0) < T(0)) beta = T(-2);
       else {
         const auto mu = constexpr_sqrt_safe(x(0) * x(0) + sigma);
-        if (x(0) <= T(0))
-          v(0) = x(0) - mu;
-        else
-          v(0) = -sigma / (x(0) + mu);
+        if (x(0) <= T(0)) v(0) = x(0) - mu;
+        else v(0) = -sigma / (x(0) + mu);
         beta = 2 * (v(0) * v(0)) / (sigma + v(0) * v(0));
         v = (T(1) / v(0)) * v;
       }
@@ -115,4 +111,4 @@ struct HouseholderVector {
   }
 };
 
-}  // namespace linalg
+} // namespace linalg

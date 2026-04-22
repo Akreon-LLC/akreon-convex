@@ -29,8 +29,7 @@ namespace convex {
 template <size_t idx = 0, typename Children, typename Builder, typename Fn>
 constexpr auto tuple_fold_cap(Children&& children, Builder&& builder, Fn&& fn) {
   constexpr size_t N = std::tuple_size_v<std::remove_reference_t<Children>>;
-  if constexpr (idx == N)
-    return std::forward<Builder>(builder);
+  if constexpr (idx == N) return std::forward<Builder>(builder);
   else {
     auto&& child = std::get<idx>(std::forward<Children>(children));
     auto new_builder =
@@ -102,9 +101,8 @@ struct Intersection : Atom<Meta, Intersection<Meta, Cs...>, Cs...> {
 };
 
 template <typename C0, typename... Cs>
-Intersection(const C0&, const Cs&...)
-    -> Intersection<
-        IntersectionMeta<dom_space_t<meta_codom_t<atom_meta_t<C0>>>>,
-        atom_decay_t<C0>, atom_decay_t<Cs>...>;
+Intersection(const C0&, const Cs&...) -> Intersection<
+    IntersectionMeta<dom_space_t<meta_codom_t<atom_meta_t<C0>>>>,
+    atom_decay_t<C0>, atom_decay_t<Cs>...>;
 
-}  // namespace convex
+} // namespace convex

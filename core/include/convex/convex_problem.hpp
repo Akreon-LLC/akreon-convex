@@ -211,8 +211,7 @@ struct ConvexProblem {
       } else {
         if constexpr (is_fn_type_v<Atom> || is_add_type_v<Atom>)
           return minimize(atom.template mul<-1.0>());
-        else
-          return minimize(atom.mul(-1.0));
+        else return minimize(atom.mul(-1.0));
       }
     }
   }
@@ -278,4 +277,4 @@ struct ConvexProblem {
   Builder builder;
 };
 
-}  // namespace convex
+} // namespace convex

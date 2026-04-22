@@ -22,12 +22,12 @@ template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
 struct ResidualState {
   using T = linalg::vec_type_t<Var>;
 
-  Var rd{};       ///< dual residual
-  ConeVar rp{};   ///< primal residual
-  NuVar req{};    ///< equality residual
-  T rd_norm{};    ///< ||rd||_2
-  T rp_norm{};    ///< ||rp||_2
-  T req_norm{};   ///< ||req||_2
+  Var rd{};     ///< dual residual
+  ConeVar rp{}; ///< primal residual
+  NuVar req{};  ///< equality residual
+  T rd_norm{};  ///< ||rd||_2
+  T rp_norm{};  ///< ||rp||_2
+  T req_norm{}; ///< ||req||_2
 };
 
-}  // namespace convex
+} // namespace convex

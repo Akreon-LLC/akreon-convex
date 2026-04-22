@@ -10,7 +10,6 @@
  * from Akreon LLC.
  */
 
-
 #pragma once
 
 #include "config/assert.hpp"
@@ -96,11 +95,11 @@ struct Shear {
   constexpr auto operator()(const size_t& i, const size_t& j,
                             const T& s) const {
     AK_ASSERT((i < N && j < N) &&
-           "Shear transform indices must be within matrix bounds");
+              "Shear transform indices must be within matrix bounds");
     auto H = linalg::make_identity<T, N>();
     H(i)(j) = s;
     return H;
   }
 };
 
-}  // namespace affine
+} // namespace affine

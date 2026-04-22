@@ -68,7 +68,7 @@ constexpr AffineMap<Mat> make_selector_map(const size_t& idx) {
  */
 template <linalg::MatrixLike Mat>
 class AffineMap {
- public:
+public:
   /// @brief alias to extract underlying type of affine set
   using T = linalg::mat_type_t<Mat>;
 
@@ -204,11 +204,11 @@ class AffineMap {
    */
   constexpr auto operator()(const DomVec& x) const { return U * x + c; }
 
- private:
+private:
   /** @brief member variables for affine map */
-  Mat U;         //<  valid linear transformation mapping
-  AmbientVec c;  //< c bias vector that translates the linear part to
-                 // a valid affine subspace
+  Mat U;        //<  valid linear transformation mapping
+  AmbientVec c; //< c bias vector that translates the linear part to
+                // a valid affine subspace
 
   /**
    * @brief equality comparison
@@ -225,4 +225,4 @@ class AffineMap {
   }
 };
 
-}  // namespace affine
+} // namespace affine

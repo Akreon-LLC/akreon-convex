@@ -273,7 +273,8 @@ using Vectorcf = Vector<std::complex<float>, N>;
 template <size_t Rows, size_t Cols>
 using Matrixd = Vector<Vectord<Cols>, Rows>;
 
-/// @brief alias for deducing column vector matrix of type double with N elements
+/// @brief alias for deducing column vector matrix of type double with N
+/// elements
 template <size_t N>
 using ColVectord = ColVector<double, N>;
 
@@ -410,4 +411,4 @@ concept MatMulCompatible = MatrixLike<MatA> && MatrixLike<MatB> &&
                            std::same_as<mat_type_t<MatA>, mat_type_t<MatB>> &&
                            mat_cols_v<MatA> == mat_rows_v<MatB>;
 
-}  // namespace linalg
+} // namespace linalg

@@ -238,4 +238,4 @@ struct Cone {
   constexpr auto self() const { return static_cast<const Derived&>(*this); }
 };
 
-}  // namespace conic
+} // namespace conic

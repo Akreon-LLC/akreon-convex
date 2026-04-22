@@ -20,10 +20,10 @@ namespace convex {
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar>
 struct NewtonStep {
-  Var pz{};       ///< decision-variable step
-  NuVar pnu{};    ///< equality-multiplier step
-  ConeVar px{};   ///< primal-cone step
-  ConeVar py{};   ///< dual-cone step
+  Var pz{};     ///< decision-variable step
+  NuVar pnu{};  ///< equality-multiplier step
+  ConeVar px{}; ///< primal-cone step
+  ConeVar py{}; ///< dual-cone step
 };
 
-}  // namespace convex
+} // namespace convex

@@ -388,4 +388,4 @@ constexpr size_t arg_max(const Vec& x) {
   return idx;
 }
 
-}  // namespace linalg
+} // namespace linalg

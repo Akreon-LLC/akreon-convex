@@ -71,4 +71,4 @@ inline constexpr void log_vec(const Vec& b) {
   std::cout << std::endl;
 }
 
-}  // namespace unit_test
+} // namespace unit_test

@@ -49,10 +49,10 @@ struct Inequality {
   /**
    * @brief canonicalize
    *
- * Follows DCP convention:
- * LEQ: lhs - rhs <= 0, encoded as 0 <= rhs - lhs in the nonnegative cone
- * GEQ: lhs - rhs >= 0, encoded directly in the nonnegative cone
- * -> Works directly on cone map F & g
+   * Follows DCP convention:
+   * LEQ: lhs - rhs <= 0, encoded as 0 <= rhs - lhs in the nonnegative cone
+   * GEQ: lhs - rhs >= 0, encoded directly in the nonnegative cone
+   * -> Works directly on cone map F & g
    *
    * EQ: lhs - rhs == 0 (i.e., convex - (concave))
    * -> Works directly on A & b affine equality map
@@ -67,8 +67,7 @@ struct Inequality {
       using AtomT = linalg::remove_cvref_t<decltype(atom)>;
       if constexpr (is_var_type_v<AtomT>)
         return atom.template canonicalize<AtomType::VAR>(parent_builder);
-      else
-        return atom.template canonicalize<AtomType::FN>(parent_builder);
+      else return atom.template canonicalize<AtomType::FN>(parent_builder);
     };
 
     auto negate_atom = [](const auto& atom) {
@@ -133,12 +132,12 @@ struct Inequality {
       using CodomPoint = dom_point_t<Codom>;
       using RHSMat = linalg::remove_cvref_t<RHS>;
       using RHSScalar = linalg::mat_type_t<RHSMat>;
-      static_assert(
-          linalg::mat_rows_v<RHSMat> == linalg::mat_rows_v<CodomPoint>,
-          "PSD inequality rhs row dim mismatch");
-      static_assert(
-          linalg::mat_cols_v<RHSMat> == linalg::mat_cols_v<CodomPoint>,
-          "PSD inequality rhs col dim mismatch");
+      static_assert(linalg::mat_rows_v<RHSMat> ==
+                        linalg::mat_rows_v<CodomPoint>,
+                    "PSD inequality rhs row dim mismatch");
+      static_assert(linalg::mat_cols_v<RHSMat> ==
+                        linalg::mat_cols_v<CodomPoint>,
+                    "PSD inequality rhs col dim mismatch");
       static_assert(std::convertible_to<RHSScalar, T>,
                     "PSD inequality rhs scalar type must convert to lhs type");
 
@@ -261,8 +260,8 @@ struct Inequality {
   }
 
   /** @brief member vars */
-  LHS lhs;  ///< LHS atom
-  RHS rhs;  ///< RHS atom
+  LHS lhs; ///< LHS atom
+  RHS rhs; ///< RHS atom
 };
 
-}  // namespace convex
+} // namespace convex

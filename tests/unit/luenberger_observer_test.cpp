@@ -69,8 +69,8 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob.constraint_cones())>::value == 2);
+    STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
+                   2);
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;
@@ -125,16 +125,16 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
 
     const auto P_feas = I;
     const auto z_feas = get_svec(P_feas);
-    const auto x_feas =
-        prob.constraint_map().linear_part() * z_feas +
-        prob.constraint_map().translation();
+    const auto x_feas = prob.constraint_map().linear_part() * z_feas +
+                        prob.constraint_map().translation();
 
-    const auto P_slack = make_smat<2>(Vectord<3>{x_feas(0), x_feas(1), x_feas(2)});
+    const auto P_slack =
+        make_smat<2>(Vectord<3>{x_feas(0), x_feas(1), x_feas(2)});
     REQUIRE(P_slack(0)(0) > 0.0);
     REQUIRE(P_slack(1)(1) > 0.0);
 
-    const auto cert_slack = make_smat<2>(
-        Vectord<3>{x_feas(3), x_feas(4), x_feas(5)});
+    const auto cert_slack =
+        make_smat<2>(Vectord<3>{x_feas(3), x_feas(4), x_feas(5)});
     const auto cert_sym = SymmetricMatrix(cert_slack, 1e-6);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
@@ -160,8 +160,8 @@ TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob.constraint_cones())>::value == 2);
+    STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
+                   2);
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;
@@ -211,19 +211,17 @@ TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
 
     const auto P_feas = I;
     const auto z_feas = get_svec(P_feas);
-    const auto x_feas =
-        prob.constraint_map().linear_part() * z_feas +
-        prob.constraint_map().translation();
+    const auto x_feas = prob.constraint_map().linear_part() * z_feas +
+                        prob.constraint_map().translation();
 
-    const auto P_slack = make_smat<3>(Vectord<6>{x_feas(0), x_feas(1), x_feas(2),
-                                                 x_feas(3), x_feas(4), x_feas(5)});
+    const auto P_slack = make_smat<3>(Vectord<6>{
+        x_feas(0), x_feas(1), x_feas(2), x_feas(3), x_feas(4), x_feas(5)});
     REQUIRE(P_slack(0)(0) > 0.0);
     REQUIRE(P_slack(1)(1) > 0.0);
     REQUIRE(P_slack(2)(2) > 0.0);
 
-    const auto cert_slack = make_smat<3>(
-        Vectord<6>{x_feas(6), x_feas(7), x_feas(8),
-                   x_feas(9), x_feas(10), x_feas(11)});
+    const auto cert_slack = make_smat<3>(Vectord<6>{
+        x_feas(6), x_feas(7), x_feas(8), x_feas(9), x_feas(10), x_feas(11)});
     const auto cert_sym = SymmetricMatrix(cert_slack, 1e-6);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());

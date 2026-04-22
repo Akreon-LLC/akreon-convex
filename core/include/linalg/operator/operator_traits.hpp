@@ -332,4 +332,4 @@ concept EndomorphismLike =
       } -> std::convertible_to<
           Vector<operator_type_t<Operator>, operator_dim_v<Operator>>>;
     };
-}  // namespace linalg
+} // namespace linalg

@@ -69,8 +69,8 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
    * @param child
    */
   constexpr explicit HarmonicMean(const Child& child_in)
-      : ConvexBase(child_in),
-        lift_map(affine::make_map_id<LiftedVarMat<T>>()) {}
+      : ConvexBase(child_in), lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
+  }
 
   /**
    * @brief CTOR
@@ -90,8 +90,7 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
   constexpr MonotonicityType monotonicity() const {
     if constexpr (Tag == CurvatureType::CONCAVE)
       return MonotonicityType::NONDEC;
-    else
-      return MonotonicityType::NONINC;
+    else return MonotonicityType::NONINC;
   }
 
   /**
@@ -118,8 +117,7 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONCAVE)
       return alpha * (T(2) * x(0) * x(1)) / (x(0) + x(1)) + beta;
-    else
-      return alpha * (T(-2) * x(0) * x(1)) / (x(0) + x(1)) + beta;
+    else return alpha * (T(-2) * x(0) * x(1)) / (x(0) + x(1)) + beta;
   }
 
   /**
@@ -240,12 +238,10 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
 };
 
 template <typename Child>
-HarmonicMean(const Child&)
-    -> HarmonicMean<
-        HarmonicMeanMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
-                         linalg::Matrix<
-                             dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1,
-                             1>>,
-        atom_decay_t<Child>>;
+HarmonicMean(const Child&) -> HarmonicMean<
+    HarmonicMeanMeta<
+        dom_space_t<meta_codom_t<atom_meta_t<Child>>>,
+        linalg::Matrix<dom_type_t<meta_codom_t<atom_meta_t<Child>>>, 1, 1>>,
+    atom_decay_t<Child>>;
 
-}  // namespace convex
+} // namespace convex

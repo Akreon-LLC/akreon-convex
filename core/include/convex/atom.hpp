@@ -157,9 +157,8 @@ struct Atom {
             break;
           }
           case VarType::PSD: {
-            AK_ASSERT(
-                child_sign == VarType::PSD &&
-                "Parent PSD domain expects PSD child codomain");
+            AK_ASSERT(child_sign == VarType::PSD &&
+                      "Parent PSD domain expects PSD child codomain");
             break;
           }
           case VarType::FREE:
@@ -231,7 +230,7 @@ struct Atom {
   }
 
   /** @brief member vars*/
-  ChildrenT children;  ///< tuple of normalized child atoms
+  ChildrenT children; ///< tuple of normalized child atoms
 };
 
-}  // namespace convex
+} // namespace convex

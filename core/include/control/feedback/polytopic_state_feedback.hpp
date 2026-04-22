@@ -187,10 +187,10 @@ constexpr auto make_polytopic_state_feedback_q_constraint(
  */
 template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_linear_objective(
-    const linalg::Vector<ss_type_t<SS>,
-                         PolytopicStateFeedback<SS, N>::QDim>& q_weights,
-    const linalg::Vector<ss_type_t<SS>,
-                         PolytopicStateFeedback<SS, N>::YDim>& y_weights,
+    const linalg::Vector<ss_type_t<SS>, PolytopicStateFeedback<SS, N>::QDim>&
+        q_weights,
+    const linalg::Vector<ss_type_t<SS>, PolytopicStateFeedback<SS, N>::YDim>&
+        y_weights,
     const ZVar& Z) {
   using T = ss_type_t<SS>;
   using PSF = PolytopicStateFeedback<SS, N>;
@@ -261,4 +261,4 @@ constexpr auto make_polytopic_state_feedback_problem(
   return convex::make_problem(Z).in_set(q_geq).in_set(pldi).feasibility();
 }
 
-}  // namespace control
+} // namespace control

@@ -46,4 +46,4 @@ struct Fro {
   }
 };
 
-}  // namespace linalg
+} // namespace linalg

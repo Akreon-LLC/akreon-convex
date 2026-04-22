@@ -77,7 +77,7 @@ struct MatrixSqrt {
 
   /** @brief member vars **/
   config::FactorConfig<T> config{
-      .steps = 128, .tol = T(1e-12), .floor_eps = T(1e-14)};  ///< factor config
+      .steps = 128, .tol = T(1e-12), .floor_eps = T(1e-14)}; ///< factor config
 };
 
-}  // namespace linalg
+} // namespace linalg

@@ -41,4 +41,4 @@ concept InnerProductLike =
       { L2<Vec>()(x + y) } -> std::same_as<typename Vec::value_type>;
     };
 
-}  // namespace linalg
+} // namespace linalg
