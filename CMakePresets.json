@@ -14,9 +14,7 @@
       "binaryDir": "${sourceDir}/out/build/host-default",
       "cacheVariables": {
         "BUILD_UNIT_TESTS": "ON",
-        "BUILD_FUNCTIONAL_TESTS": "ON",
-        "AKREON_PLATFORM": "baremetal",
-        "AKREON_USE_NOSYS": "ON"
+        "BUILD_FUNCTIONAL_TESTS": "ON"
       }
     },
     {
@@ -27,57 +25,8 @@
       "binaryDir": "${sourceDir}/out/build/host-functional-only",
       "cacheVariables": {
         "BUILD_UNIT_TESTS": "OFF",
-        "BUILD_FUNCTIONAL_TESTS": "ON",
-        "AKREON_PLATFORM": "baremetal",
-        "AKREON_USE_NOSYS": "ON"
+        "BUILD_FUNCTIONAL_TESTS": "ON"
       }
-    },
-    {
-      "name": "arm-stm32-base",
-      "hidden": true,
-      "generator": "Unix Makefiles",
-      "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/toolchains/arm-none-eabi-stm32.cmake",
-        "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_UNIT_TESTS": "OFF",
-        "BUILD_FUNCTIONAL_TESTS": "ON",
-        "AKREON_THUMB": "ON",
-        "AKREON_OPT_LEVEL": "-Os",
-        "AKREON_USE_LTO": "ON",
-        "AKREON_USE_NOSYS": "ON",
-        "AKREON_PLATFORM": "baremetal"
-      }
-    },
-    {
-      "name": "crazyflie",
-      "displayName": "Crazyflie STM32F405",
-      "description": "Crazyflie 2.x family (STM32F405 / Cortex-M4F)",
-      "inherits": "arm-stm32-base",
-      "cacheVariables": {
-        "AKREON_CPU": "cortex-m4",
-        "AKREON_FPU": "fpv4-sp-d16",
-        "AKREON_FLOAT_ABI": "hard",
-        "AKREON_DEVICE_DEFS": "STM32F405xx"
-      }
-    },
-    {
-      "name": "pixhawk",
-      "displayName": "Pixhawk STM32F7",
-      "description": "Pixhawk/Cube class default (STM32F7 / Cortex-M7F), configurable to H7 later",
-      "inherits": "arm-stm32-base",
-      "cacheVariables": {
-        "AKREON_CPU": "cortex-m7",
-        "AKREON_FPU": "fpv5-d16",
-        "AKREON_FLOAT_ABI": "hard",
-        "AKREON_DEVICE_DEFS": "STM32F7xx"
-      }
-    },
-    {
-      "name": "cubeorange",
-      "displayName": "CubeOrange Alias",
-      "description": "Convenience alias preset (currently identical to pixhawk)",
-      "inherits": "pixhawk"
     }
   ],
   "buildPresets": [
@@ -88,18 +37,6 @@
     {
       "name": "host-functional-only",
       "configurePreset": "host-functional-only"
-    },
-    {
-      "name": "crazyflie",
-      "configurePreset": "crazyflie"
-    },
-    {
-      "name": "pixhawk",
-      "configurePreset": "pixhawk"
-    },
-    {
-      "name": "cubeorange",
-      "configurePreset": "cubeorange"
     }
   ]
 }
