@@ -24,7 +24,7 @@
 namespace control {
 
 /**
- * @brief KalmanFilter
+ * @brief Linear-quadratic estimator.
  *
  * Very similar to LQR with Q = process uncertainty (StateCostMat) & R = sensor
  * noise (OutputCostMat)
@@ -39,7 +39,7 @@ namespace control {
  *   E[w w^T] = Q
  *   E[v v^T] = R
  *
- * steady state kalman gain is:
+ * steady state estimator gain is:
  *   L = P C^T R^{-1}
  *
  * standard ricatti eq:
@@ -53,7 +53,7 @@ namespace control {
  */
 template <ContinuousStateSpaceLike SS, linalg::SquareMatrixLike StateCostMat,
           linalg::SquareMatrixLike OutputCostMat>
-struct KalmanFilter {
+struct LQE {
   /// @brief extracting alias and types
   using StateSpace = linalg::remove_cvref_t<SS>;
   using StateCost = linalg::remove_cvref_t<StateCostMat>;
@@ -81,14 +81,14 @@ struct KalmanFilter {
   using Fs = linalg::Vector<FMat, PDim>;
 
   /**
-   * @brief operator overload (form kalman filter)
+   * @brief operator overload (form LQE)
    *
    * @param ss (StateSpace)
    * @param Q (State Cost)
    * @param R (Output Cost)
    * @param P (dec var child)
    *
-   * @return KalmanFilter as LMI
+   * @return LQE as LMI
    */
   template <convex::AtomLike Var>
   constexpr auto operator()(const SS& ss, const StateCostMat& Q,
@@ -97,14 +97,14 @@ struct KalmanFilter {
   }
 
   /**
-   * @brief operator overload (form kalman filter)
+   * @brief operator overload (form LQE)
    *
    * @param ss (StateSpace)
    * @param Q (State Cost)
    * @param R (Output Cost)
    * @param P (dec var child)
    *
-   * @return KalmanFilter as LMI
+   * @return LQE as LMI
    */
   template <convex::AtomLike Var>
   constexpr auto apply(const SS& ss, const StateCostMat& Q,
@@ -181,8 +181,8 @@ constexpr auto make_lqe_problem(const SS& ss, const StateCostMat& Q,
   constexpr size_t N = linalg::mat_rows_v<ss_plant_t<SS>>;
   constexpr size_t K = N * (N + 1) / 2;
 
-  const auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
-  const auto lmi = kf(ss, Q, R, P);
+  const auto lqe = LQE<decltype(ss), decltype(Q), decltype(R)>();
+  const auto lmi = lqe(ss, Q, R, P);
 
   const auto I = linalg::make_identity<T, N>();
 

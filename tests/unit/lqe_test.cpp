@@ -32,7 +32,7 @@ static constexpr auto lqe_solver_config() {
   return cfg;
 }
 
-TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
+TEST_CASE("Small LQE 2x2", "[lqe_test]") {
   using Space = Matrixd<2, 2>;
   using PSpace = SymmetricMatrix<Space>;
   constexpr auto P = Variable<SymMatVarMeta<Space>>();
@@ -49,8 +49,8 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
-    constexpr auto lmi = kf(ss, Q, R, P);
+    constexpr auto lqe = LQE<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto lmi = lqe(ss, Q, R, P);
 
     STATIC_REQUIRE(lmi.is_well_formed());
 
@@ -87,10 +87,10 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto C = I;
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
-    constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto lqe = LQE<decltype(ss), decltype(Q), decltype(R)>();
 
     const auto P_star = I;
-    const auto [L_res, L_event] = kf.L(P_star, ss, R);
+    const auto [L_res, L_event] = lqe.L(P_star, ss, R);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
     REQUIRE(all_equal(L_res, I, 1e-6));
 
@@ -121,8 +121,8 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
-    constexpr auto lmi = kf(ss, Q, R, P);
+    constexpr auto lqe = LQE<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto lmi = lqe(ss, Q, R, P);
 
     constexpr auto P_geq =
         Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
@@ -159,7 +159,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto lqe = LQE<decltype(ss), decltype(Q), decltype(R)>();
     constexpr auto prob = make_lqe_problem(ss, Q, R, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
@@ -182,7 +182,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
     REQUIRE(P_res(0)(0) > 1e-6);
     REQUIRE(P_res(1)(1) > 1e-6);
 
-    const auto [L_res, L_event] = kf.L(P_res, ss, R);
+    const auto [L_res, L_event] = lqe.L(P_res, ss, R);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
     REQUIRE(L_res(0)(0) > 0.0);
     REQUIRE(L_res(1)(1) > 0.0);
@@ -223,7 +223,7 @@ TEST_CASE("Small Kalman Filter 2x2", "[kalman_filter_test]") {
   }
 }
 
-TEST_CASE("Small Kalman Filter 3x3", "[kalman_filter_test]") {
+TEST_CASE("Small LQE 3x3", "[lqe_test]") {
   using Space = Matrixd<3, 3>;
   constexpr auto P = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 3>();
@@ -237,8 +237,8 @@ TEST_CASE("Small Kalman Filter 3x3", "[kalman_filter_test]") {
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
-    constexpr auto kf = KalmanFilter<decltype(ss), decltype(Q), decltype(R)>();
-    constexpr auto lmi = kf(ss, Q, R, P);
+    constexpr auto lqe = LQE<decltype(ss), decltype(Q), decltype(R)>();
+    constexpr auto lmi = lqe(ss, Q, R, P);
     constexpr auto P_geq =
         Inequality<InequalityType::GEQ, decltype(P), Space>(P, 1e-6 * I);
     constexpr auto prob_constr =
@@ -247,7 +247,7 @@ TEST_CASE("Small Kalman Filter 3x3", "[kalman_filter_test]") {
     STATIC_REQUIRE(prob_constr.validate());
 
     const auto P_feas = I;
-    const auto [L_res, L_event] = kf.L(P_feas, ss, R);
+    const auto [L_res, L_event] = lqe.L(P_feas, ss, R);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
     REQUIRE(all_equal(L_res, I, 1e-6));
 

@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "control/estimation/kalman_filter.hpp"
+#include "control/estimation/lqe.hpp"
 #include "control/estimation/luenberger_observer.hpp"
 #include "control/estimation/polytopic_observer.hpp"
 #include "control/feedback/lyapunov_certificate.hpp"
