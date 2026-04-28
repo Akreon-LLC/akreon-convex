@@ -19,16 +19,16 @@ namespace control {
 /**
  * @brief Controller
  *
- * Runtime block for a discrete-time controller.
+ * Runtime block for a discrete-time controller/compensator.
  *
- * The controller assumes the provided state-space model has already been
- * discretized at the intended sample period. In other words, the time-step
- * dependence is already encoded in the discrete state-space matrices, so
- * stepping the controller applies the discrete update directly rather than
- * performing any runtime integration or online discretization.
+ * z_{k+1} = A_c z_k + B_c eta_k
+ * u_k     = C_c z_k + D_c eta_k
  *
- * x_next = Ad x_k + Bd u_k
- * y = Cd x_k + Dd u_k
+ * where:
+ *   z     = controller internal state
+ *   eta   = external controller input vector, e.g. [r; y_meas]
+ *   u_k   = controller command output
+ *
  */
 template <DiscreteStateSpaceLike SS>
 struct Controller {
@@ -50,15 +50,15 @@ struct Controller {
   /**
    * @brief step
    *
-   * @param x (State)
-   * @param u (Input)
+   * @param z (Controller State)... [xhat; x]
+   * @param eta (Exogeneous Input)... [r; y_meas]
    *
-   * @return (x_next, y)
+   * @return (z_next, u_cmd)
    */
-  constexpr auto step(const State& x, const Input& u) const {
-    const auto x_next = ss.plant_dynamics(x, u);
-    const auto y = ss.plant_output(x, u);
-    return std::tuple(x_next, y);
+  constexpr auto step(const State& z, const Input& eta) const {
+    const auto z_next = ss.state_update(z, eta);
+    const auto u_cmd = ss.output_map(z, eta);
+    return std::tuple(z_next, u_cmd);
   }
 
   /** @brief member vars **/

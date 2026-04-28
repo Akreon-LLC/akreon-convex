@@ -71,7 +71,7 @@ struct StateSpace {
       : A(A_in), B(B_in), C(C_in), D(D_in) {}
 
   /**
-   * @brief plant_dynamics
+   * @brief state_update
    *
    * Discrete
    * x_next = A x_k + B u_k
@@ -84,12 +84,12 @@ struct StateSpace {
    *
    * @return xdot or x_next
    */
-  constexpr auto plant_dynamics(const State& x, const Input& u) const {
+  constexpr auto state_update(const State& x, const Input& u) const {
     return A * x + B * u;
   }
 
   /**
-   * @brief plant_output
+   * @brief output_map
    *
    * similar as plant_dynamics
    * y = C x + D u
@@ -99,7 +99,7 @@ struct StateSpace {
    *
    * @return y
    */
-  constexpr auto plant_output(const State& x, const Input& u) const {
+  constexpr auto output_map(const State& x, const Input& u) const {
     return D.has_value() ? C * x + (*D) * u : C * x;
   }
 
