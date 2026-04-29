@@ -10,12 +10,15 @@
  * from Akreon LLC.
  */
 
+#pragma once
+
 #include "config/assert.hpp"
 #include "control/model/state_space.hpp"
 #include "convex/convex_problem.hpp"
 #include "convex/sets/lmi.hpp"
 #include "convex/variable.hpp"
 #include "linalg/operator/matrix_inverse.hpp"
+#include "linalg/operator/matrix_pencil.hpp"
 
 namespace control {
 
@@ -42,10 +45,8 @@ namespace control {
  * hence
  *   K = Y Q^{-1}
  *
- * Now \exists \sigma > 0 s.t. Y can be eliminated.
- *   A Q + Q A^T - \sigma B_u B_u^T < 0
- *
- * Assume \sigma = 1 \to A Q + Q A^T - B_u B_u^T < 0
+ * The problem is represented over the merged decision variable
+ *   z = [ svec(Q); vec(Y) ].
  */
 template <ContinuousStateSpaceLike SS>
 struct StateFeedback {
@@ -60,102 +61,126 @@ struct StateFeedback {
   static constexpr size_t InputDim = linalg::vec_size_v<Input>;
 
   using QMat = linalg::Matrix<T, StateDim, StateDim>;
+  using YMat = linalg::Matrix<T, InputDim, StateDim>;
   using KMat = linalg::Matrix<T, InputDim, StateDim>;
-  using KTMat = linalg::Matrix<T, StateDim, InputDim>;
+  using FMat = QMat;
 
   static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
-  using FMat = QMat;
-  using Fs = linalg::Vector<FMat, QDim>;
+  static constexpr size_t YDim = InputDim * StateDim;
+  static constexpr size_t ZDim = QDim + YDim;
+
+  using ZSpace = linalg::RowVector<T, ZDim>;
+  using Fs = linalg::Vector<FMat, ZDim>;
 
   /**
    * @brief operator overload (form state feedback)
    *
    * @param ss (StateSpace)
-   * @param Q (Var)
+   * @param Z (dec var [svec(Q); vec(Y)])
    *
    * @return LDI as LMI
    */
-  template <convex::AtomLike Var>
-  constexpr auto operator()(const SS& ss, const Var& Q) const {
-    return apply(ss, Q);
+  template <convex::AtomLike ZVar>
+  constexpr auto operator()(const SS& ss, const ZVar& Z) const {
+    return apply(ss, Z);
   }
 
   /**
    * @brief apply
    *
    * @param ss (StateSpace)
-   * @param Q (Var)
+   * @param Z (dec var [svec(Q); vec(Y)])
    *
    * @return LDI as LMI
    */
-  template <convex::AtomLike Var>
-  constexpr auto apply(const SS& ss, const Var& Q) const {
-    static_assert(convex::is_var_type_v<Var>, "Input atom is not a var");
-    using QDom = convex::meta_dom_t<convex::atom_meta_t<Var>>;
-    static_assert(convex::dom_vartype_v<QDom> == convex::VarType::PSD,
-                  "Var type != PSD");
-    using QSpace = convex::dom_space_t<QDom>;
-    static_assert(std::same_as<QSpace, linalg::SymmetricMatrix<QMat>>,
-                  "Expected Q var size != Q mat size");
+  template <convex::AtomLike ZVar>
+  constexpr auto apply(const SS& ss, const ZVar& Z) const {
+    static_assert(convex::is_var_type_v<ZVar>, "Input atom is not a var");
+    using ZDom = convex::meta_dom_t<convex::atom_meta_t<ZVar>>;
+    static_assert(convex::dom_vartype_v<ZDom> == convex::VarType::FREE,
+                  "Merged decision var must be free");
+    using ZVarSpace = convex::dom_space_t<ZDom>;
+    static_assert(std::same_as<ZVarSpace, ZSpace>,
+                  "Expected merged decision size [svec(Q); vec(Y)]");
 
-    /// (dakre) note sign change to make this psd
     auto M = [&](const QMat& E) -> FMat {
       return T(-1) * (ss.A * E + E * linalg::transpose(ss.A));
     };
 
-    FMat B = ss.B * linalg::transpose(ss.B);
+    auto M_y = [&](const YMat& E) -> FMat {
+      return T(-1) *
+             (ss.B * E + linalg::transpose(E) * linalg::transpose(ss.B));
+    };
 
-    linalg::MatrixPencil<FMat, QDim> pencil;
-    const auto F_blks = pencil.template apply_sym_mat<QMat>(M);
+    const auto Fq_local =
+        linalg::MatrixPencil<FMat, QDim>{}.template apply_sym_mat<QMat>(M);
+    const auto Fy_local =
+        linalg::MatrixPencil<FMat, YDim>{}.template apply_full<YMat>(M_y);
 
-    return convex::LMI(F_blks, B, Q);
+    Fs F_blks{};
+    for (size_t i = 0; i < QDim; ++i) F_blks(i) = Fq_local(i);
+    for (size_t i = 0; i < YDim; ++i) F_blks(QDim + i) = Fy_local(i);
+
+    return convex::LMI(F_blks, FMat{}, Z);
   }
 
   /**
    * @brief K
    *
-   * K = -0.5 B^T Q^{-1}
-   * K^T = -0.5 Q^{-T} B = -0.5 Q^{-1} B for symmetric Q
+   * K = Y Q^{-1}
    *
-   * @param ss (StateSpace)
    * @param Q (QMat)
+   * @param Y (YMat)
    *
    * @return K
    */
-  constexpr auto K(const SS& ss, const QMat& Q) const {
+  constexpr auto K(const QMat& Q, const YMat& Y) const {
     const auto [Q_inv, event] = linalg::SymmetricMatrixInverse<QMat>()(Q);
     if (event != linalg::NumericalEvent::NONE) return std::tuple(KMat{}, event);
-    const auto K = T(-0.5) * linalg::transpose(ss.B) * Q_inv;
+    const auto K = Y * Q_inv;
     return std::tuple(K, linalg::NumericalEvent::NONE);
   }
 };
+
+template <ContinuousStateSpaceLike SS, convex::AtomLike ZVar>
+constexpr auto make_state_feedback_q_constraint(const ZVar& Z,
+                                                ss_type_t<SS> margin = 1e-6) {
+  using T = ss_type_t<SS>;
+  using SF = StateFeedback<SS>;
+  using QMat = typename SF::QMat;
+  using Fs = typename SF::Fs;
+
+  const auto I = linalg::make_identity<T, SF::StateDim>();
+  const auto Fq =
+      linalg::MatrixPencil<QMat, SF::QDim>{}.template apply_sym_mat<QMat>(
+          [](const QMat& E) -> QMat { return E; });
+
+  Fs F_blks{};
+  for (size_t i = 0; i < SF::QDim; ++i) F_blks(i) = Fq(i);
+  for (size_t i = 0; i < SF::YDim; ++i) F_blks(SF::QDim + i) = QMat{};
+
+  return convex::LMI(F_blks, T(-1) * margin * I, Z);
+}
 
 /**
  * @brief make state feedback problem
  *
  * @param ss (StateSpace)
- * @param Q (Var)
+ * @param Z (merged decision var [svec(Q); vec(Y)])
  * @param obj (objective)
  * @param margin (PSD margin)
  *
  * @return state feedback problem
  */
-template <ContinuousStateSpaceLike SS, convex::AtomLike Var>
-constexpr auto make_state_feedback_problem(const SS& ss, const Var& Q,
+template <ContinuousStateSpaceLike SS, convex::AtomLike ZVar>
+constexpr auto make_state_feedback_problem(const SS& ss, const ZVar& Z,
                                            const auto& obj,
                                            ss_type_t<SS> margin = 1e-6) {
-  using T = ss_type_t<SS>;
-  constexpr size_t N = linalg::mat_rows_v<ss_plant_t<SS>>;
-
-  const auto I = linalg::make_identity<T, N>();
-
-  const auto Q_geq =
-      convex::Inequality<convex::InequalityType::GEQ, decltype(Q), decltype(I)>(
-          Q, margin * I);
+  const auto Q_geq = make_state_feedback_q_constraint<SS>(Z, margin);
   const auto sf = StateFeedback<decltype(ss)>();
-  const auto lmi = sf(ss, Q);
+  const auto lmi = sf(ss, Z);
   const auto prob_constraints =
-      convex::make_problem(Q).add_constraint(Q_geq).in_set(lmi);
+      convex::make_problem(Z).in_set(Q_geq).in_set(lmi);
   return prob_constraints.minimize(obj);
 }
 
@@ -163,27 +188,18 @@ constexpr auto make_state_feedback_problem(const SS& ss, const Var& Q,
  * @brief make state feedback feasibility problem
  *
  * @param ss (StateSpace)
- * @param Q (Var)
+ * @param Z (merged decision var [svec(Q); vec(Y)])
  * @param margin (PSD margin)
  *
  * @return state feedback feasibility problem
  */
-template <ContinuousStateSpaceLike SS, convex::AtomLike Var>
-constexpr auto make_state_feedback_problem(const SS& ss, const Var& Q,
+template <ContinuousStateSpaceLike SS, convex::AtomLike ZVar>
+constexpr auto make_state_feedback_problem(const SS& ss, const ZVar& Z,
                                            ss_type_t<SS> margin = 1e-6) {
-  using T = ss_type_t<SS>;
-  constexpr size_t N = linalg::mat_rows_v<ss_plant_t<SS>>;
-
-  const auto I = linalg::make_identity<T, N>();
-  const auto Q_geq =
-      convex::Inequality<convex::InequalityType::GEQ, decltype(Q), decltype(I)>(
-          Q, margin * I);
+  const auto Q_geq = make_state_feedback_q_constraint<SS>(Z, margin);
   const auto sf = StateFeedback<decltype(ss)>();
-  const auto lmi = sf(ss, Q);
-  return convex::make_problem(Q)
-      .add_constraint(Q_geq)
-      .in_set(lmi)
-      .feasibility();
+  const auto lmi = sf(ss, Z);
+  return convex::make_problem(Z).in_set(Q_geq).in_set(lmi).feasibility();
 }
 
 } // namespace control

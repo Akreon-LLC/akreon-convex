@@ -12,15 +12,12 @@
 
 #pragma once
 
-#include "control/model/state_space.hpp"
+#include "control/feedback/state_feedback.hpp"
 #include "convex/composed/quad_form.hpp"
 #include "convex/composed/weighted_sum.hpp"
 #include "convex/convex_problem.hpp"
 #include "convex/intersection.hpp"
-#include "convex/sets/lmi.hpp"
 #include "convex/variable.hpp"
-#include "linalg/operator/matrix_inverse.hpp"
-#include "linalg/operator/matrix_pencil.hpp"
 
 namespace control {
 
@@ -47,23 +44,20 @@ struct PolytopicStateFeedback {
   using StateSpace = linalg::remove_cvref_t<SS>;
 
   using T = ss_type_t<StateSpace>;
-  using State = state_vec_t<StateSpace>;
-  using Input = input_vec_t<StateSpace>;
+  using VertexFeedback = StateFeedback<StateSpace>;
 
-  static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t InputDim = linalg::vec_size_v<Input>;
+  static constexpr size_t StateDim = VertexFeedback::StateDim;
+  static constexpr size_t InputDim = VertexFeedback::InputDim;
+  static constexpr size_t QDim = VertexFeedback::QDim;
+  static constexpr size_t YDim = VertexFeedback::YDim;
+  static constexpr size_t ZDim = VertexFeedback::ZDim;
 
-  using QMat = linalg::Matrix<T, StateDim, StateDim>;
-  using YMat = linalg::Matrix<T, InputDim, StateDim>;
-  using KMat = linalg::Matrix<T, InputDim, StateDim>;
-  using FMat = QMat;
-
-  static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
-  static constexpr size_t YDim = InputDim * StateDim;
-  static constexpr size_t ZDim = QDim + YDim;
-
-  using ZSpace = linalg::RowVector<T, ZDim>;
-  using Fs = linalg::Vector<FMat, ZDim>;
+  using QMat = typename VertexFeedback::QMat;
+  using YMat = typename VertexFeedback::YMat;
+  using KMat = typename VertexFeedback::KMat;
+  using FMat = typename VertexFeedback::FMat;
+  using ZSpace = typename VertexFeedback::ZSpace;
+  using Fs = typename VertexFeedback::Fs;
   using Polytope = linalg::Vector<SS, N>;
 
   /**
@@ -98,27 +92,7 @@ struct PolytopicStateFeedback {
                   "Expected merged decision size [svec(Q); vec(Y)]");
 
     auto make_vertex_lmi = [&]<size_t idx>() {
-      const auto& ss = poly(idx);
-
-      auto M_q = [&](const QMat& E) -> FMat {
-        return T(-1) * (ss.A * E + E * linalg::transpose(ss.A));
-      };
-
-      auto M_y = [&](const YMat& E) -> FMat {
-        return T(-1) *
-               (ss.B * E + linalg::transpose(E) * linalg::transpose(ss.B));
-      };
-
-      const auto Fq_local =
-          linalg::MatrixPencil<FMat, QDim>{}.template apply_sym_mat<QMat>(M_q);
-      const auto Fy_local =
-          linalg::MatrixPencil<FMat, YDim>{}.template apply_full<YMat>(M_y);
-
-      Fs F_blks{};
-      for (size_t i = 0; i < QDim; ++i) F_blks(i) = Fq_local(i);
-      for (size_t i = 0; i < YDim; ++i) F_blks(QDim + i) = Fy_local(i);
-
-      return convex::LMI(F_blks, FMat{}, Z);
+      return VertexFeedback()(poly(idx), Z);
     };
 
     auto form_intersection = [&]<size_t... Is>(std::index_sequence<Is...>) {
@@ -139,10 +113,7 @@ struct PolytopicStateFeedback {
    * @return K
    */
   constexpr auto K(const QMat& Q, const YMat& Y) const {
-    const auto [Q_inv, event] = linalg::SymmetricMatrixInverse<QMat>()(Q);
-    if (event != linalg::NumericalEvent::NONE) return std::tuple(KMat{}, event);
-    const auto K = Y * Q_inv;
-    return std::tuple(K, linalg::NumericalEvent::NONE);
+    return VertexFeedback().K(Q, Y);
   }
 };
 
@@ -157,21 +128,7 @@ struct PolytopicStateFeedback {
 template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_q_constraint(
     const ZVar& Z, ss_type_t<SS> margin = 1e-6) {
-  using T = ss_type_t<SS>;
-  using PSF = PolytopicStateFeedback<SS, N>;
-  using QMat = typename PSF::QMat;
-  using Fs = typename PSF::Fs;
-
-  const auto I = linalg::make_identity<T, PSF::StateDim>();
-  const auto Fq =
-      linalg::MatrixPencil<QMat, PSF::QDim>{}.template apply_sym_mat<QMat>(
-          [](const QMat& E) -> QMat { return E; });
-
-  Fs F_blks{};
-  for (size_t i = 0; i < PSF::QDim; ++i) F_blks(i) = Fq(i);
-  for (size_t i = 0; i < PSF::YDim; ++i) F_blks(PSF::QDim + i) = QMat{};
-
-  return convex::LMI(F_blks, T(-1) * margin * I, Z);
+  return make_state_feedback_q_constraint<SS>(Z, margin);
 }
 
 /**

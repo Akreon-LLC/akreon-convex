@@ -756,6 +756,40 @@ TEST_CASE("Matrix Pencil") {
     STATIC_REQUIRE(F_blks(2) == E22);
   }
 
+  SECTION("Symmetric basis expansion follows svec order for 3x3") {
+    using Mat = Matrixd<3, 3>;
+    constexpr linalg::MatrixPencil<Mat, 6> pencil;
+    constexpr auto F_blks = pencil.template apply_sym_mat<Mat>(
+        [](const Mat& E) constexpr { return E; });
+
+    constexpr auto s2 = constexpr_sqrt_safe(2.0);
+    constexpr auto E11 =
+        Mat{Vectord<3>{1.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0},
+            Vectord<3>{0.0, 0.0, 0.0}};
+    constexpr auto E21 =
+        Mat{Vectord<3>{0.0, 1.0 / s2, 0.0}, Vectord<3>{1.0 / s2, 0.0, 0.0},
+            Vectord<3>{0.0, 0.0, 0.0}};
+    constexpr auto E22 =
+        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 1.0, 0.0},
+            Vectord<3>{0.0, 0.0, 0.0}};
+    constexpr auto E31 =
+        Mat{Vectord<3>{0.0, 0.0, 1.0 / s2}, Vectord<3>{0.0, 0.0, 0.0},
+            Vectord<3>{1.0 / s2, 0.0, 0.0}};
+    constexpr auto E32 =
+        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 1.0 / s2},
+            Vectord<3>{0.0, 1.0 / s2, 0.0}};
+    constexpr auto E33 =
+        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0},
+            Vectord<3>{0.0, 0.0, 1.0}};
+
+    STATIC_REQUIRE(F_blks(0) == E11);
+    STATIC_REQUIRE(F_blks(1) == E21);
+    STATIC_REQUIRE(F_blks(2) == E22);
+    STATIC_REQUIRE(F_blks(3) == E31);
+    STATIC_REQUIRE(F_blks(4) == E32);
+    STATIC_REQUIRE(F_blks(5) == E33);
+  }
+
   SECTION("Full basis expansion") {
     using Block = Matrixd<2, 2>;
     using FullMat = Matrixd<2, 2>;
