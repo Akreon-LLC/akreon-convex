@@ -34,276 +34,75 @@ static constexpr auto state_feedback_solver_config() {
 
 TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
   using Space = Matrixd<2, 2>;
-  using QSpace = SymmetricMatrix<Space>;
-  constexpr auto Q = Variable<SymMatVarMeta<Space>>();
-  constexpr auto I = make_identity<double, 2>();
-  constexpr auto Z = Matrixd<2, 2>{};
-  constexpr auto MatBuilder = mat_traits<Space>();
+  using InputSpace = Matrixd<2, 1>;
+  using OutputSpace = RowVectord<2>;
 
-  SECTION("Hand-checkable canonical LMI") {
-    constexpr auto A = Z;
-    constexpr auto B = I;
-    constexpr auto C = I;
+  constexpr auto MatBuilder = mat_traits<Space>();
+  constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
+  constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
+
+  static constexpr size_t QDim = 3;
+  static constexpr size_t YDim = 2;
+  static constexpr size_t ZDim = QDim + YDim;
+  using ZSpace = RowVectord<ZDim>;
+  constexpr auto Z = Variable<VarMeta<ZSpace>>();
+
+  static constexpr size_t FullInputZDim = QDim + 4;
+  using FullInputZSpace = RowVectord<FullInputZDim>;
+  constexpr auto FullInputZ = Variable<VarMeta<FullInputZSpace>>();
+
+  SECTION("Hand-checkable merged canonical LMI") {
+    constexpr auto A = Matrixd<2, 2>{};
+    constexpr auto B = make_identity<double, 2>();
+    constexpr auto C = make_identity<double, 2>();
     constexpr auto ss =
         StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
 
     constexpr auto sf = StateFeedback<decltype(ss)>();
-    constexpr auto lmi = sf(ss, Q);
+    const auto lmi = sf(ss, FullInputZ);
 
-    STATIC_REQUIRE(lmi.is_well_formed());
-
-    constexpr auto builder = conic::create_empty_cblk_builder<QSpace>();
-    constexpr auto cone_block =
+    constexpr auto builder =
+        conic::create_empty_cblk_builder<FullInputZSpace>();
+    const auto cone_block =
         lmi.template canonicalize<AtomType::SET>(builder).cb;
 
-    STATIC_REQUIRE(all_equal(cone_block.map.linear_part(), Matrixd<3, 3>{}));
-    STATIC_REQUIRE(cone_block.map.translation() == Vectord<3>{1.0, 0.0, 1.0});
+    constexpr auto s2 = constexpr_sqrt_safe(2.0);
+    constexpr auto F_exp =
+        Matrixd<3, 7>{Vectord<7>{0.0, 0.0, 0.0, -2.0, 0.0, 0.0, 0.0},
+                      Vectord<7>{0.0, 0.0, 0.0, 0.0, -s2, -s2, 0.0},
+                      Vectord<7>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.0}};
 
-    constexpr auto cones = cone_block.cones;
-    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 1);
-    STATIC_REQUIRE(cone_block.validate());
+    REQUIRE(all_equal(cone_block.map.linear_part(), F_exp));
+    REQUIRE(cone_block.map.translation() == Vectord<3>{});
+    REQUIRE(std::tuple_size<decltype(cone_block.cones)>::value == 1);
+    REQUIRE(cone_block.validate());
   }
 
-  SECTION(
-      "Solver finds feasible/stabilizing Q on unstable full-actuation plant") {
-    constexpr auto A = MatBuilder(0.2, 0.0, 0.0, 0.1);
-    constexpr auto B = I;
-    constexpr auto C = I;
+  SECTION("Solver finds feasible Q/Y and stabilizing K") {
+    constexpr auto A = MatBuilder(-1.0, 0.0, 0.0, -2.0);
     constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
+            A, BCol, CRow);
 
     constexpr auto sf = StateFeedback<decltype(ss)>();
-    constexpr auto prob = make_state_feedback_problem(ss, Q);
-
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
-    STATIC_REQUIRE(prob.validate());
-    STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
-                   2);
-
-    const PrimalDualIPM solver(prob);
-    const auto& res = solver.res;
-#ifdef AKREON_REPORT_OUTPUT
-    const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
-#endif
-
-    REQUIRE(res.tag == SolverResult::OPTIMAL);
-    REQUIRE(!res.stalled);
-
-    const auto Q_res = make_smat<2>(res.iterate.z);
-    REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-    REQUIRE(Q_res(0)(0) > 1e-6);
-    REQUIRE(Q_res(1)(1) > 1e-6);
-
-    const auto [K_res, K_event] = sf.K(ss, Q_res);
-    REQUIRE(K_event == linalg::NumericalEvent::NONE);
-    REQUIRE(K_res(0)(0) < 0.0);
-    REQUIRE(K_res(1)(1) < 0.0);
-    REQUIRE(constexpr_abs(K_res(0)(1)) < 1e-3);
-    REQUIRE(constexpr_abs(K_res(1)(0)) < 1e-3);
-
-    const auto closed_loop = A + B * K_res;
-    REQUIRE(closed_loop(0)(0) < 0.0);
-    REQUIRE(closed_loop(1)(1) < 0.0);
-
-    const auto cert =
-        (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
-    const auto cert_sym = linalg::SymmetricMatrix(cert);
-    REQUIRE(cert_sym.is_valid());
-    REQUIRE(cert_sym.is_psd());
-  }
-
-  SECTION("Explicit feasible point satisfies canonical constraints") {
-    constexpr auto A = MatBuilder(0.2, 0.0, 0.0, 0.1);
-    constexpr auto B = I;
-    constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
-
-    constexpr auto prob = make_state_feedback_problem(ss, Q);
-
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
-    STATIC_REQUIRE(prob.validate());
-
-    const PrimalDualIPM solver(prob);
-    const auto& res = solver.res;
-#ifdef AKREON_REPORT_OUTPUT
-    const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
-#endif
-
-    REQUIRE(res.tag == SolverResult::OPTIMAL);
-    REQUIRE(!res.stalled);
-
-    const auto Q_feas = I;
-    const auto z_feas = get_svec(Q_feas);
-    const auto x_feas = prob.constraint_map().linear_part() * z_feas +
-                        prob.constraint_map().translation();
-
-    const auto Q_slack =
-        make_smat<2>(Vectord<3>{x_feas(0), x_feas(1), x_feas(2)});
-    REQUIRE(Q_slack(0)(0) > 0.0);
-    REQUIRE(Q_slack(1)(1) > 0.0);
-
-    const auto cert_slack =
-        make_smat<2>(Vectord<3>{x_feas(3), x_feas(4), x_feas(5)});
-    const auto cert_sym = SymmetricMatrix(cert_slack, 1e-6);
-    REQUIRE(cert_sym.is_valid());
-    REQUIRE(cert_sym.is_psd());
-  }
-}
-
-TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
-  using Space = Matrixd<3, 3>;
-  constexpr auto Q = Variable<SymMatVarMeta<Space>>();
-  constexpr auto I = make_identity<double, 3>();
-  constexpr auto MatBuilder = mat_traits<Space>();
-
-  SECTION("Solver finds feasible Q on coupled stable plant") {
-    constexpr auto A =
-        MatBuilder(-1.0, 0.2, 0.0, 0.0, -0.5, 0.3, 0.0, 0.0, -2.0);
-    constexpr auto B = I;
-    constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
-
-    constexpr auto prob = make_state_feedback_problem(ss, Q);
-
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
-    STATIC_REQUIRE(prob.validate());
-    STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
-                   2);
-
-    const PrimalDualIPM solver(prob);
-    const auto& res = solver.res;
-#ifdef AKREON_REPORT_OUTPUT
-    const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
-#endif
-
-    REQUIRE(res.tag == SolverResult::OPTIMAL);
-    REQUIRE(!res.stalled);
-
-    const auto Q_res = make_smat<3>(res.iterate.z);
-    REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-    REQUIRE(Q_res(0)(0) > 1e-6);
-    REQUIRE(Q_res(1)(1) > 1e-6);
-    REQUIRE(Q_res(2)(2) > 1e-6);
-
-    const auto cert =
-        (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
-    const auto cert_sym = linalg::SymmetricMatrix(cert);
-    REQUIRE(cert_sym.is_valid());
-    REQUIRE(cert_sym.is_psd());
-  }
-
-  SECTION("Explicit feasible 3x3 point satisfies canonical constraints") {
-    constexpr auto A =
-        MatBuilder(-1.0, 0.2, 0.0, 0.0, -0.5, 0.3, 0.0, 0.0, -2.0);
-    constexpr auto B = I;
-    constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
-
-    constexpr auto prob = make_state_feedback_problem(ss, Q);
-
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
-    STATIC_REQUIRE(prob.validate());
-
-    const PrimalDualIPM solver(prob);
-    const auto& res = solver.res;
-#ifdef AKREON_REPORT_OUTPUT
-    const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
-#endif
-
-    REQUIRE(res.tag == SolverResult::OPTIMAL);
-    REQUIRE(!res.stalled);
-
-    const auto Q_feas = I;
-    const auto z_feas = get_svec(Q_feas);
-    const auto x_feas = prob.constraint_map().linear_part() * z_feas +
-                        prob.constraint_map().translation();
-
-    const auto Q_slack = make_smat<3>(Vectord<6>{
-        x_feas(0), x_feas(1), x_feas(2), x_feas(3), x_feas(4), x_feas(5)});
-    REQUIRE(Q_slack(0)(0) > 0.0);
-    REQUIRE(Q_slack(1)(1) > 0.0);
-    REQUIRE(Q_slack(2)(2) > 0.0);
-
-    const auto cert_slack = make_smat<3>(Vectord<6>{
-        x_feas(6), x_feas(7), x_feas(8), x_feas(9), x_feas(10), x_feas(11)});
-    const auto cert_sym = SymmetricMatrix(cert_slack, 1e-6);
-    REQUIRE(cert_sym.is_valid());
-    REQUIRE(cert_sym.is_psd());
-  }
-
-  SECTION("Linear objective helper minimizes trace-like weight on Q") {
-    constexpr auto A =
-        MatBuilder(-1.0, 0.2, 0.0, 0.0, -0.5, 0.3, 0.0, 0.0, -2.0);
-    constexpr auto B = I;
-    constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
-
-    constexpr auto sf = StateFeedback<decltype(ss)>();
-    constexpr auto c = Vectord<6>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0};
-    constexpr auto obj = WeightedSum<SymmetricMatrix<Space>>()(c, Q);
-    constexpr auto prob = make_state_feedback_problem(ss, Q, obj);
-
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
-    STATIC_REQUIRE(prob.validate());
-
-    const PrimalDualIPM solver(prob);
-    const auto& res = solver.res;
-#ifdef AKREON_REPORT_OUTPUT
-    const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
-#endif
-
-    REQUIRE(res.tag == SolverResult::OPTIMAL);
-    REQUIRE(!res.stalled);
-
-    const auto Q_res = make_smat<3>(res.iterate.z);
-    REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-
-    const auto [K_res, K_event] = sf.K(ss, Q_res);
-    REQUIRE(K_event == linalg::NumericalEvent::NONE);
-
-    const auto cert =
-        (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
-    const auto cert_sym = linalg::SymmetricMatrix(cert);
-    REQUIRE(cert_sym.is_valid());
-    REQUIRE(cert_sym.is_psd());
-  }
-
-  SECTION("Quadratic objective helper solves with a lifted problem") {
-    constexpr auto A =
-        MatBuilder(-1.0, 0.2, 0.0, 0.0, -0.5, 0.3, 0.0, 0.0, -2.0);
-    constexpr auto B = I;
-    constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
-
-    constexpr auto P = Matrixd<6, 6>{
-        Vectord<6>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-        Vectord<6>{0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-        Vectord<6>{0.0, 0.0, 1.0, 0.0, 0.0, 0.0},
-        Vectord<6>{0.0, 0.0, 0.0, 1.0, 0.0, 0.0},
-        Vectord<6>{0.0, 0.0, 0.0, 0.0, 1.0, 0.0},
-        Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0},
+    constexpr auto P = Matrix<double, ZDim, ZDim>{
+        Vectord<ZDim>{1.0, 0.0, 0.0, 0.0, 0.0},
+        Vectord<ZDim>{0.0, 1.0, 0.0, 0.0, 0.0},
+        Vectord<ZDim>{0.0, 0.0, 1.0, 0.0, 0.0},
+        Vectord<ZDim>{0.0, 0.0, 0.0, 1.0, 0.0},
+        Vectord<ZDim>{0.0, 0.0, 0.0, 0.0, 1.0},
     };
-    constexpr auto q = Vectord<6>{};
-    constexpr auto obj = QuadForm<SymmetricMatrix<Space>>()(P, q, Q);
-    const auto prob = make_state_feedback_problem(ss, Q, obj);
+    constexpr auto q = Vectord<ZDim>{};
+    constexpr auto obj = make_quad_form(P, q, Z);
+    const auto prob = make_state_feedback_problem(ss, Z, obj);
 
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
+    REQUIRE(is_problem_set_v<decltype(prob)>);
     REQUIRE(prob.validate());
-    REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value > 2);
+    REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 4);
 
+    using Solver = PrimalDualIPM<decltype(prob)>;
     const auto cfg = state_feedback_solver_config<double>();
-    const PrimalDualIPM solver(prob, cfg);
+    const Solver solver(prob, cfg);
     const auto& res = solver.res;
 #ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
@@ -313,15 +112,34 @@ TEST_CASE("State Feedback 3x3", "[state_feedback_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(!res.stalled);
 
-    Vectord<6> q_res{};
-    for (size_t i = 0; i < 6; ++i) q_res(i) = res.iterate.z(i);
-    const auto Q_res = make_smat<3>(q_res);
+    const auto z_split = linalg::splice<QDim>(res.iterate.z);
+    const auto Q_res = make_smat<2>(std::get<0>(z_split));
+    RowVectord<2> Y_res{};
+    for (size_t j = 0; j < YDim; ++j) Y_res(0)(j) = std::get<1>(z_split)(j);
+
     REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
+    REQUIRE(Q_res(0)(0) > 1e-6);
+    REQUIRE(Q_res(1)(1) > 1e-6);
+
+    const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
+    REQUIRE(Q_sym.is_valid());
+    REQUIRE(Q_sym.is_psd());
+
+    const auto [K_res, K_event] = sf.K(Q_res, Y_res);
+    REQUIRE(K_event == linalg::NumericalEvent::NONE);
+    REQUIRE(all_equal(Y_res, K_res * Q_res, 1e-4));
 
     const auto cert =
-        (-1.0) * (A * Q_res + Q_res * transpose(A)) + B * transpose(B);
-    const auto cert_sym = linalg::SymmetricMatrix(cert);
+        (-1.0) * (A * Q_res + Q_res * transpose(A) + BCol * Y_res +
+                  transpose(Y_res) * transpose(BCol));
+    const auto cert_sym = SymmetricMatrix(cert, 1e-6);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
+
+    const auto cl = A + BCol * K_res;
+    const auto lyap = (-1.0) * (cl * Q_res + Q_res * transpose(cl));
+    const auto lyap_sym = SymmetricMatrix(lyap, 1e-6);
+    REQUIRE(lyap_sym.is_valid());
+    REQUIRE(lyap_sym.is_psd());
   }
 }

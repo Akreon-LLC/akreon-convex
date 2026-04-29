@@ -30,4 +30,3 @@ This repo's CMake surface is for local SDK development and verification. Product
 ## Test
 1. `ctest --test-dir out/build/host-default/tests --output-on-failure` (unit tests)
 1. `./out/build/host-default/tests/linalg_fuzz_test` for randomized linalg checks
-1. `./out/build/host-default/tests/convex_fuzz_test` for randomized convex checks

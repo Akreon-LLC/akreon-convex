@@ -194,6 +194,29 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(all_equal(S_inv * S, make_identity<double, 2>()));
     STATIC_REQUIRE(all_equal(S_inv, transpose(S_inv)));
 
+    constexpr auto S_1x1 = Matrixd<1, 1>{Vectord<1>{4.0}};
+    constexpr auto S_1x1_inv_res =
+        SymmetricMatrixInverse<decltype(S_1x1)>()(S_1x1);
+    constexpr auto S_1x1_inv = std::get<0>(S_1x1_inv_res);
+    constexpr auto S_1x1_inv_event = std::get<1>(S_1x1_inv_res);
+    STATIC_REQUIRE(S_1x1_inv_event == linalg::NumericalEvent::NONE);
+    STATIC_REQUIRE(S_1x1_inv(0)(0) == 0.25);
+
+    constexpr auto S_1x1_zero = Matrixd<1, 1>{Vectord<1>{0.0}};
+    constexpr auto S_1x1_zero_inv_res =
+        SymmetricMatrixInverse<decltype(S_1x1_zero)>()(S_1x1_zero);
+    constexpr auto S_1x1_zero_inv_event = std::get<1>(S_1x1_zero_inv_res);
+    STATIC_REQUIRE(S_1x1_zero_inv_event ==
+                   linalg::NumericalEvent::FACTORIZATION_FAILED);
+
+    constexpr auto S_singular =
+        Matrixd<2, 2>{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 0.0}};
+    constexpr auto S_singular_inv_res =
+        SymmetricMatrixInverse<decltype(S_singular)>()(S_singular);
+    constexpr auto S_singular_inv_event = std::get<1>(S_singular_inv_res);
+    STATIC_REQUIRE(S_singular_inv_event ==
+                   linalg::NumericalEvent::FACTORIZATION_FAILED);
+
     constexpr auto B_11 = get_block<0, 1, 0, 1>(B);
     STATIC_REQUIRE(B_11(0)(0) == 1.0);
 
@@ -731,6 +754,40 @@ TEST_CASE("Matrix Pencil") {
     STATIC_REQUIRE(F_blks(0) == E11);
     STATIC_REQUIRE(F_blks(1) == E12);
     STATIC_REQUIRE(F_blks(2) == E22);
+  }
+
+  SECTION("Symmetric basis expansion follows svec order for 3x3") {
+    using Mat = Matrixd<3, 3>;
+    constexpr linalg::MatrixPencil<Mat, 6> pencil;
+    constexpr auto F_blks = pencil.template apply_sym_mat<Mat>(
+        [](const Mat& E) constexpr { return E; });
+
+    constexpr auto s2 = constexpr_sqrt_safe(2.0);
+    constexpr auto E11 =
+        Mat{Vectord<3>{1.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0},
+            Vectord<3>{0.0, 0.0, 0.0}};
+    constexpr auto E21 =
+        Mat{Vectord<3>{0.0, 1.0 / s2, 0.0}, Vectord<3>{1.0 / s2, 0.0, 0.0},
+            Vectord<3>{0.0, 0.0, 0.0}};
+    constexpr auto E22 =
+        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 1.0, 0.0},
+            Vectord<3>{0.0, 0.0, 0.0}};
+    constexpr auto E31 =
+        Mat{Vectord<3>{0.0, 0.0, 1.0 / s2}, Vectord<3>{0.0, 0.0, 0.0},
+            Vectord<3>{1.0 / s2, 0.0, 0.0}};
+    constexpr auto E32 =
+        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 1.0 / s2},
+            Vectord<3>{0.0, 1.0 / s2, 0.0}};
+    constexpr auto E33 =
+        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0},
+            Vectord<3>{0.0, 0.0, 1.0}};
+
+    STATIC_REQUIRE(F_blks(0) == E11);
+    STATIC_REQUIRE(F_blks(1) == E21);
+    STATIC_REQUIRE(F_blks(2) == E22);
+    STATIC_REQUIRE(F_blks(3) == E31);
+    STATIC_REQUIRE(F_blks(4) == E32);
+    STATIC_REQUIRE(F_blks(5) == E33);
   }
 
   SECTION("Full basis expansion") {

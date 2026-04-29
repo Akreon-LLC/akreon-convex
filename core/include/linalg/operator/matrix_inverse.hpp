@@ -91,22 +91,27 @@ struct SymmetricMatrixInverse {
    * @return (A^{-1}, event)
    */
   constexpr auto apply(const Mat& A) const {
-    const auto ldl = LDL(A);
-
     Mat A_inv{};
-    AK_ASSERT(ldl.is_valid() &&
-              "Input matrix is not a valid symmetric matrix for LDL^T");
-    if (!ldl.is_valid())
-      return std::tuple(A_inv, linalg::NumericalEvent::FACTORIZATION_FAILED);
+    if constexpr (N == 1) {
+      if (constexpr_abs(A(0)(0)) == T(0))
+        return std::tuple(A_inv, linalg::NumericalEvent::FACTORIZATION_FAILED);
+      A_inv(0)(0) = T(1) / A(0)(0);
+      return std::tuple(A_inv, linalg::NumericalEvent::NONE);
+    } else {
+      const auto ldl = LDL(A);
 
-    for (size_t i = 0; i < N; ++i) {
-      Vector<T, N> I_vec{};
-      I_vec(i) = T(1);
-      const auto [a_col, event] = ldl.solve(I_vec);
-      if (linalg::is_fatal_event(event)) return std::tuple(A_inv, event);
-      for (size_t j = 0; j < N; ++j) A_inv(j)(i) = a_col(j);
+      if (!ldl.is_valid())
+        return std::tuple(A_inv, linalg::NumericalEvent::FACTORIZATION_FAILED);
+
+      for (size_t i = 0; i < N; ++i) {
+        Vector<T, N> I_vec{};
+        I_vec(i) = T(1);
+        const auto [a_col, event] = ldl.solve(I_vec);
+        if (linalg::is_fatal_event(event)) return std::tuple(A_inv, event);
+        for (size_t j = 0; j < N; ++j) A_inv(j)(i) = a_col(j);
+      }
+      return std::tuple(A_inv, linalg::NumericalEvent::NONE);
     }
-    return std::tuple(A_inv, linalg::NumericalEvent::NONE);
   }
 };
 
