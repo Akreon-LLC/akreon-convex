@@ -194,6 +194,29 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(all_equal(S_inv * S, make_identity<double, 2>()));
     STATIC_REQUIRE(all_equal(S_inv, transpose(S_inv)));
 
+    constexpr auto S_1x1 = Matrixd<1, 1>{Vectord<1>{4.0}};
+    constexpr auto S_1x1_inv_res =
+        SymmetricMatrixInverse<decltype(S_1x1)>()(S_1x1);
+    constexpr auto S_1x1_inv = std::get<0>(S_1x1_inv_res);
+    constexpr auto S_1x1_inv_event = std::get<1>(S_1x1_inv_res);
+    STATIC_REQUIRE(S_1x1_inv_event == linalg::NumericalEvent::NONE);
+    STATIC_REQUIRE(S_1x1_inv(0)(0) == 0.25);
+
+    constexpr auto S_1x1_zero = Matrixd<1, 1>{Vectord<1>{0.0}};
+    constexpr auto S_1x1_zero_inv_res =
+        SymmetricMatrixInverse<decltype(S_1x1_zero)>()(S_1x1_zero);
+    constexpr auto S_1x1_zero_inv_event = std::get<1>(S_1x1_zero_inv_res);
+    STATIC_REQUIRE(S_1x1_zero_inv_event ==
+                   linalg::NumericalEvent::FACTORIZATION_FAILED);
+
+    constexpr auto S_singular =
+        Matrixd<2, 2>{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 0.0}};
+    constexpr auto S_singular_inv_res =
+        SymmetricMatrixInverse<decltype(S_singular)>()(S_singular);
+    constexpr auto S_singular_inv_event = std::get<1>(S_singular_inv_res);
+    STATIC_REQUIRE(S_singular_inv_event ==
+                   linalg::NumericalEvent::FACTORIZATION_FAILED);
+
     constexpr auto B_11 = get_block<0, 1, 0, 1>(B);
     STATIC_REQUIRE(B_11(0)(0) == 1.0);
 
