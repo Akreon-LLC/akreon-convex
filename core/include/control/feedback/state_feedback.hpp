@@ -13,6 +13,8 @@
 #pragma once
 
 #include "config/assert.hpp"
+#include "control/control_util.hpp"
+#include "control/model/plant_model.hpp"
 #include "control/model/state_space.hpp"
 #include "convex/convex_problem.hpp"
 #include "convex/sets/lmi.hpp"
@@ -48,17 +50,18 @@ namespace control {
  * The problem is represented over the merged decision variable
  *   z = [ svec(Q); vec(Y) ].
  */
-template <ContinuousStateSpaceLike SS>
+template <ContinuousStateFeedbackModelLike SS>
 struct StateFeedback {
   /// @brief extracting alias and types
-  using StateSpace = linalg::remove_cvref_t<SS>;
+  using Model = linalg::remove_cvref_t<SS>;
 
-  using T = ss_type_t<StateSpace>;
-  using State = state_vec_t<StateSpace>;
-  using Input = input_vec_t<StateSpace>;
+  using T = state_feedback_type_t<Model>;
+  using State = state_feedback_state_vec_t<Model>;
 
-  static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t InputDim = linalg::vec_size_v<Input>;
+  static constexpr size_t StateDim =
+      state_feedback_model_traits<Model>::StateDim;
+  static constexpr size_t InputDim =
+      state_feedback_model_traits<Model>::InputDim;
 
   using QMat = linalg::Matrix<T, StateDim, StateDim>;
   using YMat = linalg::Matrix<T, InputDim, StateDim>;
@@ -104,12 +107,13 @@ struct StateFeedback {
                   "Expected merged decision size [svec(Q); vec(Y)]");
 
     auto M = [&](const QMat& E) -> FMat {
-      return T(-1) * (ss.A * E + E * linalg::transpose(ss.A));
+      const auto& A = plant_A(ss);
+      return T(-1) * (A * E + E * linalg::transpose(A));
     };
 
     auto M_y = [&](const YMat& E) -> FMat {
-      return T(-1) *
-             (ss.B * E + linalg::transpose(E) * linalg::transpose(ss.B));
+      const auto B_u = state_feedback_Bu(ss);
+      return T(-1) * (B_u * E + linalg::transpose(E) * linalg::transpose(B_u));
     };
 
     const auto Fq_local =
@@ -142,10 +146,10 @@ struct StateFeedback {
   }
 };
 
-template <ContinuousStateSpaceLike SS, convex::AtomLike ZVar>
-constexpr auto make_state_feedback_q_constraint(const ZVar& Z,
-                                                ss_type_t<SS> margin = 1e-6) {
-  using T = ss_type_t<SS>;
+template <ContinuousStateFeedbackModelLike SS, convex::AtomLike ZVar>
+constexpr auto make_state_feedback_q_constraint(
+    const ZVar& Z, state_feedback_type_t<SS> margin = 1e-6) {
+  using T = state_feedback_type_t<SS>;
   using SF = StateFeedback<SS>;
   using QMat = typename SF::QMat;
   using Fs = typename SF::Fs;
@@ -172,10 +176,10 @@ constexpr auto make_state_feedback_q_constraint(const ZVar& Z,
  *
  * @return state feedback problem
  */
-template <ContinuousStateSpaceLike SS, convex::AtomLike ZVar>
-constexpr auto make_state_feedback_problem(const SS& ss, const ZVar& Z,
-                                           const auto& obj,
-                                           ss_type_t<SS> margin = 1e-6) {
+template <ContinuousStateFeedbackModelLike SS, convex::AtomLike ZVar>
+constexpr auto make_state_feedback_problem(
+    const SS& ss, const ZVar& Z, const auto& obj,
+    state_feedback_type_t<SS> margin = 1e-6) {
   const auto Q_geq = make_state_feedback_q_constraint<SS>(Z, margin);
   const auto sf = StateFeedback<decltype(ss)>();
   const auto lmi = sf(ss, Z);
@@ -193,9 +197,9 @@ constexpr auto make_state_feedback_problem(const SS& ss, const ZVar& Z,
  *
  * @return state feedback feasibility problem
  */
-template <ContinuousStateSpaceLike SS, convex::AtomLike ZVar>
-constexpr auto make_state_feedback_problem(const SS& ss, const ZVar& Z,
-                                           ss_type_t<SS> margin = 1e-6) {
+template <ContinuousStateFeedbackModelLike SS, convex::AtomLike ZVar>
+constexpr auto make_state_feedback_problem(
+    const SS& ss, const ZVar& Z, state_feedback_type_t<SS> margin = 1e-6) {
   const auto Q_geq = make_state_feedback_q_constraint<SS>(Z, margin);
   const auto sf = StateFeedback<decltype(ss)>();
   const auto lmi = sf(ss, Z);

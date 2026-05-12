@@ -13,6 +13,8 @@
 #pragma once
 
 #include "config/assert.hpp"
+#include "control/control_util.hpp"
+#include "control/model/plant_model.hpp"
 #include "control/model/state_space.hpp"
 #include "convex/convex_problem.hpp"
 #include "convex/sets/lmi.hpp"
@@ -21,6 +23,7 @@
 #include "linalg/operator/matrix_pencil.hpp"
 
 namespace control {
+
 /**
  * @brief Luenberger Observer
  *
@@ -49,17 +52,16 @@ namespace control {
  * observer gain calculation
  *   L = (\sigma / 2) P^{-1} C^T
  */
-template <ContinuousStateSpaceLike SS>
+template <ContinuousObserverModelLike SS>
 struct LuenbergerObserver {
   /// @brief extracting alias and types
-  using StateSpace = linalg::remove_cvref_t<SS>;
+  using Model = linalg::remove_cvref_t<SS>;
 
-  using T = ss_type_t<StateSpace>;
-  using State = state_vec_t<StateSpace>;
-  using Output = ss_output_t<StateSpace>;
+  using T = observer_type_t<Model>;
+  using State = observer_state_vec_t<Model>;
 
-  static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t OutputDim = linalg::mat_rows_v<Output>;
+  static constexpr size_t StateDim = observer_model_traits<Model>::StateDim;
+  static constexpr size_t OutputDim = observer_model_traits<Model>::OutputDim;
 
   using PMat = linalg::Matrix<T, StateDim, StateDim>;
   using LMat = linalg::Matrix<T, StateDim, OutputDim>;
@@ -101,10 +103,12 @@ struct LuenbergerObserver {
 
     /// (dakre) note sign change to make this psd
     auto M = [&](const PMat& E) -> FMat {
-      return T(-1) * (linalg::transpose(ss.A) * E + E * ss.A);
+      const auto& A = plant_A(ss);
+      return T(-1) * (linalg::transpose(A) * E + E * A);
     };
 
-    FMat B = linalg::transpose(ss.C) * ss.C;
+    const auto C_y = observer_Cy(ss);
+    FMat B = linalg::transpose(C_y) * C_y;
 
     linalg::MatrixPencil<FMat, PDim> pencil;
     const auto F_blks = pencil.template apply_sym_mat<PMat>(M);
@@ -125,7 +129,8 @@ struct LuenbergerObserver {
   constexpr auto L(const SS& ss, const PMat& P) const {
     const auto [P_inv, event] = linalg::SymmetricMatrixInverse<PMat>()(P);
     if (event != linalg::NumericalEvent::NONE) return std::tuple(LMat{}, event);
-    const auto L = T(0.5) * P_inv * linalg::transpose(ss.C);
+    const auto C_y = observer_Cy(ss);
+    const auto L = T(0.5) * P_inv * linalg::transpose(C_y);
     return std::tuple(L, linalg::NumericalEvent::NONE);
   }
 };
@@ -140,12 +145,12 @@ struct LuenbergerObserver {
  *
  * @return observer problem
  */
-template <ContinuousStateSpaceLike SS, convex::AtomLike Var>
+template <ContinuousObserverModelLike SS, convex::AtomLike Var>
 constexpr auto make_observer_problem(const SS& ss, const Var& P,
                                      const auto& obj,
-                                     ss_type_t<SS> margin = 1e-6) {
-  using T = ss_type_t<SS>;
-  constexpr size_t N = linalg::mat_rows_v<ss_plant_t<SS>>;
+                                     observer_type_t<SS> margin = 1e-6) {
+  using T = observer_type_t<SS>;
+  constexpr size_t N = LuenbergerObserver<SS>::StateDim;
   const auto I = linalg::make_identity<T, N>();
 
   const auto P_geq =
@@ -169,11 +174,11 @@ constexpr auto make_observer_problem(const SS& ss, const Var& P,
  *
  * @return observer problem
  */
-template <ContinuousStateSpaceLike SS, convex::AtomLike Var>
+template <ContinuousObserverModelLike SS, convex::AtomLike Var>
 constexpr auto make_observer_problem(const SS& ss, const Var& P,
-                                     ss_type_t<SS> margin = 1e-6) {
-  using T = ss_type_t<SS>;
-  constexpr size_t N = linalg::mat_rows_v<ss_plant_t<SS>>;
+                                     observer_type_t<SS> margin = 1e-6) {
+  using T = observer_type_t<SS>;
+  constexpr size_t N = LuenbergerObserver<SS>::StateDim;
   const auto I = linalg::make_identity<T, N>();
 
   const auto P_geq =

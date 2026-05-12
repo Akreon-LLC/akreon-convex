@@ -1,0 +1,158 @@
+/*
+ * Copyright © 2025 Akreon LLC. All rights reserved.
+ *
+ * Proprietary and Confidential.
+ * This source code is the property of Akreon LLC and constitutes a trade secret
+ * protected by U.S. and international law.
+ *
+ * Unauthorized copying, modification, distribution, or disclosure of this file,
+ * via any medium, is strictly prohibited without express written permission
+ * from Akreon LLC.
+ */
+
+#include <catch2/catch_test_macros.hpp>
+
+#include "control.hpp"
+#include "math.hpp"
+#include "test_helpers.hpp"
+
+using namespace control;
+using namespace convex;
+using namespace linalg;
+using namespace unit_test;
+
+TEST_CASE("PlantModel channel selection", "[plant_model_test]") {
+  using AMap = Matrixd<2, 2>;
+  using BMap = Matrixd<2, 4>;
+  using CMap = Matrixd<4, 2>;
+  using SS = StateSpace<TimeDomainType::CONTINUOUS, AMap, BMap, CMap>;
+  using Inputs = InputLayout<InputChannel<InputKind::control, 2, 1>,
+                             InputChannel<InputKind::disturbance, 0, 1>,
+                             InputChannel<InputKind::control, 1, 1>,
+                             InputChannel<InputKind::exogenous, 3, 1>>;
+  using Outputs = OutputLayout<OutputChannel<OutputKind::performance, 0, 1>,
+                               OutputChannel<OutputKind::measurement, 2, 1>,
+                               OutputChannel<OutputKind::measurement, 3, 1>,
+                               OutputChannel<OutputKind::regulated, 1, 1>>;
+  using Plant = PlantModel<SS, Inputs, Outputs>;
+
+  STATIC_REQUIRE(StateSpaceLike<SS>);
+  STATIC_REQUIRE(!PlantModelLike<SS>);
+  STATIC_REQUIRE(PlantModelLike<Plant>);
+  STATIC_REQUIRE(ContinuousPlantModelLike<Plant>);
+  STATIC_REQUIRE(plant_traits<Plant>::ControlDim == 2);
+  STATIC_REQUIRE(plant_traits<Plant>::DisturbanceDim == 1);
+  STATIC_REQUIRE(plant_traits<Plant>::MeasurementDim == 2);
+  STATIC_REQUIRE(plant_traits<Plant>::PerformanceDim == 1);
+
+  constexpr auto A = Matrixd<2, 2>{
+      Vectord<2>{1.0, 2.0},
+      Vectord<2>{3.0, 4.0},
+  };
+  constexpr auto B = Matrixd<2, 4>{
+      Vectord<4>{10.0, 11.0, 12.0, 13.0},
+      Vectord<4>{20.0, 21.0, 22.0, 23.0},
+  };
+  constexpr auto C = Matrixd<4, 2>{
+      Vectord<2>{30.0, 31.0},
+      Vectord<2>{40.0, 41.0},
+      Vectord<2>{50.0, 51.0},
+      Vectord<2>{60.0, 61.0},
+  };
+  constexpr auto D = Matrixd<4, 4>{
+      Vectord<4>{100.0, 101.0, 102.0, 103.0},
+      Vectord<4>{110.0, 111.0, 112.0, 113.0},
+      Vectord<4>{120.0, 121.0, 122.0, 123.0},
+      Vectord<4>{130.0, 131.0, 132.0, 133.0},
+  };
+  constexpr auto plant = Plant(SS(A, B, C, D));
+
+  REQUIRE(
+      all_equal(plant.control_matrix(),
+                Matrixd<2, 2>{Vectord<2>{12.0, 11.0}, Vectord<2>{22.0, 21.0}}));
+  REQUIRE(all_equal(plant.disturbance_matrix(),
+                    ColVectord<2>{Vectord<1>{10.0}, Vectord<1>{20.0}}));
+  REQUIRE(all_equal(plant.performance_matrix(),
+                    RowVectord<2>{Vectord<2>{30.0, 31.0}}));
+  REQUIRE(
+      all_equal(plant.measurement_matrix(),
+                Matrixd<2, 2>{Vectord<2>{50.0, 51.0}, Vectord<2>{60.0, 61.0}}));
+  REQUIRE(all_equal(
+      plant.feedthrough<OutputKind::measurement, InputKind::control>(),
+      Matrixd<2, 2>{Vectord<2>{122.0, 121.0}, Vectord<2>{132.0, 131.0}}));
+}
+
+TEST_CASE("PlantModel selected channels match vanilla synthesis",
+          "[plant_model_test]") {
+  using AMap = Matrixd<2, 2>;
+  using BVanilla = Matrixd<2, 1>;
+  using BAug = Matrixd<2, 2>;
+  using CVanilla = RowVectord<2>;
+  using CAug = Matrixd<2, 2>;
+
+  constexpr auto A = Matrixd<2, 2>{
+      Vectord<2>{0.0, 1.0},
+      Vectord<2>{-2.0, -3.0},
+  };
+  constexpr auto B_u = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
+  constexpr auto B_aug = Matrixd<2, 2>{
+      Vectord<2>{9.0, 1.0},
+      Vectord<2>{8.0, 0.5},
+  };
+  constexpr auto C_y = RowVectord<2>{Vectord<2>{1.0, 0.0}};
+  constexpr auto C_aug = Matrixd<2, 2>{
+      Vectord<2>{7.0, 7.0},
+      Vectord<2>{1.0, 0.0},
+  };
+
+  using VanillaSS =
+      StateSpace<TimeDomainType::CONTINUOUS, AMap, BVanilla, CVanilla>;
+  using PlantSS = StateSpace<TimeDomainType::CONTINUOUS, AMap, BAug, CAug>;
+  using Inputs = InputLayout<InputChannel<InputKind::disturbance, 0, 1>,
+                             InputChannel<InputKind::control, 1, 1>>;
+  using Outputs = OutputLayout<OutputChannel<OutputKind::performance, 0, 1>,
+                               OutputChannel<OutputKind::measurement, 1, 1>>;
+  using Plant = PlantModel<PlantSS, Inputs, Outputs>;
+
+  constexpr auto vanilla = VanillaSS(A, B_u, C_y);
+  constexpr auto plant = Plant(PlantSS(A, B_aug, C_aug));
+
+  using FeedbackZ = RowVectord<StateFeedback<VanillaSS>::ZDim>;
+  constexpr auto feedback_dec = Variable<VarMeta<FeedbackZ>>();
+
+  const auto vanilla_feedback_lmi =
+      StateFeedback<VanillaSS>()(vanilla, feedback_dec);
+  const auto plant_feedback_lmi = StateFeedback<Plant>()(plant, feedback_dec);
+  constexpr auto feedback_builder =
+      conic::create_empty_cblk_builder<FeedbackZ>();
+  const auto vanilla_feedback =
+      vanilla_feedback_lmi
+          .template canonicalize<AtomType::SET>(feedback_builder)
+          .cb;
+  const auto plant_feedback =
+      plant_feedback_lmi.template canonicalize<AtomType::SET>(feedback_builder)
+          .cb;
+
+  REQUIRE(all_equal(vanilla_feedback.map.linear_part(),
+                    plant_feedback.map.linear_part()));
+  REQUIRE(vanilla_feedback.map.translation() ==
+          plant_feedback.map.translation());
+
+  constexpr auto P = Variable<SymMatVarMeta<Matrixd<2, 2>>>();
+  const auto vanilla_observer_lmi = LuenbergerObserver<VanillaSS>()(vanilla, P);
+  const auto plant_observer_lmi = LuenbergerObserver<Plant>()(plant, P);
+  constexpr auto observer_builder =
+      conic::create_empty_cblk_builder<SymmetricMatrix<Matrixd<2, 2>>>();
+  const auto vanilla_observer =
+      vanilla_observer_lmi
+          .template canonicalize<AtomType::SET>(observer_builder)
+          .cb;
+  const auto plant_observer =
+      plant_observer_lmi.template canonicalize<AtomType::SET>(observer_builder)
+          .cb;
+
+  REQUIRE(all_equal(vanilla_observer.map.linear_part(),
+                    plant_observer.map.linear_part()));
+  REQUIRE(vanilla_observer.map.translation() ==
+          plant_observer.map.translation());
+}

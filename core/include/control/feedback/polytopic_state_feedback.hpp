@@ -39,12 +39,12 @@ namespace control {
  * This set is represented over the merged decision variable
  *   z = [ svec(Q); vec(Y) ].
  */
-template <ContinuousStateSpaceLike SS, size_t N>
+template <ContinuousStateFeedbackModelLike SS, size_t N>
 struct PolytopicStateFeedback {
-  using StateSpace = linalg::remove_cvref_t<SS>;
+  using Model = linalg::remove_cvref_t<SS>;
 
-  using T = ss_type_t<StateSpace>;
-  using VertexFeedback = StateFeedback<StateSpace>;
+  using T = state_feedback_type_t<Model>;
+  using VertexFeedback = StateFeedback<Model>;
 
   static constexpr size_t StateDim = VertexFeedback::StateDim;
   static constexpr size_t InputDim = VertexFeedback::InputDim;
@@ -125,9 +125,9 @@ struct PolytopicStateFeedback {
  *
  * @return LMI selecting Q-block and constraining it to PSD
  */
-template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_q_constraint(
-    const ZVar& Z, ss_type_t<SS> margin = 1e-6) {
+    const ZVar& Z, state_feedback_type_t<SS> margin = 1e-6) {
   return make_state_feedback_q_constraint<SS>(Z, margin);
 }
 
@@ -142,14 +142,14 @@ constexpr auto make_polytopic_state_feedback_q_constraint(
  *
  * @return linear objective atom
  */
-template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_linear_objective(
-    const linalg::Vector<ss_type_t<SS>, PolytopicStateFeedback<SS, N>::QDim>&
-        q_weights,
-    const linalg::Vector<ss_type_t<SS>, PolytopicStateFeedback<SS, N>::YDim>&
-        y_weights,
+    const linalg::Vector<state_feedback_type_t<SS>,
+                         PolytopicStateFeedback<SS, N>::QDim>& q_weights,
+    const linalg::Vector<state_feedback_type_t<SS>,
+                         PolytopicStateFeedback<SS, N>::YDim>& y_weights,
     const ZVar& Z) {
-  using T = ss_type_t<SS>;
+  using T = state_feedback_type_t<SS>;
   using PSF = PolytopicStateFeedback<SS, N>;
 
   linalg::Vector<T, PSF::ZDim> c{};
@@ -170,11 +170,13 @@ constexpr auto make_polytopic_state_feedback_linear_objective(
  *
  * @return quadratic objective atom
  */
-template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_quadratic_objective(
-    const linalg::Matrix<ss_type_t<SS>, PolytopicStateFeedback<SS, N>::ZDim,
+    const linalg::Matrix<state_feedback_type_t<SS>,
+                         PolytopicStateFeedback<SS, N>::ZDim,
                          PolytopicStateFeedback<SS, N>::ZDim>& P,
-    const linalg::Vector<ss_type_t<SS>, PolytopicStateFeedback<SS, N>::ZDim>& q,
+    const linalg::Vector<state_feedback_type_t<SS>,
+                         PolytopicStateFeedback<SS, N>::ZDim>& q,
     const ZVar& Z) {
   return convex::make_quad_form(P, q, Z);
 }
@@ -189,10 +191,10 @@ constexpr auto make_polytopic_state_feedback_quadratic_objective(
  *
  * @return PLDI optimization problem
  */
-template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_problem(
     const linalg::Vector<SS, N>& poly, const ZVar& Z, const auto& obj,
-    ss_type_t<SS> margin = 1e-6) {
+    state_feedback_type_t<SS> margin = 1e-6) {
   const auto q_geq =
       make_polytopic_state_feedback_q_constraint<SS, N>(Z, margin);
   const auto pldi = PolytopicStateFeedback<SS, N>()(poly, Z);
@@ -208,10 +210,10 @@ constexpr auto make_polytopic_state_feedback_problem(
  *
  * @return PLDI feasibility problem
  */
-template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_problem(
     const linalg::Vector<SS, N>& poly, const ZVar& Z,
-    ss_type_t<SS> margin = 1e-6) {
+    state_feedback_type_t<SS> margin = 1e-6) {
   const auto q_geq =
       make_polytopic_state_feedback_q_constraint<SS, N>(Z, margin);
   const auto pldi = PolytopicStateFeedback<SS, N>()(poly, Z);

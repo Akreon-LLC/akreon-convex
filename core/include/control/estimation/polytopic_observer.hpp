@@ -43,17 +43,16 @@ namespace control {
  *
  * where W = P L, and L = P^{-1} W
  */
-template <ContinuousStateSpaceLike SS, size_t N>
+template <ContinuousObserverModelLike SS, size_t N>
 struct PolytopicObserver {
   /// @brief extracting alias and types
-  using StateSpace = linalg::remove_cvref_t<SS>;
+  using Model = linalg::remove_cvref_t<SS>;
 
-  using T = ss_type_t<StateSpace>;
-  using State = state_vec_t<StateSpace>;
-  using OutputMap = ss_output_t<StateSpace>;
+  using T = observer_type_t<Model>;
+  using State = observer_state_vec_t<Model>;
 
-  static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t OutputDim = linalg::mat_rows_v<OutputMap>;
+  static constexpr size_t StateDim = observer_model_traits<Model>::StateDim;
+  static constexpr size_t OutputDim = observer_model_traits<Model>::OutputDim;
 
   using PMat = linalg::Matrix<T, StateDim, StateDim>;
   using WMat = linalg::Matrix<T, StateDim, OutputDim>;
@@ -103,12 +102,14 @@ struct PolytopicObserver {
       const auto& ss = poly(idx);
 
       auto M_p = [&](const PMat& E) -> FMat {
-        return T(-1) * (linalg::transpose(ss.A) * E + E * ss.A);
+        const auto& A = plant_A(ss);
+        return T(-1) * (linalg::transpose(A) * E + E * A);
       };
 
       auto M_w = [&](const WMat& E) -> FMat {
+        const auto C_y = observer_Cy(ss);
         return T(-1) *
-               (E * ss.C + linalg::transpose(ss.C) * linalg::transpose(E));
+               (E * C_y + linalg::transpose(C_y) * linalg::transpose(E));
       };
 
       const auto Fp_local =
@@ -156,10 +157,10 @@ struct PolytopicObserver {
  *
  * @return LMI selecting P-block and constraining it to PSD
  */
-template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousObserverModelLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_p_constraint(
-    const ZVar& Z, ss_type_t<SS> margin = 1e-6) {
-  using T = ss_type_t<SS>;
+    const ZVar& Z, observer_type_t<SS> margin = 1e-6) {
+  using T = observer_type_t<SS>;
   using PSF = PolytopicObserver<SS, N>;
   using PMat = typename PSF::PMat;
   using Fs = typename PSF::Fs;
@@ -187,11 +188,12 @@ constexpr auto make_polytopic_observer_p_constraint(
  *
  * @return quadratic objective atom
  */
-template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousObserverModelLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_quadratic_objective(
-    const linalg::Matrix<ss_type_t<SS>, PolytopicObserver<SS, N>::ZDim,
+    const linalg::Matrix<observer_type_t<SS>, PolytopicObserver<SS, N>::ZDim,
                          PolytopicObserver<SS, N>::ZDim>& P,
-    const linalg::Vector<ss_type_t<SS>, PolytopicObserver<SS, N>::ZDim>& q,
+    const linalg::Vector<observer_type_t<SS>, PolytopicObserver<SS, N>::ZDim>&
+        q,
     const ZVar& Z) {
   using PSF = PolytopicObserver<SS, N>;
   return convex::QuadForm<typename PSF::ZSpace>()(P, q, Z);
@@ -207,10 +209,10 @@ constexpr auto make_polytopic_observer_quadratic_objective(
  *
  * @return PLDI optimization problem
  */
-template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousObserverModelLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_problem(
     const linalg::Vector<SS, N>& poly, const ZVar& Z, const auto& obj,
-    ss_type_t<SS> margin = 1e-6) {
+    observer_type_t<SS> margin = 1e-6) {
   const auto p_geq = make_polytopic_observer_p_constraint<SS, N>(Z, margin);
   const auto pldi = PolytopicObserver<SS, N>()(poly, Z);
   return convex::make_problem(Z).in_set(p_geq).in_set(pldi).minimize(obj);
@@ -225,10 +227,10 @@ constexpr auto make_polytopic_observer_problem(
  *
  * @return PLDI feasibility problem
  */
-template <ContinuousStateSpaceLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousObserverModelLike SS, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_problem(
     const linalg::Vector<SS, N>& poly, const ZVar& Z,
-    ss_type_t<SS> margin = 1e-6) {
+    observer_type_t<SS> margin = 1e-6) {
   const auto p_geq = make_polytopic_observer_p_constraint<SS, N>(Z, margin);
   const auto pldi = PolytopicObserver<SS, N>()(poly, Z);
   return convex::make_problem(Z).in_set(p_geq).in_set(pldi).feasibility();

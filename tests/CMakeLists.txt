@@ -78,6 +78,12 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(state_feedback_test PRIVATE ../include)
   target_compile_options(state_feedback_test PRIVATE ${UNIT_COMPILE_OPTS})
 
+  add_executable(plant_model_test unit/plant_model_test.cpp)
+  add_test(NAME plant_model_test COMMAND plant_model_test)
+  target_link_libraries(plant_model_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(plant_model_test PRIVATE ../include)
+  target_compile_options(plant_model_test PRIVATE ${UNIT_COMPILE_OPTS})
+
   add_executable(controller_test unit/controller_test.cpp)
   add_test(NAME controller_test COMMAND controller_test)
   target_link_libraries(controller_test PRIVATE Catch2::Catch2WithMain)
@@ -199,6 +205,7 @@ set(AKREON_TEST_TARGETS
   linalg_test
   linear_systems_test
   state_feedback_test
+  plant_model_test
   controller_test
   luenberger_observer_test
   polytopic_observer_test
