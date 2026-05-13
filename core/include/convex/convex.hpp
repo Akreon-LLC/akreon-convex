@@ -14,6 +14,7 @@
 
 #include "atom.hpp"
 #include "composed/quad_form.hpp"
+#include "composed/trace.hpp"
 #include "composed/weighted_sum.hpp"
 #include "cone_block.hpp"
 #include "cones/exp_cone.hpp"

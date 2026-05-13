@@ -23,6 +23,40 @@ using namespace affine;
 using namespace conic;
 using namespace unit_test;
 
+TEST_CASE("Trace objective", "[convex_fn]") {
+  SECTION("Full square matrix trace") {
+    using Space = Matrixd<2, 2>;
+    constexpr auto c = Trace<Space>::weights();
+    constexpr auto c_exp = Vectord<4>{1.0, 0.0, 0.0, 1.0};
+    STATIC_REQUIRE(c == c_exp);
+  }
+
+  SECTION("Symmetric matrix trace follows svec diagonal coordinates") {
+    using Mat = Matrixd<3, 3>;
+    using Space = SymmetricMatrix<Mat>;
+    constexpr auto c = Trace<Space>::weights();
+    constexpr auto c_exp = Vectord<6>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0};
+    STATIC_REQUIRE(c == c_exp);
+  }
+
+  SECTION("Trace block objective inside merged variable") {
+    using MergedSpace = RowVectord<8>;
+    using TraceSpace = SymmetricMatrix<Matrixd<2, 2>>;
+    constexpr auto X = Variable<VarMeta<MergedSpace>>();
+    constexpr auto obj = make_trace_block<2, TraceSpace>(X);
+    constexpr auto prob =
+        make_problem(X)
+            .in_set(Hyperplane(
+                Vectord<8>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}, 0.0, X))
+            .minimize(obj);
+
+    constexpr auto c = prob.linear_objective();
+    constexpr auto c_exp =
+        RowVectord<8>{Vectord<8>{0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0}};
+    STATIC_REQUIRE(c == c_exp);
+  }
+}
+
 TEST_CASE("Test abs function", "[convex_fn]") {
   SECTION("Test abs function") {
     using Space = Matrixd<1, 1>;

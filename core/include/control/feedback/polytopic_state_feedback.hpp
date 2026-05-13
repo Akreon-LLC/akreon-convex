@@ -39,11 +39,11 @@ namespace control {
  * This set is represented over the merged decision variable
  *   z = [ svec(Q); vec(Y) ].
  */
-template <ContinuousStateFeedbackModelLike SS, size_t N>
+template <ContinuousPlantModelLike Plant, size_t N>
 struct PolytopicStateFeedback {
-  using Model = linalg::remove_cvref_t<SS>;
+  using Model = linalg::remove_cvref_t<Plant>;
 
-  using T = state_feedback_type_t<Model>;
+  using T = plant_type_t<Model>;
   using VertexFeedback = StateFeedback<Model>;
 
   static constexpr size_t StateDim = VertexFeedback::StateDim;
@@ -58,7 +58,7 @@ struct PolytopicStateFeedback {
   using FMat = typename VertexFeedback::FMat;
   using ZSpace = typename VertexFeedback::ZSpace;
   using Fs = typename VertexFeedback::Fs;
-  using Polytope = linalg::Vector<SS, N>;
+  using Polytope = linalg::Vector<Plant, N>;
 
   /**
    * @brief operator overload (form polytopic state feedback)
@@ -69,8 +69,9 @@ struct PolytopicStateFeedback {
    * @return PLDI as intersection of LMI
    */
   template <convex::AtomLike ZVar>
-  constexpr auto operator()(const Polytope& poly, const ZVar& Z) const {
-    return apply(poly, Z);
+  constexpr auto operator()(const Polytope& poly, const ZVar& Z,
+                            T margin = 1e-6) const {
+    return apply(poly, Z, margin);
   }
 
   /**
@@ -82,7 +83,8 @@ struct PolytopicStateFeedback {
    * @return PLDI as intersection of LMI
    */
   template <convex::AtomLike ZVar>
-  constexpr auto apply(const Polytope& poly, const ZVar& Z) const {
+  constexpr auto apply(const Polytope& poly, const ZVar& Z,
+                       T margin = 1e-6) const {
     static_assert(convex::is_var_type_v<ZVar>, "Input atom is not a var");
     using ZDom = convex::meta_dom_t<convex::atom_meta_t<ZVar>>;
     static_assert(convex::dom_vartype_v<ZDom> == convex::VarType::FREE,
@@ -91,12 +93,15 @@ struct PolytopicStateFeedback {
     static_assert(std::same_as<ZVarSpace, ZSpace>,
                   "Expected merged decision size [svec(Q); vec(Y)]");
 
+    const auto q_lmi = VertexFeedback().q_constraint(Z, margin);
+
     auto make_vertex_lmi = [&]<size_t idx>() {
-      return VertexFeedback()(poly(idx), Z);
+      return VertexFeedback().stability_constraint(poly(idx), Z);
     };
 
     auto form_intersection = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return convex::Intersection(make_vertex_lmi.template operator()<Is>()...);
+      return convex::Intersection(q_lmi,
+                                  make_vertex_lmi.template operator()<Is>()...);
     };
 
     return form_intersection(std::make_index_sequence<N>{});
@@ -118,20 +123,6 @@ struct PolytopicStateFeedback {
 };
 
 /**
- * @brief make PLDI Q >= margin I LMI over merged z = [svec(Q); vec(Y)]
- *
- * @param Z (merged decision var)
- * @param margin (PSD margin)
- *
- * @return LMI selecting Q-block and constraining it to PSD
- */
-template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
-constexpr auto make_polytopic_state_feedback_q_constraint(
-    const ZVar& Z, state_feedback_type_t<SS> margin = 1e-6) {
-  return make_state_feedback_q_constraint<SS>(Z, margin);
-}
-
-/**
  * @brief make linear objective over merged PLDI variable
  *
  * obj(z) = q_w^T svec(Q) + y_w^T vec(Y)
@@ -142,15 +133,15 @@ constexpr auto make_polytopic_state_feedback_q_constraint(
  *
  * @return linear objective atom
  */
-template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_linear_objective(
-    const linalg::Vector<state_feedback_type_t<SS>,
-                         PolytopicStateFeedback<SS, N>::QDim>& q_weights,
-    const linalg::Vector<state_feedback_type_t<SS>,
-                         PolytopicStateFeedback<SS, N>::YDim>& y_weights,
+    const linalg::Vector<plant_type_t<Plant>,
+                         PolytopicStateFeedback<Plant, N>::QDim>& q_weights,
+    const linalg::Vector<plant_type_t<Plant>,
+                         PolytopicStateFeedback<Plant, N>::YDim>& y_weights,
     const ZVar& Z) {
-  using T = state_feedback_type_t<SS>;
-  using PSF = PolytopicStateFeedback<SS, N>;
+  using T = plant_type_t<Plant>;
+  using PSF = PolytopicStateFeedback<Plant, N>;
 
   linalg::Vector<T, PSF::ZDim> c{};
   for (size_t i = 0; i < PSF::QDim; ++i) c(i) = q_weights(i);
@@ -170,13 +161,13 @@ constexpr auto make_polytopic_state_feedback_linear_objective(
  *
  * @return quadratic objective atom
  */
-template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_quadratic_objective(
-    const linalg::Matrix<state_feedback_type_t<SS>,
-                         PolytopicStateFeedback<SS, N>::ZDim,
-                         PolytopicStateFeedback<SS, N>::ZDim>& P,
-    const linalg::Vector<state_feedback_type_t<SS>,
-                         PolytopicStateFeedback<SS, N>::ZDim>& q,
+    const linalg::Matrix<plant_type_t<Plant>,
+                         PolytopicStateFeedback<Plant, N>::ZDim,
+                         PolytopicStateFeedback<Plant, N>::ZDim>& P,
+    const linalg::Vector<plant_type_t<Plant>,
+                         PolytopicStateFeedback<Plant, N>::ZDim>& q,
     const ZVar& Z) {
   return convex::make_quad_form(P, q, Z);
 }
@@ -191,14 +182,12 @@ constexpr auto make_polytopic_state_feedback_quadratic_objective(
  *
  * @return PLDI optimization problem
  */
-template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_problem(
-    const linalg::Vector<SS, N>& poly, const ZVar& Z, const auto& obj,
-    state_feedback_type_t<SS> margin = 1e-6) {
-  const auto q_geq =
-      make_polytopic_state_feedback_q_constraint<SS, N>(Z, margin);
-  const auto pldi = PolytopicStateFeedback<SS, N>()(poly, Z);
-  return convex::make_problem(Z).in_set(q_geq).in_set(pldi).minimize(obj);
+    const linalg::Vector<Plant, N>& poly, const ZVar& Z, const auto& obj,
+    plant_type_t<Plant> margin = 1e-6) {
+  const auto pldi = PolytopicStateFeedback<Plant, N>()(poly, Z, margin);
+  return convex::make_problem(Z).in_set(pldi).minimize(obj);
 }
 
 /**
@@ -210,14 +199,12 @@ constexpr auto make_polytopic_state_feedback_problem(
  *
  * @return PLDI feasibility problem
  */
-template <ContinuousStateFeedbackModelLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_problem(
-    const linalg::Vector<SS, N>& poly, const ZVar& Z,
-    state_feedback_type_t<SS> margin = 1e-6) {
-  const auto q_geq =
-      make_polytopic_state_feedback_q_constraint<SS, N>(Z, margin);
-  const auto pldi = PolytopicStateFeedback<SS, N>()(poly, Z);
-  return convex::make_problem(Z).in_set(q_geq).in_set(pldi).feasibility();
+    const linalg::Vector<Plant, N>& poly, const ZVar& Z,
+    plant_type_t<Plant> margin = 1e-6) {
+  const auto pldi = PolytopicStateFeedback<Plant, N>()(poly, Z, margin);
+  return convex::make_problem(Z).in_set(pldi).feasibility();
 }
 
 } // namespace control

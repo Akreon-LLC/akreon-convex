@@ -34,6 +34,12 @@ static constexpr auto pldi_solver_config() {
 
 TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
   using Space = Matrixd<2, 2>;
+  using FullPlantSS =
+      StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>;
+  using FullInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 2>>;
+  using FullOutputs =
+      OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 2>>;
+  using FullPlant = PlantModel<FullPlantSS, FullInputs, FullOutputs>;
   constexpr auto I = make_identity<double, 2>();
   constexpr auto Z = Matrixd<2, 2>{};
   constexpr auto MatBuilder = mat_traits<Space>();
@@ -51,13 +57,11 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     constexpr auto B1 = I;
     constexpr auto C = I;
 
-    constexpr auto ss0 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A0, B0, C);
-    constexpr auto ss1 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A1, B1, C);
-    constexpr auto poly = Vector<decltype(ss0), 2>{ss0, ss1};
+    constexpr auto plant0 = FullPlant(FullPlantSS(A0, B0, C));
+    constexpr auto plant1 = FullPlant(FullPlantSS(A1, B1, C));
+    constexpr auto poly = Vector<decltype(plant0), 2>{plant0, plant1};
 
-    constexpr auto po = PolytopicObserver<decltype(ss0), 2>();
+    constexpr auto po = PolytopicObserver<decltype(plant0), 2>();
     const auto lmis = po(poly, dec);
 
     constexpr auto builder = conic::create_empty_cblk_builder<ZSpace>();
@@ -65,7 +69,10 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     const auto cone_block = canon.cb;
 
     constexpr auto s2 = constexpr_sqrt_safe(2.0);
-    constexpr auto F_exp = Matrixd<6, 7>{
+    constexpr auto F_exp = Matrixd<9, 7>{
+        Vectord<7>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+        Vectord<7>{0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+        Vectord<7>{0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
         Vectord<7>{0.0, 0.0, 0.0, -2.0, 0.0, 0.0, 0.0},
         Vectord<7>{0.0, 0.0, 0.0, 0.0, -s2, -s2, 0.0},
         Vectord<7>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.0},
@@ -75,14 +82,21 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     };
 
     REQUIRE(all_equal(cone_block.map.linear_part(), F_exp));
-    REQUIRE(cone_block.map.translation() == Vectord<6>{});
-    REQUIRE(std::tuple_size<decltype(cone_block.cones)>::value == 2);
+    REQUIRE(cone_block.map.translation() ==
+            Vectord<9>{-1e-6, 0.0, -1e-6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+    REQUIRE(std::tuple_size<decltype(cone_block.cones)>::value == 3);
     REQUIRE(cone_block.validate());
   }
 
   SECTION("Solver finds feasible merged z with PSD P block") {
     using InputSpace = ColVectord<2>;
     using OutputSpace = RowVectord<2>;
+    using SolverPlantSS =
+        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>;
+    using SolverInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 1>>;
+    using SolverOutputs =
+        OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>>;
+    using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
     static constexpr size_t SolverPDim = 3;
@@ -97,17 +111,13 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     constexpr auto B1 = BCol;
     constexpr auto C = CRow;
 
-    constexpr auto ss0 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
-            A0, B0, C);
-    constexpr auto ss1 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
-            A1, B1, C);
-    constexpr auto poly = Vector<decltype(ss0), 2>{ss0, ss1};
+    constexpr auto plant0 = SolverPlant(SolverPlantSS(A0, B0, C));
+    constexpr auto plant1 = SolverPlant(SolverPlantSS(A1, B1, C));
+    constexpr auto poly = Vector<decltype(plant0), 2>{plant0, plant1};
 
-    constexpr auto po = PolytopicObserver<decltype(ss0), 2>();
+    constexpr auto po = PolytopicObserver<decltype(plant0), 2>();
     const auto prob =
-        make_polytopic_observer_problem<decltype(ss0), 2>(poly, solver_dec);
+        make_polytopic_observer_problem<decltype(plant0), 2>(poly, solver_dec);
 
     REQUIRE(is_problem_set_v<decltype(prob)>);
     REQUIRE(prob.validate());
@@ -130,7 +140,8 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     const auto P_res = make_smat<2>(p_vec);
 
     ColVectord<2> W_res{};
-    for (size_t j = 0; j < 2; ++j) W_res(j)(0) = res.iterate.z(SolverPDim + j);
+    for (size_t j = 0; j < SolverWDim; ++j)
+      W_res(j)(0) = res.iterate.z(SolverPDim + j);
 
     REQUIRE(all_equal(P_res, transpose(P_res), rel_tol));
     REQUIRE(P_res(0)(0) > 1e-6);
@@ -171,6 +182,12 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
   SECTION("Quadratic objective helper solves lifted observer problem") {
     using InputSpace = ColVectord<2>;
     using OutputSpace = RowVectord<2>;
+    using SolverPlantSS =
+        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>;
+    using SolverInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 1>>;
+    using SolverOutputs =
+        OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>>;
+    using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
     static constexpr size_t SolverPDim = 3;
@@ -185,15 +202,11 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     constexpr auto B1 = BCol;
     constexpr auto C = CRow;
 
-    constexpr auto ss0 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
-            A0, B0, C);
-    constexpr auto ss1 =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>(
-            A1, B1, C);
-    constexpr auto poly = Vector<decltype(ss0), 2>{ss0, ss1};
+    constexpr auto plant0 = SolverPlant(SolverPlantSS(A0, B0, C));
+    constexpr auto plant1 = SolverPlant(SolverPlantSS(A1, B1, C));
+    constexpr auto poly = Vector<decltype(plant0), 2>{plant0, plant1};
 
-    constexpr auto po = PolytopicObserver<decltype(ss0), 2>();
+    constexpr auto po = PolytopicObserver<decltype(plant0), 2>();
     constexpr auto Pmat = Matrixd<SolverZDim, SolverZDim>{
         Vectord<SolverZDim>{1.0, 0.0, 0.0, 0.0, 0.0},
         Vectord<SolverZDim>{0.0, 1.0, 0.0, 0.0, 0.0},
@@ -203,9 +216,9 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     };
     constexpr auto q = Vectord<SolverZDim>{};
     constexpr auto obj =
-        make_polytopic_observer_quadratic_objective<decltype(ss0), 2>(
+        make_polytopic_observer_quadratic_objective<decltype(plant0), 2>(
             Pmat, q, solver_dec);
-    const auto prob = make_polytopic_observer_problem<decltype(ss0), 2>(
+    const auto prob = make_polytopic_observer_problem<decltype(plant0), 2>(
         poly, solver_dec, obj);
 
     REQUIRE(prob.validate());
@@ -227,7 +240,8 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     const auto P_res = make_smat<2>(p_vec);
 
     ColVectord<2> W_res{};
-    for (size_t j = 0; j < 2; ++j) W_res(j)(0) = res.iterate.z(SolverPDim + j);
+    for (size_t j = 0; j < SolverWDim; ++j)
+      W_res(j)(0) = res.iterate.z(SolverPDim + j);
 
     const auto [L_res, L_event] = po.L(P_res, W_res);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);

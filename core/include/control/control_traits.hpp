@@ -22,45 +22,45 @@ namespace control {
 
 /// @brief InputKind
 enum struct InputKind : uint8_t {
-  control,
-  disturbance,
-  reference,
-  process_noise,
-  measurement_noise,
-  exogenous
+  CONTROL,
+  DISTURBANCE,
+  REFERENCE,
+  PROCESS_NOISE,
+  MEASUREMENT_NOISE,
+  EXOGENOUS
 };
 
 /// @brief OutputKind
-enum struct OutputKind : uint8_t { measurement, performance, regulated, state };
+enum struct OutputKind : uint8_t { MEASUREMENT, PERFORMANCE, REGULATED, STATE };
 
 /// @brief Input channel specification
-template <InputKind Kind, size_t Offset, size_t Size>
+template <InputKind KindT, size_t OffsetT, size_t SizeT>
 struct InputChannel {
-  static constexpr InputKind kind = Kind;
-  static constexpr size_t offset = Offset;
-  static constexpr size_t size = Size;
+  static constexpr InputKind Kind = KindT;
+  static constexpr size_t Offset = OffsetT;
+  static constexpr size_t Size = SizeT;
 };
 
 /// @brief Output channel specification
-template <OutputKind Kind, size_t Offset, size_t Size>
+template <OutputKind KindT, size_t OffsetT, size_t SizeT>
 struct OutputChannel {
-  static constexpr OutputKind kind = Kind;
-  static constexpr size_t offset = Offset;
-  static constexpr size_t size = Size;
+  static constexpr OutputKind Kind = KindT;
+  static constexpr size_t Offset = OffsetT;
+  static constexpr size_t Size = SizeT;
 };
 
 template <typename Channel>
 concept InputChannelLike = requires {
-  { Channel::kind } -> std::convertible_to<InputKind>;
-  { Channel::offset } -> std::convertible_to<size_t>;
-  { Channel::size } -> std::convertible_to<size_t>;
+  { Channel::Kind } -> std::convertible_to<InputKind>;
+  { Channel::Offset } -> std::convertible_to<size_t>;
+  { Channel::Size } -> std::convertible_to<size_t>;
 };
 
 template <typename Channel>
 concept OutputChannelLike = requires {
-  { Channel::kind } -> std::convertible_to<OutputKind>;
-  { Channel::offset } -> std::convertible_to<size_t>;
-  { Channel::size } -> std::convertible_to<size_t>;
+  { Channel::Kind } -> std::convertible_to<OutputKind>;
+  { Channel::Offset } -> std::convertible_to<size_t>;
+  { Channel::Size } -> std::convertible_to<size_t>;
 };
 
 /// @brief Input layout
@@ -72,14 +72,14 @@ struct InputLayout {
   template <InputKind Kind>
   static consteval size_t count() {
     // Fold over every channel and add one only when the channel kind matches.
-    return (size_t{0} + ... + (Channels::kind == Kind ? size_t{1} : size_t{0}));
+    return (size_t{0} + ... + (Channels::Kind == Kind ? size_t{1} : size_t{0}));
   }
 
   /// @brief total dimension for channels matching a signal kind
   template <InputKind Kind>
   static consteval size_t total_size() {
     // Fold over every channel and add its size only when the kind matches.
-    return (size_t{0} + ... + (Channels::kind == Kind ? Channels::size : 0));
+    return (size_t{0} + ... + (Channels::Kind == Kind ? Channels::Size : 0));
   }
 
   /// @brief offset of the Index-th channel matching a signal kind
@@ -89,8 +89,8 @@ struct InputLayout {
     size_t result = 0;
     // Walk matching channels left-to-right. current is incremented only for
     // matching channels, so current == Index is true for exactly one match.
-    ((Channels::kind == Kind
-          ? ((current == Index ? (result = Channels::offset, 0) : 0), ++current,
+    ((Channels::Kind == Kind
+          ? ((current == Index ? (result = Channels::Offset, 0) : 0), ++current,
              0)
           : 0),
      ...);
@@ -104,8 +104,8 @@ struct InputLayout {
     size_t current = 0;
     size_t result = 0;
     // Same matching-channel walk as offset(), but records channel size.
-    ((Channels::kind == Kind
-          ? ((current == Index ? (result = Channels::size, 0) : 0), ++current,
+    ((Channels::Kind == Kind
+          ? ((current == Index ? (result = Channels::Size, 0) : 0), ++current,
              0)
           : 0),
      ...);
@@ -117,14 +117,14 @@ struct InputLayout {
   template <size_t FullInputDim>
   static consteval bool validates() {
     // First fold checks every channel has positive size and in-bounds extent.
-    bool ok = ((Channels::size > 0 &&
-                Channels::offset + Channels::size <= FullInputDim) &&
+    bool ok = ((Channels::Size > 0 &&
+                Channels::Offset + Channels::Size <= FullInputDim) &&
                ...);
     bool occupied[FullInputDim == 0 ? 1 : FullInputDim]{};
     auto mark = [&]<typename Channel>() consteval {
-      if constexpr (Channel::offset + Channel::size > FullInputDim) { return; }
+      if constexpr (Channel::Offset + Channel::Size > FullInputDim) { return; }
       // Mark each occupied input index; seeing an index twice means overlap.
-      for (size_t i = Channel::offset; i < Channel::offset + Channel::size;
+      for (size_t i = Channel::Offset; i < Channel::Offset + Channel::Size;
            ++i) {
         if (occupied[i]) ok = false;
         occupied[i] = true;
@@ -145,14 +145,14 @@ struct OutputLayout {
   template <OutputKind Kind>
   static consteval size_t count() {
     // Fold over every channel and add one only when the channel kind matches.
-    return (size_t{0} + ... + (Channels::kind == Kind ? size_t{1} : size_t{0}));
+    return (size_t{0} + ... + (Channels::Kind == Kind ? size_t{1} : size_t{0}));
   }
 
   /// @brief total dimension for channels matching a signal kind
   template <OutputKind Kind>
   static consteval size_t total_size() {
     // Fold over every channel and add its size only when the kind matches.
-    return (size_t{0} + ... + (Channels::kind == Kind ? Channels::size : 0));
+    return (size_t{0} + ... + (Channels::Kind == Kind ? Channels::Size : 0));
   }
 
   /// @brief offset of the Index-th channel matching a signal kind
@@ -162,8 +162,8 @@ struct OutputLayout {
     size_t result = 0;
     // Walk matching channels left-to-right. current is incremented only for
     // matching channels, so current == Index is true for exactly one match.
-    ((Channels::kind == Kind
-          ? ((current == Index ? (result = Channels::offset, 0) : 0), ++current,
+    ((Channels::Kind == Kind
+          ? ((current == Index ? (result = Channels::Offset, 0) : 0), ++current,
              0)
           : 0),
      ...);
@@ -177,8 +177,8 @@ struct OutputLayout {
     size_t current = 0;
     size_t result = 0;
     // Same matching-channel walk as offset(), but records channel size.
-    ((Channels::kind == Kind
-          ? ((current == Index ? (result = Channels::size, 0) : 0), ++current,
+    ((Channels::Kind == Kind
+          ? ((current == Index ? (result = Channels::Size, 0) : 0), ++current,
              0)
           : 0),
      ...);
@@ -190,14 +190,14 @@ struct OutputLayout {
   template <size_t FullOutputDim>
   static consteval bool validates() {
     // First fold checks every channel has positive size and in-bounds extent.
-    bool ok = ((Channels::size > 0 &&
-                Channels::offset + Channels::size <= FullOutputDim) &&
+    bool ok = ((Channels::Size > 0 &&
+                Channels::Offset + Channels::Size <= FullOutputDim) &&
                ...);
     bool occupied[FullOutputDim == 0 ? 1 : FullOutputDim]{};
     auto mark = [&]<typename Channel>() consteval {
-      if constexpr (Channel::offset + Channel::size > FullOutputDim) { return; }
+      if constexpr (Channel::Offset + Channel::Size > FullOutputDim) { return; }
       // Mark each occupied output index; seeing an index twice means overlap.
-      for (size_t i = Channel::offset; i < Channel::offset + Channel::size;
+      for (size_t i = Channel::Offset; i < Channel::Offset + Channel::Size;
            ++i) {
         if (occupied[i]) ok = false;
         occupied[i] = true;
@@ -320,26 +320,26 @@ struct plant_traits<PlantModel<SS, InputLayoutT, OutputLayoutT>> {
   static constexpr size_t OutputDim = linalg::vec_size_v<Output>;
 
   static constexpr size_t ControlDim =
-      InputLayout::template total_size<InputKind::control>();
+      InputLayout::template total_size<InputKind::CONTROL>();
   static constexpr size_t DisturbanceDim =
-      InputLayout::template total_size<InputKind::disturbance>();
+      InputLayout::template total_size<InputKind::DISTURBANCE>();
   static constexpr size_t ReferenceDim =
-      InputLayout::template total_size<InputKind::reference>();
+      InputLayout::template total_size<InputKind::REFERENCE>();
   static constexpr size_t ProcessNoiseDim =
-      InputLayout::template total_size<InputKind::process_noise>();
+      InputLayout::template total_size<InputKind::PROCESS_NOISE>();
   static constexpr size_t MeasurementNoiseDim =
-      InputLayout::template total_size<InputKind::measurement_noise>();
+      InputLayout::template total_size<InputKind::MEASUREMENT_NOISE>();
   static constexpr size_t ExogenousDim =
-      InputLayout::template total_size<InputKind::exogenous>();
+      InputLayout::template total_size<InputKind::EXOGENOUS>();
 
   static constexpr size_t MeasurementDim =
-      OutputLayout::template total_size<OutputKind::measurement>();
+      OutputLayout::template total_size<OutputKind::MEASUREMENT>();
   static constexpr size_t PerformanceDim =
-      OutputLayout::template total_size<OutputKind::performance>();
+      OutputLayout::template total_size<OutputKind::PERFORMANCE>();
   static constexpr size_t RegulatedDim =
-      OutputLayout::template total_size<OutputKind::regulated>();
+      OutputLayout::template total_size<OutputKind::REGULATED>();
   static constexpr size_t StateOutputDim =
-      OutputLayout::template total_size<OutputKind::state>();
+      OutputLayout::template total_size<OutputKind::STATE>();
 };
 
 /// @brief extract scalar type from plant
@@ -402,79 +402,5 @@ concept ContinuousPlantModelLike =
 template <typename Plant>
 concept DiscretePlantModelLike =
     PlantModelLike<Plant> && !plant_is_continuous_v<Plant>;
-
-/// @brief Model accepted by state-feedback synthesis
-template <typename Model>
-concept ContinuousStateFeedbackModelLike =
-    ContinuousStateSpaceLike<Model> || ContinuousPlantModelLike<Model>;
-
-/// @brief state-feedback model traits
-template <typename Model>
-struct state_feedback_model_traits;
-
-template <ContinuousStateSpaceLike SS>
-struct state_feedback_model_traits<SS> {
-  using Model = linalg::remove_cvref_t<SS>;
-  using T = ss_type_t<Model>;
-  using State = state_vec_t<Model>;
-  static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t InputDim = linalg::vec_size_v<input_vec_t<Model>>;
-};
-
-template <ContinuousPlantModelLike Plant>
-struct state_feedback_model_traits<Plant> {
-  using Model = linalg::remove_cvref_t<Plant>;
-  using T = plant_type_t<Model>;
-  using State = plant_state_vec_t<Model>;
-  static constexpr size_t StateDim = plant_traits<Model>::StateDim;
-  static constexpr size_t InputDim = plant_traits<Model>::ControlDim;
-};
-
-/// @brief extract scalar type from state-feedback model
-template <typename Model>
-using state_feedback_type_t =
-    typename state_feedback_model_traits<linalg::remove_cvref_t<Model>>::T;
-
-/// @brief extract state vector from state-feedback model
-template <typename Model>
-using state_feedback_state_vec_t =
-    typename state_feedback_model_traits<linalg::remove_cvref_t<Model>>::State;
-
-/// @brief Model accepted by observer synthesis
-template <typename Model>
-concept ContinuousObserverModelLike =
-    ContinuousStateSpaceLike<Model> || ContinuousPlantModelLike<Model>;
-
-/// @brief observer model traits
-template <typename Model>
-struct observer_model_traits;
-
-template <ContinuousStateSpaceLike SS>
-struct observer_model_traits<SS> {
-  using Model = linalg::remove_cvref_t<SS>;
-  using T = ss_type_t<Model>;
-  using State = state_vec_t<Model>;
-  static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t OutputDim = linalg::mat_rows_v<ss_output_t<Model>>;
-};
-
-template <ContinuousPlantModelLike Plant>
-struct observer_model_traits<Plant> {
-  using Model = linalg::remove_cvref_t<Plant>;
-  using T = plant_type_t<Model>;
-  using State = plant_state_vec_t<Model>;
-  static constexpr size_t StateDim = plant_traits<Model>::StateDim;
-  static constexpr size_t OutputDim = plant_traits<Model>::MeasurementDim;
-};
-
-/// @brief extract scalar type from observer model
-template <typename Model>
-using observer_type_t =
-    typename observer_model_traits<linalg::remove_cvref_t<Model>>::T;
-
-/// @brief extract state vector from observer model
-template <typename Model>
-using observer_state_vec_t =
-    typename observer_model_traits<linalg::remove_cvref_t<Model>>::State;
 
 } // namespace control

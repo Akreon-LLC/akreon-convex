@@ -26,6 +26,10 @@ static constexpr auto rel_tol{1e-3};
 
 TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
   using Space = Matrixd<2, 2>;
+  using PlantSS = StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>;
+  using Inputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 2>>;
+  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 2>>;
+  using Plant = PlantModel<PlantSS, Inputs, Outputs>;
   using QSpace = SymmetricMatrix<Space>;
   constexpr auto P = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 2>();
@@ -36,24 +40,26 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
     constexpr auto A = Z;
     constexpr auto B = I;
     constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+    constexpr auto plant = Plant(PlantSS(A, B, C));
 
-    constexpr auto obs = LuenbergerObserver<decltype(ss)>();
-    constexpr auto lmi = obs(ss, P);
-
-    STATIC_REQUIRE(lmi.is_well_formed());
+    constexpr auto obs = LuenbergerObserver<decltype(plant)>();
+    constexpr auto lmi = obs(plant, P);
 
     constexpr auto builder = conic::create_empty_cblk_builder<QSpace>();
     constexpr auto cone_block =
         lmi.template canonicalize<AtomType::SET>(builder).cb;
 
-    STATIC_REQUIRE(all_equal(cone_block.map.linear_part(), Matrixd<3, 3>{}));
-    STATIC_REQUIRE(cone_block.map.translation() == Vectord<3>{1.0, 0.0, 1.0});
+    constexpr auto F_exp =
+        Matrixd<6, 3>{Vectord<3>{1.0, 0.0, 0.0}, Vectord<3>{0.0, 1.0, 0.0},
+                      Vectord<3>{0.0, 0.0, 1.0}, Vectord<3>{0.0, 0.0, 0.0},
+                      Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0}};
+    STATIC_REQUIRE(all_equal(cone_block.map.linear_part(), F_exp));
+    STATIC_REQUIRE(cone_block.map.translation() ==
+                   Vectord<6>{-1e-6, 0.0, -1e-6, 1.0, 0.0, 1.0});
 
     constexpr auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 1);
+    STATIC_REQUIRE(sz == 2);
     STATIC_REQUIRE(cone_block.validate());
   }
 
@@ -61,11 +67,10 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
     constexpr auto A = MatBuilder(0.2, 0.0, 0.0, 0.1);
     constexpr auto B = I;
     constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+    constexpr auto plant = Plant(PlantSS(A, B, C));
 
-    constexpr auto obs = LuenbergerObserver<decltype(ss)>();
-    constexpr auto prob = make_observer_problem(ss, P);
+    constexpr auto obs = LuenbergerObserver<decltype(plant)>();
+    constexpr auto prob = make_observer_problem(plant, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -87,7 +92,7 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
     REQUIRE(P_res(0)(0) > 1e-6);
     REQUIRE(P_res(1)(1) > 1e-6);
 
-    const auto [L_res, L_event] = obs.L(ss, P_res);
+    const auto [L_res, L_event] = obs.L(plant, P_res);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
     REQUIRE(L_res(0)(0) > 0.0);
     REQUIRE(L_res(1)(1) > 0.0);
@@ -115,10 +120,9 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
     constexpr auto A = MatBuilder(0.2, 0.0, 0.0, 0.1);
     constexpr auto B = I;
     constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+    constexpr auto plant = Plant(PlantSS(A, B, C));
 
-    constexpr auto prob = make_observer_problem(ss, P);
+    constexpr auto prob = make_observer_problem(plant, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -143,6 +147,10 @@ TEST_CASE("Luenberger Observer 2x2", "[luenberger_observer_test]") {
 
 TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
   using Space = Matrixd<3, 3>;
+  using PlantSS = StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>;
+  using Inputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 3>>;
+  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 3>>;
+  using Plant = PlantModel<PlantSS, Inputs, Outputs>;
   constexpr auto P = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 3>();
   constexpr auto MatBuilder = mat_traits<Space>();
@@ -152,11 +160,10 @@ TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
         MatBuilder(0.2, 0.05, 0.0, 0.0, 0.1, 0.04, 0.0, 0.0, 0.15);
     constexpr auto B = I;
     constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+    constexpr auto plant = Plant(PlantSS(A, B, C));
 
-    constexpr auto obs = LuenbergerObserver<decltype(ss)>();
-    constexpr auto prob = make_observer_problem(ss, P);
+    constexpr auto obs = LuenbergerObserver<decltype(plant)>();
+    constexpr auto prob = make_observer_problem(plant, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
@@ -185,7 +192,7 @@ TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
 
-    const auto [L_res, L_event] = obs.L(ss, P_res);
+    const auto [L_res, L_event] = obs.L(plant, P_res);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
 
     const auto error_dynamics = A - L_res * C;
@@ -201,10 +208,9 @@ TEST_CASE("Luenberger Observer 3x3", "[luenberger_observer_test]") {
         MatBuilder(0.2, 0.05, 0.0, 0.0, 0.1, 0.04, 0.0, 0.0, 0.15);
     constexpr auto B = I;
     constexpr auto C = I;
-    constexpr auto ss =
-        StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>(A, B, C);
+    constexpr auto plant = Plant(PlantSS(A, B, C));
 
-    constexpr auto prob = make_observer_problem(ss, P);
+    constexpr auto prob = make_observer_problem(plant, P);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());

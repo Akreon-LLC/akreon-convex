@@ -13,9 +13,10 @@
 #pragma once
 
 #include "config/assert.hpp"
-#include "control/model/state_space.hpp"
+#include "control/model/plant_model.hpp"
 #include "convex/composed/quad_form.hpp"
 #include "convex/convex_problem.hpp"
+#include "convex/intersection.hpp"
 #include "convex/sets/lmi.hpp"
 #include "convex/variable.hpp"
 #include "linalg/operator/matrix_inverse.hpp"
@@ -41,18 +42,17 @@ namespace control {
  * There exists P > 0 s.t.
  *   A_i^T P + P A_i + W C_i + C_i^T W^T < 0
  *
- * where W = P L, and L = P^{-1} W
+ * where W = P L, and L = P^{-1} W.
  */
-template <ContinuousObserverModelLike SS, size_t N>
+template <ContinuousPlantModelLike Plant, size_t N>
 struct PolytopicObserver {
-  /// @brief extracting alias and types
-  using Model = linalg::remove_cvref_t<SS>;
+  using Model = linalg::remove_cvref_t<Plant>;
 
-  using T = observer_type_t<Model>;
-  using State = observer_state_vec_t<Model>;
+  using T = plant_type_t<Model>;
+  using State = plant_state_vec_t<Model>;
 
-  static constexpr size_t StateDim = observer_model_traits<Model>::StateDim;
-  static constexpr size_t OutputDim = observer_model_traits<Model>::OutputDim;
+  static constexpr size_t StateDim = plant_traits<Model>::StateDim;
+  static constexpr size_t OutputDim = plant_traits<Model>::MeasurementDim;
 
   using PMat = linalg::Matrix<T, StateDim, StateDim>;
   using WMat = linalg::Matrix<T, StateDim, OutputDim>;
@@ -65,7 +65,7 @@ struct PolytopicObserver {
 
   using ZSpace = linalg::RowVector<T, ZDim>;
   using Fs = linalg::Vector<FMat, ZDim>;
-  using Polytope = linalg::Vector<SS, N>;
+  using Polytope = linalg::Vector<Plant, N>;
 
   /**
    * @brief operator overload (polytopic observer)
@@ -73,11 +73,12 @@ struct PolytopicObserver {
    * @param poly (Polytope)
    * @param Z ([svec(P); vec(W)])
    *
-   * @return LDI as LMI
+   * @return PLDI as intersection of LMIs
    */
   template <convex::AtomLike Var>
-  constexpr auto operator()(const Polytope& poly, const Var& Z) const {
-    return apply(poly, Z);
+  constexpr auto operator()(const Polytope& poly, const Var& Z,
+                            T margin = 1e-6) const {
+    return apply(poly, Z, margin);
   }
 
   /**
@@ -86,10 +87,11 @@ struct PolytopicObserver {
    * @param poly (Polytope)
    * @param Z ([svec(P); vec(W)])
    *
-   * @return LDI as LMI
+   * @return PLDI as intersection of LMIs
    */
   template <convex::AtomLike Var>
-  constexpr auto apply(const Polytope& poly, const Var& Z) const {
+  constexpr auto apply(const Polytope& poly, const Var& Z,
+                       T margin = 1e-6) const {
     static_assert(convex::is_var_type_v<Var>, "Input atom is not a var");
     using ZDom = convex::meta_dom_t<convex::atom_meta_t<Var>>;
     static_assert(convex::dom_vartype_v<ZDom> == convex::VarType::FREE,
@@ -98,37 +100,56 @@ struct PolytopicObserver {
     static_assert(std::same_as<ZVarSpace, ZSpace>,
                   "Expected merged decision size [svec(P); vec(W)]");
 
+    const auto p_lmi = p_constraint(Z, margin);
+
     auto make_vertex_lmi = [&]<size_t idx>() {
-      const auto& ss = poly(idx);
-
-      auto M_p = [&](const PMat& E) -> FMat {
-        const auto& A = plant_A(ss);
-        return T(-1) * (linalg::transpose(A) * E + E * A);
-      };
-
-      auto M_w = [&](const WMat& E) -> FMat {
-        const auto C_y = observer_Cy(ss);
-        return T(-1) *
-               (E * C_y + linalg::transpose(C_y) * linalg::transpose(E));
-      };
-
-      const auto Fp_local =
-          linalg::MatrixPencil<FMat, PDim>{}.template apply_sym_mat<PMat>(M_p);
-      const auto Fw_local =
-          linalg::MatrixPencil<FMat, WDim>{}.template apply_full<WMat>(M_w);
-
-      Fs F_blks{};
-      for (size_t i = 0; i < PDim; ++i) F_blks(i) = Fp_local(i);
-      for (size_t i = 0; i < WDim; ++i) F_blks(PDim + i) = Fw_local(i);
-
-      return convex::LMI(F_blks, FMat{}, Z);
+      return vertex_constraint(poly(idx), Z);
     };
 
     auto form_intersection = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return convex::Intersection(make_vertex_lmi.template operator()<Is>()...);
+      return convex::Intersection(p_lmi,
+                                  make_vertex_lmi.template operator()<Is>()...);
     };
 
     return form_intersection(std::make_index_sequence<N>{});
+  }
+
+  template <convex::AtomLike ZVar>
+  constexpr auto p_constraint(const ZVar& Z, T margin = 1e-6) const {
+    const auto I = linalg::make_identity<T, StateDim>();
+    const auto Fp =
+        linalg::MatrixPencil<PMat, PDim>{}.template apply_sym_mat<PMat>(
+            [](const PMat& E) -> PMat { return E; });
+
+    Fs F_blks{};
+    for (size_t i = 0; i < PDim; ++i) F_blks(i) = Fp(i);
+    for (size_t i = 0; i < WDim; ++i) F_blks(PDim + i) = PMat{};
+
+    return convex::LMI(F_blks, T(-1) * margin * I, Z);
+  }
+
+  template <convex::AtomLike ZVar>
+  constexpr auto vertex_constraint(const Plant& plant, const ZVar& Z) const {
+    auto M_p = [&](const PMat& E) -> FMat {
+      const auto A = plant.dynamics_matrix();
+      return T(-1) * (linalg::transpose(A) * E + E * A);
+    };
+
+    auto M_w = [&](const WMat& E) -> FMat {
+      const auto C_y = plant.measurement_matrix();
+      return T(-1) * (E * C_y + linalg::transpose(C_y) * linalg::transpose(E));
+    };
+
+    const auto Fp_local =
+        linalg::MatrixPencil<FMat, PDim>{}.template apply_sym_mat<PMat>(M_p);
+    const auto Fw_local =
+        linalg::MatrixPencil<FMat, WDim>{}.template apply_full<WMat>(M_w);
+
+    Fs F_blks{};
+    for (size_t i = 0; i < PDim; ++i) F_blks(i) = Fp_local(i);
+    for (size_t i = 0; i < WDim; ++i) F_blks(PDim + i) = Fw_local(i);
+
+    return convex::LMI(F_blks, FMat{}, Z);
   }
 
   /**
@@ -150,34 +171,6 @@ struct PolytopicObserver {
 };
 
 /**
- * @brief make PLDI P >= margin I LMI over merged z = [svec(P); vec(W)]
- *
- * @param Z (merged decision var)
- * @param margin (PSD margin)
- *
- * @return LMI selecting P-block and constraining it to PSD
- */
-template <ContinuousObserverModelLike SS, size_t N, convex::AtomLike ZVar>
-constexpr auto make_polytopic_observer_p_constraint(
-    const ZVar& Z, observer_type_t<SS> margin = 1e-6) {
-  using T = observer_type_t<SS>;
-  using PSF = PolytopicObserver<SS, N>;
-  using PMat = typename PSF::PMat;
-  using Fs = typename PSF::Fs;
-
-  const auto I = linalg::make_identity<T, PSF::StateDim>();
-  const auto Fp =
-      linalg::MatrixPencil<PMat, PSF::PDim>{}.template apply_sym_mat<PMat>(
-          [](const PMat& E) -> PMat { return E; });
-
-  Fs F_blks{};
-  for (size_t i = 0; i < PSF::PDim; ++i) F_blks(i) = Fp(i);
-  for (size_t i = 0; i < PSF::WDim; ++i) F_blks(PSF::PDim + i) = PMat{};
-
-  return convex::LMI(F_blks, T(-1) * margin * I, Z);
-}
-
-/**
  * @brief make quadratic objective over merged PLDI variable
  *
  * obj(z) = 0.5 z^T P z + q^T z
@@ -188,34 +181,32 @@ constexpr auto make_polytopic_observer_p_constraint(
  *
  * @return quadratic objective atom
  */
-template <ContinuousObserverModelLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_quadratic_objective(
-    const linalg::Matrix<observer_type_t<SS>, PolytopicObserver<SS, N>::ZDim,
-                         PolytopicObserver<SS, N>::ZDim>& P,
-    const linalg::Vector<observer_type_t<SS>, PolytopicObserver<SS, N>::ZDim>&
-        q,
+    const linalg::Matrix<plant_type_t<Plant>, PolytopicObserver<Plant, N>::ZDim,
+                         PolytopicObserver<Plant, N>::ZDim>& P,
+    const linalg::Vector<plant_type_t<Plant>,
+                         PolytopicObserver<Plant, N>::ZDim>& q,
     const ZVar& Z) {
-  using PSF = PolytopicObserver<SS, N>;
-  return convex::QuadForm<typename PSF::ZSpace>()(P, q, Z);
+  return convex::make_quad_form(P, q, Z);
 }
 
 /**
  * @brief make PLDI problem with objective
  *
  * @param poly polytope vertices
- * @param Z merged decision var [svec(Q); vec(Y)]
+ * @param Z merged decision var [svec(P); vec(W)]
  * @param obj objective atom over merged var
  * @param margin PSD margin on P block
  *
  * @return PLDI optimization problem
  */
-template <ContinuousObserverModelLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_problem(
-    const linalg::Vector<SS, N>& poly, const ZVar& Z, const auto& obj,
-    observer_type_t<SS> margin = 1e-6) {
-  const auto p_geq = make_polytopic_observer_p_constraint<SS, N>(Z, margin);
-  const auto pldi = PolytopicObserver<SS, N>()(poly, Z);
-  return convex::make_problem(Z).in_set(p_geq).in_set(pldi).minimize(obj);
+    const linalg::Vector<Plant, N>& poly, const ZVar& Z, const auto& obj,
+    plant_type_t<Plant> margin = 1e-6) {
+  const auto pldi = PolytopicObserver<Plant, N>()(poly, Z, margin);
+  return convex::make_problem(Z).in_set(pldi).minimize(obj);
 }
 
 /**
@@ -227,13 +218,12 @@ constexpr auto make_polytopic_observer_problem(
  *
  * @return PLDI feasibility problem
  */
-template <ContinuousObserverModelLike SS, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_problem(
-    const linalg::Vector<SS, N>& poly, const ZVar& Z,
-    observer_type_t<SS> margin = 1e-6) {
-  const auto p_geq = make_polytopic_observer_p_constraint<SS, N>(Z, margin);
-  const auto pldi = PolytopicObserver<SS, N>()(poly, Z);
-  return convex::make_problem(Z).in_set(p_geq).in_set(pldi).feasibility();
+    const linalg::Vector<Plant, N>& poly, const ZVar& Z,
+    plant_type_t<Plant> margin = 1e-6) {
+  const auto pldi = PolytopicObserver<Plant, N>()(poly, Z, margin);
+  return convex::make_problem(Z).in_set(pldi).feasibility();
 }
 
 } // namespace control

@@ -47,44 +47,46 @@ struct PlantModel {
                        const OutputLayoutT&)
       : state_space(ss) {}
 
+  constexpr auto dynamics_matrix() const { return state_space.A; }
+
   constexpr auto control_matrix() const {
-    return input_matrix<InputKind::control>();
+    return input_matrix<InputKind::CONTROL>();
   }
 
   constexpr auto disturbance_matrix() const {
-    return input_matrix<InputKind::disturbance>();
+    return input_matrix<InputKind::DISTURBANCE>();
   }
 
   constexpr auto reference_matrix() const {
-    return input_matrix<InputKind::reference>();
+    return input_matrix<InputKind::REFERENCE>();
   }
 
   constexpr auto process_noise_matrix() const {
-    return input_matrix<InputKind::process_noise>();
+    return input_matrix<InputKind::PROCESS_NOISE>();
   }
 
   constexpr auto measurement_noise_matrix() const {
-    return input_matrix<InputKind::measurement_noise>();
+    return input_matrix<InputKind::MEASUREMENT_NOISE>();
   }
 
   constexpr auto exogenous_matrix() const {
-    return input_matrix<InputKind::exogenous>();
+    return input_matrix<InputKind::EXOGENOUS>();
   }
 
   constexpr auto measurement_matrix() const {
-    return output_matrix<OutputKind::measurement>();
+    return output_matrix<OutputKind::MEASUREMENT>();
   }
 
   constexpr auto performance_matrix() const {
-    return output_matrix<OutputKind::performance>();
+    return output_matrix<OutputKind::PERFORMANCE>();
   }
 
   constexpr auto regulated_matrix() const {
-    return output_matrix<OutputKind::regulated>();
+    return output_matrix<OutputKind::REGULATED>();
   }
 
   constexpr auto state_output_matrix() const {
-    return output_matrix<OutputKind::state>();
+    return output_matrix<OutputKind::STATE>();
   }
 
   /// @brief feedthrough map from selected input kind to selected output kind

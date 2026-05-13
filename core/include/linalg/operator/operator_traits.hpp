@@ -284,6 +284,19 @@ struct vec_traits<Cholesky<Mat>> {
   using Vec = Vector<value_type, N>;
 };
 
+/// @brief symmetric matrix space type trait
+template <typename Space>
+struct is_symmetric_matrix_space : std::false_type {};
+
+/// @brief symmetric matrix space type trait
+template <SquareMatrixLike Mat>
+struct is_symmetric_matrix_space<SymmetricMatrix<Mat>> : std::true_type {};
+
+/// @brief symmetric matrix space type trait var
+template <typename Space>
+inline constexpr bool is_symmetric_matrix_space_v =
+    is_symmetric_matrix_space<remove_cvref_t<Space>>::value;
+
 /// @brief underlying type of symmetric operator
 template <typename Operator>
 using operator_type_t =

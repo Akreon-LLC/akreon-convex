@@ -26,14 +26,14 @@ TEST_CASE("PlantModel channel selection", "[plant_model_test]") {
   using BMap = Matrixd<2, 4>;
   using CMap = Matrixd<4, 2>;
   using SS = StateSpace<TimeDomainType::CONTINUOUS, AMap, BMap, CMap>;
-  using Inputs = InputLayout<InputChannel<InputKind::control, 2, 1>,
-                             InputChannel<InputKind::disturbance, 0, 1>,
-                             InputChannel<InputKind::control, 1, 1>,
-                             InputChannel<InputKind::exogenous, 3, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::performance, 0, 1>,
-                               OutputChannel<OutputKind::measurement, 2, 1>,
-                               OutputChannel<OutputKind::measurement, 3, 1>,
-                               OutputChannel<OutputKind::regulated, 1, 1>>;
+  using Inputs = InputLayout<InputChannel<InputKind::CONTROL, 2, 1>,
+                             InputChannel<InputKind::DISTURBANCE, 0, 1>,
+                             InputChannel<InputKind::CONTROL, 1, 1>,
+                             InputChannel<InputKind::EXOGENOUS, 3, 1>>;
+  using Outputs = OutputLayout<OutputChannel<OutputKind::PERFORMANCE, 0, 1>,
+                               OutputChannel<OutputKind::MEASUREMENT, 2, 1>,
+                               OutputChannel<OutputKind::MEASUREMENT, 3, 1>,
+                               OutputChannel<OutputKind::REGULATED, 1, 1>>;
   using Plant = PlantModel<SS, Inputs, Outputs>;
 
   STATIC_REQUIRE(StateSpaceLike<SS>);
@@ -78,7 +78,7 @@ TEST_CASE("PlantModel channel selection", "[plant_model_test]") {
       all_equal(plant.measurement_matrix(),
                 Matrixd<2, 2>{Vectord<2>{50.0, 51.0}, Vectord<2>{60.0, 61.0}}));
   REQUIRE(all_equal(
-      plant.feedthrough<OutputKind::measurement, InputKind::control>(),
+      plant.feedthrough<OutputKind::MEASUREMENT, InputKind::CONTROL>(),
       Matrixd<2, 2>{Vectord<2>{122.0, 121.0}, Vectord<2>{132.0, 131.0}}));
 }
 
@@ -108,20 +108,24 @@ TEST_CASE("PlantModel selected channels match vanilla synthesis",
   using VanillaSS =
       StateSpace<TimeDomainType::CONTINUOUS, AMap, BVanilla, CVanilla>;
   using PlantSS = StateSpace<TimeDomainType::CONTINUOUS, AMap, BAug, CAug>;
-  using Inputs = InputLayout<InputChannel<InputKind::disturbance, 0, 1>,
-                             InputChannel<InputKind::control, 1, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::performance, 0, 1>,
-                               OutputChannel<OutputKind::measurement, 1, 1>>;
+  using VanillaInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 1>>;
+  using VanillaOutputs =
+      OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>>;
+  using VanillaPlant = PlantModel<VanillaSS, VanillaInputs, VanillaOutputs>;
+  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
+                             InputChannel<InputKind::CONTROL, 1, 1>>;
+  using Outputs = OutputLayout<OutputChannel<OutputKind::PERFORMANCE, 0, 1>,
+                               OutputChannel<OutputKind::MEASUREMENT, 1, 1>>;
   using Plant = PlantModel<PlantSS, Inputs, Outputs>;
 
-  constexpr auto vanilla = VanillaSS(A, B_u, C_y);
+  constexpr auto vanilla = VanillaPlant(VanillaSS(A, B_u, C_y));
   constexpr auto plant = Plant(PlantSS(A, B_aug, C_aug));
 
-  using FeedbackZ = RowVectord<StateFeedback<VanillaSS>::ZDim>;
+  using FeedbackZ = RowVectord<StateFeedback<VanillaPlant>::ZDim>;
   constexpr auto feedback_dec = Variable<VarMeta<FeedbackZ>>();
 
   const auto vanilla_feedback_lmi =
-      StateFeedback<VanillaSS>()(vanilla, feedback_dec);
+      StateFeedback<VanillaPlant>()(vanilla, feedback_dec);
   const auto plant_feedback_lmi = StateFeedback<Plant>()(plant, feedback_dec);
   constexpr auto feedback_builder =
       conic::create_empty_cblk_builder<FeedbackZ>();
@@ -139,7 +143,8 @@ TEST_CASE("PlantModel selected channels match vanilla synthesis",
           plant_feedback.map.translation());
 
   constexpr auto P = Variable<SymMatVarMeta<Matrixd<2, 2>>>();
-  const auto vanilla_observer_lmi = LuenbergerObserver<VanillaSS>()(vanilla, P);
+  const auto vanilla_observer_lmi =
+      LuenbergerObserver<VanillaPlant>()(vanilla, P);
   const auto plant_observer_lmi = LuenbergerObserver<Plant>()(plant, P);
   constexpr auto observer_builder =
       conic::create_empty_cblk_builder<SymmetricMatrix<Matrixd<2, 2>>>();

@@ -13,10 +13,10 @@
 #pragma once
 
 #include "config/assert.hpp"
-#include "control/control_util.hpp"
 #include "control/model/plant_model.hpp"
 #include "control/model/state_space.hpp"
 #include "convex/convex_problem.hpp"
+#include "convex/intersection.hpp"
 #include "convex/sets/lmi.hpp"
 #include "convex/variable.hpp"
 #include "linalg/operator/matrix_inverse.hpp"
@@ -52,16 +52,16 @@ namespace control {
  * observer gain calculation
  *   L = (\sigma / 2) P^{-1} C^T
  */
-template <ContinuousObserverModelLike SS>
+template <ContinuousPlantModelLike ObsModel>
 struct LuenbergerObserver {
   /// @brief extracting alias and types
-  using Model = linalg::remove_cvref_t<SS>;
+  using Model = linalg::remove_cvref_t<ObsModel>;
 
-  using T = observer_type_t<Model>;
-  using State = observer_state_vec_t<Model>;
+  using T = plant_type_t<Model>;
+  using State = plant_state_vec_t<Model>;
 
-  static constexpr size_t StateDim = observer_model_traits<Model>::StateDim;
-  static constexpr size_t OutputDim = observer_model_traits<Model>::OutputDim;
+  static constexpr size_t StateDim = plant_traits<Model>::StateDim;
+  static constexpr size_t OutputDim = plant_traits<Model>::MeasurementDim;
 
   using PMat = linalg::Matrix<T, StateDim, StateDim>;
   using LMat = linalg::Matrix<T, StateDim, OutputDim>;
@@ -73,26 +73,28 @@ struct LuenbergerObserver {
   /**
    * @brief operator overload (form luenberger observer)
    *
-   * @param ss (StateSpace)
+   * @param model (StateSpace)
    * @param P (Var)
    *
-   * @return LDI as LMI
+   * @return observer synthesis constraints
    */
   template <convex::AtomLike Var>
-  constexpr auto operator()(const SS& ss, const Var& P) const {
-    return apply(ss, P);
+  constexpr auto operator()(const ObsModel& model, const Var& P,
+                            T margin = 1e-6) const {
+    return apply(model, P, margin);
   }
 
   /**
    * @brief apply
    *
-   * @param ss (StateSpace)
+   * @param model (StateSpace)
    * @param P (Var)
    *
-   * @return LDI as LMI
+   * @return observer synthesis constraints
    */
   template <convex::AtomLike Var>
-  constexpr auto apply(const SS& ss, const Var& P) const {
+  constexpr auto apply(const ObsModel& model, const Var& P,
+                       T margin = 1e-6) const {
     static_assert(convex::is_var_type_v<Var>, "Input atom is not a var");
     using PDom = convex::meta_dom_t<convex::atom_meta_t<Var>>;
     static_assert(convex::dom_vartype_v<PDom> == convex::VarType::PSD,
@@ -103,17 +105,25 @@ struct LuenbergerObserver {
 
     /// (dakre) note sign change to make this psd
     auto M = [&](const PMat& E) -> FMat {
-      const auto& A = plant_A(ss);
+      const auto& A = model.dynamics_matrix();
       return T(-1) * (linalg::transpose(A) * E + E * A);
     };
 
-    const auto C_y = observer_Cy(ss);
+    const auto C_y = model.measurement_matrix();
     FMat B = linalg::transpose(C_y) * C_y;
 
     linalg::MatrixPencil<FMat, PDim> pencil;
     const auto F_blks = pencil.template apply_sym_mat<PMat>(M);
 
-    return convex::LMI(F_blks, B, P);
+    const auto observer_lmi = convex::LMI(F_blks, B, P);
+
+    const auto I = linalg::make_identity<T, StateDim>();
+    const auto Fp =
+        linalg::MatrixPencil<PMat, PDim>{}.template apply_sym_mat<PMat>(
+            [](const PMat& E) -> PMat { return E; });
+    const auto p_lmi = convex::LMI(Fp, T(-1) * margin * I, P);
+
+    return convex::Intersection(p_lmi, observer_lmi);
   }
 
   /**
@@ -121,15 +131,15 @@ struct LuenbergerObserver {
    *
    * L = 1/2 P^{-1} C^T
    *
-   * @param ss (StateSpace)
+   * @param model (StateSpace)
    * @param P (PMat)
    *
    * @return L
    */
-  constexpr auto L(const SS& ss, const PMat& P) const {
+  constexpr auto L(const ObsModel& model, const PMat& P) const {
     const auto [P_inv, event] = linalg::SymmetricMatrixInverse<PMat>()(P);
     if (event != linalg::NumericalEvent::NONE) return std::tuple(LMat{}, event);
-    const auto C_y = observer_Cy(ss);
+    const auto C_y = model.measurement_matrix();
     const auto L = T(0.5) * P_inv * linalg::transpose(C_y);
     return std::tuple(L, linalg::NumericalEvent::NONE);
   }
@@ -138,29 +148,21 @@ struct LuenbergerObserver {
 /**
  * @brief make observer problem
  *
- * @param ss (StateSpace)
+ * @param model (StateSpace)
  * @param P (Var)
  * @param obj (Objective)
  * @param margin (PSD margin)
  *
  * @return observer problem
  */
-template <ContinuousObserverModelLike SS, convex::AtomLike Var>
-constexpr auto make_observer_problem(const SS& ss, const Var& P,
+template <ContinuousPlantModelLike ObsModel, convex::AtomLike Var>
+constexpr auto make_observer_problem(const ObsModel& model, const Var& P,
                                      const auto& obj,
-                                     observer_type_t<SS> margin = 1e-6) {
-  using T = observer_type_t<SS>;
-  constexpr size_t N = LuenbergerObserver<SS>::StateDim;
-  const auto I = linalg::make_identity<T, N>();
+                                     plant_type_t<ObsModel> margin = 1e-6) {
+  const auto obs = LuenbergerObserver<decltype(model)>();
+  const auto constraints = obs(model, P, margin);
 
-  const auto P_geq =
-      convex::Inequality<convex::InequalityType::GEQ, decltype(P), decltype(I)>(
-          P, margin * I);
-  const auto obs = LuenbergerObserver<decltype(ss)>();
-  const auto lmi = obs(ss, P);
-
-  const auto prob_constraints =
-      convex::make_problem(P).add_constraint(P_geq).in_set(lmi);
+  const auto prob_constraints = convex::make_problem(P).in_set(constraints);
 
   return prob_constraints.minimize(obj);
 }
@@ -168,27 +170,19 @@ constexpr auto make_observer_problem(const SS& ss, const Var& P,
 /**
  * @brief make observer problem
  *
- * @param ss (StateSpace)
+ * @param model (StateSpace)
  * @param P (Var)
  * @param margin (PSD margin)
  *
  * @return observer problem
  */
-template <ContinuousObserverModelLike SS, convex::AtomLike Var>
-constexpr auto make_observer_problem(const SS& ss, const Var& P,
-                                     observer_type_t<SS> margin = 1e-6) {
-  using T = observer_type_t<SS>;
-  constexpr size_t N = LuenbergerObserver<SS>::StateDim;
-  const auto I = linalg::make_identity<T, N>();
+template <ContinuousPlantModelLike ObsModel, convex::AtomLike Var>
+constexpr auto make_observer_problem(const ObsModel& model, const Var& P,
+                                     plant_type_t<ObsModel> margin = 1e-6) {
+  const auto obs = LuenbergerObserver<decltype(model)>();
+  const auto constraints = obs(model, P, margin);
 
-  const auto P_geq =
-      convex::Inequality<convex::InequalityType::GEQ, decltype(P), decltype(I)>(
-          P, margin * I);
-  const auto obs = LuenbergerObserver<decltype(ss)>();
-  const auto lmi = obs(ss, P);
-
-  const auto prob_constraints =
-      convex::make_problem(P).add_constraint(P_geq).in_set(lmi);
+  const auto prob_constraints = convex::make_problem(P).in_set(constraints);
 
   return prob_constraints.feasibility();
 }
