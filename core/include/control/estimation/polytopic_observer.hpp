@@ -114,6 +114,14 @@ struct PolytopicObserver {
     return form_intersection(std::make_index_sequence<N>{});
   }
 
+  /**
+   * @brief q_constraint
+   *
+   * @param Z ([svec(Q); vec(W)])
+   * @param margin (PDness)
+   *
+   * @return LMI for Q
+   */
   template <convex::AtomLike ZVar>
   constexpr auto q_constraint(const ZVar& Z, T margin = 1e-6) const {
     const auto I = linalg::make_identity<T, StateDim>();
@@ -128,6 +136,14 @@ struct PolytopicObserver {
     return convex::LMI(F_blks, T(-1) * margin * I, Z);
   }
 
+  /**
+   * @brief vertex constraint
+   *
+   * @param plant (ModelPlant)
+   * @param Z (dec var)
+   *
+   * @return LMI for the stability of each vertex
+   */
   template <convex::AtomLike ZVar>
   constexpr auto vertex_constraint(const Plant& plant, const ZVar& Z) const {
     auto M_q = [&](const QMat& E) -> FMat {

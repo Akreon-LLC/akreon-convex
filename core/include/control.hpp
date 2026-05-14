@@ -12,9 +12,11 @@
 
 #pragma once
 
+#include "control/estimation/h2_polytopic_state_observer.hpp"
 #include "control/estimation/h2_state_observer.hpp"
 #include "control/estimation/luenberger_observer.hpp"
 #include "control/estimation/polytopic_observer.hpp"
+#include "control/feedback/h2_polytopic_state_feedback.hpp"
 #include "control/feedback/h2_state_feedback.hpp"
 #include "control/feedback/polytopic_state_feedback.hpp"
 #include "control/feedback/state_feedback.hpp"
