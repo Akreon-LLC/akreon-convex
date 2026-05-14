@@ -39,10 +39,10 @@ namespace control {
  * satisfies
  *   edot = (A(t) - L C(t)) e
  *
- * There exists P > 0 s.t.
- *   A_i^T P + P A_i + W C_i + C_i^T W^T < 0
+ * There exists Q > 0 s.t.
+ *   A_i^T Q + Q A_i + W C_i + C_i^T W^T < 0
  *
- * where W = P L, and L = P^{-1} W.
+ * where W = Q L, and L = Q^{-1} W.
  */
 template <ContinuousPlantModelLike Plant, size_t N>
 struct PolytopicObserver {
@@ -54,14 +54,14 @@ struct PolytopicObserver {
   static constexpr size_t StateDim = plant_traits<Model>::StateDim;
   static constexpr size_t OutputDim = plant_traits<Model>::MeasurementDim;
 
-  using PMat = linalg::Matrix<T, StateDim, StateDim>;
+  using QMat = linalg::Matrix<T, StateDim, StateDim>;
   using WMat = linalg::Matrix<T, StateDim, OutputDim>;
   using LMat = linalg::Matrix<T, StateDim, OutputDim>;
-  using FMat = PMat;
+  using FMat = QMat;
 
-  static constexpr size_t PDim = StateDim * (StateDim + 1) / 2;
+  static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
   static constexpr size_t WDim = OutputDim * StateDim;
-  static constexpr size_t ZDim = PDim + WDim;
+  static constexpr size_t ZDim = QDim + WDim;
 
   using ZSpace = linalg::RowVector<T, ZDim>;
   using Fs = linalg::Vector<FMat, ZDim>;
@@ -71,7 +71,7 @@ struct PolytopicObserver {
    * @brief operator overload (polytopic observer)
    *
    * @param poly (Polytope)
-   * @param Z ([svec(P); vec(W)])
+   * @param Z ([svec(Q); vec(W)])
    *
    * @return PLDI as intersection of LMIs
    */
@@ -85,7 +85,7 @@ struct PolytopicObserver {
    * @brief apply
    *
    * @param poly (Polytope)
-   * @param Z ([svec(P); vec(W)])
+   * @param Z ([svec(Q); vec(W)])
    *
    * @return PLDI as intersection of LMIs
    */
@@ -98,16 +98,16 @@ struct PolytopicObserver {
                   "Merged decision var must be free");
     using ZVarSpace = convex::dom_space_t<ZDom>;
     static_assert(std::same_as<ZVarSpace, ZSpace>,
-                  "Expected merged decision size [svec(P); vec(W)]");
+                  "Expected merged decision size [svec(Q); vec(W)]");
 
-    const auto p_lmi = p_constraint(Z, margin);
+    const auto q_lmi = q_constraint(Z, margin);
 
     auto make_vertex_lmi = [&]<size_t idx>() {
       return vertex_constraint(poly(idx), Z);
     };
 
     auto form_intersection = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return convex::Intersection(p_lmi,
+      return convex::Intersection(q_lmi,
                                   make_vertex_lmi.template operator()<Is>()...);
     };
 
@@ -115,22 +115,22 @@ struct PolytopicObserver {
   }
 
   template <convex::AtomLike ZVar>
-  constexpr auto p_constraint(const ZVar& Z, T margin = 1e-6) const {
+  constexpr auto q_constraint(const ZVar& Z, T margin = 1e-6) const {
     const auto I = linalg::make_identity<T, StateDim>();
-    const auto Fp =
-        linalg::MatrixPencil<PMat, PDim>{}.template apply_sym_mat<PMat>(
-            [](const PMat& E) -> PMat { return E; });
+    const auto Fq =
+        linalg::MatrixPencil<QMat, QDim>{}.template apply_sym_mat<QMat>(
+            [](const QMat& E) -> QMat { return E; });
 
     Fs F_blks{};
-    for (size_t i = 0; i < PDim; ++i) F_blks(i) = Fp(i);
-    for (size_t i = 0; i < WDim; ++i) F_blks(PDim + i) = PMat{};
+    for (size_t i = 0; i < QDim; ++i) F_blks(i) = Fq(i);
+    for (size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = QMat{};
 
     return convex::LMI(F_blks, T(-1) * margin * I, Z);
   }
 
   template <convex::AtomLike ZVar>
   constexpr auto vertex_constraint(const Plant& plant, const ZVar& Z) const {
-    auto M_p = [&](const PMat& E) -> FMat {
+    auto M_q = [&](const QMat& E) -> FMat {
       const auto A = plant.dynamics_matrix();
       return T(-1) * (linalg::transpose(A) * E + E * A);
     };
@@ -140,14 +140,14 @@ struct PolytopicObserver {
       return T(-1) * (E * C_y + linalg::transpose(C_y) * linalg::transpose(E));
     };
 
-    const auto Fp_local =
-        linalg::MatrixPencil<FMat, PDim>{}.template apply_sym_mat<PMat>(M_p);
+    const auto Fq_local =
+        linalg::MatrixPencil<FMat, QDim>{}.template apply_sym_mat<QMat>(M_q);
     const auto Fw_local =
         linalg::MatrixPencil<FMat, WDim>{}.template apply_full<WMat>(M_w);
 
     Fs F_blks{};
-    for (size_t i = 0; i < PDim; ++i) F_blks(i) = Fp_local(i);
-    for (size_t i = 0; i < WDim; ++i) F_blks(PDim + i) = Fw_local(i);
+    for (size_t i = 0; i < QDim; ++i) F_blks(i) = Fq_local(i);
+    for (size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = Fw_local(i);
 
     return convex::LMI(F_blks, FMat{}, Z);
   }
@@ -155,17 +155,17 @@ struct PolytopicObserver {
   /**
    * @brief L
    *
-   * L = P^{-1} W
+   * L = Q^{-1} W
    *
-   * @param P (symmetric Lyapunov variable)
-   * @param W (lifted luenberger gain W = P L)
+   * @param Q (symmetric observability Gramian)
+   * @param W (lifted luenberger gain W = Q L)
    *
    * @return L
    */
-  constexpr auto L(const PMat& P, const WMat& W) const {
-    const auto [P_inv, event] = linalg::SymmetricMatrixInverse<PMat>()(P);
+  constexpr auto L(const QMat& Q, const WMat& W) const {
+    const auto [Q_inv, event] = linalg::SymmetricMatrixInverse<QMat>()(Q);
     if (event != linalg::NumericalEvent::NONE) return std::tuple(LMat{}, event);
-    const auto L = P_inv * W;
+    const auto L = Q_inv * W;
     return std::tuple(L, linalg::NumericalEvent::NONE);
   }
 };
@@ -195,9 +195,9 @@ constexpr auto make_polytopic_observer_quadratic_objective(
  * @brief make PLDI problem with objective
  *
  * @param poly polytope vertices
- * @param Z merged decision var [svec(P); vec(W)]
+ * @param Z merged decision var [svec(Q); vec(W)]
  * @param obj objective atom over merged var
- * @param margin PSD margin on P block
+ * @param margin PSD margin on Q block
  *
  * @return PLDI optimization problem
  */
@@ -213,8 +213,8 @@ constexpr auto make_polytopic_observer_problem(
  * @brief make PLDI feasibility problem
  *
  * @param poly polytope vertices
- * @param Z merged decision var [svec(P); vec(W)]
- * @param margin PSD margin on P block
+ * @param Z merged decision var [svec(Q); vec(W)]
+ * @param margin PSD margin on Q block
  *
  * @return PLDI feasibility problem
  */

@@ -37,19 +37,19 @@ namespace control {
  *
  * such that the closed-loop system is quadratically stable.
  *
- * There exists P > 0 such that
- *   (A + B_u K)^T P + P (A + B_u K) < 0
+ * There exists S > 0 such that
+ *   (A + B_u K)^T S + S (A + B_u K) < 0
  *
- * Equivalently, letting Q = P^{-1} > 0,
- *   Q (A + B_u K)^T + (A + B_u K) Q < 0
+ * Equivalently, letting P = S^{-1} > 0,
+ *   P (A + B_u K)^T + (A + B_u K) P < 0
  *
- * This is bilinear in Q and K, so define
- *   Y = K Q
+ * This is bilinear in P and K, so define
+ *   Y = K P
  * hence
- *   K = Y Q^{-1}
+ *   K = Y P^{-1}
  *
  * The problem is represented over the merged decision variable
- *   z = [ svec(Q); vec(Y) ].
+ *   z = [ svec(P); vec(Y) ].
  */
 template <ContinuousPlantModelLike SFModel>
 struct StateFeedback {
@@ -62,14 +62,14 @@ struct StateFeedback {
   static constexpr size_t StateDim = plant_traits<Model>::StateDim;
   static constexpr size_t InputDim = plant_traits<Model>::ControlDim;
 
-  using QMat = linalg::Matrix<T, StateDim, StateDim>;
+  using PMat = linalg::Matrix<T, StateDim, StateDim>;
   using YMat = linalg::Matrix<T, InputDim, StateDim>;
   using KMat = linalg::Matrix<T, InputDim, StateDim>;
-  using FMat = QMat;
+  using FMat = PMat;
 
-  static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
+  static constexpr size_t PDim = StateDim * (StateDim + 1) / 2;
   static constexpr size_t YDim = InputDim * StateDim;
-  static constexpr size_t ZDim = QDim + YDim;
+  static constexpr size_t ZDim = PDim + YDim;
 
   using ZSpace = linalg::RowVector<T, ZDim>;
   using Fs = linalg::Vector<FMat, ZDim>;
@@ -78,7 +78,7 @@ struct StateFeedback {
    * @brief operator overload (form state feedback)
    *
    * @param model (StateSpace)
-   * @param Z (dec var [svec(Q); vec(Y)])
+   * @param Z (dec var [svec(P); vec(Y)])
    *
    * @return state-feedback synthesis constraints
    */
@@ -92,7 +92,7 @@ struct StateFeedback {
    * @brief apply
    *
    * @param model (StateSpace)
-   * @param Z (dec var [svec(Q); vec(Y)])
+   * @param Z (dec var [svec(P); vec(Y)])
    * @param margin (for PD)
    *
    * @return state-feedback synthesis constraints
@@ -106,33 +106,33 @@ struct StateFeedback {
                   "Merged decision var must be free");
     using ZVarSpace = convex::dom_space_t<ZDom>;
     static_assert(std::same_as<ZVarSpace, ZSpace>,
-                  "Expected merged decision size [svec(Q); vec(Y)]");
+                  "Expected merged decision size [svec(P); vec(Y)]");
 
     const auto stability_lmi = stability_constraint(model, Z);
-    const auto q_lmi = q_constraint(Z, margin);
-    return convex::Intersection(q_lmi, stability_lmi);
+    const auto p_lmi = p_constraint(Z, margin);
+    return convex::Intersection(p_lmi, stability_lmi);
   }
 
   /**
-   * @brief q_constraint
+   * @brief p_constraint
    *
    * @param Z (dec var)
    * @param margin (PD)
    *
-   * @return Q constraint as LMI
+   * @return P constraint as LMI
    */
   template <convex::AtomLike ZVar>
-  constexpr auto q_constraint(const ZVar& Z, T margin = 1e-6) const {
+  constexpr auto p_constraint(const ZVar& Z, T margin = 1e-6) const {
     const auto I = linalg::make_identity<T, StateDim>();
-    const auto Fq_psd =
-        linalg::MatrixPencil<QMat, QDim>{}.template apply_sym_mat<QMat>(
-            [](const QMat& E) -> QMat { return E; });
+    const auto Fp_psd =
+        linalg::MatrixPencil<PMat, PDim>{}.template apply_sym_mat<PMat>(
+            [](const PMat& E) -> PMat { return E; });
 
-    Fs Q_blks{};
-    for (size_t i = 0; i < QDim; ++i) Q_blks(i) = Fq_psd(i);
-    for (size_t i = 0; i < YDim; ++i) Q_blks(QDim + i) = QMat{};
+    Fs P_blks{};
+    for (size_t i = 0; i < PDim; ++i) P_blks(i) = Fp_psd(i);
+    for (size_t i = 0; i < YDim; ++i) P_blks(PDim + i) = PMat{};
 
-    return convex::LMI(Q_blks, T(-1) * margin * I, Z);
+    return convex::LMI(P_blks, T(-1) * margin * I, Z);
   }
 
   /**
@@ -146,7 +146,7 @@ struct StateFeedback {
   template <convex::AtomLike ZVar>
   constexpr auto stability_constraint(const SFModel& model,
                                       const ZVar& Z) const {
-    auto M = [&](const QMat& E) -> FMat {
+    auto M = [&](const PMat& E) -> FMat {
       const auto A = model.dynamics_matrix();
       return T(-1) * (A * E + E * linalg::transpose(A));
     };
@@ -156,14 +156,14 @@ struct StateFeedback {
       return T(-1) * (B_u * E + linalg::transpose(E) * linalg::transpose(B_u));
     };
 
-    const auto Fq_local =
-        linalg::MatrixPencil<FMat, QDim>{}.template apply_sym_mat<QMat>(M);
+    const auto Fp_local =
+        linalg::MatrixPencil<FMat, PDim>{}.template apply_sym_mat<PMat>(M);
     const auto Fy_local =
         linalg::MatrixPencil<FMat, YDim>{}.template apply_full<YMat>(M_y);
 
     Fs F_blks{};
-    for (size_t i = 0; i < QDim; ++i) F_blks(i) = Fq_local(i);
-    for (size_t i = 0; i < YDim; ++i) F_blks(QDim + i) = Fy_local(i);
+    for (size_t i = 0; i < PDim; ++i) F_blks(i) = Fp_local(i);
+    for (size_t i = 0; i < YDim; ++i) F_blks(PDim + i) = Fy_local(i);
 
     return convex::LMI(F_blks, FMat{}, Z);
   }
@@ -171,15 +171,15 @@ struct StateFeedback {
   /**
    * @brief K
    *
-   * K = Y Q^{-1}
+   * K = Y P^{-1}
    *
-   * @param Q (QMat)
+   * @param P (PMat)
    * @param Y (YMat)
    *
    * @return K
    */
-  constexpr auto K(const QMat& Q, const YMat& Y) const {
-    return recover_state_feedback_gain(Q, Y);
+  constexpr auto K(const PMat& P, const YMat& Y) const {
+    return recover_state_feedback_gain(P, Y);
   }
 };
 
@@ -187,7 +187,7 @@ struct StateFeedback {
  * @brief make state feedback problem
  *
  * @param model (StateSpace)
- * @param Z (merged decision var [svec(Q); vec(Y)])
+ * @param Z (merged decision var [svec(P); vec(Y)])
  * @param obj (objective)
  * @param margin (PSD margin)
  *
@@ -207,7 +207,7 @@ constexpr auto make_state_feedback_problem(
  * @brief make state feedback feasibility problem
  *
  * @param model (StateSpace)
- * @param Z (merged decision var [svec(Q); vec(Y)])
+ * @param Z (merged decision var [svec(P); vec(Y)])
  * @param margin (PSD margin)
  *
  * @return state feedback feasibility problem

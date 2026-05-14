@@ -53,13 +53,13 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
   constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
   constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
 
-  static constexpr size_t QDim = 3;
+  static constexpr size_t PDim = 3;
   static constexpr size_t YDim = 2;
-  static constexpr size_t ZDim = QDim + YDim;
+  static constexpr size_t ZDim = PDim + YDim;
   using ZSpace = RowVectord<ZDim>;
   constexpr auto Z = Variable<VarMeta<ZSpace>>();
 
-  static constexpr size_t FullInputZDim = QDim + 4;
+  static constexpr size_t FullInputZDim = PDim + 4;
   using FullInputZSpace = RowVectord<FullInputZDim>;
   constexpr auto FullInputZ = Variable<VarMeta<FullInputZSpace>>();
 
@@ -93,7 +93,7 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
     REQUIRE(cone_block.validate());
   }
 
-  SECTION("Solver finds feasible Q/Y and stabilizing K") {
+  SECTION("Solver finds feasible P/Y and stabilizing K") {
     constexpr auto A = MatBuilder(-1.0, 0.0, 0.0, -2.0);
     constexpr auto plant = SolverPlant(SolverPlantSS(A, BCol, CRow));
 
@@ -125,32 +125,32 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(!res.stalled);
 
-    const auto z_split = linalg::splice<QDim>(res.iterate.z);
-    const auto Q_res = make_smat<2>(std::get<0>(z_split));
+    const auto z_split = linalg::splice<PDim>(res.iterate.z);
+    const auto P_res = make_smat<2>(std::get<0>(z_split));
     RowVectord<2> Y_res{};
     for (size_t j = 0; j < YDim; ++j) Y_res(0)(j) = std::get<1>(z_split)(j);
 
-    REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-    REQUIRE(Q_res(0)(0) > 1e-6);
-    REQUIRE(Q_res(1)(1) > 1e-6);
+    REQUIRE(all_equal(P_res, transpose(P_res), rel_tol));
+    REQUIRE(P_res(0)(0) > 1e-6);
+    REQUIRE(P_res(1)(1) > 1e-6);
 
-    const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
-    REQUIRE(Q_sym.is_valid());
-    REQUIRE(Q_sym.is_psd());
+    const auto P_sym = SymmetricMatrix(P_res, 1e-6);
+    REQUIRE(P_sym.is_valid());
+    REQUIRE(P_sym.is_psd());
 
-    const auto [K_res, K_event] = sf.K(Q_res, Y_res);
+    const auto [K_res, K_event] = sf.K(P_res, Y_res);
     REQUIRE(K_event == linalg::NumericalEvent::NONE);
-    REQUIRE(all_equal(Y_res, K_res * Q_res, 1e-4));
+    REQUIRE(all_equal(Y_res, K_res * P_res, 1e-4));
 
     const auto cert =
-        (-1.0) * (A * Q_res + Q_res * transpose(A) + BCol * Y_res +
+        (-1.0) * (A * P_res + P_res * transpose(A) + BCol * Y_res +
                   transpose(Y_res) * transpose(BCol));
     const auto cert_sym = SymmetricMatrix(cert, 1e-6);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
 
     const auto cl = A + BCol * K_res;
-    const auto lyap = (-1.0) * (cl * Q_res + Q_res * transpose(cl));
+    const auto lyap = (-1.0) * (cl * P_res + P_res * transpose(cl));
     const auto lyap_sym = SymmetricMatrix(lyap, 1e-6);
     REQUIRE(lyap_sym.is_valid());
     REQUIRE(lyap_sym.is_psd());
@@ -203,50 +203,50 @@ TEST_CASE("H2 State Feedback synthesis 2x2", "[state_feedback_test]") {
   REQUIRE(res.tag == SolverResult::OPTIMAL);
   REQUIRE(!res.stalled);
 
-  const auto wc_yz_split = linalg::splice<H2::WcDim>(res.iterate.z);
-  const auto Wc_res = make_smat<2>(std::get<0>(wc_yz_split));
-  const auto y_z_split = linalg::splice<H2::YDim>(std::get<1>(wc_yz_split));
+  const auto p_yz_split = linalg::splice<H2::PDim>(res.iterate.z);
+  const auto P_res = make_smat<2>(std::get<0>(p_yz_split));
+  const auto y_z_split = linalg::splice<H2::YDim>(std::get<1>(p_yz_split));
   RowVectord<2> Y_res{};
   for (size_t j = 0; j < H2::YDim; ++j) Y_res(0)(j) = std::get<0>(y_z_split)(j);
   const auto Z_res = make_smat<1>(std::get<1>(y_z_split));
 
-  REQUIRE(all_equal(Wc_res, transpose(Wc_res), rel_tol));
-  REQUIRE(Wc_res(0)(0) > 1e-6);
-  REQUIRE(Wc_res(1)(1) > 1e-6);
+  REQUIRE(all_equal(P_res, transpose(P_res), rel_tol));
+  REQUIRE(P_res(0)(0) > 1e-6);
+  REQUIRE(P_res(1)(1) > 1e-6);
   REQUIRE(Z_res(0)(0) > 1e-6);
 
-  const auto Wc_sym = SymmetricMatrix(Wc_res, 1e-6);
-  REQUIRE(Wc_sym.is_valid());
-  REQUIRE(Wc_sym.is_psd());
+  const auto P_sym = SymmetricMatrix(P_res, 1e-6);
+  REQUIRE(P_sym.is_valid());
+  REQUIRE(P_sym.is_psd());
 
   constexpr auto h2 = H2();
-  const auto [K_res, K_event] = h2.K(Wc_res, Y_res);
+  const auto [K_res, K_event] = h2.K(P_res, Y_res);
   REQUIRE(K_event == linalg::NumericalEvent::NONE);
-  REQUIRE(all_equal(Y_res, K_res * Wc_res, 1e-4));
+  REQUIRE(all_equal(Y_res, K_res * P_res, 1e-4));
 
   constexpr auto B_w = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.0}};
   constexpr auto B_u = ColVectord<2>{Vectord<1>{0.0}, Vectord<1>{1.0}};
   constexpr auto C_z = RowVectord<2>{Vectord<2>{1.0, 0.0}};
   constexpr auto D_u = RowVectord<1>{Vectord<1>{0.0}};
   const auto stability_cert =
-      (-1.0) * (A * Wc_res + Wc_res * transpose(A) + B_u * Y_res +
+      (-1.0) * (A * P_res + P_res * transpose(A) + B_u * Y_res +
                 transpose(Y_res) * transpose(B_u) + B_w * transpose(B_w));
   const auto stability_sym = SymmetricMatrix(stability_cert, 1e-6);
   REQUIRE(stability_sym.is_valid());
   REQUIRE(stability_sym.is_psd());
 
-  const auto top_right = C_z * Wc_res + D_u * Y_res;
+  const auto top_right = C_z * P_res + D_u * Y_res;
   const auto epigraph =
       Matrixd<3, 3>{Vectord<3>{Z_res(0)(0), top_right(0)(0), top_right(0)(1)},
-                    Vectord<3>{top_right(0)(0), Wc_res(0)(0), Wc_res(0)(1)},
-                    Vectord<3>{top_right(0)(1), Wc_res(1)(0), Wc_res(1)(1)}};
+                    Vectord<3>{top_right(0)(0), P_res(0)(0), P_res(0)(1)},
+                    Vectord<3>{top_right(0)(1), P_res(1)(0), P_res(1)(1)}};
   const auto epigraph_sym = SymmetricMatrix(epigraph, 1e-6);
   REQUIRE(epigraph_sym.is_valid());
   REQUIRE(epigraph_sym.is_psd());
 
   const auto cl = A + B_u * K_res;
   const auto lyap =
-      (-1.0) * (cl * Wc_res + Wc_res * transpose(cl) + B_w * transpose(B_w));
+      (-1.0) * (cl * P_res + P_res * transpose(cl) + B_w * transpose(B_w));
   const auto lyap_sym = SymmetricMatrix(lyap, 1e-6);
   REQUIRE(lyap_sym.is_valid());
   REQUIRE(lyap_sym.is_psd());

@@ -33,11 +33,11 @@ namespace control {
  *
  * s.t. the CL system is quadratically stable.
  *
- * There exists Q > 0, Q = P^{-1} and Y = K Q so
- *   Q A_i^T + A_i Q + B_{ui} Y + Y^T B_{ui}^T < 0
+ * There exists S > 0, P = S^{-1}, and Y = K P so
+ *   P A_i^T + A_i P + B_{ui} Y + Y^T B_{ui}^T < 0
  *
  * This set is represented over the merged decision variable
- *   z = [ svec(Q); vec(Y) ].
+ *   z = [ svec(P); vec(Y) ].
  */
 template <ContinuousPlantModelLike Plant, size_t N>
 struct PolytopicStateFeedback {
@@ -48,11 +48,11 @@ struct PolytopicStateFeedback {
 
   static constexpr size_t StateDim = VertexFeedback::StateDim;
   static constexpr size_t InputDim = VertexFeedback::InputDim;
-  static constexpr size_t QDim = VertexFeedback::QDim;
+  static constexpr size_t PDim = VertexFeedback::PDim;
   static constexpr size_t YDim = VertexFeedback::YDim;
   static constexpr size_t ZDim = VertexFeedback::ZDim;
 
-  using QMat = typename VertexFeedback::QMat;
+  using PMat = typename VertexFeedback::PMat;
   using YMat = typename VertexFeedback::YMat;
   using KMat = typename VertexFeedback::KMat;
   using FMat = typename VertexFeedback::FMat;
@@ -64,7 +64,7 @@ struct PolytopicStateFeedback {
    * @brief operator overload (form polytopic state feedback)
    *
    * @param poly (Polytope)
-   * @param Z (dec var [svec(Q); vec(Y)])
+   * @param Z (dec var [svec(P); vec(Y)])
    *
    * @return PLDI as intersection of LMI
    */
@@ -78,7 +78,7 @@ struct PolytopicStateFeedback {
    * @brief apply (polytopic state feedback)
    *
    * @param poly (Polytope)
-   * @param Z (dec var [svec(Q); vec(Y)])
+   * @param Z (dec var [svec(P); vec(Y)])
    *
    * @return PLDI as intersection of LMI
    */
@@ -91,16 +91,16 @@ struct PolytopicStateFeedback {
                   "Merged decision var must be free");
     using ZVarSpace = convex::dom_space_t<ZDom>;
     static_assert(std::same_as<ZVarSpace, ZSpace>,
-                  "Expected merged decision size [svec(Q); vec(Y)]");
+                  "Expected merged decision size [svec(P); vec(Y)]");
 
-    const auto q_lmi = VertexFeedback().q_constraint(Z, margin);
+    const auto p_lmi = VertexFeedback().p_constraint(Z, margin);
 
     auto make_vertex_lmi = [&]<size_t idx>() {
       return VertexFeedback().stability_constraint(poly(idx), Z);
     };
 
     auto form_intersection = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return convex::Intersection(q_lmi,
+      return convex::Intersection(p_lmi,
                                   make_vertex_lmi.template operator()<Is>()...);
     };
 
@@ -110,24 +110,24 @@ struct PolytopicStateFeedback {
   /**
    * @brief K
    *
-   * K = Y Q^{-1}
+   * K = Y P^{-1}
    *
-   * @param Q (symmetric Lyapunov variable)
-   * @param Y (lifted feedback product Y = KQ)
+   * @param P (symmetric Lyapunov variable)
+   * @param Y (lifted feedback product Y = KP)
    *
    * @return K
    */
-  constexpr auto K(const QMat& Q, const YMat& Y) const {
-    return VertexFeedback().K(Q, Y);
+  constexpr auto K(const PMat& P, const YMat& Y) const {
+    return VertexFeedback().K(P, Y);
   }
 };
 
 /**
  * @brief make linear objective over merged PLDI variable
  *
- * obj(z) = q_w^T svec(Q) + y_w^T vec(Y)
+ * obj(z) = p_w^T svec(P) + y_w^T vec(Y)
  *
- * @param q_weights weights over svec(Q)
+ * @param p_weights weights over svec(P)
  * @param y_weights weights over vec(Y)
  * @param Z merged decision var
  *
@@ -136,7 +136,7 @@ struct PolytopicStateFeedback {
 template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_state_feedback_linear_objective(
     const linalg::Vector<plant_type_t<Plant>,
-                         PolytopicStateFeedback<Plant, N>::QDim>& q_weights,
+                         PolytopicStateFeedback<Plant, N>::PDim>& p_weights,
     const linalg::Vector<plant_type_t<Plant>,
                          PolytopicStateFeedback<Plant, N>::YDim>& y_weights,
     const ZVar& Z) {
@@ -144,8 +144,8 @@ constexpr auto make_polytopic_state_feedback_linear_objective(
   using PSF = PolytopicStateFeedback<Plant, N>;
 
   linalg::Vector<T, PSF::ZDim> c{};
-  for (size_t i = 0; i < PSF::QDim; ++i) c(i) = q_weights(i);
-  for (size_t i = 0; i < PSF::YDim; ++i) c(PSF::QDim + i) = y_weights(i);
+  for (size_t i = 0; i < PSF::PDim; ++i) c(i) = p_weights(i);
+  for (size_t i = 0; i < PSF::YDim; ++i) c(PSF::PDim + i) = y_weights(i);
 
   return convex::make_weighted_sum(c, Z);
 }
@@ -176,9 +176,9 @@ constexpr auto make_polytopic_state_feedback_quadratic_objective(
  * @brief make PLDI problem with objective
  *
  * @param poly polytope vertices
- * @param Z merged decision var [svec(Q); vec(Y)]
+ * @param Z merged decision var [svec(P); vec(Y)]
  * @param obj objective atom over merged var
- * @param margin PSD margin on Q block
+ * @param margin PSD margin on P block
  *
  * @return PLDI optimization problem
  */
@@ -194,8 +194,8 @@ constexpr auto make_polytopic_state_feedback_problem(
  * @brief make PLDI feasibility problem
  *
  * @param poly polytope vertices
- * @param Z merged decision var [svec(Q); vec(Y)]
- * @param margin PSD margin on Q block
+ * @param Z merged decision var [svec(P); vec(Y)]
+ * @param margin PSD margin on P block
  *
  * @return PLDI feasibility problem
  */

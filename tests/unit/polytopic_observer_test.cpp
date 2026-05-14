@@ -44,9 +44,9 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
   constexpr auto Z = Matrixd<2, 2>{};
   constexpr auto MatBuilder = mat_traits<Space>();
 
-  static constexpr size_t PDim = 3;
+  static constexpr size_t QDim = 3;
   static constexpr size_t WDim = 4;
-  static constexpr size_t ZDim = PDim + WDim;
+  static constexpr size_t ZDim = QDim + WDim;
   using ZSpace = RowVectord<ZDim>;
   constexpr auto dec = Variable<VarMeta<ZSpace>>();
 
@@ -88,7 +88,7 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     REQUIRE(cone_block.validate());
   }
 
-  SECTION("Solver finds feasible merged z with PSD P block") {
+  SECTION("Solver finds feasible merged z with PSD Q block") {
     using InputSpace = ColVectord<2>;
     using OutputSpace = RowVectord<2>;
     using SolverPlantSS =
@@ -99,9 +99,9 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
-    static constexpr size_t SolverPDim = 3;
+    static constexpr size_t SolverQDim = 3;
     static constexpr size_t SolverWDim = 2;
-    static constexpr size_t SolverZDim = SolverPDim + SolverWDim;
+    static constexpr size_t SolverZDim = SolverQDim + SolverWDim;
     using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
@@ -135,29 +135,29 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(!res.stalled);
 
-    Vectord<SolverPDim> p_vec{};
-    for (size_t i = 0; i < SolverPDim; ++i) p_vec(i) = res.iterate.z(i);
-    const auto P_res = make_smat<2>(p_vec);
+    Vectord<SolverQDim> q_vec{};
+    for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
+    const auto Q_res = make_smat<2>(q_vec);
 
     ColVectord<2> W_res{};
     for (size_t j = 0; j < SolverWDim; ++j)
-      W_res(j)(0) = res.iterate.z(SolverPDim + j);
+      W_res(j)(0) = res.iterate.z(SolverQDim + j);
 
-    REQUIRE(all_equal(P_res, transpose(P_res), rel_tol));
-    REQUIRE(P_res(0)(0) > 1e-6);
-    REQUIRE(P_res(1)(1) > 1e-6);
+    REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
+    REQUIRE(Q_res(0)(0) > 1e-6);
+    REQUIRE(Q_res(1)(1) > 1e-6);
 
-    const auto P_sym = SymmetricMatrix(P_res, 1e-6);
-    REQUIRE(P_sym.is_valid());
-    REQUIRE(P_sym.is_psd());
+    const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
+    REQUIRE(Q_sym.is_valid());
+    REQUIRE(Q_sym.is_psd());
 
-    const auto [L_res, L_event] = po.L(P_res, W_res);
+    const auto [L_res, L_event] = po.L(Q_res, W_res);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
-    REQUIRE(all_equal(W_res, P_res * L_res, 1e-4));
+    REQUIRE(all_equal(W_res, Q_res * L_res, 1e-4));
 
-    const auto cert0 = (-1.0) * (transpose(A0) * P_res + P_res * A0 +
+    const auto cert0 = (-1.0) * (transpose(A0) * Q_res + Q_res * A0 +
                                  W_res * C + transpose(C) * transpose(W_res));
-    const auto cert1 = (-1.0) * (transpose(A1) * P_res + P_res * A1 +
+    const auto cert1 = (-1.0) * (transpose(A1) * Q_res + Q_res * A1 +
                                  W_res * C + transpose(C) * transpose(W_res));
 
     const auto cert0_sym = SymmetricMatrix(cert0, 1e-6);
@@ -169,8 +169,8 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
 
     const auto err0 = A0 - L_res * C;
     const auto err1 = A1 - L_res * C;
-    const auto lyap0 = (-1.0) * (transpose(err0) * P_res + P_res * err0);
-    const auto lyap1 = (-1.0) * (transpose(err1) * P_res + P_res * err1);
+    const auto lyap0 = (-1.0) * (transpose(err0) * Q_res + Q_res * err0);
+    const auto lyap1 = (-1.0) * (transpose(err1) * Q_res + Q_res * err1);
     const auto lyap0_sym = SymmetricMatrix(lyap0, 1e-6);
     const auto lyap1_sym = SymmetricMatrix(lyap1, 1e-6);
     REQUIRE(lyap0_sym.is_valid());
@@ -190,9 +190,9 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
-    static constexpr size_t SolverPDim = 3;
+    static constexpr size_t SolverQDim = 3;
     static constexpr size_t SolverWDim = 2;
-    static constexpr size_t SolverZDim = SolverPDim + SolverWDim;
+    static constexpr size_t SolverZDim = SolverQDim + SolverWDim;
     using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
@@ -235,21 +235,21 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(!res.stalled);
 
-    Vectord<SolverPDim> p_vec{};
-    for (size_t i = 0; i < SolverPDim; ++i) p_vec(i) = res.iterate.z(i);
-    const auto P_res = make_smat<2>(p_vec);
+    Vectord<SolverQDim> q_vec{};
+    for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
+    const auto Q_res = make_smat<2>(q_vec);
 
     ColVectord<2> W_res{};
     for (size_t j = 0; j < SolverWDim; ++j)
-      W_res(j)(0) = res.iterate.z(SolverPDim + j);
+      W_res(j)(0) = res.iterate.z(SolverQDim + j);
 
-    const auto [L_res, L_event] = po.L(P_res, W_res);
+    const auto [L_res, L_event] = po.L(Q_res, W_res);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
-    REQUIRE(all_equal(W_res, P_res * L_res, 1e-4));
+    REQUIRE(all_equal(W_res, Q_res * L_res, 1e-4));
 
-    const auto cert0 = (-1.0) * (transpose(A0) * P_res + P_res * A0 +
+    const auto cert0 = (-1.0) * (transpose(A0) * Q_res + Q_res * A0 +
                                  W_res * C + transpose(C) * transpose(W_res));
-    const auto cert1 = (-1.0) * (transpose(A1) * P_res + P_res * A1 +
+    const auto cert1 = (-1.0) * (transpose(A1) * Q_res + Q_res * A1 +
                                  W_res * C + transpose(C) * transpose(W_res));
     const auto cert0_sym = SymmetricMatrix(cert0, 1e-6);
     const auto cert1_sym = SymmetricMatrix(cert1, 1e-6);
@@ -260,8 +260,8 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
 
     const auto err0 = A0 - L_res * C;
     const auto err1 = A1 - L_res * C;
-    const auto lyap0 = (-1.0) * (transpose(err0) * P_res + P_res * err0);
-    const auto lyap1 = (-1.0) * (transpose(err1) * P_res + P_res * err1);
+    const auto lyap0 = (-1.0) * (transpose(err0) * Q_res + Q_res * err0);
+    const auto lyap1 = (-1.0) * (transpose(err1) * Q_res + Q_res * err1);
     const auto lyap0_sym = SymmetricMatrix(lyap0, 1e-6);
     const auto lyap1_sym = SymmetricMatrix(lyap1, 1e-6);
     REQUIRE(lyap0_sym.is_valid());

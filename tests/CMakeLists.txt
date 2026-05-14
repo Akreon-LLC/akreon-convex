@@ -90,11 +90,11 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(controller_test PRIVATE ../include)
   target_compile_options(controller_test PRIVATE ${UNIT_COMPILE_OPTS})
 
-  add_executable(luenberger_observer_test unit/luenberger_observer_test.cpp)
-  add_test(NAME luenberger_observer_test COMMAND luenberger_observer_test)
-  target_link_libraries(luenberger_observer_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(luenberger_observer_test PRIVATE ../include)
-  target_compile_options(luenberger_observer_test PRIVATE ${UNIT_COMPILE_OPTS})
+  add_executable(state_observer_test unit/state_observer_test.cpp)
+  add_test(NAME state_observer_test COMMAND state_observer_test)
+  target_link_libraries(state_observer_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(state_observer_test PRIVATE ../include)
+  target_compile_options(state_observer_test PRIVATE ${UNIT_COMPILE_OPTS})
 
   add_executable(polytopic_observer_test unit/polytopic_observer_test.cpp)
   add_test(NAME polytopic_observer_test COMMAND polytopic_observer_test)
@@ -207,7 +207,7 @@ set(AKREON_TEST_TARGETS
   state_feedback_test
   plant_model_test
   controller_test
-  luenberger_observer_test
+  state_observer_test
   polytopic_observer_test
   polytopic_state_feedback_test
   one_dof_pendulum_test

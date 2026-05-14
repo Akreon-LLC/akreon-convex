@@ -39,23 +39,46 @@ namespace control {
  *   y = (C + D_u K) x... where (C + D_u K) is the closed loop performance
  * output
  *
- * The controllability gramian (Wc) requirement
- *   A_cl Wc + Wc A_cl^T + Bw Bw^T < 0
+ * The controllability gramian (P) requirement
+ *   A_cl P + P A_cl^T + Bw Bw^T < 0
  *
  * The H2 norm squared (total impulse response energy)
- *   ||T_{wz}||_2^2 = Tr(C_cl Wc C_cl^T)
+ *   ||T_{wz}||_2^2 = Tr(C_cl P C_cl^T)
  *
- * We have a bilinear term in K Wc, so let Y = K Wc where K = Y Wc^-1
+ * Dimensions:
+ *   n   = state dimension
+ *   m_u = control input dimension
+ *   m_w = disturbance input dimension
+ *   p_z = performance output dimension
+ *
+ *   A   : n x n
+ *   B_u : n x m_u
+ *   B_w : n x m_w
+ *   C_z : p_z x n
+ *   D_u : p_z x m_u
+ *
+ * Decision blocks:
+ *   P : n x n
+ *   Y  : m_u x n
+ *   K  : m_u x n
+ *   Z  : p_z x p_z
+ *   DecVar = [svec(P); vec(Y); svec(Z)]
+ *
+ * We have a bilinear term in K P, so let Y = K P where K = Y P^-1
  *
  * H2 objective can be lifted via epigraph with Z
- *   Z >= (C Wc + D_u Y) Wc^{-1} (C Wc + Du Y)^T
+ *   Z >= (C P + D_u Y) P^{-1} (C P + Du Y)^T
  *
  * Convex Problem is now
  *   min  Tr(Z)
- *   s.t. A Wc + Wc A^T + B_u Y + Y^T B_u^T + B_w B_w^T < 0
- *        [ Z                C Wc + Du Y ] >= 0
- *        [ (C Wc + Du Y)^T  Wc          ]
- *  Dec Var = [ svec(Wc); vec(Y); svec(Z) ]
+ *   s.t. A P + P A^T + B_u Y + Y^T B_u^T + B_w B_w^T < 0
+ *        [ Z                C P + Du Y ] >= 0
+ *        [ (C P + Du Y)^T  P          ]
+ *
+ * Shape checks:
+ *   A P, P A^T, B_u Y, Y^T B_u^T, B_w B_w^T : n x n
+ *   C_z P + D_u Y : p_z x n
+ *   Epigraph LMI   : (p_z + n) x (p_z + n)
  */
 template <ContinuousPlantModelLike SFModel>
 struct H2StateFeedback {
@@ -63,23 +86,20 @@ struct H2StateFeedback {
   using Model = linalg::remove_cvref_t<SFModel>;
 
   using T = plant_type_t<Model>;
-  using State = plant_state_vec_t<Model>;
-  using Input = plant_input_vec_t<Model>;
-  using Output = plant_output_vec_t<Model>;
 
   static constexpr size_t StateDim = plant_traits<Model>::StateDim;
   static constexpr size_t InputDim = plant_traits<Model>::ControlDim;
   static constexpr size_t OutputDim = plant_traits<Model>::PerformanceDim;
 
-  using WcMat = linalg::Matrix<T, StateDim, StateDim>;
+  using PMat = linalg::Matrix<T, StateDim, StateDim>;
   using YMat = linalg::Matrix<T, InputDim, StateDim>;
   using KMat = linalg::Matrix<T, InputDim, StateDim>;
   using ZMat = linalg::Matrix<T, OutputDim, OutputDim>;
 
-  static constexpr size_t WcDim = StateDim * (StateDim + 1) / 2;
+  static constexpr size_t PDim = StateDim * (StateDim + 1) / 2;
   static constexpr size_t YDim = InputDim * StateDim;
   static constexpr size_t ZDim = OutputDim * (OutputDim + 1) / 2;
-  static constexpr size_t DecVarDim = WcDim + YDim + ZDim;
+  static constexpr size_t DecVarDim = PDim + YDim + ZDim;
 
   using DecVarSpace = linalg::RowVector<T, DecVarDim>;
 
@@ -101,7 +121,7 @@ struct H2StateFeedback {
    * @brief apply
    *
    * @param model (PlantModel)
-   * @param Z_hat ([svec(Wc); vec(Y); svec(Z)])
+   * @param Z_hat ([svec(P); vec(Y); svec(Z)])
    *
    * @return H2 LMI
    */
@@ -113,7 +133,7 @@ struct H2StateFeedback {
     static_assert(convex::dom_vartype_v<DecVarDom> == convex::VarType::FREE,
                   "Merged decision var must be free");
     static_assert(std::same_as<DecVarSpace, convex::dom_space_t<DecVarDom>>,
-                  "Expected merged decision size [svec(Wc); vec(Y); svec(Z)]");
+                  "Expected merged decision size [svec(P); vec(Y); svec(Z)]");
 
     const auto stability_lmi = stability_constraint(model, Z_hat);
     const auto z_lmi = z_constraint(model, Z_hat, margin);
@@ -124,7 +144,7 @@ struct H2StateFeedback {
    * @brief stability_constraint
    *
    * Stability constraint on LMI:
-   *   A Wc + Wc A^T + B_u Y + Y^T B_u^T + B_w B_w^T < 0
+   *   A P + P A^T + B_u Y + Y^T B_u^T + B_w B_w^T < 0
    *
    * @param model (PlantModel)
    * @param Z_hat (Dec Var)
@@ -134,10 +154,10 @@ struct H2StateFeedback {
   template <convex::AtomLike DecVar>
   constexpr auto stability_constraint(const SFModel& model,
                                       const DecVar& Z_hat) const {
-    using FMat = WcMat;
+    using FMat = PMat;
     using Fs = linalg::Vector<FMat, DecVarDim>;
 
-    auto M_wc = [&](const WcMat& E) -> FMat {
+    auto M_p = [&](const PMat& E) -> FMat {
       const auto& A = model.dynamics_matrix();
       return T(-1) * (A * E + E * linalg::transpose(A));
     };
@@ -150,14 +170,14 @@ struct H2StateFeedback {
     const auto B_w = model.disturbance_matrix();
     const auto F_0 = T(-1) * (B_w * linalg::transpose(B_w));
 
-    const auto F_wc_local =
-        linalg::MatrixPencil<FMat, WcDim>{}.template apply_sym_mat<WcMat>(M_wc);
+    const auto F_p_local =
+        linalg::MatrixPencil<FMat, PDim>{}.template apply_sym_mat<PMat>(M_p);
     const auto F_y_local =
         linalg::MatrixPencil<FMat, YDim>{}.template apply_full<YMat>(M_y);
 
     Fs F_blks{};
-    for (size_t i = 0; i < WcDim; ++i) F_blks(i) = F_wc_local(i);
-    for (size_t i = 0; i < YDim; ++i) F_blks(WcDim + i) = F_y_local(i);
+    for (size_t i = 0; i < PDim; ++i) F_blks(i) = F_p_local(i);
+    for (size_t i = 0; i < YDim; ++i) F_blks(PDim + i) = F_y_local(i);
 
     return convex::LMI(F_blks, F_0, Z_hat);
   }
@@ -166,8 +186,8 @@ struct H2StateFeedback {
    * @brief z_constraint
    *
    * PSD constraint on Z (epigraph)
-   *   [ Z                C Wc + Du Y ] >= 0
-   *   [ (C Wc + Du Y)^T  Wc          ]
+   *   [ Z                C P + Du Y ] >= 0
+   *   [ (C P + Du Y)^T  P          ]
    *
    * FMat Dim (p+n x p+n)
    *   [ pxp pxn ]
@@ -189,7 +209,7 @@ struct H2StateFeedback {
       FMat F{};
       return linalg::set_block<0, OutputDim, 0, OutputDim>(F, E);
     };
-    auto M_wc = [&](const WcMat& E) -> FMat {
+    auto M_p = [&](const PMat& E) -> FMat {
       FMat F{};
       const auto C = model.performance_matrix();
       F = linalg::set_block<OutputDim, LmiDim, OutputDim, LmiDim>(F, E);
@@ -210,15 +230,15 @@ struct H2StateFeedback {
 
     const auto F_z_local =
         linalg::MatrixPencil<FMat, ZDim>{}.template apply_sym_mat<ZMat>(M_z);
-    const auto F_wc_local =
-        linalg::MatrixPencil<FMat, WcDim>{}.template apply_sym_mat<WcMat>(M_wc);
+    const auto F_p_local =
+        linalg::MatrixPencil<FMat, PDim>{}.template apply_sym_mat<PMat>(M_p);
     const auto F_y_local =
         linalg::MatrixPencil<FMat, YDim>{}.template apply_full<YMat>(M_y);
 
     Fs F_blks{};
-    for (size_t i = 0; i < WcDim; ++i) F_blks(i) = F_wc_local(i);
-    for (size_t i = 0; i < YDim; ++i) F_blks(WcDim + i) = F_y_local(i);
-    for (size_t i = 0; i < ZDim; ++i) F_blks(WcDim + YDim + i) = F_z_local(i);
+    for (size_t i = 0; i < PDim; ++i) F_blks(i) = F_p_local(i);
+    for (size_t i = 0; i < YDim; ++i) F_blks(PDim + i) = F_y_local(i);
+    for (size_t i = 0; i < ZDim; ++i) F_blks(PDim + YDim + i) = F_z_local(i);
 
     const auto I = linalg::make_identity<T, LmiDim>();
     return convex::LMI(F_blks, T(-1) * margin * I, Z_hat);
@@ -235,22 +255,22 @@ struct H2StateFeedback {
    */
   template <convex::AtomLike DecVar>
   constexpr auto objective(const DecVar& Z_hat) const {
-    return convex::make_trace_block<WcDim + YDim,
-                                    linalg::SymmetricMatrix<ZMat>>(Z_hat);
+    return convex::make_trace_block<PDim + YDim, linalg::SymmetricMatrix<ZMat>>(
+        Z_hat);
   }
 
   /**
    * @brief K
    *
-   * K = Y Wc^{-1}
+   * K = Y P^{-1}
    *
-   * @param Wc controllability gramian
-   * @param Y lifted feedback product Y = K Wc
+   * @param P controllability gramian
+   * @param Y lifted feedback product Y = K P
    *
    * @return K
    */
-  constexpr auto K(const WcMat& Wc, const YMat& Y) const {
-    return recover_state_feedback_gain(Wc, Y);
+  constexpr auto K(const PMat& P, const YMat& Y) const {
+    return recover_state_feedback_gain(P, Y);
   }
 };
 
