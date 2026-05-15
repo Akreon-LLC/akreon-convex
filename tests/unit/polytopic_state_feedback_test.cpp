@@ -44,9 +44,9 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
   constexpr auto Z = Matrixd<2, 2>{};
   constexpr auto MatBuilder = mat_traits<Space>();
 
-  static constexpr size_t PDim = 3;
+  static constexpr size_t QDim = 3;
   static constexpr size_t YDim = 4;
-  static constexpr size_t ZDim = PDim + YDim;
+  static constexpr size_t ZDim = QDim + YDim;
   using ZSpace = RowVectord<ZDim>;
   constexpr auto dec = Variable<VarMeta<ZSpace>>();
 
@@ -88,7 +88,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     REQUIRE(cone_block.validate());
   }
 
-  SECTION("Solver finds feasible merged z with PSD P block") {
+  SECTION("Solver finds feasible merged z with PSD Q block") {
     using InputSpace = Matrixd<2, 1>;
     using OutputSpace = RowVectord<2>;
     using SolverPlantSS =
@@ -99,9 +99,9 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
-    static constexpr size_t SolverPDim = 3;
+    static constexpr size_t SolverQDim = 3;
     static constexpr size_t SolverYDim = 2;
-    static constexpr size_t SolverZDim = SolverPDim + SolverYDim;
+    static constexpr size_t SolverZDim = SolverQDim + SolverYDim;
     using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
@@ -116,7 +116,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     constexpr auto poly = Vector<decltype(plant0), 2>{plant0, plant1};
 
     constexpr auto psf = PolytopicStateFeedback<decltype(plant0), 2>();
-    constexpr auto p_w = Vectord<SolverPDim>{1.0, 0.0, 1.0};
+    constexpr auto p_w = Vectord<SolverQDim>{1.0, 0.0, 1.0};
     constexpr auto y_w = Vectord<SolverYDim>{0.0, 0.0};
     constexpr auto obj =
         make_polytopic_state_feedback_linear_objective<decltype(plant0), 2>(
@@ -141,28 +141,28 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(!res.stalled);
 
-    Vectord<SolverPDim> q_vec{};
-    for (size_t i = 0; i < SolverPDim; ++i) q_vec(i) = res.iterate.z(i);
-    const auto P_res = make_smat<2>(q_vec);
+    Vectord<SolverQDim> q_vec{};
+    for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
+    const auto Q_res = make_smat<2>(q_vec);
 
     RowVectord<2> Y_res{};
-    for (size_t j = 0; j < 2; ++j) Y_res(0)(j) = res.iterate.z(SolverPDim + j);
+    for (size_t j = 0; j < 2; ++j) Y_res(0)(j) = res.iterate.z(SolverQDim + j);
 
-    REQUIRE(all_equal(P_res, transpose(P_res), rel_tol));
-    REQUIRE(P_res(0)(0) > 1e-6);
-    REQUIRE(P_res(1)(1) > 1e-6);
+    REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
+    REQUIRE(Q_res(0)(0) > 1e-6);
+    REQUIRE(Q_res(1)(1) > 1e-6);
 
-    const auto P_sym = SymmetricMatrix(P_res, 1e-6);
-    REQUIRE(P_sym.is_valid());
-    REQUIRE(P_sym.is_psd());
+    const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
+    REQUIRE(Q_sym.is_valid());
+    REQUIRE(Q_sym.is_psd());
 
-    const auto [K_res, K_event] = psf.K(P_res, Y_res);
+    const auto [K_res, K_event] = psf.K(Q_res, Y_res);
     REQUIRE(K_event == linalg::NumericalEvent::NONE);
-    REQUIRE(all_equal(Y_res, K_res * P_res, 1e-4));
+    REQUIRE(all_equal(Y_res, K_res * Q_res, 1e-4));
 
-    const auto cert0 = (-1.0) * (A0 * P_res + P_res * transpose(A0) +
+    const auto cert0 = (-1.0) * (A0 * Q_res + Q_res * transpose(A0) +
                                  B0 * Y_res + transpose(Y_res) * transpose(B0));
-    const auto cert1 = (-1.0) * (A1 * P_res + P_res * transpose(A1) +
+    const auto cert1 = (-1.0) * (A1 * Q_res + Q_res * transpose(A1) +
                                  B1 * Y_res + transpose(Y_res) * transpose(B1));
 
     const auto cert0_sym = SymmetricMatrix(cert0, 1e-6);
@@ -174,8 +174,8 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
 
     const auto cl0 = A0 + B0 * K_res;
     const auto cl1 = A1 + B1 * K_res;
-    const auto lyap0 = (-1.0) * (cl0 * P_res + P_res * transpose(cl0));
-    const auto lyap1 = (-1.0) * (cl1 * P_res + P_res * transpose(cl1));
+    const auto lyap0 = (-1.0) * (cl0 * Q_res + Q_res * transpose(cl0));
+    const auto lyap1 = (-1.0) * (cl1 * Q_res + Q_res * transpose(cl1));
     const auto lyap0_sym = SymmetricMatrix(lyap0, 1e-6);
     const auto lyap1_sym = SymmetricMatrix(lyap1, 1e-6);
     REQUIRE(lyap0_sym.is_valid());
@@ -195,9 +195,9 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
-    static constexpr size_t SolverPDim = 3;
+    static constexpr size_t SolverQDim = 3;
     static constexpr size_t SolverYDim = 2;
-    static constexpr size_t SolverZDim = SolverPDim + SolverYDim;
+    static constexpr size_t SolverZDim = SolverQDim + SolverYDim;
     using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
@@ -212,7 +212,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     constexpr auto poly = Vector<decltype(plant0), 2>{plant0, plant1};
 
     constexpr auto psf = PolytopicStateFeedback<decltype(plant0), 2>();
-    constexpr auto P = Matrixd<SolverZDim, SolverZDim>{
+    constexpr auto Q = Matrixd<SolverZDim, SolverZDim>{
         Vectord<SolverZDim>{1.0, 0.0, 0.0, 0.0, 0.0},
         Vectord<SolverZDim>{0.0, 1.0, 0.0, 0.0, 0.0},
         Vectord<SolverZDim>{0.0, 0.0, 1.0, 0.0, 0.0},
@@ -222,7 +222,7 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     constexpr auto q = Vectord<SolverZDim>{};
     constexpr auto obj =
         make_polytopic_state_feedback_quadratic_objective<decltype(plant0), 2>(
-            P, q, solver_dec);
+            Q, q, solver_dec);
     const auto prob =
         make_polytopic_state_feedback_problem<decltype(plant0), 2>(
             poly, solver_dec, obj);
@@ -241,20 +241,20 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(!res.stalled);
 
-    Vectord<SolverPDim> q_vec{};
-    for (size_t i = 0; i < SolverPDim; ++i) q_vec(i) = res.iterate.z(i);
-    const auto P_res = make_smat<2>(q_vec);
+    Vectord<SolverQDim> q_vec{};
+    for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
+    const auto Q_res = make_smat<2>(q_vec);
 
     RowVectord<2> Y_res{};
-    for (size_t j = 0; j < 2; ++j) Y_res(0)(j) = res.iterate.z(SolverPDim + j);
+    for (size_t j = 0; j < 2; ++j) Y_res(0)(j) = res.iterate.z(SolverQDim + j);
 
-    const auto [K_res, K_event] = psf.K(P_res, Y_res);
+    const auto [K_res, K_event] = psf.K(Q_res, Y_res);
     REQUIRE(K_event == linalg::NumericalEvent::NONE);
-    REQUIRE(all_equal(Y_res, K_res * P_res, 1e-4));
+    REQUIRE(all_equal(Y_res, K_res * Q_res, 1e-4));
 
-    const auto cert0 = (-1.0) * (A0 * P_res + P_res * transpose(A0) +
+    const auto cert0 = (-1.0) * (A0 * Q_res + Q_res * transpose(A0) +
                                  B0 * Y_res + transpose(Y_res) * transpose(B0));
-    const auto cert1 = (-1.0) * (A1 * P_res + P_res * transpose(A1) +
+    const auto cert1 = (-1.0) * (A1 * Q_res + Q_res * transpose(A1) +
                                  B1 * Y_res + transpose(Y_res) * transpose(B1));
     const auto cert0_sym = SymmetricMatrix(cert0, 1e-6);
     const auto cert1_sym = SymmetricMatrix(cert1, 1e-6);
@@ -317,26 +317,26 @@ TEST_CASE("H2 Polytopic State Feedback synthesis 2x2",
   REQUIRE(res.tag == SolverResult::OPTIMAL);
   REQUIRE(!res.stalled);
 
-  const auto p_yz_split = linalg::splice<H2::PDim>(res.iterate.z);
-  const auto P_res = make_smat<2>(std::get<0>(p_yz_split));
-  const auto y_z_split = linalg::splice<H2::YDim>(std::get<1>(p_yz_split));
+  const auto q_yz_split = linalg::splice<H2::QDim>(res.iterate.z);
+  const auto Q_res = make_smat<2>(std::get<0>(q_yz_split));
+  const auto y_z_split = linalg::splice<H2::YDim>(std::get<1>(q_yz_split));
   RowVectord<2> Y_res{};
   for (size_t j = 0; j < H2::YDim; ++j) Y_res(0)(j) = std::get<0>(y_z_split)(j);
   const auto Z_res = make_smat<1>(std::get<1>(y_z_split));
 
-  REQUIRE(all_equal(P_res, transpose(P_res), rel_tol));
-  REQUIRE(P_res(0)(0) > 1e-6);
-  REQUIRE(P_res(1)(1) > 1e-6);
+  REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
+  REQUIRE(Q_res(0)(0) > 1e-6);
+  REQUIRE(Q_res(1)(1) > 1e-6);
   REQUIRE(Z_res(0)(0) > 1e-6);
 
-  const auto P_sym = SymmetricMatrix(P_res, 1e-6);
-  REQUIRE(P_sym.is_valid());
-  REQUIRE(P_sym.is_psd());
+  const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
+  REQUIRE(Q_sym.is_valid());
+  REQUIRE(Q_sym.is_psd());
 
   constexpr auto h2 = H2();
-  const auto [K_res, K_event] = h2.K(P_res, Y_res);
+  const auto [K_res, K_event] = h2.K(Q_res, Y_res);
   REQUIRE(K_event == linalg::NumericalEvent::NONE);
-  REQUIRE(all_equal(Y_res, K_res * P_res, 1e-4));
+  REQUIRE(all_equal(Y_res, K_res * Q_res, 1e-4));
 
   constexpr auto B_w = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.0}};
   constexpr auto B_u = ColVectord<2>{Vectord<1>{0.0}, Vectord<1>{1.0}};
@@ -344,10 +344,10 @@ TEST_CASE("H2 Polytopic State Feedback synthesis 2x2",
   constexpr auto D_u = RowVectord<1>{Vectord<1>{0.0}};
 
   const auto cert0 =
-      (-1.0) * (A0 * P_res + P_res * transpose(A0) + B_u * Y_res +
+      (-1.0) * (A0 * Q_res + Q_res * transpose(A0) + B_u * Y_res +
                 transpose(Y_res) * transpose(B_u) + B_w * transpose(B_w));
   const auto cert1 =
-      (-1.0) * (A1 * P_res + P_res * transpose(A1) + B_u * Y_res +
+      (-1.0) * (A1 * Q_res + Q_res * transpose(A1) + B_u * Y_res +
                 transpose(Y_res) * transpose(B_u) + B_w * transpose(B_w));
   const auto cert0_sym = SymmetricMatrix(cert0, 1e-6);
   const auto cert1_sym = SymmetricMatrix(cert1, 1e-6);
@@ -356,11 +356,11 @@ TEST_CASE("H2 Polytopic State Feedback synthesis 2x2",
   REQUIRE(cert0_sym.is_psd());
   REQUIRE(cert1_sym.is_psd());
 
-  const auto top_right = C_z * P_res + D_u * Y_res;
+  const auto top_right = C_z * Q_res + D_u * Y_res;
   const auto epigraph =
       Matrixd<3, 3>{Vectord<3>{Z_res(0)(0), top_right(0)(0), top_right(0)(1)},
-                    Vectord<3>{top_right(0)(0), P_res(0)(0), P_res(0)(1)},
-                    Vectord<3>{top_right(0)(1), P_res(1)(0), P_res(1)(1)}};
+                    Vectord<3>{top_right(0)(0), Q_res(0)(0), Q_res(0)(1)},
+                    Vectord<3>{top_right(0)(1), Q_res(1)(0), Q_res(1)(1)}};
   const auto epigraph_sym = SymmetricMatrix(epigraph, 1e-6);
   REQUIRE(epigraph_sym.is_valid());
   REQUIRE(epigraph_sym.is_psd());
@@ -368,9 +368,9 @@ TEST_CASE("H2 Polytopic State Feedback synthesis 2x2",
   const auto cl0 = A0 + B_u * K_res;
   const auto cl1 = A1 + B_u * K_res;
   const auto lyap0 =
-      (-1.0) * (cl0 * P_res + P_res * transpose(cl0) + B_w * transpose(B_w));
+      (-1.0) * (cl0 * Q_res + Q_res * transpose(cl0) + B_w * transpose(B_w));
   const auto lyap1 =
-      (-1.0) * (cl1 * P_res + P_res * transpose(cl1) + B_w * transpose(B_w));
+      (-1.0) * (cl1 * Q_res + Q_res * transpose(cl1) + B_w * transpose(B_w));
   const auto lyap0_sym = SymmetricMatrix(lyap0, 1e-6);
   const auto lyap1_sym = SymmetricMatrix(lyap1, 1e-6);
   REQUIRE(lyap0_sym.is_valid());

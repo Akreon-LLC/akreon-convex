@@ -23,11 +23,11 @@ namespace control {
  * @brief H2 Polytopic State Feedback
  *
  * Uses a common H2 state-feedback decision variable
- *   z = [svec(P); vec(Y); svec(Z)]
+ *   z = [svec(Q); vec(Y); svec(Z)]
  *
  * across every plant vertex and intersects each vertex H2 certificate:
- *   P : controllability Gramian
- *   Y : lifted feedback product, Y = K P
+ *   Q : controllability Gramian
+ *   Y : lifted feedback product, Y = K Q
  *   Z : shared H2 epigraph block
  */
 template <ContinuousPlantModelLike Plant, size_t N>
@@ -40,12 +40,12 @@ struct H2PolytopicStateFeedback {
   static constexpr size_t StateDim = VertexFeedback::StateDim;
   static constexpr size_t InputDim = VertexFeedback::InputDim;
   static constexpr size_t OutputDim = VertexFeedback::OutputDim;
-  static constexpr size_t PDim = VertexFeedback::PDim;
+  static constexpr size_t QDim = VertexFeedback::QDim;
   static constexpr size_t YDim = VertexFeedback::YDim;
   static constexpr size_t ZDim = VertexFeedback::ZDim;
   static constexpr size_t DecVarDim = VertexFeedback::DecVarDim;
 
-  using PMat = typename VertexFeedback::PMat;
+  using QMat = typename VertexFeedback::QMat;
   using YMat = typename VertexFeedback::YMat;
   using KMat = typename VertexFeedback::KMat;
   using ZMat = typename VertexFeedback::ZMat;
@@ -84,7 +84,7 @@ struct H2PolytopicStateFeedback {
     static_assert(convex::dom_vartype_v<DecVarDom> == convex::VarType::FREE,
                   "Merged decision var must be free");
     static_assert(std::same_as<DecVarSpace, convex::dom_space_t<DecVarDom>>,
-                  "Expected merged decision size [svec(P); vec(Y); svec(Z)]");
+                  "Expected merged decision size [svec(Q); vec(Y); svec(Z)]");
 
     auto make_vertex_lmis = [&]<size_t idx>() {
       return VertexFeedback()(poly(idx), Z_hat, margin);
@@ -113,13 +113,13 @@ struct H2PolytopicStateFeedback {
   /**
    * @brief K (feedback gain)
    *
-   * @param P (Controllability Gramian)
+   * @param Q (Controllability Gramian)
    * @param Y (Lifted convex object)
    *
    * @return K
    */
-  constexpr auto K(const PMat& P, const YMat& Y) const {
-    return VertexFeedback().K(P, Y);
+  constexpr auto K(const QMat& Q, const YMat& Y) const {
+    return VertexFeedback().K(Q, Y);
   }
 };
 
