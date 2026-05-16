@@ -14,6 +14,7 @@
 
 #include "control/estimation/h2_polytopic_state_observer.hpp"
 #include "control/estimation/h2_state_observer.hpp"
+#include "control/estimation/hinf_state_observer.hpp"
 #include "control/estimation/luenberger_observer.hpp"
 #include "control/estimation/polytopic_observer.hpp"
 #include "control/feedback/h2_polytopic_state_feedback.hpp"
