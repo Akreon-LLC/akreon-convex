@@ -469,6 +469,7 @@ TEST_CASE("Hinf State Observer synthesis with zero D_ew is numerically stable",
   using Solver = PrimalDualIPM<decltype(prob)>;
   auto cfg = state_observer_solver_config<double>();
   cfg.duality_gap_tol = 1e-3;
+  cfg.dual_feas_tol = 1e-4;
   const Solver solver(prob, cfg);
   const auto& res = solver.res;
 #ifdef AKREON_REPORT_OUTPUT

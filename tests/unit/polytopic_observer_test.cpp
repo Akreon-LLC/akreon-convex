@@ -385,3 +385,116 @@ TEST_CASE("H2 Polytopic State Observer synthesis 2x2",
   REQUIRE(lyap0_sym.is_psd());
   REQUIRE(lyap1_sym.is_psd());
 }
+
+TEST_CASE("Hinf Polytopic State Observer synthesis 2x2",
+          "[polytopic_observer_test]") {
+  using StateSpaceMat = Matrixd<2, 2>;
+  using InputMat = Matrixd<2, 2>;
+  using OutputMat = Matrixd<2, 2>;
+  using SS = StateSpace<TimeDomainType::CONTINUOUS, StateSpaceMat, InputMat,
+                        OutputMat>;
+  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
+                             InputChannel<InputKind::CONTROL, 1, 1>>;
+  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>,
+                               OutputChannel<OutputKind::PERFORMANCE, 1, 1>>;
+  using Plant = PlantModel<SS, Inputs, Outputs>;
+
+  constexpr auto MatBuilder = mat_traits<StateSpaceMat>();
+  constexpr auto A0 = MatBuilder(-1.0, 0.0, 1.0, -2.0);
+  constexpr auto A1 = MatBuilder(-1.2, 0.0, 1.0, -2.4);
+  constexpr auto B = InputMat{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 1.0}};
+  constexpr auto C = OutputMat{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 1.0}};
+  constexpr auto D = Matrixd<2, 2>{Vectord<2>{0.25, 0.0}, Vectord<2>{0.5, 0.0}};
+  constexpr auto plant0 = Plant(SS(A0, B, C, D));
+  constexpr auto plant1 = Plant(SS(A1, B, C, D));
+  constexpr auto poly = Vector<decltype(plant0), 2>{plant0, plant1};
+
+  using Hinf = HinfPolytopicStateObserver<decltype(plant0), 2>;
+  using DecVarSpace = RowVectord<Hinf::DecVarDim>;
+  constexpr auto Z_hat = Variable<VarMeta<DecVarSpace>>();
+  const auto prob =
+      make_hinf_polytopic_state_observer_problem<decltype(plant0), 2>(poly,
+                                                                      Z_hat);
+
+  REQUIRE(is_problem_set_v<decltype(prob)>);
+  REQUIRE(prob.validate());
+  REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 4);
+
+  const auto c = prob.linear_objective();
+  const auto c_exp = RowVectord<Hinf::DecVarDim>{
+      Vectord<Hinf::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0}};
+  REQUIRE(c == c_exp);
+
+  using Solver = PrimalDualIPM<decltype(prob)>;
+  auto cfg = pldi_solver_config<double>();
+  cfg.steps = 96;
+  cfg.dual_feas_tol = 1e-4;
+  cfg.duality_gap_tol = 1e-3;
+  const Solver solver(prob, cfg);
+  const auto& res = solver.res;
+#ifdef AKREON_REPORT_OUTPUT
+  const auto& trace = solver.trace;
+  if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+#endif
+
+  REQUIRE(res.tag == SolverResult::OPTIMAL);
+  REQUIRE(!res.stalled);
+
+  const auto q_w_gamma_split = linalg::splice<Hinf::QDim>(res.iterate.z);
+  const auto Q_res = make_smat<2>(std::get<0>(q_w_gamma_split));
+  const auto w_gamma_split =
+      linalg::splice<Hinf::WDim>(std::get<1>(q_w_gamma_split));
+  ColVectord<2> W_res{};
+  for (size_t i = 0; i < Hinf::WDim; ++i)
+    W_res(i)(0) = std::get<0>(w_gamma_split)(i);
+  const auto gamma_res = std::get<1>(w_gamma_split)(0);
+
+  REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
+  REQUIRE(Q_res(0)(0) > 1e-6);
+  REQUIRE(Q_res(1)(1) > 1e-6);
+  REQUIRE(gamma_res > 1e-6);
+
+  const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
+  REQUIRE(Q_sym.is_valid());
+  REQUIRE(Q_sym.is_psd());
+
+  constexpr auto hinf = Hinf();
+  const auto [L_res, L_event] = hinf.L(Q_res, W_res);
+  REQUIRE(L_event == linalg::NumericalEvent::NONE);
+  REQUIRE(all_equal(W_res, Q_res * L_res, 1e-4));
+
+  constexpr auto B_w = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.0}};
+  constexpr auto C_y = RowVectord<2>{Vectord<2>{1.0, 0.0}};
+  constexpr auto C_e = RowVectord<2>{Vectord<2>{0.0, 1.0}};
+  constexpr auto D_yw = RowVectord<1>{Vectord<1>{0.25}};
+  constexpr auto D_ew = RowVectord<1>{Vectord<1>{0.5}};
+
+  auto check_vertex = [&](const StateSpaceMat& A) {
+    const auto top_left = transpose(A) * Q_res + Q_res * A -
+                          transpose(C_y) * transpose(W_res) - W_res * C_y;
+    const auto top_right = Q_res * B_w - W_res * D_yw;
+
+    Matrixd<4, 4> brl{};
+    brl = set_block<0, 2, 0, 2>(brl, top_left);
+    brl = set_block<0, 2, 2, 3>(brl, top_right);
+    brl = set_block<2, 3, 0, 2>(brl, transpose(top_right));
+    brl = set_block<0, 2, 3, 4>(brl, transpose(C_e));
+    brl = set_block<3, 4, 0, 2>(brl, C_e);
+    brl = set_block<2, 3, 2, 3>(brl, Matrixd<1, 1>{Vectord<1>{-gamma_res}});
+    brl = set_block<2, 3, 3, 4>(brl, transpose(D_ew));
+    brl = set_block<3, 4, 2, 3>(brl, D_ew);
+    brl = set_block<3, 4, 3, 4>(brl, Matrixd<1, 1>{Vectord<1>{-gamma_res}});
+
+    const auto brl_sym = SymmetricMatrix((-1.0) * brl, 1e-6);
+    REQUIRE(brl_sym.is_valid());
+    REQUIRE(brl_sym.is_psd());
+
+    const auto err = A - L_res * C_y;
+    const auto disturbance_dynamics = B_w - L_res * D_yw;
+    REQUIRE(all_equal(top_left, transpose(err) * Q_res + Q_res * err, 1e-4));
+    REQUIRE(all_equal(top_right, Q_res * disturbance_dynamics, 1e-4));
+  };
+
+  check_vertex(A0);
+  check_vertex(A1);
+}
