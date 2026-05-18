@@ -167,7 +167,7 @@ struct H2StateFeedback {
       return T(-1) * (B_u * E + linalg::transpose(E) * linalg::transpose(B_u));
     };
 
-    const auto B_w = model.disturbance_matrix();
+    const auto B_w = model.exogenous_matrix();
     const auto F_0 = T(-1) * (B_w * linalg::transpose(B_w));
 
     const auto F_q_local =
@@ -220,8 +220,9 @@ struct H2StateFeedback {
     };
     auto M_y = [&](const YMat& E) -> FMat {
       FMat F{};
-      const auto D_u = model.template feedthrough<OutputKind::PERFORMANCE,
-                                                  InputKind::CONTROL>();
+      const auto D_u =
+          model
+              .template feedthrough<PortRole::PERFORMANCE, PortRole::CONTROL>();
       F = linalg::set_block<0, OutputDim, OutputDim, LmiDim>(F, D_u * E);
       F = linalg::set_block<OutputDim, LmiDim, 0, OutputDim>(
           F, linalg::transpose(E) * linalg::transpose(D_u));

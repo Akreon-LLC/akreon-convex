@@ -20,183 +20,88 @@
 
 namespace control {
 
-/// @brief InputKind
-enum struct InputKind : uint8_t {
-  CONTROL,
-  DISTURBANCE,
-  REFERENCE,
-  PROCESS_NOISE,
-  MEASUREMENT_NOISE,
-  EXOGENOUS
+/// @brief Plant port role
+enum struct PortRole : uint8_t {
+  EXOGENOUS,   ///< w: disturbance, reference, noise, or other external input
+  CONTROL,     ///< u: controller input to the plant
+  PERFORMANCE, ///< z: regulated/performance output
+  MEASUREMENT  ///< y: measured output available for feedback/estimation
 };
 
-/// @brief OutputKind
-enum struct OutputKind : uint8_t { MEASUREMENT, PERFORMANCE, REGULATED, STATE };
-
-/// @brief Input channel specification
-template <InputKind KindT, size_t OffsetT, size_t SizeT>
-struct InputChannel {
-  static constexpr InputKind Kind = KindT;
-  static constexpr size_t Offset = OffsetT;
-  static constexpr size_t Size = SizeT;
-};
-
-/// @brief Output channel specification
-template <OutputKind KindT, size_t OffsetT, size_t SizeT>
-struct OutputChannel {
-  static constexpr OutputKind Kind = KindT;
+/// @brief Port specification
+template <PortRole RoleT, size_t OffsetT, size_t SizeT>
+struct Port {
+  static constexpr PortRole Role = RoleT;
   static constexpr size_t Offset = OffsetT;
   static constexpr size_t Size = SizeT;
 };
 
 template <typename Channel>
-concept InputChannelLike = requires {
-  { Channel::Kind } -> std::convertible_to<InputKind>;
+concept PortLike = requires {
+  { Channel::Role } -> std::convertible_to<PortRole>;
   { Channel::Offset } -> std::convertible_to<size_t>;
   { Channel::Size } -> std::convertible_to<size_t>;
 };
 
-template <typename Channel>
-concept OutputChannelLike = requires {
-  { Channel::Kind } -> std::convertible_to<OutputKind>;
-  { Channel::Offset } -> std::convertible_to<size_t>;
-  { Channel::Size } -> std::convertible_to<size_t>;
-};
-
-/// @brief Input layout
-template <InputChannelLike... Channels>
-struct InputLayout {
+/// @brief Port layout over either the state-space input or output axis
+template <PortLike... Channels>
+struct PortLayout {
   using ChannelsTuple = std::tuple<Channels...>;
 
-  /// @brief count channels matching a signal kind
-  template <InputKind Kind>
+  /// @brief count channels matching a port role
+  template <PortRole Role>
   static consteval size_t count() {
-    // Fold over every channel and add one only when the channel kind matches.
-    return (size_t{0} + ... + (Channels::Kind == Kind ? size_t{1} : size_t{0}));
+    return (size_t{0} + ... + (Channels::Role == Role ? size_t{1} : size_t{0}));
   }
 
-  /// @brief total dimension for channels matching a signal kind
-  template <InputKind Kind>
+  /// @brief total dimension for channels matching a port role
+  template <PortRole Role>
   static consteval size_t total_size() {
-    // Fold over every channel and add its size only when the kind matches.
-    return (size_t{0} + ... + (Channels::Kind == Kind ? Channels::Size : 0));
+    return (size_t{0} + ... + (Channels::Role == Role ? Channels::Size : 0));
   }
 
-  /// @brief offset of the Index-th channel matching a signal kind
-  template <InputKind Kind, size_t Index>
+  /// @brief offset of the Index-th channel matching a port role
+  template <PortRole Role, size_t Index>
   static consteval size_t offset() {
     size_t current = 0;
     size_t result = 0;
     // Walk matching channels left-to-right. current is incremented only for
     // matching channels, so current == Index is true for exactly one match.
-    ((Channels::Kind == Kind
+    ((Channels::Role == Role
           ? ((current == Index ? (result = Channels::Offset, 0) : 0), ++current,
              0)
           : 0),
      ...);
-    static_assert(Index < count<Kind>(), "Requested input channel is missing");
+    static_assert(Index < count<Role>(), "Requested port is missing");
     return result;
   }
 
-  /// @brief size of the Index-th channel matching a signal kind
-  template <InputKind Kind, size_t Index>
+  /// @brief size of the Index-th channel matching a port role
+  template <PortRole Role, size_t Index>
   static consteval size_t size() {
     size_t current = 0;
     size_t result = 0;
     // Same matching-channel walk as offset(), but records channel size.
-    ((Channels::Kind == Kind
+    ((Channels::Role == Role
           ? ((current == Index ? (result = Channels::Size, 0) : 0), ++current,
              0)
           : 0),
      ...);
-    static_assert(Index < count<Kind>(), "Requested input channel is missing");
+    static_assert(Index < count<Role>(), "Requested port is missing");
     return result;
   }
 
-  /// @brief validate channel bounds and overlap against full input dimension
-  template <size_t FullInputDim>
+  /// @brief validate port bounds and overlap against a full axis dimension
+  template <size_t FullDim>
   static consteval bool validates() {
     // First fold checks every channel has positive size and in-bounds extent.
-    bool ok = ((Channels::Size > 0 &&
-                Channels::Offset + Channels::Size <= FullInputDim) &&
-               ...);
-    bool occupied[FullInputDim == 0 ? 1 : FullInputDim]{};
+    bool ok =
+        ((Channels::Size > 0 && Channels::Offset + Channels::Size <= FullDim) &&
+         ...);
+    bool occupied[FullDim == 0 ? 1 : FullDim]{};
     auto mark = [&]<typename Channel>() consteval {
-      if constexpr (Channel::Offset + Channel::Size > FullInputDim) { return; }
-      // Mark each occupied input index; seeing an index twice means overlap.
-      for (size_t i = Channel::Offset; i < Channel::Offset + Channel::Size;
-           ++i) {
-        if (occupied[i]) ok = false;
-        occupied[i] = true;
-      }
-    };
-    // Invoke mark once per channel type in declaration order.
-    (mark.template operator()<Channels>(), ...);
-    return ok;
-  }
-};
-
-/// @brief Output Layout
-template <OutputChannelLike... Channels>
-struct OutputLayout {
-  using ChannelsTuple = std::tuple<Channels...>;
-
-  /// @brief count channels matching a signal kind
-  template <OutputKind Kind>
-  static consteval size_t count() {
-    // Fold over every channel and add one only when the channel kind matches.
-    return (size_t{0} + ... + (Channels::Kind == Kind ? size_t{1} : size_t{0}));
-  }
-
-  /// @brief total dimension for channels matching a signal kind
-  template <OutputKind Kind>
-  static consteval size_t total_size() {
-    // Fold over every channel and add its size only when the kind matches.
-    return (size_t{0} + ... + (Channels::Kind == Kind ? Channels::Size : 0));
-  }
-
-  /// @brief offset of the Index-th channel matching a signal kind
-  template <OutputKind Kind, size_t Index>
-  static consteval size_t offset() {
-    size_t current = 0;
-    size_t result = 0;
-    // Walk matching channels left-to-right. current is incremented only for
-    // matching channels, so current == Index is true for exactly one match.
-    ((Channels::Kind == Kind
-          ? ((current == Index ? (result = Channels::Offset, 0) : 0), ++current,
-             0)
-          : 0),
-     ...);
-    static_assert(Index < count<Kind>(), "Requested output channel is missing");
-    return result;
-  }
-
-  /// @brief size of the Index-th channel matching a signal kind
-  template <OutputKind Kind, size_t Index>
-  static consteval size_t size() {
-    size_t current = 0;
-    size_t result = 0;
-    // Same matching-channel walk as offset(), but records channel size.
-    ((Channels::Kind == Kind
-          ? ((current == Index ? (result = Channels::Size, 0) : 0), ++current,
-             0)
-          : 0),
-     ...);
-    static_assert(Index < count<Kind>(), "Requested output channel is missing");
-    return result;
-  }
-
-  /// @brief validate channel bounds and overlap against full output dimension
-  template <size_t FullOutputDim>
-  static consteval bool validates() {
-    // First fold checks every channel has positive size and in-bounds extent.
-    bool ok = ((Channels::Size > 0 &&
-                Channels::Offset + Channels::Size <= FullOutputDim) &&
-               ...);
-    bool occupied[FullOutputDim == 0 ? 1 : FullOutputDim]{};
-    auto mark = [&]<typename Channel>() consteval {
-      if constexpr (Channel::Offset + Channel::Size > FullOutputDim) { return; }
-      // Mark each occupied output index; seeing an index twice means overlap.
+      if constexpr (Channel::Offset + Channel::Size > FullDim) { return; }
+      // Mark each occupied index; seeing an index twice means overlap.
       for (size_t i = Channel::Offset; i < Channel::Offset + Channel::Size;
            ++i) {
         if (occupied[i]) ok = false;
@@ -295,7 +200,7 @@ concept DiscreteStateSpaceLike =
     StateSpaceLike<StateSpace> && !is_continuous_v<StateSpace>;
 
 /// @brief Forward declaration of PlantModel
-template <StateSpaceLike SS, typename InputLayout, typename OutputLayout>
+template <StateSpaceLike SS, typename InputPorts, typename OutputPorts>
 struct PlantModel;
 
 /// @brief base type traits for plant model
@@ -303,11 +208,11 @@ template <class Plant>
 struct plant_traits;
 
 /// @brief explicit type traits for plant model
-template <StateSpaceLike SS, typename InputLayoutT, typename OutputLayoutT>
-struct plant_traits<PlantModel<SS, InputLayoutT, OutputLayoutT>> {
+template <StateSpaceLike SS, typename InputPortsT, typename OutputPortsT>
+struct plant_traits<PlantModel<SS, InputPortsT, OutputPortsT>> {
   using StateSpace = linalg::remove_cvref_t<SS>;
-  using InputLayout = linalg::remove_cvref_t<InputLayoutT>;
-  using OutputLayout = linalg::remove_cvref_t<OutputLayoutT>;
+  using InputPorts = linalg::remove_cvref_t<InputPortsT>;
+  using OutputPorts = linalg::remove_cvref_t<OutputPortsT>;
 
   using T = ss_type_t<StateSpace>;
   using State = state_vec_t<StateSpace>;
@@ -319,27 +224,15 @@ struct plant_traits<PlantModel<SS, InputLayoutT, OutputLayoutT>> {
   static constexpr size_t InputDim = linalg::vec_size_v<Input>;
   static constexpr size_t OutputDim = linalg::vec_size_v<Output>;
 
-  static constexpr size_t ControlDim =
-      InputLayout::template total_size<InputKind::CONTROL>();
-  static constexpr size_t DisturbanceDim =
-      InputLayout::template total_size<InputKind::DISTURBANCE>();
-  static constexpr size_t ReferenceDim =
-      InputLayout::template total_size<InputKind::REFERENCE>();
-  static constexpr size_t ProcessNoiseDim =
-      InputLayout::template total_size<InputKind::PROCESS_NOISE>();
-  static constexpr size_t MeasurementNoiseDim =
-      InputLayout::template total_size<InputKind::MEASUREMENT_NOISE>();
   static constexpr size_t ExogenousDim =
-      InputLayout::template total_size<InputKind::EXOGENOUS>();
+      InputPorts::template total_size<PortRole::EXOGENOUS>();
+  static constexpr size_t ControlDim =
+      InputPorts::template total_size<PortRole::CONTROL>();
 
-  static constexpr size_t MeasurementDim =
-      OutputLayout::template total_size<OutputKind::MEASUREMENT>();
   static constexpr size_t PerformanceDim =
-      OutputLayout::template total_size<OutputKind::PERFORMANCE>();
-  static constexpr size_t RegulatedDim =
-      OutputLayout::template total_size<OutputKind::REGULATED>();
-  static constexpr size_t StateOutputDim =
-      OutputLayout::template total_size<OutputKind::STATE>();
+      OutputPorts::template total_size<PortRole::PERFORMANCE>();
+  static constexpr size_t MeasurementDim =
+      OutputPorts::template total_size<PortRole::MEASUREMENT>();
 };
 
 /// @brief extract scalar type from plant
@@ -351,15 +244,15 @@ template <typename Plant>
 using plant_state_space_t =
     typename plant_traits<linalg::remove_cvref_t<Plant>>::StateSpace;
 
-/// @brief extract input layout type from plant
+/// @brief extract input port layout type from plant
 template <typename Plant>
-using plant_input_layout_t =
-    typename plant_traits<linalg::remove_cvref_t<Plant>>::InputLayout;
+using plant_input_ports_t =
+    typename plant_traits<linalg::remove_cvref_t<Plant>>::InputPorts;
 
-/// @brief extract output layout type from plant
+/// @brief extract output port layout type from plant
 template <typename Plant>
-using plant_output_layout_t =
-    typename plant_traits<linalg::remove_cvref_t<Plant>>::OutputLayout;
+using plant_output_ports_t =
+    typename plant_traits<linalg::remove_cvref_t<Plant>>::OutputPorts;
 
 /// @brief extract state vector from plant
 template <typename Plant>
@@ -381,10 +274,10 @@ template <typename Plant>
 concept PlantModelLike = requires(const Plant& plant) {
   typename plant_traits<linalg::remove_cvref_t<Plant>>::StateSpace;
   { plant.state_space };
+  { plant.exogenous_matrix() };
   { plant.control_matrix() };
-  { plant.disturbance_matrix() };
-  { plant.measurement_matrix() };
   { plant.performance_matrix() };
+  { plant.measurement_matrix() };
 };
 
 /// @brief check if plant model is continuous

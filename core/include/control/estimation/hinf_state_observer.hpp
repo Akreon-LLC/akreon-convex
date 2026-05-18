@@ -91,7 +91,7 @@ struct HinfStateObserver {
   using T = plant_type_t<Model>;
 
   static constexpr size_t StateDim = plant_traits<Model>::StateDim;
-  static constexpr size_t DisturbanceDim = plant_traits<Model>::DisturbanceDim;
+  static constexpr size_t ExogenousDim = plant_traits<Model>::ExogenousDim;
   static constexpr size_t MeasurementDim = plant_traits<Model>::MeasurementDim;
   static constexpr size_t PerformanceDim = plant_traits<Model>::PerformanceDim;
 
@@ -190,8 +190,8 @@ struct HinfStateObserver {
   constexpr auto brl_constraint(const ObsModel& model, const DecVar& Z_hat,
                                 T margin = 1e-6) const {
     constexpr size_t StateEnd = StateDim;
-    constexpr size_t DisturbanceEnd = StateDim + DisturbanceDim;
-    constexpr size_t LmiDim = StateDim + DisturbanceDim + PerformanceDim;
+    constexpr size_t DisturbanceEnd = StateDim + ExogenousDim;
+    constexpr size_t LmiDim = StateDim + ExogenousDim + PerformanceDim;
 
     using FMat = linalg::Matrix<T, LmiDim, LmiDim>;
     using Fs = linalg::Vector<FMat, DecVarDim>;
@@ -199,7 +199,7 @@ struct HinfStateObserver {
     auto M_q = [&](const QMat& E) -> FMat {
       FMat F{};
       const auto A = model.dynamics_matrix();
-      const auto B_w = model.disturbance_matrix();
+      const auto B_w = model.exogenous_matrix();
       F = linalg::set_block<0, StateEnd, 0, StateEnd>(
           F, T(-1) * (linalg::transpose(A) * E + E * A));
       F = linalg::set_block<0, StateEnd, StateEnd, DisturbanceEnd>(
@@ -212,8 +212,8 @@ struct HinfStateObserver {
     auto M_w = [&](const WMat& E) -> FMat {
       FMat F{};
       const auto C_y = model.measurement_matrix();
-      const auto D_yw = model.template feedthrough<OutputKind::MEASUREMENT,
-                                                   InputKind::DISTURBANCE>();
+      const auto D_yw = model.template feedthrough<PortRole::MEASUREMENT,
+                                                   PortRole::EXOGENOUS>();
       F = linalg::set_block<0, StateEnd, 0, StateEnd>(
           F, linalg::transpose(C_y) * linalg::transpose(E) + E * C_y);
       F = linalg::set_block<0, StateEnd, StateEnd, DisturbanceEnd>(F, E * D_yw);
@@ -225,7 +225,7 @@ struct HinfStateObserver {
     auto M_gamma = [](const linalg::Matrix<T, 1, 1>& E) -> FMat {
       FMat F{};
       const auto gamma = E(0)(0);
-      const auto I_w = linalg::make_identity<T, DisturbanceDim>();
+      const auto I_w = linalg::make_identity<T, ExogenousDim>();
       const auto I_z = linalg::make_identity<T, PerformanceDim>();
       F = linalg::set_block<StateEnd, DisturbanceEnd, StateEnd, DisturbanceEnd>(
           F, gamma * I_w);
@@ -249,8 +249,9 @@ struct HinfStateObserver {
 
     FMat F_0{};
     const auto C_e = model.performance_matrix();
-    const auto D_ew = model.template feedthrough<OutputKind::PERFORMANCE,
-                                                 InputKind::DISTURBANCE>();
+    const auto D_ew =
+        model
+            .template feedthrough<PortRole::PERFORMANCE, PortRole::EXOGENOUS>();
     F_0 = linalg::set_block<0, StateEnd, DisturbanceEnd, LmiDim>(
         F_0, T(-1) * linalg::transpose(C_e));
     F_0 = linalg::set_block<DisturbanceEnd, LmiDim, 0, StateEnd>(F_0,

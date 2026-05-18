@@ -36,9 +36,8 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
   using Space = Matrixd<2, 2>;
   using FullPlantSS =
       StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>;
-  using FullInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 2>>;
-  using FullOutputs =
-      OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 2>>;
+  using FullInputs = PortLayout<Port<PortRole::CONTROL, 0, 2>>;
+  using FullOutputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 2>>;
   using FullPlant = PlantModel<FullPlantSS, FullInputs, FullOutputs>;
   constexpr auto I = make_identity<double, 2>();
   constexpr auto Z = Matrixd<2, 2>{};
@@ -93,9 +92,8 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     using OutputSpace = RowVectord<2>;
     using SolverPlantSS =
         StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>;
-    using SolverInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 1>>;
-    using SolverOutputs =
-        OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>>;
+    using SolverInputs = PortLayout<Port<PortRole::CONTROL, 0, 1>>;
+    using SolverOutputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>>;
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
@@ -184,9 +182,8 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     using OutputSpace = RowVectord<2>;
     using SolverPlantSS =
         StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>;
-    using SolverInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 1>>;
-    using SolverOutputs =
-        OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>>;
+    using SolverInputs = PortLayout<Port<PortRole::CONTROL, 0, 1>>;
+    using SolverOutputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>>;
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
@@ -278,10 +275,10 @@ TEST_CASE("H2 Polytopic State Observer synthesis 2x2",
   using OutputMat = Matrixd<2, 2>;
   using SS = StateSpace<TimeDomainType::CONTINUOUS, StateSpaceMat, InputMat,
                         OutputMat>;
-  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
-                             InputChannel<InputKind::CONTROL, 1, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>,
-                               OutputChannel<OutputKind::PERFORMANCE, 1, 1>>;
+  using Inputs = PortLayout<Port<PortRole::EXOGENOUS, 0, 1>,
+                            Port<PortRole::CONTROL, 1, 1>>;
+  using Outputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>,
+                             Port<PortRole::PERFORMANCE, 1, 1>>;
   using Plant = PlantModel<SS, Inputs, Outputs>;
 
   constexpr auto MatBuilder = mat_traits<StateSpaceMat>();
@@ -393,10 +390,10 @@ TEST_CASE("Hinf Polytopic State Observer synthesis 2x2",
   using OutputMat = Matrixd<2, 2>;
   using SS = StateSpace<TimeDomainType::CONTINUOUS, StateSpaceMat, InputMat,
                         OutputMat>;
-  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
-                             InputChannel<InputKind::CONTROL, 1, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>,
-                               OutputChannel<OutputKind::PERFORMANCE, 1, 1>>;
+  using Inputs = PortLayout<Port<PortRole::EXOGENOUS, 0, 1>,
+                            Port<PortRole::CONTROL, 1, 1>>;
+  using Outputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>,
+                             Port<PortRole::PERFORMANCE, 1, 1>>;
   using Plant = PlantModel<SS, Inputs, Outputs>;
 
   constexpr auto MatBuilder = mat_traits<StateSpaceMat>();

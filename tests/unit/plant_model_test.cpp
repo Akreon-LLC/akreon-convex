@@ -21,19 +21,18 @@ using namespace convex;
 using namespace linalg;
 using namespace unit_test;
 
-TEST_CASE("PlantModel channel selection", "[plant_model_test]") {
+TEST_CASE("PlantModel port selection", "[plant_model_test]") {
   using AMap = Matrixd<2, 2>;
   using BMap = Matrixd<2, 4>;
   using CMap = Matrixd<4, 2>;
   using SS = StateSpace<TimeDomainType::CONTINUOUS, AMap, BMap, CMap>;
-  using Inputs = InputLayout<InputChannel<InputKind::CONTROL, 2, 1>,
-                             InputChannel<InputKind::DISTURBANCE, 0, 1>,
-                             InputChannel<InputKind::CONTROL, 1, 1>,
-                             InputChannel<InputKind::EXOGENOUS, 3, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::PERFORMANCE, 0, 1>,
-                               OutputChannel<OutputKind::MEASUREMENT, 2, 1>,
-                               OutputChannel<OutputKind::MEASUREMENT, 3, 1>,
-                               OutputChannel<OutputKind::REGULATED, 1, 1>>;
+  using Inputs =
+      PortLayout<Port<PortRole::CONTROL, 2, 1>, Port<PortRole::EXOGENOUS, 0, 1>,
+                 Port<PortRole::CONTROL, 1, 1>,
+                 Port<PortRole::EXOGENOUS, 3, 1>>;
+  using Outputs = PortLayout<
+      Port<PortRole::PERFORMANCE, 0, 1>, Port<PortRole::MEASUREMENT, 2, 1>,
+      Port<PortRole::MEASUREMENT, 3, 1>, Port<PortRole::PERFORMANCE, 1, 1>>;
   using Plant = PlantModel<SS, Inputs, Outputs>;
 
   STATIC_REQUIRE(StateSpaceLike<SS>);
@@ -41,9 +40,9 @@ TEST_CASE("PlantModel channel selection", "[plant_model_test]") {
   STATIC_REQUIRE(PlantModelLike<Plant>);
   STATIC_REQUIRE(ContinuousPlantModelLike<Plant>);
   STATIC_REQUIRE(plant_traits<Plant>::ControlDim == 2);
-  STATIC_REQUIRE(plant_traits<Plant>::DisturbanceDim == 1);
+  STATIC_REQUIRE(plant_traits<Plant>::ExogenousDim == 2);
   STATIC_REQUIRE(plant_traits<Plant>::MeasurementDim == 2);
-  STATIC_REQUIRE(plant_traits<Plant>::PerformanceDim == 1);
+  STATIC_REQUIRE(plant_traits<Plant>::PerformanceDim == 2);
 
   constexpr auto A = Matrixd<2, 2>{
       Vectord<2>{1.0, 2.0},
@@ -70,19 +69,21 @@ TEST_CASE("PlantModel channel selection", "[plant_model_test]") {
   REQUIRE(
       all_equal(plant.control_matrix(),
                 Matrixd<2, 2>{Vectord<2>{12.0, 11.0}, Vectord<2>{22.0, 21.0}}));
-  REQUIRE(all_equal(plant.disturbance_matrix(),
-                    ColVectord<2>{Vectord<1>{10.0}, Vectord<1>{20.0}}));
-  REQUIRE(all_equal(plant.performance_matrix(),
-                    RowVectord<2>{Vectord<2>{30.0, 31.0}}));
+  REQUIRE(
+      all_equal(plant.exogenous_matrix(),
+                Matrixd<2, 2>{Vectord<2>{10.0, 13.0}, Vectord<2>{20.0, 23.0}}));
+  REQUIRE(
+      all_equal(plant.performance_matrix(),
+                Matrixd<2, 2>{Vectord<2>{30.0, 31.0}, Vectord<2>{40.0, 41.0}}));
   REQUIRE(
       all_equal(plant.measurement_matrix(),
                 Matrixd<2, 2>{Vectord<2>{50.0, 51.0}, Vectord<2>{60.0, 61.0}}));
   REQUIRE(all_equal(
-      plant.feedthrough<OutputKind::MEASUREMENT, InputKind::CONTROL>(),
+      plant.feedthrough<PortRole::MEASUREMENT, PortRole::CONTROL>(),
       Matrixd<2, 2>{Vectord<2>{122.0, 121.0}, Vectord<2>{132.0, 131.0}}));
 }
 
-TEST_CASE("PlantModel selected channels match vanilla synthesis",
+TEST_CASE("PlantModel selected ports match vanilla synthesis",
           "[plant_model_test]") {
   using AMap = Matrixd<2, 2>;
   using BVanilla = Matrixd<2, 1>;
@@ -108,14 +109,13 @@ TEST_CASE("PlantModel selected channels match vanilla synthesis",
   using VanillaSS =
       StateSpace<TimeDomainType::CONTINUOUS, AMap, BVanilla, CVanilla>;
   using PlantSS = StateSpace<TimeDomainType::CONTINUOUS, AMap, BAug, CAug>;
-  using VanillaInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 1>>;
-  using VanillaOutputs =
-      OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>>;
+  using VanillaInputs = PortLayout<Port<PortRole::CONTROL, 0, 1>>;
+  using VanillaOutputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>>;
   using VanillaPlant = PlantModel<VanillaSS, VanillaInputs, VanillaOutputs>;
-  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
-                             InputChannel<InputKind::CONTROL, 1, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::PERFORMANCE, 0, 1>,
-                               OutputChannel<OutputKind::MEASUREMENT, 1, 1>>;
+  using Inputs = PortLayout<Port<PortRole::EXOGENOUS, 0, 1>,
+                            Port<PortRole::CONTROL, 1, 1>>;
+  using Outputs = PortLayout<Port<PortRole::PERFORMANCE, 0, 1>,
+                             Port<PortRole::MEASUREMENT, 1, 1>>;
   using Plant = PlantModel<PlantSS, Inputs, Outputs>;
 
   constexpr auto vanilla = VanillaPlant(VanillaSS(A, B_u, C_y));

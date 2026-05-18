@@ -93,18 +93,18 @@ struct H2StateObserver {
   using T = plant_type_t<Model>;
 
   static constexpr size_t StateDim = plant_traits<Model>::StateDim;
-  static constexpr size_t DisturbanceDim = plant_traits<Model>::DisturbanceDim;
+  static constexpr size_t ExogenousDim = plant_traits<Model>::ExogenousDim;
   static constexpr size_t MeasurementDim = plant_traits<Model>::MeasurementDim;
   static constexpr size_t PerformanceDim = plant_traits<Model>::PerformanceDim;
 
   using QMat = linalg::Matrix<T, StateDim, StateDim>;
   using WMat = linalg::Matrix<T, StateDim, MeasurementDim>;
   using LMat = linalg::Matrix<T, StateDim, MeasurementDim>;
-  using ZMat = linalg::Matrix<T, DisturbanceDim, DisturbanceDim>;
+  using ZMat = linalg::Matrix<T, ExogenousDim, ExogenousDim>;
 
   static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
   static constexpr size_t WDim = StateDim * MeasurementDim;
-  static constexpr size_t ZDim = DisturbanceDim * (DisturbanceDim + 1) / 2;
+  static constexpr size_t ZDim = ExogenousDim * (ExogenousDim + 1) / 2;
   static constexpr size_t DecVarDim = QDim + WDim + ZDim;
 
   using DecVarSpace = linalg::RowVector<T, DecVarDim>;
@@ -208,31 +208,29 @@ struct H2StateObserver {
   template <convex::AtomLike DecVar>
   constexpr auto z_constraint(const ObsModel& model, const DecVar& Z_hat,
                               T margin = 1e-6) const {
-    constexpr size_t LmiDim = DisturbanceDim + StateDim;
+    constexpr size_t LmiDim = ExogenousDim + StateDim;
     using FMat = linalg::Matrix<T, LmiDim, LmiDim>;
     using Fs = linalg::Vector<FMat, DecVarDim>;
     auto M_z = [](const ZMat& E) -> FMat {
       FMat F{};
-      return linalg::set_block<0, DisturbanceDim, 0, DisturbanceDim>(F, E);
+      return linalg::set_block<0, ExogenousDim, 0, ExogenousDim>(F, E);
     };
     auto M_q = [&](const QMat& E) -> FMat {
       FMat F{};
-      const auto B_w = model.disturbance_matrix();
-      F = linalg::set_block<DisturbanceDim, LmiDim, DisturbanceDim, LmiDim>(F,
-                                                                            E);
-      F = linalg::set_block<0, DisturbanceDim, DisturbanceDim, LmiDim>(
+      const auto B_w = model.exogenous_matrix();
+      F = linalg::set_block<ExogenousDim, LmiDim, ExogenousDim, LmiDim>(F, E);
+      F = linalg::set_block<0, ExogenousDim, ExogenousDim, LmiDim>(
           F, linalg::transpose(B_w) * E);
-      F = linalg::set_block<DisturbanceDim, LmiDim, 0, DisturbanceDim>(F,
-                                                                       E * B_w);
+      F = linalg::set_block<ExogenousDim, LmiDim, 0, ExogenousDim>(F, E * B_w);
       return F;
     };
     auto M_w = [&](const WMat& E) -> FMat {
       FMat F{};
-      const auto D_w = model.template feedthrough<OutputKind::MEASUREMENT,
-                                                  InputKind::DISTURBANCE>();
-      F = linalg::set_block<0, DisturbanceDim, DisturbanceDim, LmiDim>(
+      const auto D_w = model.template feedthrough<PortRole::MEASUREMENT,
+                                                  PortRole::EXOGENOUS>();
+      F = linalg::set_block<0, ExogenousDim, ExogenousDim, LmiDim>(
           F, T(-1) * linalg::transpose(D_w) * linalg::transpose(E));
-      F = linalg::set_block<DisturbanceDim, LmiDim, 0, DisturbanceDim>(
+      F = linalg::set_block<ExogenousDim, LmiDim, 0, ExogenousDim>(
           F, T(-1) * E * D_w);
       return F;
     };

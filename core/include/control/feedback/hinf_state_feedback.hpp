@@ -107,8 +107,9 @@ struct HinfStateFeedback {
   using T = plant_type_t<Model>;
 
   static constexpr size_t StateDim = plant_traits<Model>::StateDim;
+  static constexpr PortRole ExogenousPortRole = PortRole::EXOGENOUS;
   static constexpr size_t InputDim = plant_traits<Model>::ControlDim;
-  static constexpr size_t DisturbanceDim = plant_traits<Model>::DisturbanceDim;
+  static constexpr size_t ExogenousDim = plant_traits<Model>::ExogenousDim;
   static constexpr size_t OutputDim = plant_traits<Model>::PerformanceDim;
 
   using QMat = linalg::Matrix<T, StateDim, StateDim>;
@@ -206,8 +207,8 @@ struct HinfStateFeedback {
   constexpr auto brl_constraint(const SFModel& model, const DecVar& Z_hat,
                                 T margin = 1e-6) const {
     constexpr size_t StateEnd = StateDim;
-    constexpr size_t DisturbanceEnd = StateDim + DisturbanceDim;
-    constexpr size_t LmiDim = StateDim + DisturbanceDim + OutputDim;
+    constexpr size_t DisturbanceEnd = StateDim + ExogenousDim;
+    constexpr size_t LmiDim = StateDim + ExogenousDim + OutputDim;
 
     using FMat = linalg::Matrix<T, LmiDim, LmiDim>;
     using Fs = linalg::Vector<FMat, DecVarDim>;
@@ -228,8 +229,9 @@ struct HinfStateFeedback {
     auto M_y = [&](const YMat& E) -> FMat {
       FMat F{};
       const auto B_u = model.control_matrix();
-      const auto D_u = model.template feedthrough<OutputKind::PERFORMANCE,
-                                                  InputKind::CONTROL>();
+      const auto D_u =
+          model
+              .template feedthrough<PortRole::PERFORMANCE, PortRole::CONTROL>();
       F = linalg::set_block<0, StateEnd, 0, StateEnd>(
           F, T(-1) * (B_u * E + linalg::transpose(E) * linalg::transpose(B_u)));
       F = linalg::set_block<0, StateEnd, DisturbanceEnd, LmiDim>(
@@ -242,7 +244,7 @@ struct HinfStateFeedback {
     auto M_gamma = [](const linalg::Matrix<T, 1, 1>& E) -> FMat {
       FMat F{};
       const auto gamma = E(0)(0);
-      const auto I_w = linalg::make_identity<T, DisturbanceDim>();
+      const auto I_w = linalg::make_identity<T, ExogenousDim>();
       const auto I_z = linalg::make_identity<T, OutputDim>();
       F = linalg::set_block<StateEnd, DisturbanceEnd, StateEnd, DisturbanceEnd>(
           F, gamma * I_w);
@@ -265,9 +267,10 @@ struct HinfStateFeedback {
     F_blks(QDim + YDim) = F_gamma(0);
 
     FMat F_0{};
-    const auto B_w = model.disturbance_matrix();
-    const auto D_w = model.template feedthrough<OutputKind::PERFORMANCE,
-                                                InputKind::DISTURBANCE>();
+    const auto B_w = model.exogenous_matrix();
+    const auto D_w =
+        model
+            .template feedthrough<PortRole::PERFORMANCE, PortRole::EXOGENOUS>();
     F_0 = linalg::set_block<0, StateEnd, StateEnd, DisturbanceEnd>(F_0,
                                                                    T(-1) * B_w);
     F_0 = linalg::set_block<StateEnd, DisturbanceEnd, 0, StateEnd>(

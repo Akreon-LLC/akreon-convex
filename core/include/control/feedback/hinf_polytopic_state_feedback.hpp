@@ -39,7 +39,7 @@ struct HinfPolytopicStateFeedback {
 
   static constexpr size_t StateDim = VertexFeedback::StateDim;
   static constexpr size_t InputDim = VertexFeedback::InputDim;
-  static constexpr size_t DisturbanceDim = VertexFeedback::DisturbanceDim;
+  static constexpr size_t ExogenousDim = VertexFeedback::ExogenousDim;
   static constexpr size_t OutputDim = VertexFeedback::OutputDim;
   static constexpr size_t QDim = VertexFeedback::QDim;
   static constexpr size_t YDim = VertexFeedback::YDim;

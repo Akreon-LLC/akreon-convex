@@ -22,81 +22,57 @@ namespace control {
 /**
  * @brief PlantModel
  *
- * Contains state space with layout of signals
+ * Contains state space with input and output port layouts.
  */
-template <StateSpaceLike SS, typename InputLayout, typename OutputLayout>
+template <StateSpaceLike SS, typename InputPorts, typename OutputPorts>
 struct PlantModel {
   using StateSpace = linalg::remove_cvref_t<SS>;
-  using InputLayoutT = linalg::remove_cvref_t<InputLayout>;
-  using OutputLayoutT = linalg::remove_cvref_t<OutputLayout>;
-  using Model = PlantModel<StateSpace, InputLayoutT, OutputLayoutT>;
+  using InputPortsT = linalg::remove_cvref_t<InputPorts>;
+  using OutputPortsT = linalg::remove_cvref_t<OutputPorts>;
+  using Model = PlantModel<StateSpace, InputPortsT, OutputPortsT>;
   using T = plant_type_t<Model>;
 
   static constexpr size_t StateDim = plant_traits<Model>::StateDim;
   static constexpr size_t InputDim = plant_traits<Model>::InputDim;
   static constexpr size_t OutputDim = plant_traits<Model>::OutputDim;
 
-  static_assert(InputLayoutT::template validates<InputDim>(),
-                "Input channel layout is invalid for the state-space input");
-  static_assert(OutputLayoutT::template validates<OutputDim>(),
-                "Output channel layout is invalid for the state-space output");
+  static_assert(InputPortsT::template validates<InputDim>(),
+                "Input port layout is invalid for the state-space input");
+  static_assert(OutputPortsT::template validates<OutputDim>(),
+                "Output port layout is invalid for the state-space output");
 
   constexpr explicit PlantModel(const StateSpace& ss) : state_space(ss) {}
 
-  constexpr PlantModel(const StateSpace& ss, const InputLayoutT&,
-                       const OutputLayoutT&)
+  constexpr PlantModel(const StateSpace& ss, const InputPortsT&,
+                       const OutputPortsT&)
       : state_space(ss) {}
 
   constexpr auto dynamics_matrix() const { return state_space.A; }
 
-  constexpr auto control_matrix() const {
-    return input_matrix<InputKind::CONTROL>();
-  }
-
-  constexpr auto disturbance_matrix() const {
-    return input_matrix<InputKind::DISTURBANCE>();
-  }
-
-  constexpr auto reference_matrix() const {
-    return input_matrix<InputKind::REFERENCE>();
-  }
-
-  constexpr auto process_noise_matrix() const {
-    return input_matrix<InputKind::PROCESS_NOISE>();
-  }
-
-  constexpr auto measurement_noise_matrix() const {
-    return input_matrix<InputKind::MEASUREMENT_NOISE>();
-  }
-
   constexpr auto exogenous_matrix() const {
-    return input_matrix<InputKind::EXOGENOUS>();
+    return input_matrix<PortRole::EXOGENOUS>();
   }
 
-  constexpr auto measurement_matrix() const {
-    return output_matrix<OutputKind::MEASUREMENT>();
+  constexpr auto control_matrix() const {
+    return input_matrix<PortRole::CONTROL>();
   }
 
   constexpr auto performance_matrix() const {
-    return output_matrix<OutputKind::PERFORMANCE>();
+    return output_matrix<PortRole::PERFORMANCE>();
   }
 
-  constexpr auto regulated_matrix() const {
-    return output_matrix<OutputKind::REGULATED>();
+  constexpr auto measurement_matrix() const {
+    return output_matrix<PortRole::MEASUREMENT>();
   }
 
-  constexpr auto state_output_matrix() const {
-    return output_matrix<OutputKind::STATE>();
-  }
-
-  /// @brief feedthrough map from selected input kind to selected output kind
-  template <OutputKind OutKind, InputKind InKind>
+  /// @brief feedthrough map from selected input role to selected output role
+  template <PortRole OutRole, PortRole InRole>
   constexpr auto feedthrough() const {
-    constexpr size_t Rows = OutputLayoutT::template total_size<OutKind>();
-    constexpr size_t Cols = InputLayoutT::template total_size<InKind>();
+    constexpr size_t Rows = OutputPortsT::template total_size<OutRole>();
+    constexpr size_t Cols = InputPortsT::template total_size<InRole>();
     linalg::Matrix<T, Rows, Cols> result{};
     if (state_space.D.has_value()) {
-      copy_feedthrough_channels<OutKind, InKind, 0, 0, Rows>(result);
+      copy_feedthrough_ports<OutRole, InRole, 0, 0>(result);
     }
     return result;
   }
@@ -104,108 +80,102 @@ struct PlantModel {
   SS state_space; ///< StateSpace model
 
 private:
-  /// @brief aggregate all input channels of a kind from the full B matrix
-  template <InputKind Kind>
+  /// @brief aggregate all input ports of a role from the full B matrix
+  template <PortRole Role>
   constexpr auto input_matrix() const {
-    constexpr size_t Cols = InputLayoutT::template total_size<Kind>();
+    constexpr size_t Cols = InputPortsT::template total_size<Role>();
     linalg::Matrix<T, StateDim, Cols> result{};
-    copy_input_channels<Kind, 0, 0>(result);
+    copy_input_ports<Role, 0, 0>(result);
     return result;
   }
 
-  /// @brief aggregate all output channels of a kind from the full C matrix
-  template <OutputKind Kind>
+  /// @brief aggregate all output ports of a role from the full C matrix
+  template <PortRole Role>
   constexpr auto output_matrix() const {
-    constexpr size_t Rows = OutputLayoutT::template total_size<Kind>();
+    constexpr size_t Rows = OutputPortsT::template total_size<Role>();
     linalg::Matrix<T, Rows, StateDim> result{};
-    copy_output_channels<Kind, 0, 0>(result);
+    copy_output_ports<Role, 0, 0>(result);
     return result;
   }
 
   /// @brief copy selected B columns into an aggregated input matrix
-  template <InputKind Kind, size_t Index, size_t DestOffset, typename Mat>
-  constexpr void copy_input_channels(Mat& result) const {
-    constexpr size_t Count = InputLayoutT::template count<Kind>();
+  template <PortRole Role, size_t Index, size_t DestOffset, typename Mat>
+  constexpr void copy_input_ports(Mat& result) const {
+    constexpr size_t Count = InputPortsT::template count<Role>();
     if constexpr (Index < Count) {
-      constexpr size_t Offset = InputLayoutT::template offset<Kind, Index>();
-      constexpr size_t Size = InputLayoutT::template size<Kind, Index>();
+      constexpr size_t Offset = InputPortsT::template offset<Role, Index>();
+      constexpr size_t Size = InputPortsT::template size<Role, Index>();
       const auto block =
           linalg::get_block<0, StateDim, Offset, Offset + Size>(state_space.B);
-      // DestOffset accumulates sizes of earlier matching channels.
       result = linalg::set_block<0, StateDim, DestOffset, DestOffset + Size>(
           result, block);
-      copy_input_channels<Kind, Index + 1, DestOffset + Size>(result);
+      copy_input_ports<Role, Index + 1, DestOffset + Size>(result);
     }
   }
 
   /// @brief copy selected C rows into an aggregated output matrix
-  template <OutputKind Kind, size_t Index, size_t DestOffset, typename Mat>
-  constexpr void copy_output_channels(Mat& result) const {
-    constexpr size_t Count = OutputLayoutT::template count<Kind>();
+  template <PortRole Role, size_t Index, size_t DestOffset, typename Mat>
+  constexpr void copy_output_ports(Mat& result) const {
+    constexpr size_t Count = OutputPortsT::template count<Role>();
     if constexpr (Index < Count) {
-      constexpr size_t Offset = OutputLayoutT::template offset<Kind, Index>();
-      constexpr size_t Size = OutputLayoutT::template size<Kind, Index>();
+      constexpr size_t Offset = OutputPortsT::template offset<Role, Index>();
+      constexpr size_t Size = OutputPortsT::template size<Role, Index>();
       const auto block =
           linalg::get_block<Offset, Offset + Size, 0, StateDim>(state_space.C);
-      // DestOffset accumulates sizes of earlier matching channels.
       result = linalg::set_block<DestOffset, DestOffset + Size, 0, StateDim>(
           result, block);
-      copy_output_channels<Kind, Index + 1, DestOffset + Size>(result);
+      copy_output_ports<Role, Index + 1, DestOffset + Size>(result);
     }
   }
 
-  /// @brief copy selected D row blocks for each matching output channel
-  template <OutputKind OutKind, InputKind InKind, size_t OutIndex,
-            size_t OutDestOffset, size_t Rows, typename Mat>
-  constexpr void copy_feedthrough_channels(Mat& result) const {
-    constexpr size_t OutCount = OutputLayoutT::template count<OutKind>();
+  /// @brief copy selected D row blocks for each matching output port
+  template <PortRole OutRole, PortRole InRole, size_t OutIndex,
+            size_t OutDestOffset, typename Mat>
+  constexpr void copy_feedthrough_ports(Mat& result) const {
+    constexpr size_t OutCount = OutputPortsT::template count<OutRole>();
     if constexpr (OutIndex < OutCount) {
       constexpr size_t OutOffset =
-          OutputLayoutT::template offset<OutKind, OutIndex>();
+          OutputPortsT::template offset<OutRole, OutIndex>();
       constexpr size_t OutSize =
-          OutputLayoutT::template size<OutKind, OutIndex>();
-      copy_feedthrough_input_channels<OutKind, InKind, OutIndex, OutOffset,
-                                      OutSize, 0, 0>(result);
-      // Advance to the next selected output-channel row block.
-      copy_feedthrough_channels<OutKind, InKind, OutIndex + 1,
-                                OutDestOffset + OutSize, Rows>(result);
+          OutputPortsT::template size<OutRole, OutIndex>();
+      copy_feedthrough_input_ports<OutRole, InRole, OutIndex, OutOffset,
+                                   OutSize, 0, 0>(result);
+      copy_feedthrough_ports<OutRole, InRole, OutIndex + 1,
+                             OutDestOffset + OutSize>(result);
     }
   }
 
-  /// @brief copy selected D column blocks for one selected output channel
-  template <OutputKind OutKind, InputKind InKind, size_t OutIndex,
+  /// @brief copy selected D column blocks for one selected output port
+  template <PortRole OutRole, PortRole InRole, size_t OutIndex,
             size_t OutOffset, size_t OutSize, size_t InIndex,
             size_t InDestOffset, typename Mat>
-  constexpr void copy_feedthrough_input_channels(Mat& result) const {
-    constexpr size_t InCount = InputLayoutT::template count<InKind>();
+  constexpr void copy_feedthrough_input_ports(Mat& result) const {
+    constexpr size_t InCount = InputPortsT::template count<InRole>();
     if constexpr (InIndex < InCount) {
       constexpr size_t InOffset =
-          InputLayoutT::template offset<InKind, InIndex>();
-      constexpr size_t InSize = InputLayoutT::template size<InKind, InIndex>();
+          InputPortsT::template offset<InRole, InIndex>();
+      constexpr size_t InSize = InputPortsT::template size<InRole, InIndex>();
       constexpr size_t OutDestOffset =
-          feedthrough_output_destination<OutKind, OutIndex>();
+          feedthrough_output_destination<OutRole, OutIndex>();
       const auto block =
           linalg::get_block<OutOffset, OutOffset + OutSize, InOffset,
                             InOffset + InSize>(*state_space.D);
       result =
           linalg::set_block<OutDestOffset, OutDestOffset + OutSize,
                             InDestOffset, InDestOffset + InSize>(result, block);
-      // Advance to the next selected input-channel column block.
-      copy_feedthrough_input_channels<OutKind, InKind, OutIndex, OutOffset,
-                                      OutSize, InIndex + 1,
-                                      InDestOffset + InSize>(result);
+      copy_feedthrough_input_ports<OutRole, InRole, OutIndex, OutOffset,
+                                   OutSize, InIndex + 1, InDestOffset + InSize>(
+          result);
     }
   }
 
-  /// @brief aggregated row offset for an output channel selected from D
-  template <OutputKind Kind, size_t Index>
+  /// @brief aggregated row offset for an output port selected from D
+  template <PortRole Role, size_t Index>
   static consteval size_t feedthrough_output_destination() {
     size_t dest = 0;
-    // Sum sizes of selected output channels that precede Index.
     [&]<size_t... Is>(std::index_sequence<Is...>) consteval {
-      ((Is < Index ? dest += OutputLayoutT::template size<Kind, Is>() : 0),
-       ...);
-    }(std::make_index_sequence<OutputLayoutT::template count<Kind>()>{});
+      ((Is < Index ? dest += OutputPortsT::template size<Role, Is>() : 0), ...);
+    }(std::make_index_sequence<OutputPortsT::template count<Role>()>{});
     return dest;
   }
 };

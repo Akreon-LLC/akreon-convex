@@ -38,7 +38,7 @@ struct HinfPolytopicStateObserver {
   using VertexObserver = HinfStateObserver<Model>;
 
   static constexpr size_t StateDim = VertexObserver::StateDim;
-  static constexpr size_t DisturbanceDim = VertexObserver::DisturbanceDim;
+  static constexpr size_t ExogenousDim = VertexObserver::ExogenousDim;
   static constexpr size_t MeasurementDim = VertexObserver::MeasurementDim;
   static constexpr size_t PerformanceDim = VertexObserver::PerformanceDim;
   static constexpr size_t QDim = VertexObserver::QDim;

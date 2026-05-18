@@ -35,8 +35,8 @@ static constexpr auto state_observer_solver_config() {
 TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
   using Space = Matrixd<2, 2>;
   using PlantSS = StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>;
-  using Inputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 2>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 2>>;
+  using Inputs = PortLayout<Port<PortRole::CONTROL, 0, 2>>;
+  using Outputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 2>>;
   using Plant = PlantModel<PlantSS, Inputs, Outputs>;
   using QSpace = SymmetricMatrix<Space>;
   constexpr auto Q = Variable<SymMatVarMeta<Space>>();
@@ -156,8 +156,8 @@ TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
 TEST_CASE("Luenberger Observer 3x3", "[state_observer_test]") {
   using Space = Matrixd<3, 3>;
   using PlantSS = StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>;
-  using Inputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 3>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 3>>;
+  using Inputs = PortLayout<Port<PortRole::CONTROL, 0, 3>>;
+  using Outputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 3>>;
   using Plant = PlantModel<PlantSS, Inputs, Outputs>;
   constexpr auto Q = Variable<SymMatVarMeta<Space>>();
   constexpr auto I = make_identity<double, 3>();
@@ -248,10 +248,10 @@ TEST_CASE("H2 State Observer synthesis 2x2", "[state_observer_test]") {
   using OutputMat = Matrixd<2, 2>;
   using SS = StateSpace<TimeDomainType::CONTINUOUS, StateSpaceMat, InputMat,
                         OutputMat>;
-  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
-                             InputChannel<InputKind::CONTROL, 1, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>,
-                               OutputChannel<OutputKind::PERFORMANCE, 1, 1>>;
+  using Inputs = PortLayout<Port<PortRole::EXOGENOUS, 0, 1>,
+                            Port<PortRole::CONTROL, 1, 1>>;
+  using Outputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>,
+                             Port<PortRole::PERFORMANCE, 1, 1>>;
   using Plant = PlantModel<SS, Inputs, Outputs>;
 
   constexpr auto MatBuilder = mat_traits<StateSpaceMat>();
@@ -342,10 +342,10 @@ TEST_CASE("Hinf State Observer synthesis 2x2", "[state_observer_test]") {
   using OutputMat = Matrixd<2, 2>;
   using SS = StateSpace<TimeDomainType::CONTINUOUS, StateSpaceMat, InputMat,
                         OutputMat>;
-  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
-                             InputChannel<InputKind::CONTROL, 1, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>,
-                               OutputChannel<OutputKind::PERFORMANCE, 1, 1>>;
+  using Inputs = PortLayout<Port<PortRole::EXOGENOUS, 0, 1>,
+                            Port<PortRole::CONTROL, 1, 1>>;
+  using Outputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>,
+                             Port<PortRole::PERFORMANCE, 1, 1>>;
   using Plant = PlantModel<SS, Inputs, Outputs>;
 
   constexpr auto MatBuilder = mat_traits<StateSpaceMat>();
@@ -444,10 +444,10 @@ TEST_CASE("Hinf State Observer synthesis with zero D_ew is numerically stable",
   using OutputMat = Matrixd<2, 2>;
   using SS = StateSpace<TimeDomainType::CONTINUOUS, StateSpaceMat, InputMat,
                         OutputMat>;
-  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
-                             InputChannel<InputKind::CONTROL, 1, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>,
-                               OutputChannel<OutputKind::PERFORMANCE, 1, 1>>;
+  using Inputs = PortLayout<Port<PortRole::EXOGENOUS, 0, 1>,
+                            Port<PortRole::CONTROL, 1, 1>>;
+  using Outputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>,
+                             Port<PortRole::PERFORMANCE, 1, 1>>;
   using Plant = PlantModel<SS, Inputs, Outputs>;
 
   constexpr auto MatBuilder = mat_traits<StateSpaceMat>();

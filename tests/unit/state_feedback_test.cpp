@@ -38,15 +38,13 @@ TEST_CASE("State Feedback 2x2", "[state_feedback_test]") {
   using OutputSpace = RowVectord<2>;
   using FullPlantSS =
       StateSpace<TimeDomainType::CONTINUOUS, Space, Space, Space>;
-  using FullInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 2>>;
-  using FullOutputs =
-      OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 2>>;
+  using FullInputs = PortLayout<Port<PortRole::CONTROL, 0, 2>>;
+  using FullOutputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 2>>;
   using FullPlant = PlantModel<FullPlantSS, FullInputs, FullOutputs>;
   using SolverPlantSS =
       StateSpace<TimeDomainType::CONTINUOUS, Space, InputSpace, OutputSpace>;
-  using SolverInputs = InputLayout<InputChannel<InputKind::CONTROL, 0, 1>>;
-  using SolverOutputs =
-      OutputLayout<OutputChannel<OutputKind::MEASUREMENT, 0, 1>>;
+  using SolverInputs = PortLayout<Port<PortRole::CONTROL, 0, 1>>;
+  using SolverOutputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>>;
   using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
 
   constexpr auto MatBuilder = mat_traits<Space>();
@@ -163,9 +161,9 @@ TEST_CASE("H2 State Feedback synthesis 2x2", "[state_feedback_test]") {
   using OutputMat = RowVectord<2>;
   using SS = StateSpace<TimeDomainType::CONTINUOUS, StateSpaceMat, InputMat,
                         OutputMat>;
-  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
-                             InputChannel<InputKind::CONTROL, 1, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::PERFORMANCE, 0, 1>>;
+  using Inputs = PortLayout<Port<PortRole::EXOGENOUS, 0, 1>,
+                            Port<PortRole::CONTROL, 1, 1>>;
+  using Outputs = PortLayout<Port<PortRole::PERFORMANCE, 0, 1>>;
   using Plant = PlantModel<SS, Inputs, Outputs>;
 
   constexpr auto MatBuilder = mat_traits<StateSpaceMat>();
@@ -258,9 +256,9 @@ TEST_CASE("Hinf State Feedback synthesis 2x2", "[state_feedback_test]") {
   using OutputMat = RowVectord<2>;
   using SS = StateSpace<TimeDomainType::CONTINUOUS, StateSpaceMat, InputMat,
                         OutputMat>;
-  using Inputs = InputLayout<InputChannel<InputKind::DISTURBANCE, 0, 1>,
-                             InputChannel<InputKind::CONTROL, 1, 1>>;
-  using Outputs = OutputLayout<OutputChannel<OutputKind::PERFORMANCE, 0, 1>>;
+  using Inputs = PortLayout<Port<PortRole::EXOGENOUS, 0, 1>,
+                            Port<PortRole::CONTROL, 1, 1>>;
+  using Outputs = PortLayout<Port<PortRole::PERFORMANCE, 0, 1>>;
   using Plant = PlantModel<SS, Inputs, Outputs>;
 
   constexpr auto MatBuilder = mat_traits<StateSpaceMat>();
@@ -350,4 +348,143 @@ TEST_CASE("Hinf State Feedback synthesis 2x2", "[state_feedback_test]") {
   const auto cl_perf = C_z + D_u * K_res;
   REQUIRE(all_equal(top_left, cl * Q_res + Q_res * transpose(cl), 1e-4));
   REQUIRE(all_equal(top_right, cl_perf * Q_res, 1e-4));
+}
+
+TEST_CASE("Hinf Mixed Sensitivity forms state-feedback generalized plant",
+          "[state_feedback_test]") {
+  using PlantA = Matrixd<1, 1>;
+  using PlantB = Matrixd<1, 1>;
+  using PlantC = Matrixd<1, 1>;
+  using PlantSS =
+      StateSpace<TimeDomainType::CONTINUOUS, PlantA, PlantB, PlantC>;
+  using PlantInputs = PortLayout<Port<PortRole::CONTROL, 0, 1>>;
+  using PlantOutputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>>;
+  using Plant = PlantModel<PlantSS, PlantInputs, PlantOutputs>;
+
+  using WeightSS =
+      StateSpace<TimeDomainType::CONTINUOUS, PlantA, PlantB, PlantC>;
+  using WeightInputs = PortLayout<Port<PortRole::CONTROL, 0, 1>>;
+  using WeightOutputs = PortLayout<Port<PortRole::PERFORMANCE, 0, 1>>;
+  using Weight = PlantModel<WeightSS, WeightInputs, WeightOutputs>;
+
+  constexpr auto A = PlantA{Vectord<1>{-2.0}};
+  constexpr auto B = PlantB{Vectord<1>{1.5}};
+  constexpr auto C = PlantC{Vectord<1>{3.0}};
+  constexpr auto D = Matrixd<1, 1>{Vectord<1>{0.2}};
+  constexpr auto plant = Plant(PlantSS(A, B, C, D));
+
+  constexpr auto Ap = PlantA{Vectord<1>{-4.0}};
+  constexpr auto Bp = PlantB{Vectord<1>{2.0}};
+  constexpr auto Cp = PlantC{Vectord<1>{5.0}};
+  constexpr auto Dp = Matrixd<1, 1>{Vectord<1>{0.7}};
+  constexpr auto wp = Weight(WeightSS(Ap, Bp, Cp, Dp));
+
+  constexpr auto At = PlantA{Vectord<1>{-6.0}};
+  constexpr auto Bt = PlantB{Vectord<1>{7.0}};
+  constexpr auto Ct = PlantC{Vectord<1>{8.0}};
+  constexpr auto Dt = Matrixd<1, 1>{Vectord<1>{0.9}};
+  constexpr auto wt = Weight(WeightSS(At, Bt, Ct, Dt));
+
+  constexpr auto Au = PlantA{Vectord<1>{-10.0}};
+  constexpr auto Bu = PlantB{Vectord<1>{11.0}};
+  constexpr auto Cu = PlantC{Vectord<1>{12.0}};
+  constexpr auto Du = Matrixd<1, 1>{Vectord<1>{1.3}};
+  constexpr auto wu = Weight(WeightSS(Au, Bu, Cu, Du));
+
+  using Mixed = HinfMixedSensitivity<decltype(plant), decltype(wp),
+                                     decltype(wt), decltype(wu)>;
+  constexpr auto mixed = Mixed();
+  const auto generalized = mixed.model(plant, wp, wt, wu);
+
+  REQUIRE(Mixed::StateDim == 4);
+  REQUIRE(Mixed::ExogenousDim == 1);
+  REQUIRE(Mixed::ControlDim == 1);
+  REQUIRE(Mixed::OutputDim == 3);
+  REQUIRE(Mixed::Synthesis::ExogenousPortRole == PortRole::EXOGENOUS);
+  REQUIRE(Mixed::Synthesis::ExogenousDim == Mixed::ExogenousDim);
+
+  const auto A_exp = Matrixd<4, 4>{
+      Vectord<4>{-2.0, 0.0, 0.0, 0.0},
+      Vectord<4>{-6.0, -4.0, 0.0, 0.0},
+      Vectord<4>{21.0, 0.0, -6.0, 0.0},
+      Vectord<4>{0.0, 0.0, 0.0, -10.0},
+  };
+  const auto B_exp = Matrixd<4, 2>{
+      Vectord<2>{0.0, 1.5},
+      Vectord<2>{2.0, -0.4},
+      Vectord<2>{0.0, 1.4},
+      Vectord<2>{0.0, 11.0},
+  };
+  const auto C_exp = Matrixd<3, 4>{
+      Vectord<4>{-2.1, 5.0, 0.0, 0.0},
+      Vectord<4>{2.7, 0.0, 8.0, 0.0},
+      Vectord<4>{0.0, 0.0, 0.0, 12.0},
+  };
+  const auto D_exp = Matrixd<3, 2>{
+      Vectord<2>{0.7, -0.14},
+      Vectord<2>{0.0, 0.18},
+      Vectord<2>{0.0, 1.3},
+  };
+
+  REQUIRE(all_equal(generalized.dynamics_matrix(), A_exp, rel_tol));
+  REQUIRE(all_equal(generalized.state_space.B, B_exp, rel_tol));
+  REQUIRE(all_equal(generalized.performance_matrix(), C_exp, rel_tol));
+  REQUIRE(all_equal(
+      generalized
+          .template feedthrough<PortRole::PERFORMANCE, PortRole::EXOGENOUS>(),
+      ColVectord<3>{Vectord<1>{0.7}, Vectord<1>{0.0}, Vectord<1>{0.0}},
+      rel_tol));
+  REQUIRE(all_equal(
+      generalized
+          .template feedthrough<PortRole::PERFORMANCE, PortRole::CONTROL>(),
+      ColVectord<3>{Vectord<1>{-0.14}, Vectord<1>{0.18}, Vectord<1>{1.3}},
+      rel_tol));
+  REQUIRE(all_equal(generalized.state_space.D.value(), D_exp, rel_tol));
+
+  using DecVarSpace = RowVectord<Mixed::DecVarDim>;
+  constexpr auto Z_hat = Variable<VarMeta<DecVarSpace>>();
+  const auto prob =
+      make_hinf_mixed_sensitivity_problem(plant, wp, wt, wu, Z_hat);
+
+  REQUIRE(is_problem_set_v<decltype(prob)>);
+  REQUIRE(prob.validate());
+  REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 2);
+
+  const auto c = prob.linear_objective();
+  RowVectord<Mixed::DecVarDim> c_exp{};
+  c_exp(0)(Mixed::QDim + Mixed::YDim) = 1.0;
+  REQUIRE(c == c_exp);
+
+  using Solver = PrimalDualIPM<decltype(prob)>;
+  auto cfg = state_feedback_solver_config<double>();
+  cfg.dual_feas_tol = 1e-3;
+  const Solver solver(prob, cfg);
+  const auto& res = solver.res;
+#ifdef AKREON_REPORT_OUTPUT
+  const auto& trace = solver.trace;
+  if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+#endif
+
+  REQUIRE(res.tag == SolverResult::OPTIMAL);
+  REQUIRE(!res.stalled);
+
+  const auto q_y_gamma_split = linalg::splice<Mixed::QDim>(res.iterate.z);
+  const auto Q_res = make_smat<Mixed::StateDim>(std::get<0>(q_y_gamma_split));
+  const auto y_gamma_split =
+      linalg::splice<Mixed::YDim>(std::get<1>(q_y_gamma_split));
+  RowVectord<Mixed::YDim> Y_res{};
+  for (size_t j = 0; j < Mixed::YDim; ++j)
+    Y_res(0)(j) = std::get<0>(y_gamma_split)(j);
+  const auto gamma_res = std::get<1>(y_gamma_split)(0);
+
+  REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
+  REQUIRE(gamma_res > 1e-6);
+
+  const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
+  REQUIRE(Q_sym.is_valid());
+  REQUIRE(Q_sym.is_psd());
+
+  const auto [K_res, K_event] = mixed.K(Q_res, Y_res);
+  REQUIRE(K_event == linalg::NumericalEvent::NONE);
+  REQUIRE(all_equal(Y_res, K_res * Q_res, 1e-4));
 }
