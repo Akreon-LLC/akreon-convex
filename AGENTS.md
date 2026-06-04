@@ -6,9 +6,7 @@
 
 This repo includes substantial math, optimization, controls, estimation,
 modeling, and analysis to produce automated client-facing code via `.so`
-artifacts with C API wrappers and/or solver results.
-
-Treat this repo as a **technical library**, not just an integration layer, while preserving boundaries with `akreon-schemas`, `akreon-runner`, and closed execution systems.
+artifacts with C API wrappers and/or solver results (found in `akreon-native`)
 
 ## Principles
 
@@ -22,7 +20,6 @@ Treat this repo as a **technical library**, not just an integration layer, while
 
 - Domain logic that improves the developer-facing SDK is appropriate here.
 - Do not move closed runner/build/deployment logic into this repo.
-- Do not duplicate schema ownership that belongs in `akreon-schemas`.
 - Prefer explicit models, configs, and result objects over loose dictionaries.
 - Validate inputs early and surface actionable errors.
 - Do not introduce hidden global state or surprising defaults.
