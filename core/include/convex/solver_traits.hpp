@@ -18,12 +18,14 @@
 #include <cstdio>
 
 #include "config/solver_config.hpp"
+#include "convex/canonical_trace.hpp"
 
 namespace convex {
 
 /// @brief forward declaration of pd result
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
+          linalg::VectorLike NuVar,
+          typename CanonicalTrace = EmptyCanonicalTrace>
 struct PrimalDualResult;
 
 } // namespace convex

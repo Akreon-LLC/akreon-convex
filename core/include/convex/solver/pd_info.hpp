@@ -32,7 +32,7 @@ struct PrimalDualIterate {
  * @brief PrimalDualResult
  */
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
+          linalg::VectorLike NuVar, typename CanonicalTrace>
 struct PrimalDualResult {
   using T = linalg::vec_type_t<Var>;
 
@@ -48,7 +48,8 @@ struct PrimalDualResult {
   ConeVar rp{};                      ///< primal residuals
   NuVar req{};                       ///< equality residuals
   PrimalDualIterate<Var, ConeVar, NuVar> iterate; ///< primal dual iterate
-  size_t num_iter{};                              ///< total number of iter
+  CanonicalTrace canonical_trace{}; ///< Structural canonical row trace.
+  size_t num_iter{};                ///< total number of iter
 };
 
 } // namespace convex

@@ -107,6 +107,8 @@ struct PrimalDualIPM {
   using ConeMat = affine::affine_mat_t<ConeMap>;
   using EqMap = decltype(std::declval<const Problem&>().equality_map());
   using EqMat = affine::affine_mat_t<EqMap>;
+  using CanonicalTrace =
+      decltype(std::declval<const Problem&>().canonical_trace());
   using T = linalg::space_type_t<DecVar>;
 
   /// @brief helpers for size of cones & F mat size & A mat rows
@@ -183,7 +185,7 @@ struct PrimalDualIPM {
   }
 
   /** @brief member vars */
-  PrimalDualResult<Var, ConeVar, NuVar> res; ///< PD-IPM result
+  PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace> res; ///< PD-IPM result
   bool dual_feas{false};   ///< status flag for dual feasibility
   bool primal_feas{false}; ///< status flag for primal feasibility
   bool gap_min{false};     ///< status flag for duality gap minimized
@@ -208,6 +210,7 @@ private:
     const auto A = prob.equality_map().linear_part();
     const auto b = prob.equality_map().translation();
     const auto K = prob.constraint_cones();
+    res.canonical_trace = prob.canonical_trace();
 
     AK_ASSERT(prob.validate() && "submitted problem is not valid!");
     if (!prob.validate()) return;

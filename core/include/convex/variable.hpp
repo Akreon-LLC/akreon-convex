@@ -151,10 +151,8 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
     const auto cb = builder.cb;
-    return conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
-                                       decltype(map), decltype(cb),
-                                       decltype(builder.eq_map)>(
-        map, cb, builder.eq_map);
+    return conic::make_builder<conic::builder_dom_t<Builder>>(
+        map, cb, builder.eq_map, builder.canonical_trace);
   }
 
   /** @brief member var */
@@ -263,10 +261,8 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
-    return conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
-                                       decltype(map), decltype(builder.cb),
-                                       decltype(builder.eq_map)>(
-        map, builder.cb, builder.eq_map);
+    return conic::make_builder<conic::builder_dom_t<Builder>>(
+        map, builder.cb, builder.eq_map, builder.canonical_trace);
   }
 
   /**

@@ -202,7 +202,6 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
         std::get<0>(this->children)
             .template canonicalize<AtomType::FN>(builder);
     const auto child_coord = child_builder.coord_map;
-    const auto child_cb = child_builder.cb;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
     static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
@@ -234,16 +233,13 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
     g(6) = T(1);
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-    const auto new_builder =
-        conic::CanonicalFormBuilder<conic::builder_dom_t<decltype(builder)>,
-                                    decltype(coord_map_up), decltype(child_cb),
-                                    decltype(child_builder.eq_map)>(
-            coord_map_up, child_cb, child_builder.eq_map);
     const auto exp_cone = conic::ExpCone<linalg::Vector<T, 3>>();
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
     const auto cones = std::make_tuple(exp_cone, exp_cone, rplus);
+    const auto emission =
+        conic::LocalEmission(coord_map_up, cones, child_builder.eq_map);
 
-    return new_builder.template make<Type>(idx, lift_map, cones);
+    return child_builder.template realize<Type>(idx, lift_map, emission);
   }
 
   /** @brief member vars */

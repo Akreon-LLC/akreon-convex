@@ -24,6 +24,114 @@ using namespace conic;
 using namespace unit_test;
 
 TEST_CASE("Test var setup", "[convex_vars]") {
+  SECTION("Canonical layout and emission traits") {
+    using Space = Matrixd<1, 3>;
+    constexpr auto x = Variable<VarMeta<Space>>();
+    constexpr auto builder = create_empty_cblk_builder<Space>();
+
+    STATIC_REQUIRE(builder_dec_dim_v<decltype(builder)> == 3);
+    STATIC_REQUIRE(builder_coord_rows_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_coord_cols_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_coord_aux_dim_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_cone_rows_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_cone_cols_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_cone_aux_dim_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_cone_count_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_local_cone_dim_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_eq_rows_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_eq_cols_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_eq_aux_dim_v<decltype(builder)> == 0);
+    STATIC_REQUIRE(builder_full_dim_v<decltype(builder)> == 0);
+
+    constexpr auto var_builder =
+        x.template canonicalize<AtomType::VAR>(builder);
+    STATIC_REQUIRE(builder_dec_dim_v<decltype(var_builder)> == 3);
+    STATIC_REQUIRE(builder_coord_rows_v<decltype(var_builder)> == 3);
+    STATIC_REQUIRE(builder_coord_cols_v<decltype(var_builder)> == 3);
+    STATIC_REQUIRE(builder_coord_aux_dim_v<decltype(var_builder)> == 0);
+    STATIC_REQUIRE(builder_cone_rows_v<decltype(var_builder)> == 0);
+    STATIC_REQUIRE(builder_cone_count_v<decltype(var_builder)> == 0);
+    STATIC_REQUIRE(builder_eq_rows_v<decltype(var_builder)> == 0);
+
+    constexpr auto abs_fn = Abs(x(1));
+    constexpr auto abs_builder =
+        abs_fn.template canonicalize<AtomType::FN>(builder);
+    STATIC_REQUIRE(builder_dec_dim_v<decltype(abs_builder)> == 3);
+    STATIC_REQUIRE(builder_coord_rows_v<decltype(abs_builder)> == 1);
+    STATIC_REQUIRE(builder_coord_cols_v<decltype(abs_builder)> == 5);
+    STATIC_REQUIRE(builder_coord_aux_dim_v<decltype(abs_builder)> == 2);
+    STATIC_REQUIRE(builder_cone_rows_v<decltype(abs_builder)> == 5);
+    STATIC_REQUIRE(builder_cone_cols_v<decltype(abs_builder)> == 5);
+    STATIC_REQUIRE(builder_cone_aux_dim_v<decltype(abs_builder)> == 2);
+    STATIC_REQUIRE(builder_cone_count_v<decltype(abs_builder)> == 5);
+    STATIC_REQUIRE(builder_local_cone_dim_v<decltype(abs_builder)> == 5);
+    STATIC_REQUIRE(builder_eq_rows_v<decltype(abs_builder)> == 0);
+    STATIC_REQUIRE(builder_full_dim_v<decltype(abs_builder)> == 5);
+    constexpr auto abs_trace = abs_builder.canonical_trace;
+    STATIC_REQUIRE(canonical_trace_num_nodes_v<decltype(abs_trace)> == 1);
+    STATIC_REQUIRE(canonical_trace_num_cones_v<decltype(abs_trace)> == 5);
+    STATIC_REQUIRE(canonical_trace_num_equalities_v<decltype(abs_trace)> == 0);
+    STATIC_REQUIRE(std::get<0>(abs_trace.nodes).atom_type == AtomType::FN);
+    STATIC_REQUIRE(std::get<0>(abs_trace.cones).cone_offset == 0);
+    STATIC_REQUIRE(std::get<4>(abs_trace.cones).cone_offset == 4);
+    STATIC_REQUIRE(std::get<4>(abs_trace.cones).cone_dim == 1);
+
+    using ScalarSpace = Matrixd<1, 1>;
+    constexpr auto scalar_x = Variable<VarMeta<ScalarSpace>>();
+    constexpr auto huber_fn = Huber(2.0, scalar_x);
+    constexpr auto huber_builder = huber_fn.template canonicalize<AtomType::FN>(
+        create_empty_cblk_builder<ScalarSpace>());
+    STATIC_REQUIRE(builder_dec_dim_v<decltype(huber_builder)> == 1);
+    STATIC_REQUIRE(builder_coord_rows_v<decltype(huber_builder)> == 1);
+    STATIC_REQUIRE(builder_coord_cols_v<decltype(huber_builder)> == 6);
+    STATIC_REQUIRE(builder_coord_aux_dim_v<decltype(huber_builder)> == 5);
+    STATIC_REQUIRE(builder_cone_rows_v<decltype(huber_builder)> == 9);
+    STATIC_REQUIRE(builder_cone_cols_v<decltype(huber_builder)> == 6);
+    STATIC_REQUIRE(builder_cone_aux_dim_v<decltype(huber_builder)> == 5);
+    STATIC_REQUIRE(builder_cone_count_v<decltype(huber_builder)> == 2);
+    STATIC_REQUIRE(builder_local_cone_dim_v<decltype(huber_builder)> == 9);
+    STATIC_REQUIRE(builder_full_dim_v<decltype(huber_builder)> == 6);
+    constexpr auto huber_trace = huber_builder.canonical_trace;
+    STATIC_REQUIRE(canonical_trace_num_nodes_v<decltype(huber_trace)> == 1);
+    STATIC_REQUIRE(canonical_trace_num_cones_v<decltype(huber_trace)> == 2);
+    STATIC_REQUIRE(std::get<0>(huber_trace.cones).cone_offset == 0);
+    STATIC_REQUIRE(std::get<0>(huber_trace.cones).cone_dim == 6);
+    STATIC_REQUIRE(std::get<1>(huber_trace.cones).cone_offset == 6);
+    STATIC_REQUIRE(std::get<1>(huber_trace.cones).cone_dim == 3);
+
+    constexpr auto coord_map = affine::AffineMap(Matrixd<2, 3>{}, Vectord<2>{});
+    constexpr auto cones = std::make_tuple(NonnegOrthantCone<Vectord<2>>(),
+                                           SecondOrderCone<Vectord<3>>());
+    constexpr auto eq_map = affine::AffineMap(Matrixd<1, 3>{}, Vectord<1>{});
+    constexpr LocalEmission emission(coord_map, cones, eq_map);
+
+    STATIC_REQUIRE(LocalEmissionLike<decltype(emission)>);
+    STATIC_REQUIRE(emission_local_coord_rows_v<decltype(emission)> == 2);
+    STATIC_REQUIRE(emission_local_coord_cols_v<decltype(emission)> == 3);
+    STATIC_REQUIRE(emission_num_cones_v<decltype(emission)> == 2);
+    STATIC_REQUIRE(emission_local_cone_dim_v<decltype(emission)> == 5);
+    STATIC_REQUIRE(emission_local_eq_rows_v<decltype(emission)> == 1);
+    STATIC_REQUIRE(emission_local_eq_cols_v<decltype(emission)> == 3);
+
+    constexpr LocalEqualityEmission eq_emission(eq_map);
+    STATIC_REQUIRE(LocalEqualityEmissionLike<decltype(eq_emission)>);
+    STATIC_REQUIRE(emission_local_eq_rows_v<decltype(eq_emission)> == 1);
+    STATIC_REQUIRE(emission_local_eq_cols_v<decltype(eq_emission)> == 3);
+
+    constexpr auto realized = builder.template realize<AtomType::FN>(emission);
+    constexpr auto realized_trace = realized.canonical_trace;
+    STATIC_REQUIRE(canonical_trace_num_nodes_v<decltype(realized_trace)> == 1);
+    STATIC_REQUIRE(canonical_trace_num_cones_v<decltype(realized_trace)> == 2);
+    STATIC_REQUIRE(canonical_trace_num_equalities_v<decltype(realized_trace)> ==
+                   1);
+    STATIC_REQUIRE(std::get<0>(realized_trace.cones).cone_offset == 0);
+    STATIC_REQUIRE(std::get<0>(realized_trace.cones).cone_dim == 2);
+    STATIC_REQUIRE(std::get<1>(realized_trace.cones).cone_offset == 2);
+    STATIC_REQUIRE(std::get<1>(realized_trace.cones).cone_dim == 3);
+    STATIC_REQUIRE(std::get<0>(realized_trace.equalities).row_offset == 0);
+    STATIC_REQUIRE(std::get<0>(realized_trace.equalities).row_count == 1);
+  }
+
   SECTION("Free var") {
     using MatT = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<MatT>>();

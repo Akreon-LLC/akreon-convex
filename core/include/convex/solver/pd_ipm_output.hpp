@@ -514,9 +514,10 @@ inline size_t mat_to_json_cstr(const Mat& M, char* out,
  * @return write position (in case buffer to small)
  */
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
-inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar, NuVar>& res,
-                             char* out, const size_t& out_size) {
+          linalg::VectorLike NuVar, typename CanonicalTrace>
+inline size_t result_to_cstr(
+    const PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace>& res, char* out,
+    const size_t& out_size) {
   AK_ASSERT(out != nullptr && "result_to_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
 
@@ -610,9 +611,9 @@ inline size_t result_to_cstr(const PrimalDualResult<Var, ConeVar, NuVar>& res,
  * @return write position
  */
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
+          linalg::VectorLike NuVar, typename CanonicalTrace>
 inline size_t result_to_json_cstr(
-    const PrimalDualResult<Var, ConeVar, NuVar>& res, char* out,
+    const PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace>& res, char* out,
     const size_t& out_size) {
   AK_ASSERT(out != nullptr && "result_to_json_cstr requires non-null output");
   if (out == nullptr || out_size == 0) return 0;
@@ -689,6 +690,14 @@ inline size_t result_to_json_cstr(
   if (!append_json_vec("req", res.req)) return write_pos;
   if (!append_format(out, out_size, write_pos, "}")) return write_pos;
 
+  if (!append_format(out, out_size, write_pos, ",")) return write_pos;
+  const auto append_json = [&]<size_t N, typename... Args>(
+                               const char (&fmt)[N], Args... args) -> bool {
+    return append_format(out, out_size, write_pos, fmt, args...);
+  };
+  if (!append_canonical_trace_json(res.canonical_trace, append_json))
+    return write_pos;
+
   if (!append_format(out, out_size, write_pos, "}")) return write_pos;
   return write_pos;
 }
@@ -706,9 +715,10 @@ inline size_t result_to_json_cstr(
  * @return write position
  */
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar, linalg::MatrixLike Mat>
+          linalg::VectorLike NuVar, typename CanonicalTrace,
+          linalg::MatrixLike Mat>
 inline size_t result_to_json_cstr(
-    const PrimalDualResult<Var, ConeVar, NuVar>& res,
+    const PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace>& res,
     const char* synthesized_kind, const Mat& matrix, char* out,
     const size_t& out_size) {
   AK_ASSERT(synthesized_kind != nullptr &&
@@ -738,9 +748,10 @@ inline size_t result_to_json_cstr(
 
 #ifdef AKREON_REPORT_OUTPUT
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
-inline void print_result(std::ostream& os,
-                         const PrimalDualResult<Var, ConeVar, NuVar>& res) {
+          linalg::VectorLike NuVar, typename CanonicalTrace>
+inline void print_result(
+    std::ostream& os,
+    const PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace>& res) {
   char buf[64000];
   result_to_cstr(res, buf, sizeof(buf));
   os << buf;
@@ -758,30 +769,32 @@ inline void print_trace(
 }
 
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
+          linalg::VectorLike NuVar, typename CanonicalTrace>
 inline void report_result_json(
-    std::ostream& os, const PrimalDualResult<Var, ConeVar, NuVar>& res) {
+    std::ostream& os,
+    const PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace>& res) {
   char buf[64000];
   result_to_json_cstr(res, buf, sizeof(buf));
   os << buf;
 }
 
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar, linalg::MatrixLike Mat>
-inline void report_result_json(std::ostream& os,
-                               const PrimalDualResult<Var, ConeVar, NuVar>& res,
-                               const char* synthesized_kind,
-                               const Mat& matrix) {
+          linalg::VectorLike NuVar, typename CanonicalTrace,
+          linalg::MatrixLike Mat>
+inline void report_result_json(
+    std::ostream& os,
+    const PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace>& res,
+    const char* synthesized_kind, const Mat& matrix) {
   char buf[64000];
   result_to_json_cstr(res, synthesized_kind, matrix, buf, sizeof(buf));
   os << buf;
 }
 
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
+          linalg::VectorLike NuVar, typename CanonicalTrace>
 inline bool write_result_json(
     const std::filesystem::path& path,
-    const PrimalDualResult<Var, ConeVar, NuVar>& res) {
+    const PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace>& res) {
   std::ofstream out(path);
   if (!out.is_open()) return false;
   report_result_json(out, res);
@@ -789,10 +802,12 @@ inline bool write_result_json(
 }
 
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar, linalg::MatrixLike Mat>
-inline bool write_result_json(const std::filesystem::path& path,
-                              const PrimalDualResult<Var, ConeVar, NuVar>& res,
-                              const char* synthesized_kind, const Mat& matrix) {
+          linalg::VectorLike NuVar, typename CanonicalTrace,
+          linalg::MatrixLike Mat>
+inline bool write_result_json(
+    const std::filesystem::path& path,
+    const PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace>& res,
+    const char* synthesized_kind, const Mat& matrix) {
   std::ofstream out(path);
   if (!out.is_open()) return false;
   report_result_json(out, res, synthesized_kind, matrix);
