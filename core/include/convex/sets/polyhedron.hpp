@@ -101,8 +101,8 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    * P = { x | Ax <= b, Cx = d }
    * f(x) = U x + t
    *
-   * P' = { y = f(x) | x \in P }
-   * y = U x + t \to x = U^{-1}(y - t)
+   * P' = { y = f(x) | x in P }
+   * y = U x + t to x = U^{-1}(y - t)
    *
    * constraints become: A U^{-1} (y - t) <= b & C U^{-1} (y - t) = d
    * (i) A U^{-1} y <= b + A U^{-1} t
@@ -143,7 +143,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    * C = { x | A x <= b }
    *
    * Direct cone map:
-   *   -A x + b \in R_+^m
+   *   -A x + b in R_+^m
    *
    * @return cone block
    */

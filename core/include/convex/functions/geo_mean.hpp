@@ -43,7 +43,7 @@ using GeoMeanConvexMeta =
                    CurvatureType::CONVEX>;
 
 /**
- * @brief geometric mean f(x) = (\prod_{i=1}^n x_i)^{1/n} is concave on dom f =
+ * @brief geometric mean f(x) = (prod_{i=1}^n x_i)^{1/n} is concave on dom f =
  * R^n_++
  */
 template <typename Meta, typename Child>
@@ -102,9 +102,9 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
   /**
    * @brief evaluation impl
    *
-   * @param x \in dom f
+   * @param x in dom f
    *
-   * @return y \in R
+   * @return y in R
    */
   constexpr T eval(const PointT& x) const {
     T prod(1);
@@ -161,7 +161,7 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
    *
    * (1) f(x) = prod_i^n(x_i)^{1/n}
    * K_geo = { (x, t) | prod_i^n(x_i)^{1/n} >= t }... x in R_+
-   * power cone = { (x,t) \in R_+ x R | prod(x_i)^alpha_i >= |t|, sum(a_i) = 1,
+   * power cone = { (x,t) in R_+ x R | prod(x_i)^alpha_i >= |t|, sum(a_i) = 1,
    * a_i >= 0 }
    *
    * [ A 0 ] [ x; t ] + [ b; 0 ] -> [ A x + b; t ]

@@ -21,7 +21,7 @@ namespace conic {
 /**
  * @brief Circ - Jordan map/product for the PSD cone
  *
- * X \circ Y = 0.5 (X Y + Y X)
+ * X circ Y = 0.5 (X Y + Y X)
  */
 template <linalg::VectorLike Vec, size_t N>
 struct PSDCirc {
@@ -31,12 +31,12 @@ struct PSDCirc {
   /**
    * @brief circ (jordan map/product)
    *
-   * X \circ Y = 0.5 (X Y + Y X)
+   * X circ Y = 0.5 (X Y + Y X)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
-   * @return x \circ y (vector)
+   * @return x circ y (vector)
    */
   constexpr auto operator()(const Vec& x, const Vec& y) const {
     const auto X = linalg::make_smat<N>(x);
@@ -47,7 +47,7 @@ struct PSDCirc {
 
 /** @brief psd cone class
  *
- * svec(X) \in S^n_+
+ * svec(X) in S^n_+
  */
 template <linalg::VectorLike Slack, size_t N>
 struct PositiveSemidefiniteCone
@@ -67,23 +67,23 @@ struct PositiveSemidefiniteCone
                 "Encoded dim for PSD Cone does not align with slack dim");
 
   /**
-   * @brief default x \in K
+   * @brief default x in K
    *
    * @return x
    */
   constexpr Slack x0_impl() const { return e_impl(); }
 
   /**
-   * @brief default y \in K^*
+   * @brief default y in K^*
    *
    * @return y
    */
   constexpr Slack y0_impl() const { return e_impl(); }
 
   /**
-   * @brief x \in K check
+   * @brief x in K check
    *
-   * @param x \in K
+   * @param x in K
    *
    * @return T/F
    */
@@ -94,9 +94,9 @@ struct PositiveSemidefiniteCone
   }
 
   /**
-   * @brief y \in K^* check
+   * @brief y in K^* check
    *
-   * @param y \in K^*
+   * @param y in K^*
    *
    * @return T/F
    */
@@ -107,24 +107,24 @@ struct PositiveSemidefiniteCone
   /**
    * @brief alpha_max (fraction to boundary)
    *
-   * \sigma(\alpha) = \frac{1}{\sup{\alpha | (x + \alpha p \in K)}}
+   * sigma(alpha) = frac{1}{sup{alpha | (x + alpha p in K)}}
    *
-   * X + \alpha P \in S^n_++
-   * X + \alpha P = [
-   *  X^{1/2} (I + \alpha X^{-1/2} P X^{-1/2}) X^{1/2}
+   * X + alpha P in S^n_++
+   * X + alpha P = [
+   *  X^{1/2} (I + alpha X^{-1/2} P X^{-1/2}) X^{1/2}
    * ]
-   * let U = X^{-1/2} P X^{-1/2} we want I + \alpha U \succeq 0
-   * I + \alpha U \succeq 0 \iff 1 + \alpha \lambda_i(U) >= 0 \forall i
+   * let U = X^{-1/2} P X^{-1/2} we want I + alpha U >= 0
+   * I + alpha U >= 0 iff 1 + alpha lambda_i(U) >= 0 for all i
    *
-   * \alpha_max = \cases{
-   *  +inf, if \lambda_i(U) >= 0 \forall i
-   *  -\frac{1}{\lambda_min(U)} else
+   * alpha_max = cases{
+   *  +inf, if lambda_i(U) >= 0 for all i
+   *  -frac{1}{lambda_min(U)} else
    * }
    *
-   * @param x \in K
-   * @param p \in E
+   * @param x in K
+   * @param p in E
    *
-   * @return \alpha_max
+   * @return alpha_max
    */
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {
@@ -144,11 +144,11 @@ struct PositiveSemidefiniteCone
   /**
    * @brief alpha_max dual (fraction to dK^*)
    *
-   * @param y \in K^*
-   * @param p \in E^*
+   * @param y in K^*
+   * @param p in E^*
    *
    *
-   * @return \alpha_max (dual)
+   * @return alpha_max (dual)
    */
   constexpr T alpha_max_dual_impl(const Slack& y,
                                   const linalg::Vector<T, M>& p) const {
@@ -164,8 +164,8 @@ struct PositiveSemidefiniteCone
    *
    * F''(w^{-1}) x = y
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (H, event)
    */
@@ -192,7 +192,7 @@ struct PositiveSemidefiniteCone
    *
    * F'(x) = -x^{-1}
    *
-   * @param x \in K or y \in K^*
+   * @param x in K or y in K^*
    *
    * @return (F'(x), event)
    */
@@ -229,8 +229,8 @@ struct PositiveSemidefiniteCone
    *
    * W = X^{1/2} (X^{1/2} Y X^{1/2})^{-1/2} X^{1/2}
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (w, event)
    */
@@ -261,10 +261,10 @@ struct PositiveSemidefiniteCone
   /**
    * @brief circ
    *
-   * x \circ y
+   * x circ y
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return x circ y
    */
@@ -277,8 +277,8 @@ struct PositiveSemidefiniteCone
    *
    * tr(XY)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return tr(XY)
    */
@@ -291,10 +291,10 @@ struct PositiveSemidefiniteCone
   /**
    * @brief gamma_F
    *
-   * \gamma_F = -ln(det(X)) - ln(det(Y)) + nu ln(Tr(X^{1/2} Y X^{1/2}) / nu)
+   * gamma_F = -ln(det(X)) - ln(det(Y)) + nu ln(Tr(X^{1/2} Y X^{1/2}) / nu)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return gamma_F
    */
@@ -326,7 +326,7 @@ struct PositiveSemidefiniteCone
   /**
    * @brief inv
    *
-   * @param x \in K
+   * @param x in K
    *
    * @return (inv(x), event)
    */

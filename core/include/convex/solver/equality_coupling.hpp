@@ -42,7 +42,7 @@ struct NoEqualityCoupling {
  * @brief Equality-coupling wrapper for Schur-complement based solve.
  *
  * 2x2 saddle system
- * [ M A^T ] [ pz; pnu] = [ \hat{r}_d; req ]
+ * [ M A^T ] [ pz; pnu] = [ hat{r}_d; req ]
  * [ A 0   ]
  *
  * M block
@@ -67,9 +67,9 @@ struct SchurEqualityCoupling {
   /**
    * @brief solve for pz step
    *
-   * pnu = S^{-1}(A M^{-1} \hat{r}_d - req)
-   * pz = M^{-1}(\hat{r}_d - A^T pnu)
-   * where \hat{r}_d = pz_rhs + rd
+   * pnu = S^{-1}(A M^{-1} hat{r}_d - req)
+   * pz = M^{-1}(hat{r}_d - A^T pnu)
+   * where hat{r}_d = pz_rhs + rd
    *
    * @param M^{-1} (LDL(M))
    * @param pz_rhs (rhs to be solved)
@@ -121,9 +121,9 @@ struct ScalarEqualityCoupling {
   /**
    * @brief solve for pz step
    *
-   * pnu = S^{-1}(A M^{-1} \hat{r}_d - req)
-   * pz = M^{-1}(\hat{r}_d - A^T pnu)
-   * where \hat{r}_d = pz_rhs + rd
+   * pnu = S^{-1}(A M^{-1} hat{r}_d - req)
+   * pz = M^{-1}(hat{r}_d - A^T pnu)
+   * where hat{r}_d = pz_rhs + rd
    *
    * @param M^{-1} (LDL(M))
    * @param pz_rhs (rhs to be solved)

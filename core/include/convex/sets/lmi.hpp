@@ -33,7 +33,7 @@ using LMIMeta =
  * @brief LMI (linear matrix inequality)
  *
  *
- * LMI solution set: 0 \preceq B + \sum(x_i A_i)
+ * LMI solution set: `0 <= B + sum(x_i A_i)`.
  */
 template <typename Meta, typename Child, linalg::SquareMatrixLike MatIn>
 struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
@@ -124,7 +124,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
    * a_i = svec(A_i) in R^k A_i in S^n where k = n(n+1)/2
    * b = svec(B) ...
    *
-   * B + sum(x_i A_i) \succeq 0 ... psd cone
+   * B + sum(x_i A_i) >= 0 ... psd cone
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {

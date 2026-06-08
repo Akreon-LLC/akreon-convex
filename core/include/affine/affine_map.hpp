@@ -118,7 +118,7 @@ public:
    * @brief compose function
    *
    * Compose a sequence of affine maps as such:
-   * f \circ g = f(g(x))
+   * f circ g = f(g(x))
    *
    * g(x) = A_g x + b_g
    * f(x) = A_f x + b_f
@@ -198,7 +198,7 @@ public:
   /**
    * @brief transform point to coords
    *
-   * @param point \in R^n
+   * @param point in R^n
    *
    * @return transformed point
    */

@@ -34,8 +34,8 @@ struct WeightedSum {
   /**
    * @brief operator overload
    *
-   * @param q \in R^n
-   * @param x \in R^n (var)
+   * @param q in R^n
+   * @param x in R^n (var)
    *
    * @return q^T x
    */
@@ -59,7 +59,7 @@ struct WeightedSum {
  *
  * f(x) = q^T x
  *
- * @param q \in R^n
+ * @param q in R^n
  * @param x decision variable atom
  *
  * @return q^T x

@@ -26,7 +26,7 @@ namespace conic {
  * RSOC: u^T u <= 2 v w... 0 <= 2 v w - u^T u
  *
  * id: (v + w)^2 - (v - w)^2 = 4 v w
- * chang of vars: (x, x0, t) \in R^{n+1} x R
+ * chang of vars: (x, x0, t) in R^{n+1} x R
  * t = v + w
  * x0 = v - w
  * x = sqrt(2) u
@@ -40,7 +40,7 @@ namespace conic {
  *     [ 0        1 -1 ]
  *     [ 0        1  1 ]
  *
- * \hat{A} = 1/sqrt(2) A ... orthonormalized A... \hat{A}^T \hat{A} = I
+ * hat{A} = 1/sqrt(2) A ... orthonormalized A... hat{A}^T hat{A} = I
  */
 template <affine::AffineMapLike Map>
 struct Rotated2SOC {
@@ -53,9 +53,9 @@ struct Rotated2SOC {
   /**
    * @brief transform native RSOC coord map to SOC map
    *
-   * \hat{x} = (T F) x + T g \in R^n -> K
+   * hat{x} = (T F) x + T g in R^n -> K
    *
-   * F \in R^{m x n}, x \in R^n, g \in R^m
+   * F in R^{m x n}, x in R^n, g in R^m
    *
    * @param map (F & g)
    *
@@ -85,13 +85,13 @@ struct Rotated2SOC {
 /**
  * @brief Circ - Jordan Map/Product for SOC
  *
- * x \circ y = JxJ -> J
- * x \circ y = (x,t1) \circ (y,t2) = (x t2 + y t1, x^T y + t1 t2)
+ * x circ y = JxJ -> J
+ * x circ y = (x,t1) circ (y,t2) = (x t2 + y t1, x^T y + t1 t2)
  *
- * @param x \in K
- * @param y \in K^*
+ * @param x in K
+ * @param y in K^*
  *
- * @return x \circ y (bilinear product)
+ * @return x circ y (bilinear product)
  */
 template <linalg::VectorLike Vec>
 struct SOCCirc {
@@ -102,12 +102,12 @@ struct SOCCirc {
   /**
    * @brief circ (jordan map/product)
    *
-   * x \circ y = (x,t1) \circ (y,t2) = (x t2 + y t1, x^T y + t1 t2)
+   * x circ y = (x,t1) circ (y,t2) = (x t2 + y t1, x^T y + t1 t2)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
-   * @return x \circ y (bilinear product)
+   * @return x circ y (bilinear product)
    */
   constexpr auto operator()(const Vec& x, const Vec& y) const {
     const auto primal = std::get<0>(linalg::splice<N - 1>(x));
@@ -177,7 +177,7 @@ struct SecondOrderCone
   /**
    * @brief in interior of K^*
    *
-   * @param y \in K^*
+   * @param y in K^*
    *
    * @return bool
    */
@@ -190,37 +190,37 @@ struct SecondOrderCone
    *
    * let x = (v,t)
    * let p = [ dv; dt ]
-   * sigma(\alpha) = \frac{1}{sup{alpha | (v + alpha p \in K, t + alpha dt)}}
-   * t(\alpha) >= ||v(\alpha)||
+   * sigma(alpha) = frac{1}{sup{alpha | (v + alpha p in K, t + alpha dt)}}
+   * t(alpha) >= ||v(alpha)||
    *
-   * g(\alpha) = t(\alpha)^2 - ||v(\alpha)||^2 >= 0
-   * t(\alpha) >= 0
+   * g(alpha) = t(alpha)^2 - ||v(alpha)||^2 >= 0
+   * t(alpha) >= 0
    *
-   * g(\alpha) = (t + \alpha dt)^2 - ||v + \alpha dv||^2
+   * g(alpha) = (t + alpha dt)^2 - ||v + alpha dv||^2
    * let a = dt^2 - ||dv||^2
    * let b = 2(t dt - v^T dv)
-   * let c = t^2 - ||v||^2... x \in K & c > 0
-   * so g(\alpha) = a \alpha^2 + b \alpha + c
+   * let c = t^2 - ||v||^2... x in K & c > 0
+   * so g(alpha) = a alpha^2 + b alpha + c
    *
-   * x = -b +- \sqrt(b^2 - 4 a c) / 2a
-   * \Delta = b^2 - 4 a c
-   * -> \Delta <= 0 ... g(alpha) >= 0 True... alpha = 1
-   * -> \Delta > 0 ... calculate roots
-   *  r1 = (-b - \sqrt(\Delta)) / 2a
-   *  r2 = -b + \sqrt(\Delta) / 2a
+   * x = -b +- sqrt(b^2 - 4 a c) / 2a
+   * Delta = b^2 - 4 a c
+   * -> Delta <= 0 ... g(alpha) >= 0 True... alpha = 1
+   * -> Delta > 0 ... calculate roots
+   *  r1 = (-b - sqrt(Delta)) / 2a
+   *  r2 = -b + sqrt(Delta) / 2a
    *  sort r_min <= r_max
    *
-   * \alpha = \piecewise{
-   *   1, if x + p \in K
+   * alpha = piecewise{
+   *   1, if x + p in K
    *   -c / b, if a == 0 and b < 0
-   *   min(r1, r2) if \Delta > 0
+   *   min(r1, r2) if Delta > 0
    *   1, else
    * }
    *
-   * @param x \in K
-   * @param p \in E (delta dir)
+   * @param x in K
+   * @param p in E (delta dir)
    *
-   * @return \alpha_max
+   * @return alpha_max
    */
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {
@@ -273,10 +273,10 @@ struct SecondOrderCone
   /**
    * @brief fracto to dK^*
    *
-   * @param y \in K
-   * @param p \in E^*
+   * @param y in K
+   * @param p in E^*
    *
-   * @return \alpha_max (dual)
+   * @return alpha_max (dual)
    */
   constexpr T alpha_max_dual_impl(const Slack& y,
                                   const linalg::Vector<T, M>& p) const {
@@ -287,17 +287,18 @@ struct SecondOrderCone
    * @brief hessian
    *
    * w = X^{1/2} (X^{1/2} S X^{1/2})^{-1/2} X^{1/2}
-   * PSD congruence map X^{1/2} S X^{1/2} \equiv quad rep P(x^{1/2}) y for SOC
-   * then another congruence map X^{1/2} inner X^{1/2} \equiv same quad rep
+   * PSD congruence map X^{1/2} S X^{1/2} equivalent to quad rep P(x^{1/2}) y
+   * for SOC then another congruence map X^{1/2} inner X^{1/2} equivalent to
+   * same quad rep
    *
    * w = P(x^{1/2})(P(x^{-1/2})y)^{1/2}
    *
    * let w = (x,t)
    * ** cone of squares **
-   * x \circ x  = \hat{x} \circ \hat{x} = (2xt, x^T x + t^2); t^2 - x^T x >= 0
+   * x circ x  = hat{x} circ hat{x} = (2xt, x^T x + t^2); t^2 - x^T x >= 0
    * ** 2-eig / rank-2 jordan algebra **
    * two eigs: t +- x^T x
-   * det(\hat{x}) = lam1*lam2 = t^2 - x^T x > 0
+   * det(hat{x}) = lam1*lam2 = t^2 - x^T x > 0
    * ** self-concordant barrier **
    * F(w) = F(x,t) = -log det(w)
    * F'(w) = -w^{-1}
@@ -310,8 +311,8 @@ struct SecondOrderCone
    * let z = w^{-1}
    * P(z) = 2L(z)^2 - L(z^2)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (H, event)
    */
@@ -338,7 +339,7 @@ struct SecondOrderCone
    *
    * F'(x) = -x^{-1}
    *
-   * @param x \in K or y \in K^*
+   * @param x in K or y in K^*
    *
    * @return (F'(x), event)
    */
@@ -365,7 +366,7 @@ struct SecondOrderCone
    * @brief e (jordan identity)
    *
    * e = (0,1)
-   * (x,t) \circ e = (x,t)
+   * (x,t) circ e = (x,t)
    *
    * @return e
    */
@@ -383,17 +384,17 @@ struct SecondOrderCone
    * Euclidean Jordan Algebra
    * P(x) = 2L(x)^2 - L(x^2)
    * L(x)^2 = L(x) circ L(x)
-   * L(x)y = x \circ y
+   * L(x)y = x circ y
    *
    * where u = (v / ||v||, 0)... primitive idempotent (directional term)
    *
    * x = lam1 c1 + lam2 c2... c1 & c2 are idempotents (rank-1 dir updates)
-   * where x^{1/2} = \sqrt{lam1}c1 + \sqrt{lam2}c2
+   * where x^{1/2} = sqrt{lam1}c1 + sqrt{lam2}c2
    *
    * w = P(x^{1/2})(P(x^{1/2})y)^{-1/2}
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (w, event)
    */
@@ -411,10 +412,10 @@ struct SecondOrderCone
   /**
    * @brief circ
    *
-   * x \circ y
+   * x circ y
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return x circ y
    */
@@ -425,10 +426,10 @@ struct SecondOrderCone
   /**
    * @brief trace
    *
-   * trace(x \circ y) = last elem
+   * trace(x circ y) = last elem
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (x circ y)(-1)
    */
@@ -439,8 +440,8 @@ struct SecondOrderCone
   /**
    * @brief gamma_F
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return gamma_F
    */
@@ -463,7 +464,7 @@ struct SecondOrderCone
    * @brief inv
    *
    * Jordan Inverse of x where x = (v,t)
-   * x^{-1} = \frac{1}{t^2 - v^Tv}(-v,t)... \frac{1}{det(A)}*adj(A)
+   * x^{-1} = frac{1}{t^2 - v^Tv}(-v,t)... frac{1}{det(A)}*adj(A)
    *
    * @param x (slack vector)
    *
@@ -490,7 +491,7 @@ struct SecondOrderCone
    *
    * Jordan Square Root
    * lam1 = t + ||v||_2, lam2 = t - ||v||_2
-   * x^{1/2} = \frac{sqrt(lam1) + sqrt(lam2)}{2}e + \frac{sqrt(lam1) -
+   * x^{1/2} = frac{sqrt(lam1) + sqrt(lam2)}{2}e + frac{sqrt(lam1) -
    * sqrt(lam2)}{2}u
    *
    * @param x (slack vector)
@@ -522,7 +523,7 @@ struct SecondOrderCone
   /**
    * @brief eigs
    *
-   * (v,t) \in K or K^*
+   * (v,t) in K or K^*
    *
    * @param v (vector)
    * @param t (scalar)

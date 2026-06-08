@@ -19,7 +19,10 @@
 namespace convex {
 
 /**
- * @brief validate sum child
+ * @brief Validate that a sum child has the same codomain as the parent sum.
+ *
+ * @tparam SumCodomain expected sum codomain
+ * @tparam Child child atom type to validate
  *
  * @return void
  */
@@ -32,17 +35,15 @@ constexpr void validate_sum_child_codomain() {
 }
 
 /**
- * @brief update selector
+ * @brief Accumulate the affine selector for a sum atom.
  *
- * @param previous map
- * @param next map
+ * @param prev current accumulated selector map
+ * @param next selector map emitted by the next canonicalized child
  *
- * @return new map
+ * @return selector map whose affine rows represent the child sum
  */
 template <affine::AffineMapLike PrevMap, affine::AffineMapLike NextMap>
-constexpr auto update_selector(const PrevMap& prev, const NextMap& next)
-    -> affine::AffineMap<
-        linalg::remove_cvref_t<affine::affine_mat_t<NextMap>>> {
+constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
   using PrevMatT = affine::affine_mat_t<PrevMap>;
   using NextMatT = affine::affine_mat_t<NextMap>;
   using T = linalg::mat_type_t<PrevMatT>;
@@ -59,26 +60,38 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next)
     return affine::AffineMap<linalg::remove_cvref_t<NextMatT>>(
         next.linear_part(), next.translation());
   } else {
-    linalg::Matrix<T, PrevCodom, NextDom> F;
+    static constexpr size_t FullDom = PrevDom > NextDom ? PrevDom : NextDom;
+    linalg::Matrix<T, PrevCodom, FullDom> F{};
     for (size_t i = 0; i < PrevCodom; ++i) {
-      for (size_t j = 0; j < PrevDom; ++j)
-        F(i)(j) = prev.linear_part()(i)(j) + next.linear_part()(i)(j);
-      for (size_t j = PrevDom; j < NextDom; ++j)
-        F(i)(j) = next.linear_part()(i)(j);
+      for (size_t j = 0; j < FullDom; ++j) {
+        if (j < PrevDom) F(i)(j) += prev.linear_part()(i)(j);
+        if (j < NextDom) F(i)(j) += next.linear_part()(i)(j);
+      }
     }
-    return affine::AffineMap<linalg::remove_cvref_t<NextMatT>>(
-        F, prev.translation());
+
+    linalg::Vector<T, PrevCodom> g{};
+    for (size_t i = 0; i < PrevCodom; ++i) {
+      g(i) = prev.translation()(i) + next.translation()(i);
+    }
+    return affine::AffineMap<decltype(F)>(F, g);
   }
 }
 
 /**
- * @brief tuple fold sum
+ * @brief Canonicalize and fold all sum children.
+ *
+ * @tparam idx child index currently being folded
+ * @tparam Children tuple-like child container
+ * @tparam Builder canonical-form builder type
+ * @tparam Fn callable that canonicalizes a child
+ * @tparam Map selector-map type
  *
  * @param children atoms
- * @param builder
- * @param canonicalize fn
+ * @param builder current canonical-form builder
+ * @param fn canonicalization callable
+ * @param selector current accumulated selector map
  *
- * @return (selector, builder)
+ * @return tuple containing the accumulated selector and builder
  */
 template <size_t idx = 0, typename Children, typename Builder, typename Fn,
           affine::AffineMapLike Map>
@@ -99,26 +112,30 @@ constexpr auto tuple_fold_sum(Children&& children, Builder&& builder, Fn&& fn,
 }
 
 /**
- * @brief sum atom
+ * @brief DCP sum atom over two or more child atoms.
  */
 template <typename Meta, typename... Cs>
 struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
-  /// @brief base type alias
+  /// @brief CRTP base type.
   using BaseT = Atom<Meta, Sum<Meta, Cs...>, Cs...>;
+  /// @brief Parent atom codomain.
   using typename BaseT::Codomain;
+  /// @brief Parent atom domain.
   using typename BaseT::Domain;
+  /// @brief Point type accepted by the parent domain.
   using typename BaseT::PointT;
+  /// @brief Scalar field used by child atoms.
   using typename BaseT::T;
   static_assert(dom_size_v<Domain> == sizeof...(Cs),
                 "Size of domain is not equal to children");
   static_assert(sizeof...(Cs) > 1, "Number of children not greater than 1");
 
-  using MatT = linalg::Matrix<T, 1, 1>;
+  using MatT = linalg::Matrix<T, 1, 1>; ///< Scalar affine map matrix type.
 
   /**
-   * @brief CTOR
+   * @brief Construct a sum atom from child atoms.
    *
-   * @param children param pack
+   * @param cs child atoms to sum
    */
   constexpr explicit Sum(const Cs&... cs)
       : BaseT(std::make_tuple(cs...)), map(affine::make_map_id<MatT>()) {
@@ -126,10 +143,10 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   }
 
   /**
-   * @brief CTOR
+   * @brief Construct a transformed sum atom from a scalar affine map.
    *
-   * @param map
-   * @param tuple of children
+   * @param map_in scalar affine transform applied to the child sum
+   * @param cs tuple of child atoms
    */
   constexpr explicit Sum(const affine::AffineMap<MatT>& map_in,
                          const std::tuple<Cs...>& cs)
@@ -138,9 +155,11 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   }
 
   /**
-   * @brief multiply
+   * @brief Scale this sum by a compile-time scalar.
    *
-   * @return new sum
+   * @tparam Scalar scale factor applied to the selector map
+   *
+   * @return transformed sum atom
    */
   template <T Scalar>
   constexpr auto mul() const {
@@ -150,11 +169,11 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   }
 
   /**
-   * @brief add
+   * @brief Add a scalar offset to this sum.
    *
    * @param beta scalar
    *
-   * @return new sum
+   * @return transformed sum atom
    */
   constexpr auto add(const T& beta) const {
     affine::AffineMap<MatT> new_map(
@@ -163,11 +182,14 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
   }
 
   /**
-   * @brief canonicalize
+   * @brief Canonicalize this sum into a cone builder.
    *
-   * @param builder
+   * @tparam Type requested atom canonicalization target
+   * @tparam Builder canonical-form builder type
    *
-   * @return cone block builder
+   * @param builder current canonical-form builder
+   *
+   * @return updated canonical-form builder
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize_impl(const Builder& builder) const {
@@ -192,10 +214,13 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
         new_selector, new_builder.cb, new_builder.eq_map);
   }
 
-  /** @brief member var */
-  affine::AffineMap<MatT> map;
+  affine::AffineMap<MatT>
+      map; ///< Scalar affine transform applied after summing children.
 };
 
+/**
+ * @brief Deduction guide for sum atoms.
+ */
 template <typename C0, typename... Cs>
 Sum(const C0&, const Cs&...)
     -> Sum<SumMeta<linalg::Matrix<dom_type_t<meta_dom_t<atom_meta_t<C0>>>, 1,

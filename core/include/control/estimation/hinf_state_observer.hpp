@@ -34,15 +34,15 @@ namespace control {
  *   z_e = C_e e
  *
  * Observer design
- *   \hat{xdot} = A \hat{x} + B_u u + L(y - C_y \hat{x})
- *   e = x - \hat{x}
+ *   hat{xdot} = A hat{x} + B_u u + L(y - C_y hat{x})
+ *   e = x - hat{x}
  *   edot = (A - L C_y) e + (B_w - L D_yw) w
  *
  * A_cl = A - L C_y
  * B_cl = B_w - L D_yw
  * C_cl = C_e
  *
- * Certifies ||T_{wz_e}||_\inf < gamma.
+ * Certifies ||T_{wz_e}||_infinity < gamma.
  *
  * General BRL form with observability Lyapunov variable Q > 0:
  *   [ A_cl^T Q + Q A_cl  Q B_cl   C_cl^T   ] < 0

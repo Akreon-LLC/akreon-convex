@@ -104,7 +104,7 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param x \in R
+   * @param x in R
    *
    * @return log(1 + exp(x))
    */

@@ -45,7 +45,7 @@ using LogSumExpConcaveMeta =
 /**
  * @brief log sum exp = smooth max function
  *
- * lse(x) = log(\sum_i^n(e^{x_i})) which is a smooth mapping from R^n to R
+ * lse(x) = log(sum_i^n(e^{x_i})) which is a smooth mapping from R^n to R
  */
 template <typename Meta, typename Child>
 struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
@@ -99,9 +99,9 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param point x \in dom f
+   * @param point x in dom f
    *
-   * @return y \in R
+   * @return y in R
    */
   constexpr T eval(const PointT& x) const {
     T sum(0);
@@ -165,7 +165,7 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
    * K = { (x, t) | sum_i(exp(x_i - t)) <= 1 }
    * K = { (x, t, s) | exp(x_i - t) <= s_i, 1^T s <= 1 }
    *
-   * Exp cone : { (u, v, w) | v exp(u/v) <= w, v > 0 } \cup { (u, 0, w) | u <=
+   * Exp cone : { (u, v, w) | v exp(u/v) <= w, v > 0 } union { (u, 0, w) | u <=
    * 0, w >= 0 }
    *
    * let u = x_i - t, v = 1, w = s_i... n exp cones

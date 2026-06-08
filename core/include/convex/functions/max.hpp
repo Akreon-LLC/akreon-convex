@@ -44,7 +44,7 @@ using MaxConcaveMeta =
 /**
  * @brief max convex function CRTP
  *
- * F(x) = max { x_1, x_2, ... x_n }, x \in R^n
+ * F(x) = max { x_1, x_2, ... x_n }, x in R^n
  */
 template <typename Meta, typename Child>
 struct Max : Atom<Meta, Max<Meta, Child>, Child> {
@@ -101,9 +101,9 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param Point \in domain
+   * @param Point in domain
    *
-   * @return y \in R
+   * @return y in R
    */
   constexpr T eval(const PointT& x) const {
     T mx(0);

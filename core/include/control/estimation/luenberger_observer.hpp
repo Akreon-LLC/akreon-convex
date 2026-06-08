@@ -46,11 +46,11 @@ namespace control {
  *
  * where W = Q L.
  *
- * we can elim W same as state feedback via introducing \sigma = 1
- *   A^T Q + Q A - \sigma C^T C < 0
+ * we can elim W same as state feedback via introducing sigma = 1
+ *   A^T Q + Q A - sigma C^T C < 0
  *
  * observer gain calculation
- *   L = (\sigma / 2) Q^{-1} C^T
+ *   L = (sigma / 2) Q^{-1} C^T
  */
 template <ContinuousPlantModelLike ObsModel>
 struct LuenbergerObserver {

@@ -19,7 +19,7 @@
 namespace linalg {
 
 /**
- * @brief A = GG^T cholesky decomposition where A \in S^n_++
+ * @brief A = GG^T cholesky decomposition where A in S^n_++
  */
 template <SquareMatrixLike Mat>
 struct Cholesky : SymmetricOperator<Mat, Cholesky<Mat>> {
@@ -63,7 +63,7 @@ struct Cholesky : SymmetricOperator<Mat, Cholesky<Mat>> {
 
 private:
   /**
-   * @brief GG^T of A \in S^n_++
+   * @brief GG^T of A in S^n_++
    *
    * @param A (matrix)
    *

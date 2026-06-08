@@ -33,7 +33,7 @@ using HyperplaneMeta =
 /**
  * @brief Hyperplane defition defined on valid vector space
  *
- * H = { x | a^T x = b } \equiv { x | a^T x - b = 0 }
+ * H = { x | a^T x = b } equivalent to { x | a^T x - b = 0 }
  */
 template <typename Meta, typename Child>
 struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
@@ -80,9 +80,9 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    * @brief transform implementation
    *
    * H = { x | a^T x = b }
-   * f(H) = { y = f(x) | x \in H }
+   * f(H) = { y = f(x) | x in H }
    * y = U x + t -> x = U^{-1} (y - t)
-   * a^T U^{-1} (y - t) = b \to a^T U^{-1} y = b + a^T U^{-1}
+   * a^T U^{-1} (y - t) = b to a^T U^{-1} y = b + a^T U^{-1}
    *
    * @param affine map
    *

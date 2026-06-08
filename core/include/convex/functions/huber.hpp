@@ -121,9 +121,9 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param point x \in domain
+   * @param point x in domain
    *
-   * @return y (scalar \in R)
+   * @return y (scalar in R)
    */
   constexpr T eval(const PointT& x) const {
     const auto alpha = lift_map.linear_part()(0)(0);
@@ -185,30 +185,30 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
   /**
    * @brief canonicalize impl
    *
-   * L_\delta(a) = \piecewise{
-   *    0.5 a^2, for |a| <= \delta,
-   *    \delta(|a| - 0.5 \delta) otherwise
+   * L_delta(a) = piecewise{
+   *    0.5 a^2, for |a| <= delta,
+   *    delta(|a| - 0.5 delta) otherwise
    * }
    *
    * Variational Form
-   * h(x, \delta) = min_{u, v, \gamma, q, t} t
-   * s.t. x = u + v, \gamma >= |v|, q >= u^2, t >= q + \delta \gamma
+   * h(x, delta) = min_{u, v, gamma, q, t} t
+   * s.t. x = u + v, gamma >= |v|, q >= u^2, t >= q + delta gamma
    *
    * Convex
-   * [  a -1 -1  0      0  0 ] \hat{x} + [  b ]
+   * [  a -1 -1  0      0  0 ] hat{x} + [  b ]
    * [ -a  1  1  0      0  0 ]          [ -b ]
    * [  0  1  0  1      0  0 ]          [  0 ]
    * [  0 -1  0  1      0  0 ]          [  0 ]
    * [  0  0  0  1      0  0 ]          [  0 ]
-   * [  0  0  0 -\delta -1 1 ]          [  0 ]
+   * [  0  0  0 -delta -1 1 ]          [  0 ]
    * [  0  0  1  0      0  0 ]          [  0 ]
    * [  0  0  0  0      0  0 ]          [ 1/2 ]
    * [  0  0  0  0      1  0 ]          [  0 ]
    *
    * Concave
-   * row 5 becomes [ 0 0 0 -\delta -1 -1 ] so t <= -(q + \delta \gamma)
+   * row 5 becomes [ 0 0 0 -delta -1 -1 ] so t <= -(q + delta gamma)
    *
-   * \hat{x} = [ x; v; u; \gamma; q; t ]
+   * hat{x} = [ x; v; u; gamma; q; t ]
    *
    * @param builder
    *

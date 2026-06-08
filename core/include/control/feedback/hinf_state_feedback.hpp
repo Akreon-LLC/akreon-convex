@@ -29,12 +29,12 @@ namespace control {
  * @brief Hinf State Feedback
  *
  * We seek a state-feedback gain K s.t. L2 gain
- *   sup_{||w||_2 = 1} = ||z||_2 = sup_{||w||_2\neq0}\frac{||z||_2}{||w||_2}
+ *   sup_{||w||_2 = 1} = ||z||_2 = sup_{||w||_2!=0}frac{||z||_2}{||w||_2}
  *
- * of the CL system is less than an arbitrary \gamma
+ * of the CL system is less than an arbitrary gamma
  *
- * L2 gain for LTI is equal to H_\inf norm of the corresponding TF. \exists K
- * s.t. L2 gain of an LTI system is less than \gamma if the inverse BRL
+ * L2 gain for LTI is equal to H_infinity norm of the corresponding TF. exists K
+ * s.t. L2 gain of an LTI system is less than gamma if the inverse BRL
  * Lyapunov variable Q > 0.
  *   xdot = A x + B_xw w + B_xu u
  *   z    = C_zx x + D_zw w + D_zu u
@@ -55,13 +55,13 @@ namespace control {
  * C_cl = C_zx + D_zu K
  * D_cl = D_zw
  *
- * Certifies ||T_zw||_\inf < \gamma where T_zw is the complementary sensitivity
- * TF from w to z
+ * Certifies ||T_zw||_infinity < gamma where T_zw is the complementary
+ * sensitivity TF from w to z
  *
  * General BRL form with Lyapunov variable S > 0:
  *   [ (A_cl^T S + S A_cl)  (S B_xw)    C_cl^T    ] < 0
- *   [ (B_xw^T S)           (-\gamma I) D_zw^T    ]
- *   [ C_cl                 D_zw        -\gamma I ]
+ *   [ (B_xw^T S)           (-gamma I) D_zw^T    ]
+ *   [ C_cl                 D_zw        -gamma I ]
  *
  * Hinf synthesis decision variables:
  *   Q     : n x n, inverse BRL Lyapunov variable Q = S^{-1}
@@ -75,8 +75,8 @@ namespace control {
  *
  * We have a bilinear term in K Q, so let Y = K Q where K = Y Q^-1
  *   [ A Q + Q A^T + B_xu Y + Y^T B_xu^T  B_xw         (C_zx Q + D_zu Y)^T ] < 0
- *   [ B_xw^T                             (-\gamma I)  D_zw^T              ]
- *   [ C_zx Q + D_zu Y                    D_zw         (-\gamma I)         ]
+ *   [ B_xw^T                             (-gamma I)  D_zw^T              ]
+ *   [ C_zx Q + D_zu Y                    D_zw         (-gamma I)         ]
  *
  * Convex problem:
  *   min  gamma

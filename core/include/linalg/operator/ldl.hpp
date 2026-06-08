@@ -93,7 +93,7 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   /**
    * @brief det
    *
-   * det(A) = \prod_i^n(d_{ii})
+   * det(A) = prod_i^n(d_{ii})
    *
    * @return det(A)
    */

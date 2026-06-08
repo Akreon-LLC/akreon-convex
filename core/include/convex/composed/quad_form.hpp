@@ -102,10 +102,10 @@ struct QuadForm {
    *
    * x^T P x = x^T L L^T x
    *
-   * @param P \in S^n_+
-   * @param q \in R^n
-   * @param r \in R
-   * @param x \in R^n (var)
+   * @param P in S^n_+
+   * @param q in R^n
+   * @param r in R
+   * @param x in R^n (var)
    *
    * @return 0.5 x^T P x + q^T x + r
    */
@@ -135,9 +135,9 @@ struct QuadForm {
   /**
    * @brief operator overload without constant offset
    *
-   * @param P \in S^n_+
-   * @param q \in R^n
-   * @param x \in R^n (var)
+   * @param P in S^n_+
+   * @param q in R^n
+   * @param x in R^n (var)
    *
    * @return 0.5 x^T P x + q^T x
    */
@@ -186,9 +186,9 @@ constexpr auto make_scalar_quad_form(
 /**
  * @brief make quadratic form with domain deduced from the variable atom
  *
- * @param P \in S^n_+
- * @param q \in R^n
- * @param r \in R
+ * @param P in S^n_+
+ * @param q in R^n
+ * @param r in R
  * @param x decision variable atom
  *
  * @return 0.5 x^T P x + q^T x + r
@@ -208,8 +208,8 @@ constexpr auto make_quad_form(
 /**
  * @brief make quadratic form without constant offset
  *
- * @param P \in S^n_+
- * @param q \in R^n
+ * @param P in S^n_+
+ * @param q in R^n
  * @param x decision variable atom
  *
  * @return 0.5 x^T P x + q^T x

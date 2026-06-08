@@ -18,7 +18,7 @@
 
 namespace convex {
 
-/// @brief alias for domain on kl div function (q \in R_++)
+/// @brief alias for domain on kl div function (q in R_++)
 template <linalg::RnSpace Space>
 using KLDivDom = ConvexDomain<Space, VarType::POS>;
 
@@ -112,10 +112,10 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param point p \in dom f
-   * @param point q \in dom f
+   * @param point p in dom f
+   * @param point q in dom f
    *
-   * @return y \in R
+   * @return y in R
    */
   constexpr T eval(const PointT& q) const {
     T res(0);

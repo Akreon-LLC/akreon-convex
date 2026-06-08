@@ -51,7 +51,7 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC> {
   /**
    * @brief in interior of K
    *
-   * @param x \in K
+   * @param x in K
    *
    * @return bool
    */
@@ -68,10 +68,10 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC> {
   /**
    * @brief fraction to boundary dK
    *
-   * @param x \in K
-   * @param p \in E
+   * @param x in K
+   * @param p in E
    *
-   * @return \alpha_max
+   * @return alpha_max
    */
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {

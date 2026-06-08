@@ -45,7 +45,7 @@ using AbsConcaveMeta = ConvexAtomMeta<AbsDom<Space>, AbsConcaveCodom<Space>,
 /**
  * @brief abs function
  *
- * f(x) = |x|, x \in R
+ * f(x) = |x|, x in R
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
@@ -120,9 +120,9 @@ struct Abs : Atom<Meta, Abs<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param x \in R
+   * @param x in R
    *
-   * @return abs(x) \in R
+   * @return abs(x) in R
    */
   constexpr T eval(const PointT& x) const {
     const auto alpha = lift_map.linear_part()(0)(0);

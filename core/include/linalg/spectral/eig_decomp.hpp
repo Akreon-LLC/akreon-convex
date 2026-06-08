@@ -19,7 +19,7 @@ namespace linalg {
 /**
  * @brief EigenDecomposition class definition
  *
- * Solves the following equation A X = \Lambda X via QR and successive
+ * Solves the following equation A X = Lambda X via QR and successive
  * similarity transforms to diagonalize A into eigenvalues.
  */
 template <SquareMatrixLike Mat>
@@ -57,7 +57,7 @@ struct EigenDecomposition {
    *
    * AKA maximum magnitude of a matrix as dictated by its max abs eigenvalue
    *
-   * @return \rho
+   * @return rho
    */
   constexpr auto spectral_radius() const {
     Complex rho(0.0);
@@ -79,7 +79,7 @@ struct EigenDecomposition {
 
 private:
   /**
-   * @brief solve A X = \Lambda X via QR
+   * @brief solve A X = Lambda X via QR
    *
    * Following the practical QR Algorithm 7.5 in Matrix Computations
    *
@@ -133,9 +133,9 @@ private:
             continue;
           }
 
-          // (dakre) \lambda^2 - (a + d) \lambda + (ad - bc) = 0
-          // t = a + d, \delta = ad - bc, \mu = 0.5 * (a - d)
-          // t^2 - 4 \delta then sub in the scalars above to form \lambda
+          // (dakre) lambda^2 - (a + d) lambda + (ad - bc) = 0
+          // t = a + d, delta = ad - bc, mu = 0.5 * (a - d)
+          // t^2 - 4 delta then sub in the scalars above to form lambda
           const Real& b = H(j)(j + 1);
           const auto t = a + d;
           const auto mu = 0.5 * (a - d);
@@ -198,7 +198,7 @@ private:
 
     // 4. back substitute now for solving eigenvectors
     // a. check for normal form (AM == 1)
-    //  - solve for root (H - \lambda I) x = 0
+    //  - solve for root (H - lambda I) x = 0
     //  - apply coordinate map to x (evec) from unitary basis U to get it
     //  aligned in A
     // b. solve jordan block (AM > 1)
@@ -206,9 +206,9 @@ private:
       if (used[i]) continue;
 
       // Jordan block
-      // - AM = algebraic multiplicity (# of repeated \lambda)
+      // - AM = algebraic multiplicity (# of repeated lambda)
       // - GM = geometric multiplicity (# of linearly independent
-      // eigenvectors for \lambda)
+      // eigenvectors for lambda)
       // - Defect = # of extra generalized evecs to span the space the Jordan
       // block lies in
       int AM = 0;
@@ -227,7 +227,7 @@ private:
 
         // (a) solve normally
         if (!is_real(eigs(i)) && i > 0) {
-          // (0) seed & back solve homogenous case (H - \lambda I) x = 0
+          // (0) seed & back solve homogenous case (H - lambda I) x = 0
           seed_complex_block(H, i, x);
           back_sub_1x1_block(H, i, x);
 
@@ -245,7 +245,7 @@ private:
 
           used[i] = true;
         } else {
-          // (0) seed & back solve homogenous case (H - \lambda I) x = 0
+          // (0) seed & back solve homogenous case (H - lambda I) x = 0
           seed_real_block(i, x);
           back_sub_1x1_block(H, i, x);
 
@@ -266,11 +266,11 @@ private:
           const int chain_len = std::min(1 + defect, (i + 1) / 2);
           Vector<Vector<Complex, N>, N> chain;
 
-          // (1) seed and back solve for homogenous case (H - \lambda I) x = 0
+          // (1) seed and back solve for homogenous case (H - lambda I) x = 0
           seed_complex_block(H, i, chain(0));
           back_sub_1x1_block(H, i, chain(0));
 
-          // (2) back solve for each (H - \lambda I) x_k = x_{k+1}
+          // (2) back solve for each (H - lambda I) x_k = x_{k+1}
           for (int k = 1; k < chain_len; ++k)
             back_sub_shifted_rhs(H, lambda(i), chain(k - 1), chain(k));
 
@@ -309,11 +309,11 @@ private:
           const int chain_len = std::min(1 + defect, 1 + i);
           Vector<Vector<Complex, N>, N> chain;
 
-          // (1) seed and back solve for homogenous case (H - \lambda I) x = 0
+          // (1) seed and back solve for homogenous case (H - lambda I) x = 0
           seed_real_block(i, chain(0));
           back_sub_1x1_block(H, i, chain(0));
 
-          // (2) back solve for each (H - \lambda I) x_k = x_{k+1}
+          // (2) back solve for each (H - lambda I) x_k = x_{k+1}
           for (int k = 1; k < chain_len; ++k)
             back_sub_shifted_rhs(H, eigs(i), chain(k - 1), chain(k));
 
@@ -347,8 +347,8 @@ private:
    */
   constexpr void back_sub_1x1_block(const Mat& H, const int& idx,
                                     Vector<Complex, N>& x) {
-    // (dakre) solve (H - \lambda I) x = 0 by way of back sub from idx to top
-    // (H_rr - \Lambda) x_r + \sum_0^idx H_rc * x_c = 0 ... isolate x_r and
+    // (dakre) solve (H - lambda I) x = 0 by way of back sub from idx to top
+    // (H_rr - Lambda) x_r + sum_0^idx H_rc * x_c = 0 ... isolate x_r and
     // solve
     for (int r = idx - 1; r >= 0; --r) {
       Complex sum(0);
@@ -361,10 +361,10 @@ private:
   }
 
   /**
-   * @brief back sub for shifted repeated \lambda case
+   * @brief back sub for shifted repeated lambda case
    *
    * @param matrix of type T with N x N elements
-   * @param complex \lambda
+   * @param complex lambda
    * @param rhs v_{k-1} eigen vector
    * @param mutable eigen vector (this stages update)
    *
@@ -373,7 +373,7 @@ private:
   constexpr void back_sub_shifted_rhs(const Mat& H, const Complex& eig,
                                       const Vector<Complex, N>& rhs,
                                       Vector<Complex, N>& x) {
-    // (dakre) back solve (H - \lambda I) x = rhs
+    // (dakre) back solve (H - lambda I) x = rhs
     for (int r = int(N) - 1; r >= 0; --r) {
       Complex sum(0);
       for (int c = r + 1; c < int(N); ++c) sum += H(r)(c) * x(c);

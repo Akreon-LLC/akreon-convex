@@ -45,7 +45,7 @@ using LogConvexMeta =
 /**
  * @brief log function
  *
- * f(x) = log(x), x \in R_++
+ * f(x) = log(x), x in R_++
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
@@ -104,9 +104,9 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param x \in R_++
+   * @param x in R_++
    *
-   * @return log(x) \in R
+   * @return log(x) in R
    */
   constexpr T eval(const PointT& x) const {
     AK_ASSERT(x(0) > T(0) && "Invalid domain for log(x)");

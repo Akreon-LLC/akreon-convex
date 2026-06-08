@@ -36,8 +36,8 @@ namespace control {
  *   z_e = C_e e
  *
  * Observer design
- *   \hat{xdot} = A \hat{x} + B_u u + L(y - C_y \hat{x})
- *   e = x - \hat{x}
+ *   hat{xdot} = A hat{x} + B_u u + L(y - C_y hat{x})
+ *   e = x - hat{x}
  *   edot = (A - L C_y) e + (B_w - L D_yw) w
  *
  * A_cl = A - L C_y

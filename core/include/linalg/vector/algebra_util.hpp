@@ -85,8 +85,8 @@ constexpr T constexpr_div_safe(const T& num, const T& den,
 /**
  * @brief power of a scalar
  *
- * @param x \in R
- * @param power \in N
+ * @param x in R
+ * @param power in N
  *
  * @return pow
  */
@@ -100,12 +100,12 @@ constexpr T constexpr_pow(const T& x, const size_t& power) {
 /**
  * @brief perform square root of input variable x via root finding
  *
- * f(g) = g^2 - x \to df/dg = 2 g
- * Newton formula : g_{k+1} = g_k - \frac{g^2 - x} / {2 g_k} \equiv 0.5 * (g_n +
- * x / g_n)
+ * f(g) = g^2 - x to df/dg = 2 g
+ * Newton formula : g_{k+1} = g_k - frac{g^2 - x} / {2 g_k} equivalent to 0.5 *
+ * (g_n + x / g_n)
  *
- * @param x \in R
- * @param g \in R (guess)
+ * @param x in R
+ * @param g in R (guess)
  *
  * @return sqrt(x)
  */
@@ -162,15 +162,15 @@ constexpr auto constexpr_abs(const T& x) {
 }
 
 /**
- * @brief nth root of an input var x \in Reals via newton step
+ * @brief nth root of an input var x in Reals via newton step
  *
- * f(g) = g^n - x \to df/dg = n g^{n-1}
- * Newton formula : g_{k+1} = g_k - \frac{g_k^n - x}{n g^{n-1}} \equiv
+ * f(g) = g^n - x to df/dg = n g^{n-1}
+ * Newton formula : g_{k+1} = g_k - frac{g_k^n - x}{n g^{n-1}} equivalent to
  * g_{k+1} = 1/n ((n - 1) g_k + x / g_k^{n-1})
  *
- * @param x \in R
- * @param root \in N
- * @param g \n R (guess)
+ * @param x in R
+ * @param root in N
+ * @param g in R (guess)
  *
  * @return nth root of x
  */
@@ -231,7 +231,7 @@ constexpr T constexpr_nrt_safe(T x, const size_t& root, const T& floor = T(0),
 /**
  * @brief perform sin via taylor series approximation
  *
- * \sum_{k=0}^{\infty}\frac{(-1)^{k}x^{2k+1}}{(2k+1)!}
+ * sum_{k=0}^{infinity}frac{(-1)^{k}x^{2k+1}}{(2k+1)!}
  *
  * @param x as type T
  *
@@ -250,7 +250,7 @@ constexpr auto constexpr_sin(const T& x, int terms = 16) {
 /**
  * @brief perform sin via taylor series approximation
  *
- * \sum_{k=0}^{\inf}\frac{(-1)^{k}x^{2k}}{(2k)!} = cos x
+ * sum_{k=0}^{infinity}frac{(-1)^{k}x^{2k}}{(2k)!} = cos x
  *
  * @param x as type T
  *
@@ -269,12 +269,12 @@ constexpr auto constexpr_cos(const T& x, int terms = 16) {
 /**
  * @brief atanh (inverse hyperbolic tangent function)
  *
- * atanh(x) = x + x^3 / 3 + x^5 / 5 + ... = \sum_{n=0}^{\infty}
- * \frac{x^{2n+1}}{2n+1}
+ * atanh(x) = x + x^3 / 3 + x^5 / 5 + ... = sum_{n=0}^{infinity}
+ * frac{x^{2n+1}}{2n+1}
  *
- * @param x \in (-1, 1)
+ * @param x in (-1, 1)
  *
- * @return y \in R
+ * @return y in R
  */
 template <RealLike T>
 constexpr std::optional<T> constexpr_atanh(const T& x, int terms = 16) {
@@ -307,7 +307,7 @@ constexpr T constexpr_atanh_safe(const T& x, const T& fallback = T(0),
 /**
  * @brief perform exp on an imaginary number (unit circle)
  *
- * @param theta \in R (e^{i \theta})
+ * @param theta in R (e^{i theta})
  *
  * @return complex number
  */
@@ -320,10 +320,10 @@ constexpr auto constexpr_expi(const T& theta, int terms = 16) {
 /**
  * @brief exp (sum of a power series)
  *
- * exp(x) = 1 + x + x^2/2! + x^3/3!... = \sum_{n=0}^\infty
- * \frac{x^n}{n!}
+ * exp(x) = 1 + x + x^2/2! + x^3/3!... = sum_{n=0}^infinity
+ * frac{x^n}{n!}
  *
- * @param x \in R
+ * @param x in R
  *
  * @return real number
  */
@@ -338,9 +338,9 @@ constexpr auto constexpr_exp(const T& x, int terms = 16) {
 }
 
 /**
- * @brief perform exp on eigenvalue : \lambda = \alpha + j \omega
+ * @brief perform exp on eigenvalue : lambda = alpha + j omega
  *
- * @param lambda \in C
+ * @param lambda in C
  *
  * @return complex number
  */
@@ -355,16 +355,16 @@ constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
  * [old 1] less numerically friendly
  * Taylor series expansion for 1 + t, t = 0
  * log(1 + t) = t - t^2 / 2 + t^3 / 3 - ... =
- * \sum_{k=1}^{\infty}(-1)^{k+1}\frac{t^k}{k}
+ * sum_{k=1}^{infinity}(-1)^{k+1}frac{t^k}{k}
  *
- * Restricting x \in R_++, and let t = x - 1... log(1 + x - 1) = log(x)
- * log(x) \approx (x - 1) - (x - 1)^2 / 2 + (x - 1)^3 - ...
+ * Restricting x in R_++, and let t = x - 1... log(1 + x - 1) = log(x)
+ * log(x) approximately (x - 1) - (x - 1)^2 / 2 + (x - 1)^3 - ...
  *
  * [old 2] use atanh
- * log(x) \approx 2 * atan(y) where y = (x - 1) / (x + 1)
+ * log(x) approximately 2 * atan(y) where y = (x - 1) / (x + 1)
  *
  * [new] range reduce x = m * 2^e where m in [0.5, 2]
- * \forall x > 0 we have x = m 2^e, m \in [0.5, 1] and e \in Z
+ * for all x > 0 we have x = m 2^e, m in [0.5, 1] and e in Z
  * ln(x) = ln(m) + e ln(2)
  * ** the above makes this much more numerically stable
  *

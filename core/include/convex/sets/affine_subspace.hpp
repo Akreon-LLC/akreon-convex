@@ -33,7 +33,7 @@ using AffineMeta =
  * @brief Affine Set in the perspective of an affine equality set
  *
  * C = { x | A x = b }
- * C is an affine subspace of R^n where A \in R^{m x n} and b \in R^m
+ * C is an affine subspace of R^n where A in R^{m x n} and b in R^m
  */
 template <typename Meta, typename Child>
 struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
@@ -55,8 +55,8 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
   /**
    * @brief CTOR for affine subspace
    *
-   * @param A \in R^{m x n}
-   * @param b \in R^m
+   * @param A in R^{m x n}
+   * @param b in R^m
    * @param child
    */
   constexpr explicit AffineSubspace(const Mat& A_in, const AmbientVec& b_in,
@@ -66,7 +66,7 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
   /**
    * @brief contains function
    *
-   * @param point x \in R^n
+   * @param point x in R^n
    * @param tolerance
    *
    * @return T/F
@@ -102,9 +102,9 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    * @brief transform
    *
    * C = { x | A x = b }
-   * f(C) = { y = f(x) | x \in C }
-   * y = U x + t \to x = U^{-1} (y - t)
-   * A U^{-1} (y - t) = b \to A U^{-1} y = b + A U^{-1} t
+   * f(C) = { y = f(x) | x in C }
+   * y = U x + t to x = U^{-1} (y - t)
+   * A U^{-1} (y - t) = b to A U^{-1} y = b + A U^{-1} t
    *
    * @param affine map
    *

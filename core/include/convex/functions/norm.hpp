@@ -114,9 +114,9 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
   /**
    * @brief eval impl
    *
-   * @param point x \in domain
+   * @param point x in domain
    *
-   * @return y (scalar \in R)
+   * @return y (scalar in R)
    */
   constexpr T eval(const PointT& x) const {
     const auto alpha = lift_map.linear_part()(0)(0);
@@ -191,7 +191,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
    * (1) f(x) = ||x||_inf
    * K = { (x, t) | ||x||_inf <= t }
    *
-   * -t <= x_i <= t... \forall i
+   * -t <= x_i <= t... for all i
    * 0 <= x_i + t... nonneg orthant cone(s)
    * 0 <= t - x_i... nonneg orthant cone(s)
    *

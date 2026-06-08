@@ -43,7 +43,7 @@ using SqrtConvexMeta = ConvexAtomMeta<SqrtDom<Space>, SqrtConvexCodom<Space>,
 /**
  * @brief sqrt function
  *
- * f(x) = sqrt(x) \in R_++
+ * f(x) = sqrt(x) in R_++
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
@@ -104,7 +104,7 @@ struct Sqrt : Atom<Meta, Sqrt<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param x \in R_++
+   * @param x in R_++
    *
    * @return sqrt(x)
    */
@@ -162,7 +162,7 @@ struct Sqrt : Atom<Meta, Sqrt<Meta, Child>, Child> {
    * @brief canonicalize impl
    *
    * (1) f(x) = sqrt(x)
-   * K = { (x, t) | sqrt(x) >= t } \to { (x, t) | x >= t^2 }
+   * K = { (x, t) | sqrt(x) >= t } to { (x, t) | x >= t^2 }
    * (u = t, v = 1/2, w = x) -> K_rsoc = { (t, 1/2, x) | t^2 <= x }
    *
    * [ 0   1 ] [ x; t ] + [ 0; 1/2; b ] -> (t, 1/2, a^T x + b)

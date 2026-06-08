@@ -165,7 +165,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
 /**
  * @brief variable atom
  *
- * Holds the decision var \in R^n
+ * Holds the decision var in R^n
  */
 template <typename Meta>
 struct Variable : Atom<Meta, Variable<Meta>> {

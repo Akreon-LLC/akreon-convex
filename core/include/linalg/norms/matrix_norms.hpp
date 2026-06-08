@@ -20,7 +20,7 @@ namespace linalg {
 /**
  * @brief compute the frobenius norm of a matrix
  *
- * sqrt(tr(A^T A)) if A \in R else sqrt(tr(A^* A)) where A \in C
+ * sqrt(tr(A^T A)) if A in R else sqrt(tr(A^* A)) where A in C
  *
  * @param matrix A Rows x Cols elements of type T (must be square)
  *

@@ -36,7 +36,7 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
    *
    * Householder reduction to hessenberg form
    *
-   * A \in R^nxn \to H = U_0^T A U_0 where H is upper Hessenberg and U_0 is
+   * A in R^nxn to H = U_0^T A U_0 where H is upper Hessenberg and U_0 is
    * unitary
    *
    * @param Matrix A of type T with N x N elements

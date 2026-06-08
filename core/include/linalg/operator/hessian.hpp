@@ -43,7 +43,7 @@ struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
   /**
    * @brief CTOR
    *
-   * @param A \in R^{n x n}
+   * @param A in R^{n x n}
    */
   constexpr explicit Hessian(const Mat& A) : H(A) {}
 

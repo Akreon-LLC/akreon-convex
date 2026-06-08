@@ -18,8 +18,8 @@ namespace conic {
 
 /** @brief power cone class
  *
- * K_pow = { (x,t) \in R_++ x R | \prod(x_i)^a_i >= |t|, sum(a_i) == 1, a_i >= 0
- * } a \in Q (set of rational numbers)
+ * K_pow = { (x,t) in R_++ x R | prod(x_i)^a_i >= |t|, sum(a_i) == 1, a_i >= 0
+ * } a in Q (set of rational numbers)
  */
 template <linalg::VectorLike Slack>
 struct PowerCone : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
@@ -36,7 +36,7 @@ struct PowerCone : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
   /**
    * @brief PowerCone
    *
-   * @param alphas \in Q^n
+   * @param alphas in Q^n
    */
   constexpr explicit PowerCone(const AlphaVec& alphas_in) : alphas(alphas_in) {}
 
@@ -78,10 +78,10 @@ struct PowerCone : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
   /**
    * @brief fraction to boundary dK
    *
-   * @param x \in K
-   * @param p \in E
+   * @param x in K
+   * @param p in E
    *
-   * @return \alpha_max
+   * @return alpha_max
    */
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {

@@ -22,9 +22,9 @@ namespace convex {
 template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
           linalg::VectorLike NuVar>
 struct PrimalDualIterate {
-  Var z{};     ///< decision var \in Rn + aux lifts
-  ConeVar x{}; ///< primal cone var \in K
-  ConeVar y{}; ///< dual cone var \in K^*
+  Var z{};     ///< decision var in Rn + aux lifts
+  ConeVar x{}; ///< primal cone var in K
+  ConeVar y{}; ///< dual cone var in K^*
   NuVar nu{};  ///< lagrangian multiplier on equality constraints
 };
 

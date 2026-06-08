@@ -48,8 +48,8 @@ struct PredictorCorrector {
    * @param rp (primal residual)
    * @param rd (dual residual)
    * @param req (equality residual)
-   * @param x (x \in K iterate)
-   * @param y (y \in K^* iterate)
+   * @param x (x in K iterate)
+   * @param y (y in K^* iterate)
    *
    * @return pz_rhs, step (ignore rhs on return), event
    */
@@ -159,8 +159,8 @@ struct PredictorCorrector {
    * @param rp (primal residual)
    * @param rd (dual residual)
    * @param req (equality residual)
-   * @param x (x \in K iterate)
-   * @param y (y \in K^* iterate)
+   * @param x (x in K iterate)
+   * @param y (y in K^* iterate)
    * @return pz_rhs, step (ignore rhs on return), event
    */
   template <size_t idx = 0, size_t Start = 0>

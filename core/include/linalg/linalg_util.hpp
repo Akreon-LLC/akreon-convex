@@ -98,7 +98,7 @@ constexpr auto as_row_vector(const Vec& X) {
  *
  * @param Matrix A type T with Rows x Cols elements
  *
- * @return A \in C
+ * @return A in C
  */
 template <MatrixLike Mat>
 constexpr auto as_complex_matrix(const Mat& A) {

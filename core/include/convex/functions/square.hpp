@@ -47,7 +47,7 @@ using SquareConcaveMeta =
 /**
  * @brief square function
  *
- * f(x) = x*x, x \in R_+
+ * f(x) = x*x, x in R_+
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)
@@ -122,9 +122,9 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param x \in R
+   * @param x in R
    *
-   * @return x^2 \in R
+   * @return x^2 in R
    */
   constexpr T eval(const PointT& x) const {
     const auto alpha = lift_map.linear_part()(0)(0);

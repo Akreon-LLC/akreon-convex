@@ -30,7 +30,7 @@ struct HouseholderVector {
   /**
    * @brief CTOR to compute householder vector
    *
-   * Householder reflector: P = I - beta v v^T is \perp and Px = ||x||_2 e_1
+   * Householder reflector: P = I - beta v v^T is perp and Px = ||x||_2 e_1
    * beta = 2 / v^T v
    *
    * @param vector x to be transformed into householder
@@ -49,7 +49,7 @@ private:
    * @brief from a vector X create a householder vector
    *
    * The whole idea of householder vectors is to generate orthogonal vectors
-   * such that Q^T Q = I or Q^* Q = I \in C from the householder reflectors
+   * such that Q^T Q = I or Q^* Q = I in C from the householder reflectors
    * described above
    *
    * @param vector x with type T and N elements

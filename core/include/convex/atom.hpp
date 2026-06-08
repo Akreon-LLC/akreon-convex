@@ -19,44 +19,54 @@
 namespace convex {
 
 /**
- * @brief Atom CRTP
+ * @brief CRTP base for convex atoms.
  *
- * Valid convex atomic object
+ * The base stores normalized child atoms and enforces domain, codomain,
+ * curvature, and DCP composition rules shared by functions, sets,
+ * intersections, and sums.
  */
 template <typename Meta, typename Derived, typename... Cs>
 struct Atom {
-  /// @brief extract alias & types
+  /// @brief Atom input domain.
   using Domain = meta_dom_t<Meta>;
+  /// @brief Atom output codomain.
   using Codomain = meta_codom_t<Meta>;
+  /// @brief Tuple of decayed child atom types.
   using ChildrenT = std::tuple<atom_decay_t<Cs>...>;
+  /// @brief Scalar field for the atom domain.
   using T = dom_type_t<Domain>;
+  /// @brief Point type accepted by the atom domain.
   using PointT = dom_point_t<Domain>;
 
+  /// @brief Domain dimension.
   static constexpr size_t N = dom_size_v<Domain>;
+  /// @brief Codomain dimension.
   static constexpr size_t M = dom_size_v<Codomain>;
+  /// @brief Curvature declared by atom metadata.
   static constexpr CurvatureType Curvature = meta_curv_v<Meta>;
+  /// @brief Domain sign declared by atom metadata.
   static constexpr VarType DomSign = dom_vartype_v<Domain>;
+  /// @brief Codomain sign declared by atom metadata.
   static constexpr VarType CodomSign = dom_vartype_v<Codomain>;
 
   /**
-   * @brief CTOR
-   * (empty)
+   * @brief Construct a leaf atom with no children.
    */
   constexpr explicit Atom() { validate_domain(); }
 
   /**
-   * @brief CTOR
+   * @brief Construct an atom with normalized children.
    *
-   * @param children (tuple)
+   * @param child_in tuple of child atoms
    */
   constexpr explicit Atom(ChildrenT child_in) : children(std::move(child_in)) {
     validate_domain();
   }
 
   /**
-   * @brief validate domain for fn
+   * @brief Validate DCP composition for a function child.
    *
-   * @param child curvature
+   * @param child child atom whose codomain feeds this function's domain
    *
    * @return void
    */
@@ -110,7 +120,7 @@ struct Atom {
   }
 
   /**
-   * @brief validate domain
+   * @brief Validate child domains, signs, curvature, and composition rules.
    *
    * @return void
    */
@@ -169,8 +179,10 @@ struct Atom {
       }
 
       if constexpr (is_cap_type_v<decltype(self())>) {
-        AK_ASSERT(is_set_type_v<decltype(child)> &&
-                  "Intersection expects each child to be a set");
+        AK_ASSERT((is_set_type_v<decltype(child)> ||
+                   is_cap_type_v<decltype(child)>) &&
+                  "Intersection expects each child to be a set or "
+                  "intersection");
       }
 
       if constexpr (is_add_type_v<decltype(self())>) {
@@ -209,11 +221,14 @@ struct Atom {
   }
 
   /**
-   * @brief canonicalize
+   * @brief Dispatch canonicalization to the derived atom.
    *
-   * @param builder
+   * @tparam Type requested atom canonicalization target
+   * @tparam Builder canonical-form builder type
    *
-   * @return canonicalized atom
+   * @param builder current canonical-form builder
+   *
+   * @return derived atom canonicalization result
    */
   template <AtomType Type, conic::BuilderLike Builder>
   constexpr auto canonicalize(const Builder& builder) const {
@@ -221,7 +236,7 @@ struct Atom {
   }
 
   /**
-   * @brief self
+   * @brief Return this object as the CRTP-derived atom type.
    *
    * @return derived object
    */
@@ -229,8 +244,7 @@ struct Atom {
     return static_cast<const Derived&>(*this);
   }
 
-  /** @brief member vars*/
-  ChildrenT children; ///< tuple of normalized child atoms
+  ChildrenT children; ///< Tuple of normalized child atoms.
 };
 
 } // namespace convex

@@ -169,10 +169,10 @@ struct IterState {
   T rd_norm{};  ///< dual norm residual size
   T rp_norm{};  ///< primal norm residual size
   T req_norm{}; ///< equality norm residual size
-  T pz_norm{};  ///< newton step in z \in R^n size
+  T pz_norm{};  ///< newton step in z in R^n size
   T pnu_norm{}; ///< newton step in nu size
-  T px_norm{};  ///< newton step in x \in K size
-  T py_norm{};  ///< newton step in y \in K^* size
+  T px_norm{};  ///< newton step in x in K size
+  T py_norm{};  ///< newton step in y in K^* size
   std::array<PredictorCorrectorConeTrace<T, MaxConeDim, VarDim, EqDim>,
              NumCones>
       predictor{};

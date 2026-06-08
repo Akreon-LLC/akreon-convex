@@ -28,7 +28,7 @@ namespace linalg {
  * P(x) -> 2L(x)^2 - L(x)^2
  * P(x) : J -> J... (linear op / automorphism of the cone)
  * L(x) : J -> J... (linear op)
- * x \circ y -> J x J -> J... (bilinear map)
+ * x circ y -> J x J -> J... (bilinear map)
  */
 template <SquareMatrixLike JxJ, typename Circ>
 struct QuadraticRep {
@@ -40,7 +40,7 @@ struct QuadraticRep {
   /**
    * @brief CTOR
    *
-   * @param x \in J
+   * @param x in J
    */
   constexpr explicit QuadraticRep(const J& x_in) : x(x_in) {}
 
@@ -51,7 +51,7 @@ struct QuadraticRep {
    * = 2 L(x) L(x) y - L(x^2) y
    * = 2 x circ (x circ y) - (x circ x) circ y
    *
-   * @param y \in J
+   * @param y in J
    *
    * @return P(x)y
    */

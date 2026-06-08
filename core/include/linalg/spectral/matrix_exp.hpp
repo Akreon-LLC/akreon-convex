@@ -82,7 +82,7 @@ constexpr auto permute_ptjp(const Mat& J,
 }
 
 /**
- * @brief unpermute P^T A P \equiv P A P^T
+ * @brief unpermute P^T A P equivalent to P A P^T
  *
  * @param Matrix A (orig)
  * @param vector p (permutation)
@@ -138,19 +138,19 @@ constexpr auto matrix_exp(const Mat& A) {
     const auto eig = D(p(i));
     const auto exp_lambda = constexpr_exp_lambda(eig);
 
-    // (1) set exp(Jp) to exp(\lambda) if this is a unique eigenvalue
+    // (1) set exp(Jp) to exp(lambda) if this is a unique eigenvalue
     if (chain_len == 1) {
       exp_Jp(i)(i) = exp_lambda;
       i = j;
       continue;
     }
 
-    // (2) process the jordan block N = (J_block - \lambda I)
+    // (2) process the jordan block N = (J_block - lambda I)
     Matrix<Complex, N, N> N_blk, E_blk;
     // 2.a set super diag to 1s on E block (E = I + N + N^2 / 2! + ...) up to
     // chain_len representing N^0 = I
     for (size_t a = 0; a < chain_len; ++a) E_blk(i + a)(i + a) = Complex(1);
-    // 2.b set N block (N = J_block - \lambda I) where C = \lambda I + N (7.6.5
+    // 2.b set N block (N = J_block - lambda I) where C = lambda I + N (7.6.5
     // Matrix Computations)
     for (size_t a = 0; a < chain_len; ++a)
       for (size_t b = a; b < chain_len; ++b)

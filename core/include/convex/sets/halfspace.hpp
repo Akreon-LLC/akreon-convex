@@ -100,9 +100,9 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    * @brief transform halfspace by affine map
    *
    * H = { x | a^T x <= b }
-   * f(H) = { y = f(x) | x \in H}... image of halfspace under f mapping
+   * f(H) = { y = f(x) | x in H}... image of halfspace under f mapping
    * where affine map is: y = U x + t -> x = U^{-1} (y - t)
-   * so, a^T U^{-1} (y - t) <= b \to a^T U^{-1} y <= b + a^T U^{-1} t
+   * so, a^T U^{-1} (y - t) <= b to a^T U^{-1} y <= b + a^T U^{-1} t
    * we arrive at: f(H) = { y | a^T U^{-1} y <= b + a^T U^{-1} t }
    *
    * @param affine map
@@ -137,7 +137,7 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    * H = { x | a^T x <= b }
    *
    * Direct cone map:
-   *   -a^T x + b \in R_+
+   *   -a^T x + b in R_+
    *
    * @return cone block
    */

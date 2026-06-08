@@ -46,7 +46,7 @@ struct L2 {
 /**
  * @brief compute the L1 norm of a vector
  *
- * || X ||_1 or sum_i^N(|x_i|) \forall i
+ * || X ||_1 or sum_i^N(|x_i|) for all i
  *
  * @param vector X with N elements of type T
  *
@@ -66,7 +66,7 @@ struct L1 {
 /**
  * @brief compute the max norm of a vector
  *
- * ||X||_\inf or max value of X (abs)
+ * ||X||_infinity or max value of X (abs)
  *
  * @param vector X with N elements of type T
  *

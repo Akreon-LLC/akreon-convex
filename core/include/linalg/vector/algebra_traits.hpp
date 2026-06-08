@@ -183,7 +183,7 @@ inline constexpr size_t space_dim_v = space_traits<remove_cvref_t<Space>>::DIM;
  *  \brief Structure that deals in type_trait deduction for a scalar type
  *  \details scalar_type is an overloaded type that strips away
  * meta-templates to the final primitive scalar type
- *  \ingroup linalg
+ *  ingroup linalg
  */
 template <typename T>
 struct scalar_type {
@@ -191,28 +191,28 @@ struct scalar_type {
 };
 
 /// @brief True if type is of a std::array<T, N>
-/// @tparam value_type is \equiv to the deduced scalar type value
+/// @tparam value_type is equivalent to to the deduced scalar type value
 template <typename T, size_t N>
 struct scalar_type<std::array<T, N>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
 /// @brief True if type is of a std::complex<T>
-/// @tparam value_type is \equiv to the deduced scalar type value
+/// @tparam value_type is equivalent to to the deduced scalar type value
 template <typename T>
 struct scalar_type<std::complex<T>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
 /// @brief True if type is of a Vector<T, N>
-/// @tparam value_type is \equiv to the deduced scalar type value
+/// @tparam value_type is equivalent to to the deduced scalar type value
 template <typename T, size_t N>
 struct scalar_type<Vector<T, N>> {
   using value_type = typename scalar_type<T>::value_type;
 };
 
 /// @brief True if type is of a Vector<Vector<T, N>, M>
-/// @tparam value_type is \equiv to the deduced scalar type value
+/// @tparam value_type is equivalent to to the deduced scalar type value
 template <typename T, size_t M, size_t N>
 struct scalar_type<Vector<Vector<T, M>, N>> {
   using value_type = typename scalar_type<T>::value_type;
@@ -227,7 +227,7 @@ using scalar_type_t = typename scalar_type<T>::value_type;
  * is complex (false initially)
  *  \details scalar_type is an overloaded type that strips away meta-templates
  * to see if the type is complex
- *  \ingroup linalg
+ *  ingroup linalg
  */
 template <typename T>
 struct is_complex_t : public std::false_type {};
@@ -325,14 +325,14 @@ using RowVectorcf = RowVector<std::complex<float>, N>;
  * @brief FieldLike concept is obtained by floating point values
  *
  * ** Group axioms **
- * 0. a + b \exists
+ * 0. a + b exists
  * 1. (a + b) + c == a + (b + c)
- * 2. -1 * a \exists
+ * 2. -1 * a exists
  * 3. a + b == b + a
  *
  * ** Ring axioms **
  * Group plus the following
- * 0. a * b \exists
+ * 0. a * b exists
  * 1. (a * b) * c == a * (b * c)
  * 2. a * (b + c) == a * b + a * c
  * 3. a * b == b * a

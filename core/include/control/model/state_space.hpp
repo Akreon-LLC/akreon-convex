@@ -19,8 +19,8 @@ namespace control {
 /**
  * @brief StateSpace
  *
- * \dot{x} = A x(t) + B u(t)
- * y = C x(t) + D u(t)
+ * @f$\dot{x} = A x(t) + B u(t)@f$
+ * @f$y = C x(t) + D u(t)@f$
  */
 template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
           linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>

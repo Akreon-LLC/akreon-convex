@@ -53,7 +53,7 @@ struct PrimalDualIPMConfig {
   T primal_feas_tol{1e-5};       ///< tolerance for primal feasbility
   T dual_feas_tol{1e-5};         ///< tolerance for dual feasbility
   T duality_gap_tol{1e-5};       ///< tolerance for complementarity
-  T Delta{2 * linalg::ln2_v<T>}; ///< relative neighborhood around F(\Beta)
+  T Delta{2 * linalg::ln2_v<T>}; ///< relative neighborhood around F(Beta)
   FactorConfig<T> schur{.tol = T(1e-12),
                         .floor_eps = T(1e-14)}; ///< Schur Factor Config
   RegularizationConfig<T> reg;                  ///< Regularization config

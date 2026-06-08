@@ -35,15 +35,15 @@ constexpr auto make_problem(const Var& x) {
  * @brief ConvexProblem
  *
  * min  c^T z
- * s.t. F z + g \in K
+ * s.t. F z + g in K
  *
  * transformed to a fully cone problem
  * min c^T x
  * s.t. x = F z + g
- *      x \in K = K1 x K2 ... Kn
+ *      x in K = K1 x K2 ... Kn
  *
  * The objective c pushed forward through linear functional c_x when x is
- * feasible: c^T z = <c_x, x> s.t. { x | \exists z, F z + g = x }
+ * feasible: c^T z = <c_x, x> s.t. { x | exists z, F z + g = x }
  */
 template <conic::BuilderLike Builder, StageType Stage>
 struct ConvexProblem {

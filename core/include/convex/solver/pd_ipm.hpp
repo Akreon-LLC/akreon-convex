@@ -30,9 +30,9 @@ namespace convex {
  *
  * <x, s> / nu
  *
- * @param x \in K
- * @param s \in K^*
- * @param nu \sum of barrier param across cones
+ * @param x in K
+ * @param s in K^*
+ * @param nu sum of barrier param across cones
  *
  * @return mu
  */
@@ -131,7 +131,7 @@ struct PrimalDualIPM {
   /// @brief damping param using for alpha steps in predictor corrector
   static constexpr T rho{linalg::ln2_v<T>};
 
-  /// @brief beta F(\beta) neighborhood of central path (within feasibility)
+  /// @brief beta F(beta) neighborhood of central path (within feasibility)
   static constexpr T beta{1 - linalg::ln2_v<T>};
 
   /**
@@ -289,7 +289,7 @@ private:
         return;
       }
 
-      /// (dakre) 5 - newton step (blended step \equiv convex combo)
+      /// (dakre) 5 - newton step (blended step equivalent to convex combo)
       const auto step = blend_steps(pred_step, corr_step);
 
       /// (dakre) 6 - alpha max
@@ -346,7 +346,7 @@ private:
    * [  0 I    0    H ] [ p_x  ]    [ r_c  ]
    *
    * 2x2 Saddle System
-   * [ -F^T H F -A^T ] [ p_z; p_nu ] = - [ \hat{r}_d; r_p2 ]
+   * [ -F^T H F -A^T ] [ p_z; p_nu ] = - [ hat{r}_d; r_p2 ]
    * [ -A        0   ]
    *
    * where M = sum(F_i^T H_i F_i)
@@ -354,8 +354,8 @@ private:
    * @param M Block matrix
    * @param F mapping from R^n -> conic space
    * @param K cartesian product of cones
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (S, nu)
    */
@@ -393,12 +393,12 @@ private:
   /**
    * @brief seed problem
    *
-   * Initialize x \in K and y \in K^* with initial primal & dual points in
+   * Initialize x in K and y in K^* with initial primal & dual points in
    * each cone
    *
    * @param K cartesian product of cones
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    * @param warm_start (bool)
    *
    * @return nu
@@ -440,12 +440,12 @@ private:
    * @param alpha_x max step to boundary
    * @param alpha_y max step to boundary
    * @param K cartesian product of cones
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    * @param px newton step in x dir
    * @param py newton step in y dir
    *
-   * @return \alpha_max
+   * @return alpha_max
    */
   template <size_t idx = 0, size_t Start = 0>
   constexpr auto alpha_max(T&& alpha_x, T&& alpha_y, const auto& K,
@@ -478,11 +478,11 @@ private:
   /**
    * @brief in cones membership check
    *
-   * check x \in K and y \in K^*
+   * check x in K and y in K^*
    *
    * @param K (cartesian product of cones)
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return T/F
    */
@@ -524,10 +524,10 @@ private:
    * @param pnu (newton step in nu)
    * @param px (newton step in x)
    * @param pz (newton step in y)
-   * @param z \in R^n
-   * @param nu \in EQ dim
-   * @param x \in K
-   * @param y \in K^*
+   * @param z in R^n
+   * @param nu in EQ dim
+   * @param x in K
+   * @param y in K^*
    *
    * @return T/F (indicates if backtracking found valid alpha)
    */
@@ -577,7 +577,7 @@ private:
   /**
    * @brief dual residual
    *
-   * F^T y - A^T \nu - c = rd
+   * F^T y - A^T nu - c = rd
    *
    * @param F (global map)
    * @param A (equality map)
@@ -637,8 +637,8 @@ private:
    * @param b (bias affine eq)
    * @param z (dec var)
    * @param nu (equality multiplier)
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    */
   constexpr Residuals compute_residuals(const ConeMat& F, const EqMat& A,
                                         const ConeVar& g, const Var& c,

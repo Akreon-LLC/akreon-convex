@@ -106,9 +106,9 @@ public:
   /**
    * @brief eval impl
    *
-   * @param x \in R_++
+   * @param x in R_++
    *
-   * @return res \in R_++ or R_-- (depending on convex or concave)
+   * @return res in R_++ or R_-- (depending on convex or concave)
    */
   constexpr T eval(const PointT& x) const {
     const auto alpha = lift_map.linear_part()(0)(0);

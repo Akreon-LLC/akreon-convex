@@ -33,7 +33,7 @@ using EllipsoidMeta = ConvexAtomMeta<EllipsoidDom<Space>, EllipsoidCodom<Space>,
 /**
  * @brief Ellipsoid defined as the following
  *
- * E = { x | (x - c)^T P (x - c) <= 1 } s.t. P \in S^n_+
+ * E = { x | (x - c)^T P (x - c) <= 1 } s.t. P in S^n_+
  */
 template <typename Meta, typename Child>
 struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
@@ -52,7 +52,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    * @brief CTOR for ellipsoidal set
    *
    * @param center point (i.e., n-dim vector of type T)
-   * @param P \in S^n_+
+   * @param P in S^n_+
    * @param child
    */
   constexpr explicit Ellipsoid(const PointT& c_in, const Mat& P_in,
@@ -92,10 +92,10 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    * @brief transform set from an affine map
    *
    * E = {x | (x - c)^T P (x - c) <= 1}
-   * f(x) = U x + t -> { y = f(x) | x \in E }
+   * f(x) = U x + t -> { y = f(x) | x in E }
    * x = U^{-1}(y - t), sub back in we get...
    * E' = {y | (U^{-1}(y - t) - c)^T P (U^{-1}(y - t) - c) <= 1}
-   * ... U^{-1}(y - t) - c \to U^{-1}(y - (U c + t)
+   * ... U^{-1}(y - t) - c to U^{-1}(y - (U c + t)
    * E' = { y | (y - (U c + t))^T U^{-T} P U^{-1} (y - (U c + t)) <= 1
    *
    * c' = U c + t
@@ -131,7 +131,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
   /**
    * @brief canonicalize impl
    *
-   * E = { x | (x - c)^T P (x - c) <= 1, P \in S^n_+ }
+   * E = { x | (x - c)^T P (x - c) <= 1, P in S^n_+ }
    *
    * Eigen decomposition: P = V D V^T
    * (x - c)^T V D V^T (x - c) <= 1
@@ -143,7 +143,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    * Direct cone map:
    *   [ D^{1/2} V^T ] x + [ -D^{1/2} V^T c ]
    *   [      0      ]     [          1       ]
-   *   \in K_soc
+   *   in K_soc
    *
    * @return cone block
    */
@@ -193,7 +193,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
 
   /** @brief member variables in the ellipsoid */
   PointT c; //< n-dim vector of type T representing center of ellipsoid
-  Mat P;    //< square matrix representing directions for ellipsoid (valid \in
+  Mat P;    //< square matrix representing directions for ellipsoid (valid in
             // S^n_+)
 };
 

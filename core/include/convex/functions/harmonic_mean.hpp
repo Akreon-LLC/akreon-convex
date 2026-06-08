@@ -105,9 +105,9 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
   /**
    * @brief eval impl
    *
-   * @param x \in dom f
+   * @param x in dom f
    *
-   * @return y \in R_++ or R_--
+   * @return y in R_++ or R_--
    */
   constexpr T eval(const PointT& x) const {
     AK_ASSERT(x(0) >= T(0) && x(1) >= T(1) &&

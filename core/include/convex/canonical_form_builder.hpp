@@ -19,35 +19,43 @@
 
 namespace conic {
 
-/// @brief cone map builder functor
+/**
+ * @brief Builder for conic canonical forms.
+ *
+ * The builder carries the current cone coordinate selector, emitted cone block,
+ * and equality map while atoms append rows and auxiliary variables during
+ * canonicalization.
+ */
 template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
           conic::ConeBlockLike CB, affine::AffineMapLike EqMap>
 struct CanonicalFormBuilder {
-  /// @brief alias extraction of underlying types
+  /// @brief Affine matrix type for the current cone-coordinate selector.
   using CoordMapT = affine::affine_mat_t<CoordMap>;
+  /// @brief Scalar field used by the canonical form.
   using T = linalg::mat_type_t<CoordMapT>;
 
-  /// @brief N dimension spanning dec var dom R^n
+  /// @brief Number of original decision variables before auxiliary columns.
   static constexpr size_t N = linalg::space_dim_v<DecVarDom>;
 
   /**
-   * @brief CTOR
+   * @brief Construct a builder from existing canonical-form components.
    *
-   * @param linear selector
-   * @param cone block
+   * @param coord_in affine selector for the current atom coordinates
+   * @param cb_in accumulated cone block
+   * @param eq_in accumulated equality map
    */
   constexpr explicit CanonicalFormBuilder(const CoordMap& coord_in,
                                           const CB& cb_in, const EqMap& eq_in)
       : coord_map(coord_in), cb(cb_in), eq_map(eq_in) {}
 
   /**
-   * @brief make new builder
+   * @brief Append child canonical data and select a lifted auxiliary variable.
    *
-   * @param selector idx from start aux col
-   * @param lift map
-   * @param emitted cones from child
+   * @param idx negative index from the end of the updated coordinate domain
+   * @param lift_map affine map that selects the lifted epigraph coordinate
+   * @param cones emitted cones from the child atom
    *
-   * @return new cone block builder
+   * @return builder with updated cone block, equality map, and coordinate map
    */
   template <convex::AtomType Type, affine::AffineMapLike LiftedMap,
             typename... Cs>
@@ -61,11 +69,12 @@ struct CanonicalFormBuilder {
     linalg::Vector<T, FullDom> sel{};
     linalg::Vector<T, 1> bias{lift_map.translation()(0)};
 
-    AK_ASSERT(FullDom + idx >= FullDom &&
-              "Aux variable selector index underflow/overflow in "
+    AK_ASSERT(idx < 0 && static_cast<size_t>(-idx) <= FullDom &&
+              "Aux variable selector index out of bounds in "
               "CanonicalFormBuilder::make");
 
-    sel(FullDom + idx) = lift_map.linear_part()(0)(0);
+    const size_t selector_idx = FullDom - static_cast<size_t>(-idx);
+    sel(selector_idx) = lift_map.linear_part()(0)(0);
     const linalg::RowVector<T, FullDom> sel_row = linalg::as_row_vector(sel);
     const auto new_coord_map =
         affine::AffineMap<decltype(sel_row)>(sel_row, bias);
@@ -77,11 +86,11 @@ struct CanonicalFormBuilder {
   }
 
   /**
-   * @brief make new builder
+   * @brief Append child canonical data without changing the selector.
    *
-   * @param emitted cones from child
+   * @param cones emitted cones from the child atom
    *
-   * @return new cone block builder
+   * @return builder with updated cone block and equality map
    */
   template <convex::AtomType Type, typename... Cs>
   constexpr auto make(const std::tuple<Cs...>& cones) const {
@@ -94,19 +103,20 @@ struct CanonicalFormBuilder {
                                                       new_eq_map);
   }
 
-  /** @brief member vars **/
-  CoordMap coord_map; ///< cone coordinate map
-  CB cb;        ///< cone block (includes tuple of cones + F & g affine map)
-  EqMap eq_map; ///< A x = b map
+  CoordMap coord_map; ///< Affine map from decision/auxiliary columns to current
+                      ///< atom coordinates.
+  CB cb; ///< Accumulated cone block containing cone tuple and affine rows.
+  EqMap eq_map; ///< Accumulated equality map in the same column layout.
 
 private:
   /**
-   * @brief update map
+   * @brief Update the accumulated cone map for the next canonicalization step.
    *
    * Depending on child and operation update the cone block map F and g and
    * return resultant map
    *
-   * @return map (AffineMap)
+   * @return affine map with preserved rows and any newly appended coordinate
+   * rows
    */
   template <convex::AtomType Type>
   constexpr auto update_map() const {
@@ -173,12 +183,12 @@ private:
   }
 
   /**
-   * @brief update equality map
+   * @brief Update the accumulated equality map for the next step.
    *
    * Tracks the same column layout as the cone map so equality rows continue to
    * reference decision and auxiliary variables consistently.
    *
-   * @return equality map (AffineMap)
+   * @return equality map with column layout aligned to the cone map
    */
   template <convex::AtomType Type>
   constexpr auto update_eq_map() const {
@@ -228,9 +238,11 @@ private:
   }
 };
 
-/* @brief create empty cone block
+/** @brief Create an empty cone block.
  *
- * @return cone block
+ * @tparam T scalar field for the empty affine map
+ *
+ * @return empty cone block
  */
 template <linalg::FieldLike T>
 constexpr auto create_empty_cblk() {
@@ -241,7 +253,9 @@ constexpr auto create_empty_cblk() {
   return cb;
 }
 
-/* @brief create empty equality map
+/** @brief Create an empty equality affine map.
+ *
+ * @tparam T scalar field for the empty affine map
  *
  * @return equality affine map
  */
@@ -250,7 +264,9 @@ constexpr auto create_empty_eq_map() {
   return affine::AffineMap(linalg::Matrix<T, 0, 0>{}, linalg::Vector<T, 0>{});
 }
 
-/* @brief create empty cone block builder
+/** @brief Create an empty canonical-form builder.
+ *
+ * @tparam DecVarDom original decision-variable domain
  *
  * @return cone block builder
  */

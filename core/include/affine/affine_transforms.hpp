@@ -19,7 +19,7 @@
 namespace affine {
 
 /**
- * @TODO (dakre) add quaternions and SO(3) reps
+ * @todo Add quaternions and SO(3) reps.
  */
 
 /**

@@ -171,7 +171,7 @@ private:
 
   /** @brief member variables in the base class */
   Mat U;         //< basis matrix for the affine set
-  AmbientVec x0; ///< reference point that lies in the affine set S \subset R^m
+  AmbientVec x0; ///< reference point that lies in the affine set S subset R^m
 };
 
 } // namespace affine

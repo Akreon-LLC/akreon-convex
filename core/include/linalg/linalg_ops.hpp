@@ -51,7 +51,7 @@ constexpr auto operator+(const Vec& A, const Vec& B) {
 /**
  * @brief multiply a vector A with a scalar alpha
  *
- * \alpha * A = \alpha A
+ * alpha * A = alpha A
  *
  * @param alpha of scalar type T
  * @param vector x of type T with N elements

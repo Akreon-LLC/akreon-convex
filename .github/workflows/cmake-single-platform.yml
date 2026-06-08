@@ -65,3 +65,24 @@ jobs:
       # --- Test ---
       - name: Run tests
         run: ctest --test-dir out/build/host-default/tests --output-on-failure -C ${{ env.BUILD_TYPE }}
+
+  docs:
+    name: Doxygen docs
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen graphviz
+
+      - name: Generate Doxygen docs
+        run: doxygen Doxyfile
+
+      - name: Upload docs artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doxygen-html
+          path: docs/doxygen/html

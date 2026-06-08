@@ -38,7 +38,7 @@ struct Cone {
   /**
    * @brief default interior point (initial slack in cone space)
    *
-   * x0 \in S^0(P)
+   * x0 in S^0(P)
    *
    * @return vector
    */
@@ -47,7 +47,7 @@ struct Cone {
   /**
    * @brief default interior point (initial slack in dual cone)
    *
-   * y0 \in S^0(D)
+   * y0 in S^0(D)
    *
    * @return vector
    */
@@ -56,9 +56,9 @@ struct Cone {
   /**
    * @brief in the interior of k
    *
-   * x \in K
+   * x in K
    *
-   * @param x \in K
+   * @param x in K
    *
    * @return bool
    */
@@ -69,9 +69,9 @@ struct Cone {
   /**
    * @brief in the interior of K^*
    *
-   * y \in K^* ?
+   * y in K^* ?
    *
-   * @param y \in K^*
+   * @param y in K^*
    *
    * @return bool
    */
@@ -82,8 +82,8 @@ struct Cone {
   /**
    * @brief hessian
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (H, event)
    */
@@ -94,16 +94,16 @@ struct Cone {
   /**
    * @brief fraction to boundary dk
    *
-   * \sigma_x(p) = \frac{1}{\sup{\alpha | x - \alpha p \in k }}
-   * \alpha_max = \frac{1}{\sigma_x(p)}
+   * sigma_x(p) = frac{1}{sup{alpha | x - alpha p in k }}
+   * alpha_max = frac{1}{sigma_x(p)}
    *
    * we want the largest alpha that stays within k for our next step
-   * x_{k+1} = x_{k} - \alpha p
+   * x_{k+1} = x_{k} - alpha p
    *
-   * @param x \in K
-   * @param p \in E
+   * @param x in K
+   * @param p in E
    *
-   * @return \alpha_max
+   * @return alpha_max
    */
   constexpr T alpha_max(const Slack& x, const linalg::Vector<T, M>& p) const {
     return self().alpha_max_impl(x, p);
@@ -112,16 +112,16 @@ struct Cone {
   /**
    * @brief fraction to boundary dk^*
    *
-   * \sigma_x(p) = \frac{1}{\sup{\alpha | y - \alpha p \in k^* }}
-   * \alpha_max = \frac{1}{\sigma_x(p)}
+   * sigma_x(p) = frac{1}{sup{alpha | y - alpha p in k^* }}
+   * alpha_max = frac{1}{sigma_x(p)}
    *
    * we want the largest alpha that stays within k for our next step
-   * y_{k+1} = y_{k} - \alpha p
+   * y_{k+1} = y_{k} - alpha p
    *
-   * @param y \in K^*
-   * @param p \in E^*
+   * @param y in K^*
+   * @param p in E^*
    *
-   * @return \alpha_max
+   * @return alpha_max
    */
   constexpr T alpha_max_dual(const Slack& y,
                              const linalg::Vector<T, M>& p) const {
@@ -142,7 +142,7 @@ struct Cone {
    *
    * F'(x)
    *
-   * @param x \in K
+   * @param x in K
    *
    * @return F'(x)
    */
@@ -151,7 +151,7 @@ struct Cone {
   /**
    * @brief e (jordan identity)
    *
-   * x \circ e = x
+   * x circ e = x
    *
    * @return e
    */
@@ -164,8 +164,8 @@ struct Cone {
   /**
    * @brief w (self-scaling point)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (w, event)
    */
@@ -178,10 +178,10 @@ struct Cone {
   /**
    * @brief circ (jordan map/product operator)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
-   * @return x \circ y
+   * @return x circ y
    */
   constexpr auto circ(const Slack& x, const Slack& y) const {
     static_assert(ConeType::SYMMETRIC == CType,
@@ -192,10 +192,10 @@ struct Cone {
   /**
    * @brief trace
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
-   * @return tr(x \circ y)
+   * @return tr(x circ y)
    */
   constexpr auto trace(const Slack& x, const Slack& y) const {
     static_assert(ConeType::SYMMETRIC == CType,
@@ -206,7 +206,7 @@ struct Cone {
   /**
    * @brief inv (jordan inverse element)
    *
-   * @param x \in K or y \in K^*
+   * @param x in K or y in K^*
    *
    * @return (x^{-1}, event)
    */
@@ -217,12 +217,12 @@ struct Cone {
   }
 
   /**
-   * @brief \gamma_F (functional proximity neighborhood metric)
+   * @brief gamma_F (functional proximity neighborhood metric)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
-   * @return (\gamma_F, event)
+   * @return (gamma_F, event)
    */
   constexpr auto gamma_F(const Slack& x, const Slack& y) const {
     static_assert(ConeType::SYMMETRIC == CType,

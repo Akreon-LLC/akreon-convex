@@ -98,7 +98,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    * @brief transform norm ball by affine map
    *
    * Br(c) = ||x - c|| < r or B = {x | ||x - c|| < r}
-   * f(B) = {y = f(x) | x \in B}... y = Ux + t -> U^{-1}(y - t) = x
+   * f(B) = {y = f(x) | x in B}... y = Ux + t -> U^{-1}(y - t) = x
    * Br'(c) = ||U^{-1}(y - t) - c|| < r -> U^{-1}(y - (U c + t))
 
    * Above is a polyhedron represented in Ax <= b and Cx = d by projecting onto
@@ -115,12 +115,12 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
     const auto& U = map.linear_part();
     const auto& t = map.translation();
     /* L2 case
-     * Let z = y - (U c + t) \implies ||U^{-1} z||_2^2 <= r^2 \iff z^T (U^-T
+     * Let z = y - (U c + t) implies ||U^{-1} z||_2^2 <= r^2 iff z^T (U^-T
      * U^-1) z <= r^2 So we have f(Br(x)) = {y | (y - (U c + t))^T (U U^T)^{-1}
      * (y - (U c + t))  <= r^2
      *
      * (i)  c' = U c + t
-     * (ii) r' = ||U^{-1}|| \to r \sigma(U) OR U U^T r^2
+     * (ii) r' = ||U^{-1}|| to r sigma(U) OR U U^T r^2
      */
     if constexpr (Type == NormBallType::L2) {
       const auto point = U * c + t;
@@ -139,21 +139,21 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
      * the above however r scales differently now (forms a type of polyhedron).
      *
      * Note the following relationships for L1:
-     * || U^{-1} z ||_1 \to \sum_{i=1}^n | U^{-1} z | <= r
+     * || U^{-1} z ||_1 to sum_{i=1}^n | U^{-1} z | <= r
      * let s = [s_0 s_1 ... s_n] >= 0 not use slack var s to represent abs value
-     * respecting the constraint \sum_i^n s_i <= r
+     * respecting the constraint sum_i^n s_i <= r
      * furthermore note z = y - c', c' = Uc + t so the following constraints
      * are:
      *
-     * U^{-1} z \to U^{-1} y - U^{-1} U c - t
+     * U^{-1} z to U^{-1} y - U^{-1} U c - t
      *
      * (i)   1^T s <= r
-     * (ii)  -(U^{-1} z)_i <= s_i \to -U^{-1} y - s <= -(c + U^{-1} t)
-     * (iii) (U^{-1} z)_i <= s_i \to U^{-1} y - s <= (c + U^{-1} t)
-     * (iv) s >= 0 \to -s <= 0
+     * (ii)  -(U^{-1} z)_i <= s_i to -U^{-1} y - s <= -(c + U^{-1} t)
+     * (iii) (U^{-1} z)_i <= s_i to U^{-1} y - s <= (c + U^{-1} t)
+     * (iv) s >= 0 to -s <= 0
      *
      * P = { x | Ax <= b, Cx = d } where x has an expanded dim including s
-     * x = [y s] \in R^{2*n} and b = [r 0 0 0] \in R^{3*n + 1}
+     * x = [y s] in R^{2*n} and b = [r 0 0 0] in R^{3*n + 1}
      *
      * Affine Inequalities:
      * (i)   A_1 = [ 0^T; 1^T ], b_1 = r ... first row in A
@@ -164,12 +164,12 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
      * Linear Equality C x = d, where z = y - c'... c' = U x + t
      *
      * L1 in Complex domain is different where |z_i| = sqrt(re(z)^2 + im(z)^2)
-     * so... \sum_i |z_i| <= r transforms to Second order cone program:
+     * so... sum_i |z_i| <= r transforms to Second order cone program:
      *
      * z = y - c'... c' = U c + t
      *
      * (i) ||z_i||_2 <= s_i
-     * (ii) \sum_i s_i <= r
+     * (ii) sum_i s_i <= r
      */
     else if constexpr (Type == NormBallType::L1) {
       linalg::Matrix<T, 3 * N + 1, 2 * N> A;
@@ -212,8 +212,8 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
      *
      * z = y - c'... c' = Uc + t so, U^{-1} y - U^{-1}(U c + t)
      *
-     * -U^{-1} z <= r \to -U^{-1} y <= r - U^{-1}(U c + t)
-     *  U^{-1} z <= r \to U^{-1} y <= r + U^{-1}(U c + t)
+     * -U^{-1} z <= r to -U^{-1} y <= r - U^{-1}(U c + t)
+     *  U^{-1} z <= r to U^{-1} y <= r + U^{-1}(U c + t)
      *
      * Affine Inequality is Ax <= b, x = [y]
      * A = [ U^{-1} ; -U^{-1} ]
@@ -257,7 +257,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    * Direct SOC map:
    *   [ I ] x + [ -c ]
    *   [ 0 ]     [  r ]
-   * so that (y, r) \in K_soc.
+   * so that (y, r) in K_soc.
    *
    * Linf
    * Direct nonnegative-cone map:

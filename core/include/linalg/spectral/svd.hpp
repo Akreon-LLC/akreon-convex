@@ -19,8 +19,8 @@ namespace linalg {
 /**
  * @brief Singular value decomposition class definition
  *
- * Decompose any matrix A into U \Sigma V^T where U are the left singular
- * vectors, \Sigma are the singular values, and V^T are the right singular
+ * Decompose any matrix A into U Sigma V^T where U are the left singular
+ * vectors, Sigma are the singular values, and V^T are the right singular
  * vectors
  */
 template <MatrixLike Mat>
@@ -50,7 +50,7 @@ struct SVD {
 
 private:
   /**
-   * @brief solve A = U \Sigma V^T
+   * @brief solve A = U Sigma V^T
    *
    * @param matrix A of type T with Rows x Cols elements
    *
@@ -82,14 +82,14 @@ private:
 
     // (dakre) these eigenvectors are projected onto the row space thus
     // resembling the right singular vectors of the row space of Lambda above
-    // U (A^T A) VT -> U \Sigma VT
+    // U (A^T A) VT -> U Sigma VT
     const auto& V = result.V;
 
     for (size_t i = 0; i < Cols; ++i)
       S(i)(i) = constexpr_sqrt_safe(std::max<Real>(0, lambdas(i)));
 
     // 3. back-solve for U with VT & sigmas
-    // \Sigma^{-1} A V = U
+    // Sigma^{-1} A V = U
     U = make_identity<Complex, Rows>();
 
     for (size_t i = 0; i < Cols; ++i) {

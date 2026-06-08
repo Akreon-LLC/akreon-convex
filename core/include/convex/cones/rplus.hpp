@@ -20,7 +20,7 @@ namespace conic {
 /**
  * @brief Circ - Jordan Map/Product for R^n_+
  *
- * x \circ y = x_i y_i
+ * x circ y = x_i y_i
  */
 template <linalg::VectorLike Vec>
 struct RplusCirc {
@@ -31,12 +31,12 @@ struct RplusCirc {
   /**
    * @brief circ (jordan map/product)
    *
-   * x \circ y = x_i y_i (componentwise mul)
+   * x circ y = x_i y_i (componentwise mul)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
-   * @return x \circ y (vector)
+   * @return x circ y (vector)
    */
   constexpr auto operator()(const Vec& x, const Vec& y) const {
     Vec res{};
@@ -82,7 +82,7 @@ struct NonnegOrthantCone
   /**
    * @brief in interior of K
    *
-   * @param x \in K
+   * @param x in K
    *
    * @return bool
    */
@@ -95,7 +95,7 @@ struct NonnegOrthantCone
   /**
    * @brief in interior of K^*
    *
-   * @param y \in K^*
+   * @param y in K^*
    *
    * @return bool
    */
@@ -106,17 +106,17 @@ struct NonnegOrthantCone
   /**
    * @brief fraction to boundary dK
    *
-   * sigma_x = \frac{1}{sup{alpha | x + alpha p \in K}}
-   * sup{alpha | x + alpha p \in K} -> -inf(x + alpha p)
+   * sigma_x = frac{1}{sup{alpha | x + alpha p in K}}
+   * sup{alpha | x + alpha p in K} -> -inf(x + alpha p)
    * x + alpha p = 0 -> alpha = -x / p
    * alpha = min. -x_i / p_i
    *
    * (similar for dual)
    *
-   * @param x \in K or K^*
-   * @param p \in E or E^* (delta dir)
+   * @param x in K or K^*
+   * @param p in E or E^* (delta dir)
    *
-   * @return \alpha_max
+   * @return alpha_max
    */
   constexpr T alpha_max_impl(const Slack& x,
                              const linalg::Vector<T, M>& p) const {
@@ -134,10 +134,10 @@ struct NonnegOrthantCone
   /**
    * @brief fracto to dK^*
    *
-   * @param y \in K
-   * @param p \in E^*
+   * @param y in K
+   * @param p in E^*
    *
-   * @return \alpha_max (dual)
+   * @return alpha_max (dual)
    */
   constexpr T alpha_max_dual_impl(const Slack& y,
                                   const linalg::Vector<T, M>& p) const {
@@ -155,8 +155,8 @@ struct NonnegOrthantCone
    * F'(w) = -(1/w)^{T}
    * F''(w) = diag(1/w^2)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (H, event)
    */
@@ -186,7 +186,7 @@ struct NonnegOrthantCone
    *
    * F'(x) = -(1/x)^{T}
    *
-   * @param x \in K or y \in K^*
+   * @param x in K or y in K^*
    *
    * @return (F'(x), event)
    */
@@ -225,8 +225,8 @@ struct NonnegOrthantCone
   /**
    * @brief w (self-scaled point)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return (w, event)
    */
@@ -247,10 +247,10 @@ struct NonnegOrthantCone
   /**
    * @brief circ
    *
-   * x \circ y
+   * x circ y
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return x circ y
    */
@@ -261,10 +261,10 @@ struct NonnegOrthantCone
   /**
    * @brief trace
    *
-   * trace(x \circ y) = sum(x_i y_i)
+   * trace(x circ y) = sum(x_i y_i)
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return x circ y
    */
@@ -278,7 +278,7 @@ struct NonnegOrthantCone
   /**
    * @brief jordan inverse
    *
-   * @param x \in K or y \in K^*
+   * @param x in K or y in K^*
    *
    * @return (inv(x), event)
    */
@@ -298,8 +298,8 @@ struct NonnegOrthantCone
   /**
    * @brief gamma_F
    *
-   * @param x \in K
-   * @param y \in K^*
+   * @param x in K
+   * @param y in K^*
    *
    * @return gamma_F
    */
