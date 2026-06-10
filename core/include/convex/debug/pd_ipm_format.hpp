@@ -143,22 +143,18 @@ inline bool append_canonical_trace(FixedBufferWriter& w, const Trace& trace) {
   return ok;
 }
 
-template <linalg::FieldLike T>
-inline bool append_cone_step(FixedBufferWriter& w,
-                             const ConeStepTrace<T>& step) {
-  return w.format("active=%d mu=%g rhs_c=%g pz_rhs=%g", step.active,
-                  static_cast<double>(step.mu),
-                  static_cast<double>(step.rhs_c_norm),
-                  static_cast<double>(step.pz_rhs_norm));
-}
-
 template <linalg::FieldLike T, size_t NumCones, typename ConeTuple,
           size_t... Is>
-inline bool append_cone_steps_impl(FixedBufferWriter& w,
-                                   const PdIpmStepTrace<T, NumCones>& step,
-                                   const ConeTuple& cones,
-                                   std::index_sequence<Is...>,
-                                   const char* label) {
+inline bool append_cone_steps(FixedBufferWriter& w,
+                              const PdIpmStepTrace<T, NumCones>& step,
+                              const ConeTuple& cones,
+                              std::index_sequence<Is...>, const char* label) {
+  auto append_cone_step = [&](const ConeStepTrace<T>& cone_step) {
+    return w.format("active=%d mu=%g rhs_c=%g pz_rhs=%g", cone_step.active,
+                    static_cast<double>(cone_step.mu),
+                    static_cast<double>(cone_step.rhs_c_norm),
+                    static_cast<double>(cone_step.pz_rhs_norm));
+  };
   bool ok = true;
   ((ok =
         ok &&
@@ -166,7 +162,7 @@ inline bool append_cone_steps_impl(FixedBufferWriter& w,
                  canonical_cone_kind_to_cstr(std::get<Is>(cones).cone_kind),
                  std::get<Is>(cones).node_id, std::get<Is>(cones).cone_offset,
                  std::get<Is>(cones).cone_dim) &&
-        append_cone_step(w, step.cones[Is]) && w.append("\n")),
+        append_cone_step(step.cones[Is]) && w.append("\n")),
    ...);
   return ok;
 }
@@ -190,11 +186,11 @@ inline bool append_iter_trace(FixedBufferWriter& w,
 
   constexpr size_t TraceCones = canonical_trace_num_cones_v<CanonicalTraceT>;
   if constexpr (TraceCones == NumCones) {
-    if (!append_cone_steps_impl(w, iter.predictor, canonical_trace.cones,
-                                std::make_index_sequence<NumCones>{}, "pred"))
+    if (!append_cone_steps(w, iter.predictor, canonical_trace.cones,
+                           std::make_index_sequence<NumCones>{}, "pred"))
       return false;
-    if (!append_cone_steps_impl(w, iter.corrector, canonical_trace.cones,
-                                std::make_index_sequence<NumCones>{}, "corr"))
+    if (!append_cone_steps(w, iter.corrector, canonical_trace.cones,
+                           std::make_index_sequence<NumCones>{}, "corr"))
       return false;
   } else {
     for (size_t i = 0; i < NumCones; ++i) {

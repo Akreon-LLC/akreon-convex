@@ -45,22 +45,24 @@ struct PrimalDualResult {
   using CanonicalTrace = CanonicalTraceT;
   using SolverTrace = SolverTraceT;
 
-  config::SolverResult tag{};
-  linalg::NumericalEvent event{};
-  bool stalled{};
-  size_t num_iter{};
+  config::SolverResult tag{};     ///< Solver result tag
+  linalg::NumericalEvent event{}; ///< Report of any numerical events
+  bool stalled{}; ///< Tag that indicates if backtracking stalled
+  size_t
+      num_iter{}; ///< Number of iterations until convergence, stalled, or max
 
-  Scalar mu{};
-  Scalar convex_obj{};
-  Scalar dual_obj{};
+  Scalar mu{};         ///< Normalized duality gap
+  Scalar convex_obj{}; ///< Convex objective result
+  Scalar dual_obj{};   ///< Dual objective result
 
-  PrimalDualIterate<Var, ConeVar, NuVar> iterate{};
-  Var rd{};
-  ConeVar rp{};
-  NuVar req{};
+  PrimalDualIterate<Var, ConeVar, NuVar>
+      iterate{}; ///< PD iterate (z, x, y, nu)
+  Var rd{};      ///< Dual residual
+  ConeVar rp{};  ///< Primal residual
+  NuVar req{};   ///< Equality residual
 
-  CanonicalTraceT canonical_trace{};
-  SolverTraceT solver_trace{};
+  CanonicalTraceT canonical_trace{}; ///< Attached canonical trace
+  SolverTraceT solver_trace{};       ///< Solver trace
 };
 
 } // namespace convex

@@ -41,12 +41,31 @@ struct ConeStepTrace {
 /// @brief Predictor or corrector cone diagnostics for one outer iteration.
 template <linalg::FieldLike T, size_t NumCones>
 struct PdIpmStepTrace {
-  std::array<ConeStepTrace<T>, NumCones> cones{};
-
+  /**
+   * @brief reset
+   *
+   * @return void
+   */
   constexpr void reset() { *this = {}; }
 
-  constexpr auto& cone(size_t i) { return cones[i]; }
-  constexpr const auto& cone(size_t i) const { return cones[i]; }
+  /**
+   * @brief cone
+   *
+   * @param idx
+   *
+   * @return cone at index
+   */
+  constexpr auto& cone(const size_t& idx) {
+    AK_ASSERT(idx < NumCones);
+    return cones[idx];
+  }
+  constexpr const auto& cone(const size_t& idx) const {
+    AK_ASSERT(idx < NumCones);
+    return cones[idx];
+  }
+
+  /** @brief public member vars */
+  std::array<ConeStepTrace<T>, NumCones> cones{}; ///< Array of cone step traces
 };
 
 /**
@@ -57,6 +76,15 @@ struct PdIpmStepTrace {
  */
 template <linalg::FieldLike T, size_t NumCones>
 struct PdIpmIterTrace {
+
+  /**
+   * @brief reset
+   *
+   * @return void
+   */
+  constexpr void reset() { *this = {}; }
+
+  /** @brief public member vars */
   T mu{};       ///< Normalized duality gap for the full iterate.
   T alpha_x{};  ///< Max primal cone step.
   T alpha_y{};  ///< Max dual cone step.
@@ -68,14 +96,12 @@ struct PdIpmIterTrace {
   T px_norm{};  ///< ||Newton step in x||_2.
   T py_norm{};  ///< ||Newton step in y||_2.
 
-  PdIpmStepTrace<T, NumCones> predictor{};
-  PdIpmStepTrace<T, NumCones> corrector{};
+  PdIpmStepTrace<T, NumCones> predictor{}; ///< predictor pd ipm trace
+  PdIpmStepTrace<T, NumCones> corrector{}; ///< corrector pd ipm trace
 
-  config::SolverResult tag{};
-  linalg::NumericalEvent event{};
-  bool stalled{};
-
-  constexpr void reset() { *this = {}; }
+  config::SolverResult tag{};     ///< tag of solver result
+  linalg::NumericalEvent event{}; ///< event of reported numerical result
+  bool stalled{};                 ///< tag whether or not its been stalled
 };
 
 /**
@@ -86,53 +112,93 @@ struct PdIpmIterTrace {
  */
 template <linalg::FieldLike T, size_t NumCones>
 struct PdIpmTrace {
-  std::array<PdIpmIterTrace<T, NumCones>, PD_IPM_STEPS> iters{};
-  size_t num_iters{};
-
+  constexpr void reset() { *this = {}; }
+  /// @brief static export of num cones
   static constexpr size_t num_cones = NumCones;
 
-  constexpr void reset() { *this = {}; }
-
+  /**
+   * @brief full (num_iters >= PD_IPM_STEPS)
+   *
+   * @return T/F
+   */
   constexpr bool full() const { return num_iters >= PD_IPM_STEPS; }
 
+  /**
+   * @brief size
+   *
+   * @return num_iters
+   */
   constexpr size_t size() const { return num_iters; }
 
-  constexpr auto& iter(size_t k) { return iters[k]; }
-  constexpr const auto& iter(size_t k) const { return iters[k]; }
-  constexpr auto& operator[](size_t k) { return iters[k]; }
-  constexpr const auto& operator[](size_t k) const { return iters[k]; }
+  /**
+   * @brief iter & relevent overrides
+   *
+   * @param k (size_t)
+   *
+   * @return iter at k
+   */
+  constexpr auto& iter(const size_t& k) { return iters[k]; }
+  constexpr const auto& iter(const size_t& k) const { return iters[k]; }
+  constexpr auto& operator[](const size_t& k) { return iters[k]; }
+  constexpr const auto& operator[](const size_t& k) const { return iters[k]; }
 
+  /**
+   * @brief current
+   *
+   * @return current iter reference
+   */
   constexpr auto& current() {
     return iters[(num_iters < PD_IPM_STEPS) ? num_iters : (PD_IPM_STEPS - 1)];
   }
 
+  /**
+   * @brief current
+   *
+   * @return current iter
+   */
   constexpr const auto& current() const {
     return iters[(num_iters < PD_IPM_STEPS) ? num_iters : (PD_IPM_STEPS - 1)];
   }
 
+  /**
+   * @brief commit iter will increment the number of iters
+   *
+   * @return T/F
+   */
   constexpr bool commit_iter() {
     if (num_iters >= PD_IPM_STEPS) return false;
     ++num_iters;
     return true;
   }
+
+  /** @brief public member vars */
+  std::array<PdIpmIterTrace<T, NumCones>, PD_IPM_STEPS>
+      iters{};        ///< array of pd ipm trace objects
+  size_t num_iters{}; ///< number of iterations
 };
 
 /// @brief Empty object used when full snapshot tracing is disabled.
 struct EmptyPdIpmSnapshot {};
 
+/**
+ * @brief Cone snap shot at current iterate
+ */
 template <linalg::FieldLike T, size_t MaxConeDim>
 struct PdIpmConeSnapshot {
-  std::array<T, MaxConeDim> xk{};
-  std::array<T, MaxConeDim> yk{};
-  std::array<T, MaxConeDim> rhs_c{};
-  std::array<T, MaxConeDim> px{};
-  std::array<T, MaxConeDim> py{};
+  std::array<T, MaxConeDim> xk{};    ///< primal var at k
+  std::array<T, MaxConeDim> yk{};    ///< dual var at k
+  std::array<T, MaxConeDim> rhs_c{}; ///< rhs at k in pred-corr
+  std::array<T, MaxConeDim> px{};    ///< primal newton step
+  std::array<T, MaxConeDim> py{};    ///< dual newton step
 };
 
+/**
+ * @brief Global snap shot at current iterate
+ */
 template <linalg::FieldLike T, size_t VarDim, size_t EqDim>
 struct PdIpmGlobalStepSnapshot {
-  std::array<T, VarDim> pz{};
-  std::array<T, EqDim> pnu{};
+  std::array<T, VarDim> pz{}; ///< dec var newton step
+  std::array<T, EqDim> pnu{}; ///< equality newton step
 };
 
 /**
@@ -144,12 +210,17 @@ struct PdIpmGlobalStepSnapshot {
 template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
           size_t VarDim, size_t EqDim>
 struct PdIpmFullIterSnapshot {
-  std::array<PdIpmConeSnapshot<T, MaxConeDim>, NumCones> predictor_cones{};
-  std::array<PdIpmConeSnapshot<T, MaxConeDim>, NumCones> corrector_cones{};
-  PdIpmGlobalStepSnapshot<T, VarDim, EqDim> predictor_global{};
-  PdIpmGlobalStepSnapshot<T, VarDim, EqDim> corrector_global{};
+  std::array<PdIpmConeSnapshot<T, MaxConeDim>, NumCones>
+      predictor_cones{}; ///< predictor cone snap shot
+  std::array<PdIpmConeSnapshot<T, MaxConeDim>, NumCones>
+      corrector_cones{}; ///< corrector cone snap shot
+  PdIpmGlobalStepSnapshot<T, VarDim, EqDim>
+      predictor_global{}; ///< predicator global snap shot
+  PdIpmGlobalStepSnapshot<T, VarDim, EqDim>
+      corrector_global{}; ///< corrector global snap shot
 };
 
+/// @brief Alias for snap shot storage (full or empty)
 template <bool Enable, linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
           size_t VarDim, size_t EqDim>
 using PdIpmSnapshotStorage = std::conditional_t<

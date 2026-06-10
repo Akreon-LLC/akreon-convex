@@ -53,7 +53,8 @@ struct CanonicalFormBuilder {
         canonical_trace(trace_in) {}
 
   /**
-   * @brief Realize child canonical data and select a lifted auxiliary variable.
+   * @brief make new builder with tuple of cones and input cone lift map
+   * selecting upon input index
    *
    * @param idx negative index from the end of the updated coordinate domain
    * @param lift_map affine map that selects the lifted epigraph coordinate
@@ -89,7 +90,7 @@ struct CanonicalFormBuilder {
   }
 
   /**
-   * @brief Realize child canonical data without changing the selector.
+   * @brief make new builder based on tuple of cones (no input map or selector)
    *
    * @param cones emitted cones from the child atom
    *
@@ -106,7 +107,8 @@ struct CanonicalFormBuilder {
   }
 
   /**
-   * @brief Realize an atom-local emission and select a lifted coordinate.
+   * @brief Realize an atom-local emission and select a lifted coordinate based
+   * on input cone lift map.
    *
    * @param idx negative index from the end of the realized coordinate domain
    * @param lift_map affine map that selects the lifted epigraph/hypograph
@@ -127,7 +129,8 @@ struct CanonicalFormBuilder {
   }
 
   /**
-   * @brief Realize an atom-local emission without changing the selector.
+   * @brief Realize an atom-local emission without changing the selector (no map
+   * provided).
    *
    * @param emission fixed-size atom-local canonical recipe
    *
@@ -190,6 +193,7 @@ struct CanonicalFormBuilder {
     return make_builder<DecVarDom>(coord_map, cb, new_eq_map, traced);
   }
 
+  /** @brief public member vars */
   CoordMap coord_map; ///< Global selector from canonical columns to current
                       ///< atom coordinates.
   CB cb;              ///< Realized cone block containing cone tuple and affine
@@ -201,13 +205,12 @@ private:
   /**
    * @brief Add cone trace from emission object
    *
-   * @param emission (Emission)
+   * @param emission (Emission- unused)
    *
    * @return canonical trace object
    */
   template <convex::AtomType Type, LocalEmissionLike Emission>
-  constexpr auto add_cone_trace(const Emission& emission) const {
-    static_cast<void>(emission);
+  constexpr auto add_cone_trace(const Emission& /*emission*/) const {
     using ConeTuple = emission_cones_t<Emission>;
     using EqMapT = affine::affine_mat_t<EqMap>;
 
@@ -240,13 +243,12 @@ private:
   /**
    * @brief Add equality trace from emission object
    *
-   * @param emission (Emission)
+   * @param emission (Emission- unused)
    *
    * @return canonical trace object
    */
   template <LocalEqualityEmissionLike Emission>
-  constexpr auto add_equality_trace(const Emission& emission) const {
-    static_cast<void>(emission);
+  constexpr auto add_equality_trace(const Emission& /*emission*/) const {
     using EqMapT = affine::affine_mat_t<EqMap>;
 
     constexpr size_t NodeId =
@@ -399,11 +401,14 @@ private:
 
 /**
  * @brief Construct a canonical-form builder while deducing all realized
- * component types.
+ * component types (aside from dec var dom)
  *
- * `DecVarDom` is the only type that cannot be inferred from constructor
- * arguments: it is the original decision-variable domain, while the maps here
- * may already include auxiliary canonical columns.
+ * @param coord_map (CoordMap)
+ * @param cb (ConeBlock)
+ * @param eq_map (AffineMap)
+ * @param canonical_trace (CanonicalTrace)
+ *
+ * @return builder
  */
 template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
           conic::ConeBlockLike CB, affine::AffineMapLike EqMap,

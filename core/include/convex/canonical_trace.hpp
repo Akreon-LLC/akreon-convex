@@ -24,9 +24,6 @@
 
 namespace convex {
 
-/// @brief Record category in the structural canonicalization trace.
-enum struct CanonicalRecordKind : uint8_t { NODE = 0, CONE = 1, EQUALITY = 2 };
-
 /// @brief Cone family emitted into the global cone block.
 enum struct CanonicalConeKind : uint8_t {
   NONNEG_ORTHANT = 0,
