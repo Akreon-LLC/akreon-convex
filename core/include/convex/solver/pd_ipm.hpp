@@ -17,11 +17,9 @@
 #include "equality_coupling.hpp"
 #include "newton_step.hpp"
 #include "pd_info.hpp"
+#include "pd_ipm_result.hpp"
 #include "pred_corr.hpp"
 #include "residual_state.hpp"
-#ifdef AKREON_REPORT_OUTPUT
-#include "pd_ipm_output.hpp"
-#endif
 
 namespace convex {
 
@@ -126,6 +124,11 @@ struct PrimalDualIPM {
   using ConeVar = linalg::Vector<T, M>;
   using Step = NewtonStep<Var, ConeVar, NuVar>;
   using Residuals = ResidualState<Var, ConeVar, NuVar>;
+#ifdef AKREON_REPORT_OUTPUT
+  using SolverTrace = PdIpmTrace<T, NumCones>;
+#else
+  using SolverTrace = EmptySolverTrace;
+#endif
 
   static_assert(is_problem_set_v<Problem>,
                 "Problem is not set therefore cannot be solved");
@@ -185,14 +188,14 @@ struct PrimalDualIPM {
   }
 
   /** @brief member vars */
-  PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace> res; ///< PD-IPM result
+  PrimalDualResult<Var, ConeVar, NuVar, CanonicalTrace, SolverTrace>
+      res; ///< PD-IPM result
+#ifdef AKREON_REPORT_OUTPUT
+  SolverTrace trace{}; ///< debug iteration trace
+#endif
   bool dual_feas{false};   ///< status flag for dual feasibility
   bool primal_feas{false}; ///< status flag for primal feasibility
   bool gap_min{false};     ///< status flag for duality gap minimized
-#ifdef AKREON_REPORT_OUTPUT
-  std::array<IterState<T, NumCones, M, N, EqRows>, PD_IPM_STEPS>
-      trace; ///< debug iteration trace
-#endif
 
 private:
   /**
@@ -233,7 +236,8 @@ private:
                 !res.stalled;
          ++i) {
 #ifdef AKREON_REPORT_OUTPUT
-      trace[i].reset_pc_trace();
+      auto& iter_trace = trace.current();
+      iter_trace.reset();
 #endif
 
       /// (dakre) 1 - accumulate and factor block
@@ -267,7 +271,7 @@ private:
           pc.predictor(Var{}, K, M_ldl, eq, F, rp, rd, req, x, y
 #ifdef AKREON_REPORT_OUTPUT
                        ,
-                       trace[i]
+                       iter_trace
 #endif
           );
       static_cast<void>(pred_rhs);
@@ -282,7 +286,7 @@ private:
           Var{}, pred_step.px, pred_step.py, K, M_ldl, eq, F, rp, rd, req, x, y
 #ifdef AKREON_REPORT_OUTPUT
           ,
-          trace[i]
+          iter_trace
 #endif
       );
       static_cast<void>(corr_rhs);
@@ -306,16 +310,16 @@ private:
 
       res.mu = mu(x, y, barrier_param);
 #ifdef AKREON_REPORT_OUTPUT
-      trace[i].mu = res.mu;
-      trace[i].rd_norm = rd_norm;
-      trace[i].rp_norm = rp_norm;
-      trace[i].req_norm = req_norm;
-      trace[i].alpha_x = std::get<0>(alpha_xy);
-      trace[i].alpha_y = std::get<1>(alpha_xy);
-      trace[i].pz_norm = linalg::L2<decltype(step.pz)>()(step.pz);
-      trace[i].pnu_norm = linalg::L2<decltype(step.pnu)>()(step.pnu);
-      trace[i].px_norm = linalg::L2<decltype(step.px)>()(step.px);
-      trace[i].py_norm = linalg::L2<decltype(step.py)>()(step.py);
+      iter_trace.mu = res.mu;
+      iter_trace.rd_norm = rd_norm;
+      iter_trace.rp_norm = rp_norm;
+      iter_trace.req_norm = req_norm;
+      iter_trace.alpha_x = std::get<0>(alpha_xy);
+      iter_trace.alpha_y = std::get<1>(alpha_xy);
+      iter_trace.pz_norm = linalg::L2<decltype(step.pz)>()(step.pz);
+      iter_trace.pnu_norm = linalg::L2<decltype(step.pnu)>()(step.pnu);
+      iter_trace.px_norm = linalg::L2<decltype(step.px)>()(step.px);
+      iter_trace.py_norm = linalg::L2<decltype(step.py)>()(step.py);
 #endif
       /// (dakre) 8 - compute residuals + mu again
       residuals = compute_residuals(F, A, g, c, b, z, nu, x, y);
@@ -332,7 +336,11 @@ private:
 
       tag = get_tag();
 #ifdef AKREON_REPORT_OUTPUT
-      trace[i].tag = tag;
+      iter_trace.tag = tag;
+      iter_trace.event = res.event;
+      iter_trace.stalled = res.stalled;
+      trace.commit_iter();
+      res.solver_trace = trace;
 #endif
     }
 
