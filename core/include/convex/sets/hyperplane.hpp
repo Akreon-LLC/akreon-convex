@@ -126,8 +126,6 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
         std::get<0>(this->children)
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
-    const auto child_cb = child_builder.cb;
-    const auto child_eq = child_builder.eq_map;
 
     static constexpr size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
@@ -138,31 +136,8 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
     const auto eq_map = affine::AffineMap<linalg::RowVector<T, N>>(
                             linalg::as_row_vector(a), linalg::Vector<T, 1>{b})
                             .compose(child_coord);
-
-    static constexpr size_t ChildEqRows =
-        linalg::mat_rows_v<decltype(child_eq.linear_part())>;
-    static constexpr size_t EqRows = ChildEqRows + 1;
-    static constexpr size_t EqCols =
-        linalg::mat_cols_v<decltype(eq_map.linear_part())>;
-
-    linalg::Matrix<T, EqRows, EqCols> A{};
-    linalg::Vector<T, EqRows> g{};
-
-    if constexpr (ChildEqRows != 0) {
-      A = linalg::set_block<0, ChildEqRows, 0, EqCols>(A,
-                                                       child_eq.linear_part());
-      for (size_t i = 0; i < ChildEqRows; ++i) g(i) = child_eq.translation()(i);
-    }
-
-    A = linalg::set_block<ChildEqRows, EqRows, 0, EqCols>(A,
-                                                          eq_map.linear_part());
-    g(ChildEqRows) = eq_map.translation()(0);
-
-    const auto new_eq_map = affine::AffineMap<decltype(A)>(A, g);
-    return conic::CanonicalFormBuilder<
-        conic::builder_dom_t<decltype(builder)>, decltype(child_coord),
-        decltype(child_cb), decltype(new_eq_map)>(child_coord, child_cb,
-                                                  new_eq_map);
+    const auto emission = conic::LocalEqualityEmission(eq_map);
+    return child_builder.realize(emission);
   }
 
   /** @brief member var in hyperplane */

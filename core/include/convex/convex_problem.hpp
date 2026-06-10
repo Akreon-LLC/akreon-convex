@@ -108,11 +108,8 @@ struct ConvexProblem {
     linalg::RowVector<T, AugN> c{};
     affine::AffineMap<decltype(c)> new_map(c);
 
-    const auto new_builder =
-        conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
-                                    decltype(new_map), decltype(cb),
-                                    decltype(builder.eq_map)>(new_map, cb,
-                                                              builder.eq_map);
+    const auto new_builder = conic::make_builder<conic::builder_dom_t<Builder>>(
+        new_map, cb, builder.eq_map, builder.canonical_trace);
     return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
         new_builder);
   }
@@ -149,10 +146,8 @@ struct ConvexProblem {
       for (size_t i = 0; i < CopyN; ++i) c(0)(i) = atom.map.linear_part()(0)(i);
       const affine::AffineMap<decltype(c)> new_map(c, b);
       const auto new_builder =
-          conic::CanonicalFormBuilder<conic::builder_dom_t<Builder>,
-                                      decltype(new_map), decltype(cb),
-                                      decltype(builder.eq_map)>(new_map, cb,
-                                                                builder.eq_map);
+          conic::make_builder<conic::builder_dom_t<Builder>>(
+              new_map, cb, builder.eq_map, builder.canonical_trace);
       return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
           new_builder);
     } else {
@@ -177,10 +172,10 @@ struct ConvexProblem {
 
         const auto b = obj_builder.coord_map.translation()(0);
         const auto obj_map = affine::AffineMap<decltype(c)>(c, b);
-        const auto new_builder = conic::CanonicalFormBuilder<
-            conic::builder_dom_t<decltype(obj_builder)>, decltype(obj_map),
-            decltype(obj_builder.cb), decltype(obj_builder.eq_map)>(
-            obj_map, obj_builder.cb, obj_builder.eq_map);
+        const auto new_builder =
+            conic::make_builder<conic::builder_dom_t<decltype(obj_builder)>>(
+                obj_map, obj_builder.cb, obj_builder.eq_map,
+                obj_builder.canonical_trace);
         return ConvexProblem<decltype(new_builder), StageType::PROBLEM_SET>(
             new_builder);
       }
@@ -271,6 +266,22 @@ struct ConvexProblem {
     requires(Stage == StageType::PROBLEM_SET)
   {
     return builder.eq_map;
+  }
+
+  /**
+   * @brief Structural trace of canonical rows emitted during canonicalization.
+   *
+   * Cone records are aligned with `constraint_map()` rows and equality records
+   * are aligned with `equality_map()` rows. The trace is intentionally
+   * structural: presentation layers can interpret lineage without changing the
+   * solver's numeric result contract.
+   *
+   * @return canonical trace
+   */
+  constexpr auto canonical_trace() const
+    requires(Stage == StageType::PROBLEM_SET)
+  {
+    return builder.canonical_trace;
   }
 
   /** @brief member var */

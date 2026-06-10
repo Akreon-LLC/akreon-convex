@@ -241,7 +241,6 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
         std::get<0>(this->children)
             .template canonicalize<AtomType::FN>(builder);
     const auto child_coord = child_builder.coord_map;
-    const auto child_cb = child_builder.cb;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
     static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
@@ -266,15 +265,13 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-      const auto new_builder = conic::CanonicalFormBuilder<
-          conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
-          decltype(child_cb), decltype(child_builder.eq_map)>(
-          coord_map_up, child_cb, child_builder.eq_map);
 
       const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
       const auto cones = std::make_tuple(soc);
+      const auto emission =
+          conic::LocalEmission(coord_map_up, cones, child_builder.eq_map);
 
-      return new_builder.template make<Type>(idx, lift_map, cones);
+      return child_builder.template realize<Type>(idx, lift_map, emission);
     } else if constexpr (std::same_as<NormFunc, linalg::Linf<Vec>>) {
       linalg::Matrix<T, 2 * N, Dom + 1> F;
       F = linalg::set_block<0, N, 0, N>(F, child_coord.linear_part());
@@ -293,15 +290,13 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-      const auto new_builder = conic::CanonicalFormBuilder<
-          conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
-          decltype(child_cb), decltype(child_builder.eq_map)>(
-          coord_map_up, child_cb, child_builder.eq_map);
 
       const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto cones = std::make_tuple(rplus, rplus);
+      const auto emission =
+          conic::LocalEmission(coord_map_up, cones, child_builder.eq_map);
 
-      return new_builder.template make<Type>(idx, lift_map, cones);
+      return child_builder.template realize<Type>(idx, lift_map, emission);
     } else {
       linalg::Matrix<T, 3 * N + 1, 2 * Dom + 1> F;
       const auto I = linalg::make_identity<T, N>();
@@ -325,16 +320,14 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-      const auto new_builder = conic::CanonicalFormBuilder<
-          conic::builder_dom_t<decltype(builder)>, decltype(coord_map_up),
-          decltype(child_cb), decltype(child_builder.eq_map)>(
-          coord_map_up, child_cb, child_builder.eq_map);
 
       const auto rplus1 = conic::NonnegOrthantCone<linalg::Vector<T, N>>();
       const auto rplus2 = conic::NonnegOrthantCone<linalg::Vector<T, 1>>();
       const auto cones = std::make_tuple(rplus1, rplus1, rplus2, rplus1);
+      const auto emission =
+          conic::LocalEmission(coord_map_up, cones, child_builder.eq_map);
 
-      return new_builder.template make<Type>(idx, lift_map, cones);
+      return child_builder.template realize<Type>(idx, lift_map, emission);
     }
   }
 

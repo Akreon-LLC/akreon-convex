@@ -18,7 +18,7 @@
 #include "linalg/linalg_util.hpp"
 #include "newton_step.hpp"
 #ifdef AKREON_REPORT_OUTPUT
-#include "pd_ipm_output.hpp"
+#include "pd_ipm_trace.hpp"
 #endif
 
 namespace convex {
@@ -60,8 +60,7 @@ struct PredictorCorrector {
                            const ConeVar& y
 #ifdef AKREON_REPORT_OUTPUT
                            ,
-                           IterState<T, NumCones, linalg::mat_rows_v<ConeMat>,
-                                     N, EqRows>& trace_state
+                           PdIpmIterTrace<T, NumCones>& trace_state
 #endif
   ) const {
     if constexpr (idx >= NumCones)
@@ -93,17 +92,11 @@ struct PredictorCorrector {
 
       pz_rhs = pz_rhs - F_blk_T * P.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_REPORT_OUTPUT
-      auto& cone_trace = trace_state.predictor[idx];
+      auto& cone_trace = trace_state.predictor.cone(idx);
       cone_trace.mu = Ki.trace(xk, yk) / Ki.nu();
-      cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
-      cone_trace.pz_rhs = linalg::L2<Var>()(pz_rhs);
-      cone_trace.cone_dim = End - Start;
-      for (size_t j = 0; j < End - Start; ++j) {
-        cone_trace.xk[j] = xk(j);
-        cone_trace.yk[j] = yk(j);
-        cone_trace.rhs_c_vec[j] = rhs_c(j);
-      }
-      cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
+      cone_trace.rhs_c_norm = linalg::L2<ConePoint>()(rhs_c);
+      cone_trace.pz_rhs_norm = linalg::L2<Var>()(pz_rhs);
+      cone_trace.active = true;
 #endif
 
       auto [new_pz_rhs, step, next_event] = predictor<idx + 1, End>(
@@ -132,14 +125,6 @@ struct PredictorCorrector {
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         step.px(i) = px_local(j), step.py(i) = py_local(j);
       }
-#ifdef AKREON_REPORT_OUTPUT
-      for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = step.pz(j);
-      for (size_t j = 0; j < EqRows; ++j) cone_trace.pnu[j] = step.pnu(j);
-      for (size_t j = 0; j < End - Start; ++j) {
-        cone_trace.px[j] = px_local(j);
-        cone_trace.py[j] = py_local(j);
-      }
-#endif
 
       return std::tuple(std::move(new_pz_rhs), std::move(step),
                         linalg::NumericalEvent::NONE);
@@ -171,8 +156,7 @@ struct PredictorCorrector {
                            const ConeVar& x, const ConeVar& y
 #ifdef AKREON_REPORT_OUTPUT
                            ,
-                           IterState<T, NumCones, linalg::mat_rows_v<ConeMat>,
-                                     N, EqRows>& trace_state
+                           PdIpmIterTrace<T, NumCones>& trace_state
 #endif
   ) const {
     if constexpr (idx >= NumCones)
@@ -211,17 +195,11 @@ struct PredictorCorrector {
 
       pz_rhs = pz_rhs - F_blk_T * P.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_REPORT_OUTPUT
-      auto& cone_trace = trace_state.corrector[idx];
+      auto& cone_trace = trace_state.corrector.cone(idx);
       cone_trace.mu = mu_k;
-      cone_trace.rhs_c = linalg::L2<ConePoint>()(rhs_c);
-      cone_trace.pz_rhs = linalg::L2<Var>()(pz_rhs);
-      cone_trace.cone_dim = End - Start;
-      for (size_t j = 0; j < End - Start; ++j) {
-        cone_trace.xk[j] = xk(j);
-        cone_trace.yk[j] = yk(j);
-        cone_trace.rhs_c_vec[j] = rhs_c(j);
-      }
-      cone_trace.cone_type = detail::cone_type_name_v<decltype(Ki)>;
+      cone_trace.rhs_c_norm = linalg::L2<ConePoint>()(rhs_c);
+      cone_trace.pz_rhs_norm = linalg::L2<Var>()(pz_rhs);
+      cone_trace.active = true;
 #endif
 
       auto [new_pz_rhs, step, next_event] = corrector<idx + 1, End>(
@@ -250,14 +228,6 @@ struct PredictorCorrector {
       for (size_t i = Start, j = 0; i < End; ++i, ++j) {
         step.px(i) = px_local(j), step.py(i) = py_local(j);
       }
-#ifdef AKREON_REPORT_OUTPUT
-      for (size_t j = 0; j < N; ++j) cone_trace.pz[j] = step.pz(j);
-      for (size_t j = 0; j < EqRows; ++j) cone_trace.pnu[j] = step.pnu(j);
-      for (size_t j = 0; j < End - Start; ++j) {
-        cone_trace.px[j] = px_local(j);
-        cone_trace.py[j] = py_local(j);
-      }
-#endif
 
       return std::tuple(std::move(new_pz_rhs), std::move(step),
                         linalg::NumericalEvent::NONE);

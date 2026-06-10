@@ -153,7 +153,6 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
         std::get<0>(this->children)
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
-    const auto child_cb = child_builder.cb;
 
     static constexpr size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
@@ -164,13 +163,10 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
     const auto map = affine::AffineMap<decltype(A)>(T(-1) * A, b);
     const auto rplus = conic::NonnegOrthantCone<linalg::Vector<T, M>>();
     const auto cones = std::make_tuple(rplus);
+    const auto emission =
+        conic::LocalEmission(map, cones, child_builder.eq_map);
 
-    const auto new_builder =
-        conic::CanonicalFormBuilder<conic::builder_dom_t<decltype(builder)>,
-                                    decltype(map), decltype(child_cb),
-                                    decltype(child_builder.eq_map)>(
-            map, child_cb, child_builder.eq_map);
-    return new_builder.template make<Type>(cones);
+    return child_builder.template realize<Type>(emission);
   }
 
   /** @brief member variables in the polyhedron */

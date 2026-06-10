@@ -14,6 +14,7 @@
 
 #include "affine/affine_map.hpp"
 #include "config/assert.hpp"
+#include "convex/canonical_emission.hpp"
 #include "convex/cone_traits.hpp"
 #include "convex/convex_traits.hpp"
 
@@ -22,12 +23,13 @@ namespace conic {
 /**
  * @brief Builder for conic canonical forms.
  *
- * The builder carries the current cone coordinate selector, emitted cone block,
- * and equality map while atoms append rows and auxiliary variables during
- * canonicalization.
+ * The builder carries the current global coordinate selector, realized cone
+ * block, and equality map while atom-local recipes expand the canonical type
+ * layout during canonicalization.
  */
 template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
-          conic::ConeBlockLike CB, affine::AffineMapLike EqMap>
+          conic::ConeBlockLike CB, affine::AffineMapLike EqMap,
+          typename CanonicalTrace = convex::EmptyCanonicalTrace>
 struct CanonicalFormBuilder {
   /// @brief Affine matrix type for the current cone-coordinate selector.
   using CoordMapT = affine::affine_mat_t<CoordMap>;
@@ -45,11 +47,14 @@ struct CanonicalFormBuilder {
    * @param eq_in accumulated equality map
    */
   constexpr explicit CanonicalFormBuilder(const CoordMap& coord_in,
-                                          const CB& cb_in, const EqMap& eq_in)
-      : coord_map(coord_in), cb(cb_in), eq_map(eq_in) {}
+                                          const CB& cb_in, const EqMap& eq_in,
+                                          const CanonicalTrace& trace_in = {})
+      : coord_map(coord_in), cb(cb_in), eq_map(eq_in),
+        canonical_trace(trace_in) {}
 
   /**
-   * @brief Append child canonical data and select a lifted auxiliary variable.
+   * @brief make new builder with tuple of cones and input cone lift map
+   * selecting upon input index
    *
    * @param idx negative index from the end of the updated coordinate domain
    * @param lift_map affine map that selects the lifted epigraph coordinate
@@ -80,13 +85,12 @@ struct CanonicalFormBuilder {
         affine::AffineMap<decltype(sel_row)>(sel_row, bias);
     const auto new_cb =
         conic::ConeBlock(new_map, std::tuple_cat(cb.cones, cones));
-    return CanonicalFormBuilder<DecVarDom, decltype(new_coord_map),
-                                decltype(new_cb), decltype(new_eq_map)>(
-        new_coord_map, new_cb, new_eq_map);
+    return make_builder<DecVarDom>(new_coord_map, new_cb, new_eq_map,
+                                   canonical_trace);
   }
 
   /**
-   * @brief Append child canonical data without changing the selector.
+   * @brief make new builder based on tuple of cones (no input map or selector)
    *
    * @param cones emitted cones from the child atom
    *
@@ -98,24 +102,181 @@ struct CanonicalFormBuilder {
     const auto new_eq_map = this->template update_eq_map<Type>();
     const auto new_cb =
         conic::ConeBlock(new_map, std::tuple_cat(cb.cones, cones));
-    return CanonicalFormBuilder<DecVarDom, decltype(new_map), decltype(new_cb),
-                                decltype(new_eq_map)>(new_map, new_cb,
-                                                      new_eq_map);
+    return make_builder<DecVarDom>(new_map, new_cb, new_eq_map,
+                                   canonical_trace);
   }
 
-  CoordMap coord_map; ///< Affine map from decision/auxiliary columns to current
+  /**
+   * @brief Realize an atom-local emission and select a lifted coordinate based
+   * on input cone lift map.
+   *
+   * @param idx negative index from the end of the realized coordinate domain
+   * @param lift_map affine map that selects the lifted epigraph/hypograph
+   * coordinate
+   * @param emission fixed-size atom-local canonical recipe
+   *
+   * @return builder with the emission realized into the global canonical layout
+   */
+  template <convex::AtomType Type, affine::AffineMapLike LiftedMap,
+            LocalEmissionLike Emission>
+  constexpr auto realize(const int& idx, const LiftedMap& lift_map,
+                         const Emission& emission) const {
+    const auto traced = add_cone_trace<Type, Emission>(emission);
+    const auto local_builder = make_builder<DecVarDom>(
+        emission.local_coord_map, cb, emission.local_eq_map, traced);
+    return local_builder.template make<Type>(idx, lift_map,
+                                             emission.local_cones);
+  }
+
+  /**
+   * @brief Realize an atom-local emission without changing the selector (no map
+   * provided).
+   *
+   * @param emission fixed-size atom-local canonical recipe
+   *
+   * @return builder with the emission realized into the global canonical layout
+   */
+  template <convex::AtomType Type, LocalEmissionLike Emission>
+  constexpr auto realize(const Emission& emission) const {
+    const auto traced = add_cone_trace<Type, Emission>(emission);
+    const auto local_builder = make_builder<DecVarDom>(
+        emission.local_coord_map, cb, emission.local_eq_map, traced);
+    return local_builder.template make<Type>(emission.local_cones);
+  }
+
+  /**
+   * @brief Realize atom-local equality rows.
+   *
+   * This is the equality-only sister path to cone emission realization. It
+   * merges affine equality rows into the builder equality map and leaves the
+   * cone block and current coordinate selector unchanged.
+   *
+   * @param emission fixed-size atom-local equality recipe
+   *
+   * @return builder with the equality emission realized
+   */
+  template <LocalEqualityEmissionLike Emission>
+  constexpr auto realize(const Emission& emission) const {
+    using CurrentEqMat = affine::affine_mat_t<EqMap>;
+    using LocalEqMap = emission_local_eq_map_t<Emission>;
+    using LocalEqMat = affine::affine_mat_t<LocalEqMap>;
+
+    static_assert(std::same_as<T, linalg::mat_type_t<LocalEqMat>>,
+                  "type mismatch between equality emission and builder");
+
+    static constexpr size_t CurrentRows = linalg::mat_rows_v<CurrentEqMat>;
+    static constexpr size_t CurrentCols = linalg::mat_cols_v<CurrentEqMat>;
+    static constexpr size_t LocalRows = linalg::mat_rows_v<LocalEqMat>;
+    static constexpr size_t LocalCols = linalg::mat_cols_v<LocalEqMat>;
+    static constexpr size_t FullRows = CurrentRows + LocalRows;
+    static constexpr size_t FullCols =
+        CurrentCols > LocalCols ? CurrentCols : LocalCols;
+
+    linalg::Matrix<T, FullRows, FullCols> A{};
+    linalg::Vector<T, FullRows> b{};
+
+    if constexpr (CurrentRows != 0 && CurrentCols != 0) {
+      A = linalg::set_block<0, CurrentRows, 0, CurrentCols>(
+          A, eq_map.linear_part());
+      for (size_t i = 0; i < CurrentRows; ++i) b(i) = eq_map.translation()(i);
+    }
+
+    if constexpr (LocalRows != 0 && LocalCols != 0) {
+      A = linalg::set_block<CurrentRows, FullRows, 0, LocalCols>(
+          A, emission.local_eq_map.linear_part());
+      for (size_t i = 0; i < LocalRows; ++i)
+        b(i + CurrentRows) = emission.local_eq_map.translation()(i);
+    }
+
+    const auto new_eq_map = affine::AffineMap<decltype(A)>(A, b);
+    const auto traced = add_equality_trace(emission);
+    return make_builder<DecVarDom>(coord_map, cb, new_eq_map, traced);
+  }
+
+  /** @brief public member vars */
+  CoordMap coord_map; ///< Global selector from canonical columns to current
                       ///< atom coordinates.
-  CB cb; ///< Accumulated cone block containing cone tuple and affine rows.
-  EqMap eq_map; ///< Accumulated equality map in the same column layout.
+  CB cb;              ///< Realized cone block containing cone tuple and affine
+                      ///< rows.
+  EqMap eq_map;       ///< Realized equality map in the same column layout.
+  CanonicalTrace canonical_trace; ///< Realized structural canonical trace.
 
 private:
+  /**
+   * @brief Add cone trace from emission object
+   *
+   * @param emission (Emission- unused)
+   *
+   * @return canonical trace object
+   */
+  template <convex::AtomType Type, LocalEmissionLike Emission>
+  constexpr auto add_cone_trace(const Emission& /*emission*/) const {
+    using ConeTuple = emission_cones_t<Emission>;
+    using EqMapT = affine::affine_mat_t<EqMap>;
+
+    // The builder owns global offsets: atom emissions only describe local
+    // cones/equalities, while the builder knows how many rows were realized
+    // before this emission.
+    constexpr size_t NodeId =
+        convex::canonical_trace_num_nodes_v<CanonicalTrace>;
+    constexpr size_t GlobalConeStart = conic::cone_block_num_cones_v<CB>;
+    constexpr size_t ConeOffsetStart = conic::cone_block_map_rows_v<CB>;
+    constexpr size_t LocalEqRows = emission_local_eq_rows_v<Emission>;
+    constexpr size_t EqOffsetStart = linalg::mat_rows_v<EqMapT>;
+
+    const auto nodes = std::make_tuple(convex::CanonicalNodeRecord{
+        NodeId, convex::canonical_no_parent, Type, 0});
+    const auto cones = convex::make_canonical_cone_records<ConeTuple>(
+        NodeId, GlobalConeStart, ConeOffsetStart);
+
+    if constexpr (LocalEqRows == 0) {
+      return convex::extend_canonical_trace(canonical_trace, nodes, cones,
+                                            std::make_tuple());
+    } else {
+      const auto equalities = std::make_tuple(convex::CanonicalEqualityRecord{
+          NodeId, 0, EqOffsetStart, LocalEqRows});
+      return convex::extend_canonical_trace(canonical_trace, nodes, cones,
+                                            equalities);
+    }
+  }
+
+  /**
+   * @brief Add equality trace from emission object
+   *
+   * @param emission (Emission- unused)
+   *
+   * @return canonical trace object
+   */
+  template <LocalEqualityEmissionLike Emission>
+  constexpr auto add_equality_trace(const Emission& /*emission*/) const {
+    using EqMapT = affine::affine_mat_t<EqMap>;
+
+    constexpr size_t NodeId =
+        convex::canonical_trace_num_nodes_v<CanonicalTrace>;
+    constexpr size_t LocalEqRows = emission_local_eq_rows_v<Emission>;
+    constexpr size_t EqOffsetStart = linalg::mat_rows_v<EqMapT>;
+
+    const auto nodes = std::make_tuple(convex::CanonicalNodeRecord{
+        NodeId, convex::canonical_no_parent, convex::AtomType::SET, 0});
+
+    if constexpr (LocalEqRows == 0) {
+      return convex::extend_canonical_trace(
+          canonical_trace, nodes, std::make_tuple(), std::make_tuple());
+    } else {
+      const auto equalities = std::make_tuple(convex::CanonicalEqualityRecord{
+          NodeId, 0, EqOffsetStart, LocalEqRows});
+      return convex::extend_canonical_trace(canonical_trace, nodes,
+                                            std::make_tuple(), equalities);
+    }
+  }
+
   /**
    * @brief Update the accumulated cone map for the next canonicalization step.
    *
    * Depending on child and operation update the cone block map F and g and
    * return resultant map
    *
-   * @return affine map with preserved rows and any newly appended coordinate
+   * @return affine map with preserved rows and any newly realized coordinate
    * rows
    */
   template <convex::AtomType Type>
@@ -238,6 +399,27 @@ private:
   }
 };
 
+/**
+ * @brief Construct a canonical-form builder while deducing all realized
+ * component types (aside from dec var dom)
+ *
+ * @param coord_map (CoordMap)
+ * @param cb (ConeBlock)
+ * @param eq_map (AffineMap)
+ * @param canonical_trace (CanonicalTrace)
+ *
+ * @return builder
+ */
+template <linalg::RnSpace DecVarDom, affine::AffineMapLike CoordMap,
+          conic::ConeBlockLike CB, affine::AffineMapLike EqMap,
+          typename CanonicalTrace = convex::EmptyCanonicalTrace>
+constexpr auto make_builder(const CoordMap& coord_map, const CB& cb,
+                            const EqMap& eq_map,
+                            const CanonicalTrace& canonical_trace = {}) {
+  return CanonicalFormBuilder<DecVarDom, CoordMap, CB, EqMap, CanonicalTrace>(
+      coord_map, cb, eq_map, canonical_trace);
+}
+
 /** @brief Create an empty cone block.
  *
  * @tparam T scalar field for the empty affine map
@@ -275,8 +457,7 @@ constexpr auto create_empty_cblk_builder() {
   using T = linalg::space_type_t<DecVarDom>;
   const auto cblk = create_empty_cblk<T>();
   const auto eq_map = create_empty_eq_map<T>();
-  return CanonicalFormBuilder<DecVarDom, decltype(cblk.map), decltype(cblk),
-                              decltype(eq_map)>(cblk.map, cblk, eq_map);
+  return make_builder<DecVarDom>(cblk.map, cblk, eq_map);
 }
 
 } // namespace conic

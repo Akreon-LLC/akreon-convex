@@ -142,7 +142,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    *
    * Direct cone map:
    *   [ D^{1/2} V^T ] x + [ -D^{1/2} V^T c ]
-   *   [      0      ]     [          1       ]
+   *   [      0      ]     [          1     ]
    *   in K_soc
    *
    * @return cone block
@@ -153,7 +153,6 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
         std::get<0>(this->children)
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
-    const auto child_cb = child_builder.cb;
 
     static constexpr size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
@@ -182,13 +181,10 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();
     const auto cones = std::make_tuple(soc);
+    const auto emission =
+        conic::LocalEmission(map, cones, child_builder.eq_map);
 
-    const auto new_builder =
-        conic::CanonicalFormBuilder<conic::builder_dom_t<decltype(builder)>,
-                                    decltype(map), decltype(child_cb),
-                                    decltype(child_builder.eq_map)>(
-            map, child_cb, child_builder.eq_map);
-    return new_builder.template make<Type>(cones);
+    return child_builder.template realize<Type>(emission);
   }
 
   /** @brief member variables in the ellipsoid */

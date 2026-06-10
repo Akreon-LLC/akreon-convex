@@ -208,10 +208,14 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
         affine::AffineMap<decltype(selector.linear_part())>(F, g);
 
     const auto new_builder = std::get<1>(res);
+    // Summation changes only the current selector; canonical rows and their
+    // trace have already been realized by the folded child builders.
     return conic::CanonicalFormBuilder<
         conic::builder_dom_t<Builder>, decltype(new_selector),
-        decltype(new_builder.cb), decltype(new_builder.eq_map)>(
-        new_selector, new_builder.cb, new_builder.eq_map);
+        decltype(new_builder.cb), decltype(new_builder.eq_map),
+        decltype(new_builder.canonical_trace)>(new_selector, new_builder.cb,
+                                               new_builder.eq_map,
+                                               new_builder.canonical_trace);
   }
 
   affine::AffineMap<MatT>

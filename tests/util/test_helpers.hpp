@@ -15,6 +15,7 @@
 #include <cstring>
 #include <iostream>
 
+#include "convex/debug/pd_ipm_format.hpp"
 #include "math.hpp"
 
 namespace unit_test {
@@ -31,12 +32,9 @@ constexpr double eps = 1e-8;
  * @return void
  */
 inline constexpr void log(const auto& res, const auto& trace) {
+  static_cast<void>(trace);
   char buf[64000];
-  trace_to_cstr(res.num_iter, trace, buf, sizeof(buf));
-  std::cout << buf << std::endl;
-
-  std::memset(buf, '\0', sizeof(buf));
-  result_to_cstr(res, buf, sizeof(buf));
+  convex::debug::result_to_cstr(res, buf, sizeof(buf));
   std::cout << buf << std::endl;
 }
 

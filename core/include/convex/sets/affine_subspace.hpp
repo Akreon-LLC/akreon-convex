@@ -141,8 +141,6 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
         std::get<0>(this->children)
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
-    const auto child_cb = child_builder.cb;
-    const auto child_eq = child_builder.eq_map;
 
     static constexpr size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
@@ -151,33 +149,8 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
                   "linear map's codomain in size");
 
     const auto eq_map = affine::AffineMap<Mat>(A, b).compose(child_coord);
-
-    static constexpr size_t ChildEqRows =
-        linalg::mat_rows_v<decltype(child_eq.linear_part())>;
-    static constexpr size_t EqRows = ChildEqRows + M;
-    static constexpr size_t EqCols =
-        linalg::mat_cols_v<decltype(eq_map.linear_part())>;
-
-    linalg::Matrix<T, EqRows, EqCols> A_eq{};
-    linalg::Vector<T, EqRows> g_eq{};
-
-    if constexpr (ChildEqRows != 0) {
-      A_eq = linalg::set_block<0, ChildEqRows, 0, EqCols>(
-          A_eq, child_eq.linear_part());
-      for (size_t i = 0; i < ChildEqRows; ++i)
-        g_eq(i) = child_eq.translation()(i);
-    }
-
-    A_eq = linalg::set_block<ChildEqRows, EqRows, 0, EqCols>(
-        A_eq, eq_map.linear_part());
-    for (size_t i = 0; i < M; ++i)
-      g_eq(i + ChildEqRows) = eq_map.translation()(i);
-
-    const auto new_eq_map = affine::AffineMap<decltype(A_eq)>(A_eq, g_eq);
-    return conic::CanonicalFormBuilder<
-        conic::builder_dom_t<decltype(builder)>, decltype(child_coord),
-        decltype(child_cb), decltype(new_eq_map)>(child_coord, child_cb,
-                                                  new_eq_map);
+    const auto emission = conic::LocalEqualityEmission(eq_map);
+    return child_builder.realize(emission);
   }
 
   /** @brief data members for affine subspace */
