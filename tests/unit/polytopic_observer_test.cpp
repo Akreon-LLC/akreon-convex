@@ -72,12 +72,12 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
         Vectord<7>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
         Vectord<7>{0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
         Vectord<7>{0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
-        Vectord<7>{0.0, 0.0, 0.0, -2.0, 0.0, 0.0, 0.0},
-        Vectord<7>{0.0, 0.0, 0.0, 0.0, -s2, -s2, 0.0},
-        Vectord<7>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.0},
-        Vectord<7>{2.0, 0.0, 0.0, -2.0, 0.0, 0.0, 0.0},
-        Vectord<7>{0.0, 3.0, 0.0, 0.0, -s2, -s2, 0.0},
-        Vectord<7>{0.0, 0.0, 4.0, 0.0, 0.0, 0.0, -2.0},
+        Vectord<7>{0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0},
+        Vectord<7>{0.0, 0.0, 0.0, 0.0, s2, s2, 0.0},
+        Vectord<7>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0},
+        Vectord<7>{2.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0},
+        Vectord<7>{0.0, 3.0, 0.0, 0.0, s2, s2, 0.0},
+        Vectord<7>{0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 2.0},
     };
 
     REQUIRE(all_equal(cone_block.map.linear_part(), F_exp));
@@ -153,10 +153,10 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
     REQUIRE(all_equal(W_res, Q_res * L_res, 1e-4));
 
-    const auto cert0 = (-1.0) * (transpose(A0) * Q_res + Q_res * A0 +
-                                 W_res * C + transpose(C) * transpose(W_res));
-    const auto cert1 = (-1.0) * (transpose(A1) * Q_res + Q_res * A1 +
-                                 W_res * C + transpose(C) * transpose(W_res));
+    const auto cert0 = (-1.0) * (transpose(A0) * Q_res + Q_res * A0 -
+                                 W_res * C - transpose(C) * transpose(W_res));
+    const auto cert1 = (-1.0) * (transpose(A1) * Q_res + Q_res * A1 -
+                                 W_res * C - transpose(C) * transpose(W_res));
 
     const auto cert0_sym = SymmetricMatrix(cert0, 1e-6);
     const auto cert1_sym = SymmetricMatrix(cert1, 1e-6);
@@ -244,10 +244,10 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
     REQUIRE(all_equal(W_res, Q_res * L_res, 1e-4));
 
-    const auto cert0 = (-1.0) * (transpose(A0) * Q_res + Q_res * A0 +
-                                 W_res * C + transpose(C) * transpose(W_res));
-    const auto cert1 = (-1.0) * (transpose(A1) * Q_res + Q_res * A1 +
-                                 W_res * C + transpose(C) * transpose(W_res));
+    const auto cert0 = (-1.0) * (transpose(A0) * Q_res + Q_res * A0 -
+                                 W_res * C - transpose(C) * transpose(W_res));
+    const auto cert1 = (-1.0) * (transpose(A1) * Q_res + Q_res * A1 -
+                                 W_res * C - transpose(C) * transpose(W_res));
     const auto cert0_sym = SymmetricMatrix(cert0, 1e-6);
     const auto cert1_sym = SymmetricMatrix(cert1, 1e-6);
     REQUIRE(cert0_sym.is_valid());

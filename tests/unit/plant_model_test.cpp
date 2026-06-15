@@ -142,12 +142,14 @@ TEST_CASE("PlantModel selected ports match vanilla synthesis",
   REQUIRE(vanilla_feedback.map.translation() ==
           plant_feedback.map.translation());
 
-  constexpr auto P = Variable<SymMatVarMeta<Matrixd<2, 2>>>();
+  using ObserverZ = RowVectord<LuenbergerObserver<VanillaPlant>::ZDim>;
+  constexpr auto observer_dec = Variable<VarMeta<ObserverZ>>();
   const auto vanilla_observer_lmi =
-      LuenbergerObserver<VanillaPlant>()(vanilla, P);
-  const auto plant_observer_lmi = LuenbergerObserver<Plant>()(plant, P);
+      LuenbergerObserver<VanillaPlant>()(vanilla, observer_dec);
+  const auto plant_observer_lmi =
+      LuenbergerObserver<Plant>()(plant, observer_dec);
   constexpr auto observer_builder =
-      conic::create_empty_cblk_builder<SymmetricMatrix<Matrixd<2, 2>>>();
+      conic::create_empty_cblk_builder<ObserverZ>();
   const auto vanilla_observer =
       vanilla_observer_lmi
           .template canonicalize<AtomType::SET>(observer_builder)

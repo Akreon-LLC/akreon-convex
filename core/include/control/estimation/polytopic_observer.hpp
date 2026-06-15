@@ -40,7 +40,7 @@ namespace control {
  *   edot = (A(t) - L C(t)) e
  *
  * There exists Q > 0 s.t.
- *   A_i^T Q + Q A_i + W C_i + C_i^T W^T < 0
+ *   A_i^T Q + Q A_i - W C_i - C_i^T W^T < 0
  *
  * where W = Q L, and L = Q^{-1} W.
  */
@@ -153,7 +153,7 @@ struct PolytopicObserver {
 
     auto M_w = [&](const WMat& E) -> FMat {
       const auto C_y = plant.measurement_matrix();
-      return T(-1) * (E * C_y + linalg::transpose(C_y) * linalg::transpose(E));
+      return E * C_y + linalg::transpose(C_y) * linalg::transpose(E);
     };
 
     const auto Fq_local =

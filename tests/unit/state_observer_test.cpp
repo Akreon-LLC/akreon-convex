@@ -38,8 +38,9 @@ TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
   using Inputs = PortLayout<Port<PortRole::CONTROL, 0, 2>>;
   using Outputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 2>>;
   using Plant = PlantModel<PlantSS, Inputs, Outputs>;
-  using QSpace = SymmetricMatrix<Space>;
-  constexpr auto Q = Variable<SymMatVarMeta<Space>>();
+  using Observer = LuenbergerObserver<Plant>;
+  using DecVarSpace = RowVectord<Observer::ZDim>;
+  constexpr auto dec = Variable<VarMeta<DecVarSpace>>();
   constexpr auto I = make_identity<double, 2>();
   constexpr auto Z = Matrixd<2, 2>{};
   constexpr auto MatBuilder = mat_traits<Space>();
@@ -51,24 +52,28 @@ TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
     constexpr auto plant = Plant(PlantSS(A, B, C));
 
     constexpr auto obs = LuenbergerObserver<decltype(plant)>();
-    constexpr auto lmi = obs(plant, Q);
+    const auto lmi = obs(plant, dec);
 
-    constexpr auto builder = conic::create_empty_cblk_builder<QSpace>();
-    constexpr auto cone_block =
+    constexpr auto builder = conic::create_empty_cblk_builder<DecVarSpace>();
+    const auto cone_block =
         lmi.template canonicalize<AtomType::SET>(builder).cb;
 
+    constexpr auto s2 = constexpr_sqrt_safe(2.0);
     constexpr auto F_exp =
-        Matrixd<6, 3>{Vectord<3>{1.0, 0.0, 0.0}, Vectord<3>{0.0, 1.0, 0.0},
-                      Vectord<3>{0.0, 0.0, 1.0}, Vectord<3>{0.0, 0.0, 0.0},
-                      Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0}};
-    STATIC_REQUIRE(all_equal(cone_block.map.linear_part(), F_exp));
-    STATIC_REQUIRE(cone_block.map.translation() ==
-                   Vectord<6>{-1e-6, 0.0, -1e-6, 1.0, 0.0, 1.0});
+        Matrixd<6, 7>{Vectord<7>{1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+                      Vectord<7>{0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0},
+                      Vectord<7>{0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0},
+                      Vectord<7>{0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0},
+                      Vectord<7>{0.0, 0.0, 0.0, 0.0, s2, s2, 0.0},
+                      Vectord<7>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0}};
+    REQUIRE(all_equal(cone_block.map.linear_part(), F_exp));
+    REQUIRE(cone_block.map.translation() ==
+            Vectord<6>{-1e-6, 0.0, -1e-6, 0.0, 0.0, 0.0});
 
-    constexpr auto cones = cone_block.cones;
+    const auto cones = cone_block.cones;
     constexpr auto sz = std::tuple_size<decltype(cones)>::value;
     STATIC_REQUIRE(sz == 2);
-    STATIC_REQUIRE(cone_block.validate());
+    REQUIRE(cone_block.validate());
   }
 
   SECTION("Solver finds feasible Q and stabilizing observer gain") {
@@ -78,12 +83,15 @@ TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
     constexpr auto plant = Plant(PlantSS(A, B, C));
 
     constexpr auto obs = LuenbergerObserver<decltype(plant)>();
-    constexpr auto prob = make_observer_problem(plant, Q);
+    constexpr auto P = make_identity<double, Observer::ZDim>();
+    constexpr auto q = Vectord<Observer::ZDim>{};
+    constexpr auto obj = make_quad_form(P, q, dec);
+    constexpr auto prob = make_observer_problem(plant, dec, obj);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
     STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
-                   2);
+                   4);
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;
@@ -95,24 +103,27 @@ TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(!res.stalled);
 
-    const auto Q_res = make_smat<2>(res.iterate.z);
+    const auto z_split = linalg::splice<Observer::QDim>(res.iterate.z);
+    const auto Q_res = make_smat<2>(std::get<0>(z_split));
+    Matrixd<2, 2> W_res{};
+    for (size_t i = 0; i < 2; ++i)
+      for (size_t j = 0; j < 2; ++j)
+        W_res(i)(j) = std::get<1>(z_split)(i * 2 + j);
+
     REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
     REQUIRE(Q_res(0)(0) > 1e-6);
     REQUIRE(Q_res(1)(1) > 1e-6);
 
-    const auto [L_res, L_event] = obs.L(plant, Q_res);
+    const auto [L_res, L_event] = obs.L(Q_res, W_res);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
-    REQUIRE(L_res(0)(0) > 0.0);
-    REQUIRE(L_res(1)(1) > 0.0);
-    REQUIRE(constexpr_abs(L_res(0)(1)) < 1e-3);
-    REQUIRE(constexpr_abs(L_res(1)(0)) < 1e-3);
+    REQUIRE(all_equal(W_res, Q_res * L_res, 1e-4));
 
     const auto error_dynamics = A - L_res * C;
     REQUIRE(error_dynamics(0)(0) < 0.0);
     REQUIRE(error_dynamics(1)(1) < 0.0);
 
-    const auto cert =
-        (-1.0) * (transpose(A) * Q_res + Q_res * A) + transpose(C) * C;
+    const auto cert = (-1.0) * (transpose(A) * Q_res + Q_res * A - W_res * C -
+                                transpose(C) * transpose(W_res));
     const auto cert_sym = linalg::SymmetricMatrix(cert);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
@@ -130,13 +141,19 @@ TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
     constexpr auto C = I;
     constexpr auto plant = Plant(PlantSS(A, B, C));
 
-    constexpr auto prob = make_observer_problem(plant, Q);
+    constexpr auto prob = make_observer_problem(plant, dec);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
 
     const auto Q_feas = I;
-    const auto z_feas = get_svec(Q_feas);
+    const auto W_feas = I;
+    Vectord<Observer::ZDim> z_feas{};
+    const auto q_feas = get_svec(Q_feas);
+    for (size_t i = 0; i < Observer::QDim; ++i) z_feas(i) = q_feas(i);
+    for (size_t i = 0; i < 2; ++i)
+      for (size_t j = 0; j < 2; ++j)
+        z_feas(Observer::QDim + i * 2 + j) = W_feas(i)(j);
     const auto x_feas = prob.constraint_map().linear_part() * z_feas +
                         prob.constraint_map().translation();
 
@@ -150,6 +167,7 @@ TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
     const auto cert_sym = SymmetricMatrix(cert_slack, 1e-6);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
+    REQUIRE(all_equal(W_feas, Q_feas, rel_tol));
   }
 }
 
@@ -159,7 +177,9 @@ TEST_CASE("Luenberger Observer 3x3", "[state_observer_test]") {
   using Inputs = PortLayout<Port<PortRole::CONTROL, 0, 3>>;
   using Outputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 3>>;
   using Plant = PlantModel<PlantSS, Inputs, Outputs>;
-  constexpr auto Q = Variable<SymMatVarMeta<Space>>();
+  using Observer = LuenbergerObserver<Plant>;
+  using DecVarSpace = RowVectord<Observer::ZDim>;
+  constexpr auto dec = Variable<VarMeta<DecVarSpace>>();
   constexpr auto I = make_identity<double, 3>();
   constexpr auto MatBuilder = mat_traits<Space>();
 
@@ -171,12 +191,15 @@ TEST_CASE("Luenberger Observer 3x3", "[state_observer_test]") {
     constexpr auto plant = Plant(PlantSS(A, B, C));
 
     constexpr auto obs = LuenbergerObserver<decltype(plant)>();
-    constexpr auto prob = make_observer_problem(plant, Q);
+    constexpr auto P = make_identity<double, Observer::ZDim>();
+    constexpr auto q = Vectord<Observer::ZDim>{};
+    constexpr auto obj = make_quad_form(P, q, dec);
+    constexpr auto prob = make_observer_problem(plant, dec, obj);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
     STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
-                   2);
+                   4);
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;
@@ -188,20 +211,27 @@ TEST_CASE("Luenberger Observer 3x3", "[state_observer_test]") {
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(!res.stalled);
 
-    const auto Q_res = make_smat<3>(res.iterate.z);
+    const auto z_split = linalg::splice<Observer::QDim>(res.iterate.z);
+    const auto Q_res = make_smat<3>(std::get<0>(z_split));
+    Matrixd<3, 3> W_res{};
+    for (size_t i = 0; i < 3; ++i)
+      for (size_t j = 0; j < 3; ++j)
+        W_res(i)(j) = std::get<1>(z_split)(i * 3 + j);
+
     REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
     REQUIRE(Q_res(0)(0) > 1e-6);
     REQUIRE(Q_res(1)(1) > 1e-6);
     REQUIRE(Q_res(2)(2) > 1e-6);
 
-    const auto cert =
-        (-1.0) * (transpose(A) * Q_res + Q_res * A) + transpose(C) * C;
+    const auto cert = (-1.0) * (transpose(A) * Q_res + Q_res * A - W_res * C -
+                                transpose(C) * transpose(W_res));
     const auto cert_sym = linalg::SymmetricMatrix(cert);
     REQUIRE(cert_sym.is_valid());
     REQUIRE(cert_sym.is_psd());
 
-    const auto [L_res, L_event] = obs.L(plant, Q_res);
+    const auto [L_res, L_event] = obs.L(Q_res, W_res);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
+    REQUIRE(all_equal(W_res, Q_res * L_res, 1e-4));
 
     const auto error_dynamics = A - L_res * C;
     const auto lyap =
@@ -218,13 +248,19 @@ TEST_CASE("Luenberger Observer 3x3", "[state_observer_test]") {
     constexpr auto C = I;
     constexpr auto plant = Plant(PlantSS(A, B, C));
 
-    constexpr auto prob = make_observer_problem(plant, Q);
+    constexpr auto prob = make_observer_problem(plant, dec);
 
     STATIC_REQUIRE(is_problem_set_v<decltype(prob)>);
     STATIC_REQUIRE(prob.validate());
 
     const auto Q_feas = I;
-    const auto z_feas = get_svec(Q_feas);
+    const auto W_feas = I;
+    Vectord<Observer::ZDim> z_feas{};
+    const auto q_feas = get_svec(Q_feas);
+    for (size_t i = 0; i < Observer::QDim; ++i) z_feas(i) = q_feas(i);
+    for (size_t i = 0; i < 3; ++i)
+      for (size_t j = 0; j < 3; ++j)
+        z_feas(Observer::QDim + i * 3 + j) = W_feas(i)(j);
     const auto x_feas = prob.constraint_map().linear_part() * z_feas +
                         prob.constraint_map().translation();
 
