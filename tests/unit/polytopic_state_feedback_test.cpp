@@ -486,3 +486,73 @@ TEST_CASE("Hinf Polytopic State Feedback synthesis 2x2",
   check_vertex(A0);
   check_vertex(A1);
 }
+
+TEST_CASE("Hinf Polytopic Mixed Sensitivity uses a common augmented gain",
+          "[polytopic_state_feedback_test]") {
+  using ScalarMat = Matrixd<1, 1>;
+  using SS =
+      StateSpace<TimeDomainType::CONTINUOUS, ScalarMat, ScalarMat, ScalarMat>;
+  using PlantInputs = PortLayout<Port<PortRole::CONTROL, 0, 1>>;
+  using PlantOutputs = PortLayout<Port<PortRole::MEASUREMENT, 0, 1>>;
+  using Plant = PlantModel<SS, PlantInputs, PlantOutputs>;
+  using WeightInputs = PortLayout<Port<PortRole::CONTROL, 0, 1>>;
+  using WeightOutputs = PortLayout<Port<PortRole::PERFORMANCE, 0, 1>>;
+  using Weight = PlantModel<SS, WeightInputs, WeightOutputs>;
+
+  constexpr auto scalar = [](double value) {
+    return ScalarMat{Vectord<1>{value}};
+  };
+  constexpr auto plant0 =
+      Plant(SS(scalar(-2.0), scalar(1.5), scalar(3.0), scalar(0.2)));
+  constexpr auto plant1 =
+      Plant(SS(scalar(-2.4), scalar(1.3), scalar(2.8), scalar(0.1)));
+  constexpr auto poly = Vector<Plant, 2>{plant0, plant1};
+  constexpr auto wp =
+      Weight(SS(scalar(-4.0), scalar(2.0), scalar(5.0), scalar(0.7)));
+  constexpr auto wt =
+      Weight(SS(scalar(-6.0), scalar(7.0), scalar(8.0), scalar(0.9)));
+  constexpr auto wu =
+      Weight(SS(scalar(-10.0), scalar(11.0), scalar(12.0), scalar(1.3)));
+
+  using Mixed = HinfPolytopicMixedSensitivity<Plant, 2, Weight, Weight, Weight>;
+  constexpr auto mixed = Mixed();
+  const auto generalized = mixed.model(poly, wp, wt, wu);
+  REQUIRE(Mixed::StateDim == 4);
+  REQUIRE(Mixed::ControlDim == 1);
+  REQUIRE(generalized(0).dynamics_matrix()(0)(0) == -2.0);
+  REQUIRE(generalized(1).dynamics_matrix()(0)(0) == -2.4);
+
+  using DecVarSpace = RowVectord<Mixed::DecVarDim>;
+  constexpr auto Z_hat = Variable<VarMeta<DecVarSpace>>();
+  const auto prob = make_hinf_polytopic_mixed_sensitivity_problem<Plant, 2>(
+      poly, wp, wt, wu, Z_hat);
+  REQUIRE(is_problem_set_v<decltype(prob)>);
+  REQUIRE(prob.validate());
+  REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 4);
+
+  using Solver = PrimalDualIPM<decltype(prob)>;
+  auto cfg = pldi_solver_config<double>();
+  cfg.steps = 96;
+  cfg.dual_feas_tol = 1e-3;
+  const Solver solver(prob, cfg);
+  const auto& res = solver.res;
+#ifdef AKREON_REPORT_OUTPUT
+  const auto& trace = solver.trace;
+  if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+#endif
+  REQUIRE(res.tag == SolverResult::OPTIMAL);
+  REQUIRE(!res.stalled);
+
+  const auto q_y_gamma_split = linalg::splice<Mixed::QDim>(res.iterate.z);
+  const auto Q_res = make_smat<Mixed::StateDim>(std::get<0>(q_y_gamma_split));
+  const auto y_gamma_split =
+      linalg::splice<Mixed::YDim>(std::get<1>(q_y_gamma_split));
+  RowVectord<Mixed::YDim> Y_res{};
+  for (size_t j = 0; j < Mixed::YDim; ++j)
+    Y_res(0)(j) = std::get<0>(y_gamma_split)(j);
+  REQUIRE(std::get<1>(y_gamma_split)(0) > 1e-6);
+
+  const auto [K_res, K_event] = mixed.K(Q_res, Y_res);
+  REQUIRE(K_event == linalg::NumericalEvent::NONE);
+  REQUIRE(all_equal(Y_res, K_res * Q_res, 1e-4));
+}

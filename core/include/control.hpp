@@ -21,6 +21,7 @@
 #include "control/feedback/h2_polytopic_state_feedback.hpp"
 #include "control/feedback/h2_state_feedback.hpp"
 #include "control/feedback/hinf_mixed_sensitivity.hpp"
+#include "control/feedback/hinf_polytopic_mixed_sensitivity.hpp"
 #include "control/feedback/hinf_polytopic_state_feedback.hpp"
 #include "control/feedback/hinf_state_feedback.hpp"
 #include "control/feedback/polytopic_state_feedback.hpp"
