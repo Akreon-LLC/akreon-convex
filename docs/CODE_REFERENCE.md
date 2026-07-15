@@ -37,6 +37,10 @@ compose variables, atoms, inequalities, cone blocks, and solver configuration.
 4. `ConvexProblem` and solver components consume the canonical form to run the
    primal-dual interior-point method.
 
+See also
+[`SOLVER_NUMERICAL_HARDENING.md`](SOLVER_NUMERICAL_HARDENING.md) for solver
+conditioning, coefficient-cleanup, and H∞ gain-recovery hardening notes.
+
 ## Control Synthesis Flow
 
 1. `StateSpace` captures continuous or discrete plant dynamics.
