@@ -25,11 +25,11 @@ template <affine::AffineMapLike Map, typename... Cs>
 struct ConeBlock {
   /// @brief alias to extract scalar type from space
   using MatT = affine::affine_mat_t<Map>;
-  using T = linalg::mat_type_t<MatT>;
+  using T = linalg::matrix_scalar_t<MatT>;
 
   /// @brief alias to extract codom & dom of affine map
-  static constexpr size_t M = linalg::mat_rows_v<MatT>;
-  static constexpr size_t N = linalg::mat_cols_v<MatT>;
+  static constexpr std::size_t M = linalg::mat_rows_v<MatT>;
+  static constexpr std::size_t N = linalg::mat_cols_v<MatT>;
 
   /**
    * @brief CTOR for cone block
@@ -56,7 +56,7 @@ struct ConeBlock {
    */
   constexpr bool validate() const {
     // (dakre) lambda functor to perform the soft check
-    size_t n_dims = 0;
+    std::size_t n_dims = 0;
     auto perform_check = [&](const auto& arg) {
       using ArgT = cone_scalar_t<decltype(arg)>;
       static_assert(

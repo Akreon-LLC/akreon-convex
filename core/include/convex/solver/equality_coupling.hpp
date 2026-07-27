@@ -19,7 +19,7 @@ namespace convex {
 /**
  * @brief No equality-coupling case for empty A.
  */
-template <linalg::VectorLike Var, linalg::VectorLike NuVar>
+template <linalg::VectorContainer Var, linalg::VectorContainer NuVar>
 struct NoEqualityCoupling {
   /**
    * @brief solve for pz step
@@ -51,8 +51,8 @@ struct NoEqualityCoupling {
  * Schur complement
  * S = A M^{-1} A^T
  */
-template <linalg::MatrixLike EqMat, typename SchurFactor,
-          linalg::VectorLike Var, linalg::VectorLike NuVar>
+template <linalg::MatrixContainer EqMat, typename SchurFactor,
+          linalg::VectorContainer Var, linalg::VectorContainer NuVar>
 struct SchurEqualityCoupling {
   /**
    * @brief CTOR
@@ -105,8 +105,8 @@ struct SchurEqualityCoupling {
 /**
  * @brief Scalar Schur complement wrapper for 1x1 equality case.
  */
-template <linalg::MatrixLike EqMat, linalg::FieldLike Scalar,
-          linalg::VectorLike Var, linalg::VectorLike NuVar>
+template <linalg::MatrixContainer EqMat, linalg::Field Scalar,
+          linalg::VectorContainer Var, linalg::VectorContainer NuVar>
 struct ScalarEqualityCoupling {
   /**
    * @brief CTOR

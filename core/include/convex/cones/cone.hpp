@@ -21,13 +21,13 @@
 namespace conic {
 
 /// @brief cone base class
-template <linalg::VectorLike Slack, typename Derived, ConeType CType>
+template <linalg::VectorContainer Slack, typename Derived, ConeType CType>
 struct Cone {
   /// @brief alias for mat type
-  using T = linalg::vec_type_t<Slack>;
+  using T = linalg::vector_element_t<Slack>;
 
   /// @brief helpers to get M slack size
-  static constexpr size_t M = linalg::vec_size_v<Slack>;
+  static constexpr std::size_t M = linalg::vector_dim_v<Slack>;
 
   /// @brief eps constant
   static constexpr T eps = 1e-8;

@@ -126,7 +126,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
    * @return y (scalar in R)
    */
   constexpr T eval(const PointT& x) const {
-    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto alpha = lift_map.linear_part()(0, 0);
     const auto beta = lift_map.translation()(0);
     if (linalg::constexpr_abs(x(0)) <= delta) {
       if constexpr (Tag == CurvatureType::CONVEX)
@@ -222,8 +222,8 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
     const auto child_coord = child_builder.coord_map;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
-    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
-    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static constexpr std::size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr std::size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == 1,
                   "input affine map from cone block has invalid codom dim for "
                   "scalar fn domain (i.e., != 1");
@@ -234,24 +234,24 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
     const auto b = child_coord.translation();
     F = linalg::set_block<0, 1, 0, Dom>(F, a);
     F = linalg::set_block<1, 2, 0, Dom>(F, T(-1) * a);
-    F(0)(Dom) = T(-1), F(0)(Dom + 1) = T(-1);
-    F(1)(Dom) = T(1), F(1)(Dom + 1) = T(1);
-    F(2)(Dom) = T(1), F(2)(Dom + 2) = T(1);
-    F(3)(Dom) = T(-1), F(3)(Dom + 2) = T(1);
-    F(4)(Dom + 2) = T(1);
-    F(5)(Dom + 2) = T(-1) * delta;
-    F(5)(Dom + 3) = T(-1);
+    F(0, Dom) = T(-1), F(0, Dom + 1) = T(-1);
+    F(1, Dom) = T(1), F(1, Dom + 1) = T(1);
+    F(2, Dom) = T(1), F(2, Dom + 2) = T(1);
+    F(3, Dom) = T(-1), F(3, Dom + 2) = T(1);
+    F(4, Dom + 2) = T(1);
+    F(5, Dom + 2) = T(-1) * delta;
+    F(5, Dom + 3) = T(-1);
     g(0) = b(0);
     g(1) = T(-1) * b(0);
 
     linalg::Matrix<T, 3, Dom + 5> F_rsoc{};
-    F_rsoc(0)(Dom + 1) = T(1);
-    F_rsoc(2)(Dom + 3) = T(1);
+    F_rsoc(0, Dom + 1) = T(1);
+    F_rsoc(2, Dom + 3) = T(1);
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F(5)(Dom + 4) = T(1);
+      F(5, Dom + 4) = T(1);
     } else {
-      F(5)(Dom + 4) = T(-1);
+      F(5, Dom + 4) = T(-1);
     }
 
     linalg::Vector<T, 3> g_rsoc{T(0), T(0.5), T(0)};

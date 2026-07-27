@@ -113,7 +113,7 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
     AK_ASSERT(x(0) >= T(0) && x(1) >= T(1) &&
               "Invalid domain for harmonic mean");
 
-    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto alpha = lift_map.linear_part()(0, 0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONCAVE)
       return alpha * (T(2) * x(0) * x(1)) / (x(0) + x(1)) + beta;
@@ -194,27 +194,27 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
     const auto child_coord = child_builder.coord_map;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
-    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
-    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static constexpr std::size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr std::size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == N,
                   "input affine map from cone block has invalid dom which is a "
                   "mismatch between domain in the convex function");
 
     linalg::Matrix<T, N + 1, Dom + 1> F;
-    F(1)(0) = child_coord.linear_part()(0)(0);
-    F(2)(1) = child_coord.linear_part()(1)(1);
+    F(1, 0) = child_coord.linear_part()(0, 0);
+    F(2, 1) = child_coord.linear_part()(1, 1);
     linalg::Vector<T, N + 1> g;
     g(1) = child_coord.translation()(0);
     g(2) = child_coord.translation()(1);
 
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      F(0)(Dom) = T(1) / linalg::constexpr_sqrt_safe(T(2));
-      F(1)(Dom) = T(-0.5);
-      F(2)(Dom) = T(-0.5);
+      F(0, Dom) = T(1) / linalg::constexpr_sqrt_safe(T(2));
+      F(1, Dom) = T(-0.5);
+      F(2, Dom) = T(-0.5);
     } else {
-      F(0)(Dom) = T(-1) / linalg::constexpr_sqrt_safe(T(2));
-      F(1)(Dom) = T(0.5);
-      F(2)(Dom) = T(0.5);
+      F(0, Dom) = T(-1) / linalg::constexpr_sqrt_safe(T(2));
+      F(1, Dom) = T(0.5);
+      F(2, Dom) = T(0.5);
     }
 
     const auto rsoc_coords = affine::AffineMap<decltype(F)>(F, g);

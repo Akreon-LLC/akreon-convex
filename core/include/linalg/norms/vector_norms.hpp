@@ -27,13 +27,13 @@ namespace linalg {
  *
  * @return scalar
  */
-template <VectorLike Vec>
+template <FieldVector Vec>
 struct L2 {
-  using T = vec_type_t<Vec>;
-  using ScalarT = scalar_type_t<vec_type_t<Vec>>;
+  using T = vector_element_t<Vec>;
+  using ScalarT = real_type_t<vector_element_t<Vec>>;
   constexpr auto operator()(const Vec& x) const {
     ScalarT result = 0;
-    if constexpr (RealLike<T>) result = dot(x, x);
+    if constexpr (Real<T>) result = dot(x, x);
     else {
       const auto tmp = dot(conjugate(x), x);
       AK_ASSERT(is_real(tmp) && "L2 complex norm expects real inner product");
@@ -52,10 +52,10 @@ struct L2 {
  *
  * @return scalar
  */
-template <VectorLike Vec>
+template <FieldVector Vec>
 struct L1 {
-  using T = vec_type_t<Vec>;
-  using ScalarT = scalar_type_t<vec_type_t<Vec>>;
+  using T = vector_element_t<Vec>;
+  using ScalarT = real_type_t<vector_element_t<Vec>>;
   constexpr auto operator()(const Vec& x) const {
     ScalarT sum = 0;
     for (const auto& _x : x) sum += constexpr_abs(_x);
@@ -72,10 +72,10 @@ struct L1 {
  *
  * @return scalar
  */
-template <VectorLike Vec>
+template <FieldVector Vec>
 struct Linf {
-  using T = vec_type_t<Vec>;
-  using ScalarT = scalar_type_t<vec_type_t<Vec>>;
+  using T = vector_element_t<Vec>;
+  using ScalarT = real_type_t<vector_element_t<Vec>>;
   constexpr auto operator()(const Vec& x) const {
     ScalarT mx = 0;
     for (const auto& _x : x) mx = std::max(mx, constexpr_abs(_x));

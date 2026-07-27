@@ -57,7 +57,7 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 3);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 3);
     STATIC_REQUIRE(g_exp == g);
 
     constexpr PrimalDualIPM solver(prob_min);
@@ -101,7 +101,7 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 3);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 3);
     STATIC_REQUIRE(g_exp == g);
 
     constexpr PrimalDualIPM solver(prob_min);
@@ -150,7 +150,7 @@ TEST_CASE("Minimal QP 2 Vars", "[qp_test]") {
 
     constexpr Vectord<4> g_exp{-c(0), -c(1), 0.0, 1.0};
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 4);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 4);
     STATIC_REQUIRE(g == g_exp);
 
     constexpr PrimalDualIPM solver(prob_min);
@@ -203,7 +203,7 @@ TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 4);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 4);
     STATIC_REQUIRE(g ==
                    Vectord<4>{0.0, -1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
     constexpr mat_traits<Matrixd<1, 3>> Aeq_mat;
@@ -255,7 +255,7 @@ TEST_CASE("Minimal QP 1 Var (Square Objective Free Var)", "[qp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 3);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 3);
     STATIC_REQUIRE(g == Vectord<3>{-1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
     STATIC_REQUIRE(prob_min.linear_objective() == Vectord<2>{0.0, 1.0});
 
@@ -308,7 +308,7 @@ TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_max.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 5);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 5);
     STATIC_REQUIRE(g ==
                    Vectord<5>{1.0, 0.0, 0.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
     STATIC_REQUIRE(prob_max.linear_objective() == Vectord<2>{0.0, 1.0});
@@ -363,7 +363,7 @@ TEST_CASE("Minimal QP 2 Vars (Harmonic Mean Objective)", "[qp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_max.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 5);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 5);
     STATIC_REQUIRE(g == Vectord<5>{0.0, 0.0, 0.0, 0.0, 0.0});
     constexpr mat_traits<Matrixd<1, 3>> Aeq_mat;
     constexpr auto Aeq = Aeq_mat(1.0, 1.0, 0.0);
@@ -424,7 +424,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 4);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 4);
     STATIC_REQUIRE(g ==
                    Vectord<4>{-1.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2, 5.0});
     STATIC_REQUIRE(prob_min.validate());
@@ -470,7 +470,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 5);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 5);
     STATIC_REQUIRE(g ==
                    Vectord<5>{constexpr_sqrt_safe(2.0), 0.0, 0.0, 1.0, 0.0});
     STATIC_REQUIRE(prob_min.validate());
@@ -525,11 +525,11 @@ TEST_CASE("Minimal QP 1 Var (Huber Objective)", "[qp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 10);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 10);
     STATIC_REQUIRE(g == Vectord<10>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                     0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
     STATIC_REQUIRE(prob_min.linear_objective() ==
-                   as_row_vector(Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0}));
+                   Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0});
 
     constexpr auto config = [] {
       PrimalDualIPMConfig<double> cfg{};

@@ -16,7 +16,7 @@
 #include <cstdint>
 #include <tuple>
 
-#include "linalg/vector/algebra_traits.hpp"
+#include "linalg/space/space_concepts.hpp"
 
 namespace control {
 
@@ -29,18 +29,18 @@ enum struct PortRole : uint8_t {
 };
 
 /// @brief Port specification
-template <PortRole RoleT, size_t OffsetT, size_t SizeT>
+template <PortRole RoleT, std::size_t OffsetT, std::size_t SizeT>
 struct Port {
   static constexpr PortRole Role = RoleT;
-  static constexpr size_t Offset = OffsetT;
-  static constexpr size_t Size = SizeT;
+  static constexpr std::size_t Offset = OffsetT;
+  static constexpr std::size_t Size = SizeT;
 };
 
 template <typename Channel>
 concept PortLike = requires {
   { Channel::Role } -> std::convertible_to<PortRole>;
-  { Channel::Offset } -> std::convertible_to<size_t>;
-  { Channel::Size } -> std::convertible_to<size_t>;
+  { Channel::Offset } -> std::convertible_to<std::size_t>;
+  { Channel::Size } -> std::convertible_to<std::size_t>;
 };
 
 /// @brief Port layout over either the state-space input or output axis
@@ -50,21 +50,23 @@ struct PortLayout {
 
   /// @brief count channels matching a port role
   template <PortRole Role>
-  static consteval size_t count() {
-    return (size_t{0} + ... + (Channels::Role == Role ? size_t{1} : size_t{0}));
+  static consteval std::size_t count() {
+    return (std::size_t{0} + ... +
+            (Channels::Role == Role ? std::size_t{1} : std::size_t{0}));
   }
 
   /// @brief total dimension for channels matching a port role
   template <PortRole Role>
-  static consteval size_t total_size() {
-    return (size_t{0} + ... + (Channels::Role == Role ? Channels::Size : 0));
+  static consteval std::size_t total_size() {
+    return (std::size_t{0} + ... +
+            (Channels::Role == Role ? Channels::Size : 0));
   }
 
   /// @brief offset of the Index-th channel matching a port role
-  template <PortRole Role, size_t Index>
-  static consteval size_t offset() {
-    size_t current = 0;
-    size_t result = 0;
+  template <PortRole Role, std::size_t Index>
+  static consteval std::size_t offset() {
+    std::size_t current = 0;
+    std::size_t result = 0;
     // Walk matching channels left-to-right. current is incremented only for
     // matching channels, so current == Index is true for exactly one match.
     ((Channels::Role == Role
@@ -77,10 +79,10 @@ struct PortLayout {
   }
 
   /// @brief size of the Index-th channel matching a port role
-  template <PortRole Role, size_t Index>
-  static consteval size_t size() {
-    size_t current = 0;
-    size_t result = 0;
+  template <PortRole Role, std::size_t Index>
+  static consteval std::size_t size() {
+    std::size_t current = 0;
+    std::size_t result = 0;
     // Same matching-channel walk as offset(), but records channel size.
     ((Channels::Role == Role
           ? ((current == Index ? (result = Channels::Size, 0) : 0), ++current,
@@ -92,7 +94,7 @@ struct PortLayout {
   }
 
   /// @brief validate port bounds and overlap against a full axis dimension
-  template <size_t FullDim>
+  template <std::size_t FullDim>
   static consteval bool validates() {
     // First fold checks every channel has positive size and in-bounds extent.
     bool ok =
@@ -102,7 +104,7 @@ struct PortLayout {
     auto mark = [&]<typename Channel>() consteval {
       if constexpr (Channel::Offset + Channel::Size > FullDim) { return; }
       // Mark each occupied index; seeing an index twice means overlap.
-      for (size_t i = Channel::Offset; i < Channel::Offset + Channel::Size;
+      for (std::size_t i = Channel::Offset; i < Channel::Offset + Channel::Size;
            ++i) {
         if (occupied[i]) ok = false;
         occupied[i] = true;
@@ -118,8 +120,8 @@ struct PortLayout {
 enum struct TimeDomainType : uint8_t { CONTINUOUS = 0, DISCRETE };
 
 /// @brief forward decl of state space
-template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
-          linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>
+template <TimeDomainType Type, linalg::SquareMatrix PlantIn,
+          linalg::MatrixContainer ControlIn, linalg::MatrixContainer OutputIn>
 struct StateSpace;
 
 /// @brief base type traits for state space
@@ -127,14 +129,14 @@ template <class StateSpace>
 struct ss_traits;
 
 /// @brief explicit type traits for state space
-template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
-          linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>
+template <TimeDomainType Type, linalg::SquareMatrix PlantIn,
+          linalg::MatrixContainer ControlIn, linalg::MatrixContainer OutputIn>
 struct ss_traits<StateSpace<Type, PlantIn, ControlIn, OutputIn>> {
   using Plant = linalg::remove_cvref_t<PlantIn>;
   using Control = linalg::remove_cvref_t<ControlIn>;
   using Output = linalg::remove_cvref_t<OutputIn>;
 
-  using T = linalg::mat_type_t<Plant>;
+  using T = linalg::matrix_scalar_t<Plant>;
   using State = linalg::Vector<T, linalg::mat_cols_v<Plant>>;
   using Input = linalg::Vector<T, linalg::mat_cols_v<Control>>;
   using OutVec = linalg::Vector<T, linalg::mat_rows_v<Output>>;
@@ -220,18 +222,18 @@ struct plant_traits<PlantModel<SS, InputPortsT, OutputPortsT>> {
   using Output = output_vec_t<StateSpace>;
   static constexpr TimeDomainType DType = ss_traits<StateSpace>::DType;
 
-  static constexpr size_t StateDim = linalg::vec_size_v<State>;
-  static constexpr size_t InputDim = linalg::vec_size_v<Input>;
-  static constexpr size_t OutputDim = linalg::vec_size_v<Output>;
+  static constexpr std::size_t StateDim = linalg::vector_dim_v<State>;
+  static constexpr std::size_t InputDim = linalg::vector_dim_v<Input>;
+  static constexpr std::size_t OutputDim = linalg::vector_dim_v<Output>;
 
-  static constexpr size_t ExogenousDim =
+  static constexpr std::size_t ExogenousDim =
       InputPorts::template total_size<PortRole::EXOGENOUS>();
-  static constexpr size_t ControlDim =
+  static constexpr std::size_t ControlDim =
       InputPorts::template total_size<PortRole::CONTROL>();
 
-  static constexpr size_t PerformanceDim =
+  static constexpr std::size_t PerformanceDim =
       OutputPorts::template total_size<PortRole::PERFORMANCE>();
-  static constexpr size_t MeasurementDim =
+  static constexpr std::size_t MeasurementDim =
       OutputPorts::template total_size<PortRole::MEASUREMENT>();
 };
 

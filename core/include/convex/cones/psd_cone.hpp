@@ -23,10 +23,10 @@ namespace conic {
  *
  * X circ Y = 0.5 (X Y + Y X)
  */
-template <linalg::VectorLike Vec, size_t N>
+template <linalg::VectorContainer Vec, std::size_t N>
 struct PSDCirc {
   /// @brief types and size extraction
-  using T = linalg::vec_type_t<Vec>;
+  using T = linalg::vector_element_t<Vec>;
 
   /**
    * @brief circ (jordan map/product)
@@ -49,7 +49,7 @@ struct PSDCirc {
  *
  * svec(X) in S^n_+
  */
-template <linalg::VectorLike Slack, size_t N>
+template <linalg::VectorContainer Slack, std::size_t N>
 struct PositiveSemidefiniteCone
     : public Cone<Slack, PositiveSemidefiniteCone<Slack, N>,
                   ConeType::SYMMETRIC> {
@@ -131,9 +131,9 @@ struct PositiveSemidefiniteCone
     constexpr T eta{0.99};
     if (in_cone_impl(x + p)) return eta;
 
-    constexpr size_t steps{64};
+    constexpr std::size_t steps{64};
     T lo{0}, hi{1};
-    for (size_t i = 0; i < steps; ++i) {
+    for (std::size_t i = 0; i < steps; ++i) {
       const T mid = T(0.5) * (lo + hi);
       if (in_cone_impl(x + mid * p)) lo = mid;
       else hi = mid;
@@ -217,9 +217,9 @@ struct PositiveSemidefiniteCone
    */
   constexpr auto e_impl() const {
     Slack x{};
-    size_t k{0};
-    for (size_t i = 0; i < N; ++i)
-      for (size_t j = 0; j <= i; ++j, ++k)
+    std::size_t k{0};
+    for (std::size_t i = 0; i < N; ++i)
+      for (std::size_t j = 0; j <= i; ++j, ++k)
         if (i == j) x(k) = T(1);
     return x;
   }

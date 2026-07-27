@@ -24,8 +24,8 @@ namespace linalg {
  * Householder vector constructed based on algorithm implementation in Matrix
  * Algorithms by Golub & Van Loan
  */
-template <typename T, size_t N>
-  requires(FieldLike<T> && N > 0)
+template <typename T, std::size_t N>
+  requires(Field<T> && N > 0)
 struct HouseholderVector {
   /**
    * @brief CTOR to compute householder vector
@@ -35,14 +35,13 @@ struct HouseholderVector {
    *
    * @param vector x to be transformed into householder
    */
-  constexpr HouseholderVector(const Vector<T, N>& x)
-      : beta(scalar_type_t<T>(0)) {
-    make_householder(x, std::integral_constant<size_t, N>{});
+  constexpr HouseholderVector(const Vector<T, N>& x) : beta(real_type_t<T>(0)) {
+    make_householder(x, std::integral_constant<std::size_t, N>{});
   }
 
   /** @brief Vector member variables */
-  Vector<T, N> v;        ///< householder vector
-  scalar_type_t<T> beta; ///< scalar to form P
+  Vector<T, N> v;      ///< householder vector
+  real_type_t<T> beta; ///< scalar to form P
 
 private:
   /**
@@ -57,9 +56,9 @@ private:
    * @return (void)
    */
   constexpr void make_householder(const Vector<T, N>& x, auto) {
-    if constexpr (ComplexLike<T>) {
+    if constexpr (Complex<T>) {
       const T norm_x = L2<Vector<T, N>>()(x);
-      if (norm_x == scalar_type_t<T>(0)) {
+      if (norm_x == real_type_t<T>(0)) {
         // (dakre) no reflector required
         return;
       }
@@ -71,14 +70,14 @@ private:
       v(0) += alpha * norm_x;
       // (dakre) normalize v like reals otherwise hosueholder mat wont
       // orthogonalize correctly!!
-      v = (scalar_type_t<T>(1) / L2<Vector<T, 1>>()(Vector<T, 1>{v(0)})) * v;
+      v = (real_type_t<T>(1) / L2<Vector<T, 1>>()(Vector<T, 1>{v(0)})) * v;
       const auto vv = dot(conjugate(v), v);
       AK_ASSERT(is_real(vv) &&
                 "Householder complex branch expects real dot(conj(v), v)");
-      beta = scalar_type_t<T>(2) / vv.real();
+      beta = real_type_t<T>(2) / vv.real();
     } else {
       const auto x_shifted = get_elements<1, N>(x);
-      scalar_type_t<T> sigma;
+      real_type_t<T> sigma;
       sigma = dot(x_shifted, x_shifted);
 
       v = x;
@@ -100,13 +99,13 @@ private:
    * beta = 0 & v = [1 ... 0]
    *
    * @param vector type T with N elements (null)
-   * @param integral constant of 1 of type size_t
+   * @param integral constant of 1 of type std::size_t
    *
    * @return (void)
    */
   constexpr void make_householder(const Vector<T, N>&,
                                   std::integral_constant<std::size_t, 1>) {
-    beta = scalar_type_t<T>(0);
+    beta = real_type_t<T>(0);
     v(0) = T(1);
   }
 };

@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "convex/canonical_form_builder.hpp"
 #include "convex/convex_traits.hpp"
 
@@ -111,7 +113,7 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
       if (mx < pt) mx = pt;
     });
 
-    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto alpha = lift_map.linear_part()(0, 0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX) return alpha * mx + beta;
     else return T(-1) * alpha * mx + beta;
@@ -185,8 +187,8 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
     const auto child_coord = child_builder.coord_map;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
-    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
-    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static constexpr std::size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr std::size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == N,
                   "Input affine map from cone block has invalid dom which is a "
                   "mismatch between domain in the convex function");
@@ -196,12 +198,13 @@ struct Max : Atom<Meta, Max<Meta, Child>, Child> {
     F = linalg::set_block<0, N, 0, Dom>(F, T(-1) * child_coord.linear_part());
 
     linalg::Vector<T, N> g;
-    for (size_t i = 0; i < N; ++i) g(i) = T(-1) * child_coord.translation()(i);
+    for (std::size_t i = 0; i < N; ++i)
+      g(i) = T(-1) * child_coord.translation()(i);
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      for (size_t i = 0; i < N; ++i) F(i)(N) = T(1);
+      for (std::size_t i = 0; i < N; ++i) F(i, N) = T(1);
     } else {
-      for (size_t i = 0; i < N; ++i) F(i)(N) = T(-1);
+      for (std::size_t i = 0; i < N; ++i) F(i, N) = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

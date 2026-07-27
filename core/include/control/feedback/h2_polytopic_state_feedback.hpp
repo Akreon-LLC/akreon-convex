@@ -30,20 +30,20 @@ namespace control {
  *   Y : lifted feedback product, Y = K Q
  *   Z : shared H2 epigraph block
  */
-template <ContinuousPlantModelLike Plant, size_t N>
+template <ContinuousPlantModelLike Plant, std::size_t N>
 struct H2PolytopicStateFeedback {
   /// @brief extracting alias and types
   using Model = linalg::remove_cvref_t<Plant>;
   using T = plant_type_t<Model>;
   using VertexFeedback = H2StateFeedback<Model>;
 
-  static constexpr size_t StateDim = VertexFeedback::StateDim;
-  static constexpr size_t InputDim = VertexFeedback::InputDim;
-  static constexpr size_t OutputDim = VertexFeedback::OutputDim;
-  static constexpr size_t QDim = VertexFeedback::QDim;
-  static constexpr size_t YDim = VertexFeedback::YDim;
-  static constexpr size_t ZDim = VertexFeedback::ZDim;
-  static constexpr size_t DecVarDim = VertexFeedback::DecVarDim;
+  static constexpr std::size_t StateDim = VertexFeedback::StateDim;
+  static constexpr std::size_t InputDim = VertexFeedback::InputDim;
+  static constexpr std::size_t OutputDim = VertexFeedback::OutputDim;
+  static constexpr std::size_t QDim = VertexFeedback::QDim;
+  static constexpr std::size_t YDim = VertexFeedback::YDim;
+  static constexpr std::size_t ZDim = VertexFeedback::ZDim;
+  static constexpr std::size_t DecVarDim = VertexFeedback::DecVarDim;
 
   using QMat = typename VertexFeedback::QMat;
   using YMat = typename VertexFeedback::YMat;
@@ -86,14 +86,15 @@ struct H2PolytopicStateFeedback {
     static_assert(std::same_as<DecVarSpace, convex::dom_space_t<DecVarDom>>,
                   "Expected merged decision size [svec(Q); vec(Y); svec(Z)]");
 
-    auto make_vertex_lmis = [&]<size_t idx>() {
+    auto make_vertex_lmis = [&]<std::size_t idx>() {
       return VertexFeedback()(poly(idx), Z_hat, margin);
     };
 
-    auto form_intersection = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return convex::Intersection(
-          make_vertex_lmis.template operator()<Is>()...);
-    };
+    auto form_intersection =
+        [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+          return convex::Intersection(
+              make_vertex_lmis.template operator()<Is>()...);
+        };
 
     return form_intersection(std::make_index_sequence<N>{});
   }
@@ -132,7 +133,8 @@ struct H2PolytopicStateFeedback {
  *
  * @return H2 problem
  */
-template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike DecVar>
+template <ContinuousPlantModelLike Plant, std::size_t N,
+          convex::AtomLike DecVar>
 constexpr auto make_h2_polytopic_state_feedback_problem(
     const linalg::Vector<Plant, N>& poly, const DecVar& Z_hat,
     plant_type_t<Plant> margin = 1e-6) {

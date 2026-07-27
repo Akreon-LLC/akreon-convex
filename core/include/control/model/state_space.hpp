@@ -22,21 +22,21 @@ namespace control {
  * @f$\dot{x} = A x(t) + B u(t)@f$
  * @f$y = C x(t) + D u(t)@f$
  */
-template <TimeDomainType Type, linalg::SquareMatrixLike PlantIn,
-          linalg::MatrixLike ControlIn, linalg::MatrixLike OutputIn>
+template <TimeDomainType Type, linalg::SquareMatrix PlantIn,
+          linalg::MatrixContainer ControlIn, linalg::MatrixContainer OutputIn>
 struct StateSpace {
   /// @brief extract type and alias
   using Plant = linalg::remove_cvref_t<PlantIn>;
   using Control = linalg::remove_cvref_t<ControlIn>;
   using Output = linalg::remove_cvref_t<OutputIn>;
 
-  using T = linalg::mat_type_t<Plant>;
-  static constexpr size_t PlantRows = linalg::mat_rows_v<Plant>;
-  static constexpr size_t PlantCols = linalg::mat_cols_v<Plant>;
-  static constexpr size_t ControlRows = linalg::mat_rows_v<Control>;
-  static constexpr size_t ControlCols = linalg::mat_cols_v<Control>;
-  static constexpr size_t OutputRows = linalg::mat_rows_v<Output>;
-  static constexpr size_t OutputCols = linalg::mat_cols_v<Output>;
+  using T = linalg::matrix_scalar_t<Plant>;
+  static constexpr std::size_t PlantRows = linalg::mat_rows_v<Plant>;
+  static constexpr std::size_t PlantCols = linalg::mat_cols_v<Plant>;
+  static constexpr std::size_t ControlRows = linalg::mat_rows_v<Control>;
+  static constexpr std::size_t ControlCols = linalg::mat_cols_v<Control>;
+  static constexpr std::size_t OutputRows = linalg::mat_rows_v<Output>;
+  static constexpr std::size_t OutputCols = linalg::mat_cols_v<Output>;
 
   using Feedthrough = linalg::Matrix<T, OutputRows, ControlCols>;
 

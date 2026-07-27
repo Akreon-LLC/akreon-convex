@@ -17,6 +17,7 @@
 #include <array>
 #include <ranges>
 #include <span>
+#include <type_traits>
 
 #include "algebra_util.hpp"
 
@@ -28,7 +29,7 @@ namespace linalg {
  * Vector is constexpr friendly static compile time container holding N elements
  * of type T
  */
-template <typename T, size_t N>
+template <typename T, std::size_t N>
 struct Vector {
   /**
    * @brief CTOR with initializer list taking in variadic argument list of
@@ -67,7 +68,7 @@ struct Vector {
    *
    * @return coordinates at index
    */
-  constexpr const T& operator()(const size_t& idx) const {
+  constexpr const T& operator()(std::size_t idx) const {
     AK_ASSERT(idx < N && "Vector const access index out of bounds");
     return coordinates[idx];
   }
@@ -79,7 +80,7 @@ struct Vector {
    *
    * @return coordinates at index
    */
-  constexpr T& operator()(const size_t& idx) {
+  constexpr T& operator()(std::size_t idx) {
     AK_ASSERT(idx < N && "Vector mutable access index out of bounds");
     return coordinates[idx];
   }
@@ -129,7 +130,7 @@ private:
    * @return T/F
    */
   constexpr bool is_equal(const Vector& other) const {
-    for (size_t i = 0; i < N; ++i)
+    for (std::size_t i = 0; i < N; ++i)
       if (other.coordinates[i] != coordinates[i]) return false;
     return true;
   }
@@ -137,5 +138,8 @@ private:
   /** @brief Vector member variables */
   std::array<T, N> coordinates; ///< coordinates of vector
 };
+
+template <typename T, typename... Ts>
+Vector(T, Ts...) -> Vector<std::common_type_t<T, Ts...>, 1 + sizeof...(Ts)>;
 
 } // namespace linalg

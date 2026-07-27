@@ -17,10 +17,10 @@ namespace convex {
 /**
  * @brief Residual state bundle for a PD-IPM iterate.
  */
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
+template <linalg::VectorContainer Var, linalg::VectorContainer ConeVar,
+          linalg::VectorContainer NuVar>
 struct ResidualState {
-  using T = linalg::vec_type_t<Var>;
+  using T = linalg::vector_element_t<Var>;
 
   Var rd{};     ///< dual residual
   ConeVar rp{}; ///< primal residual

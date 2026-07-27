@@ -11,6 +11,8 @@
 
 #pragma once
 
+#include "constants.hpp"
+#include "matrix/matrix_concepts.hpp"
 #include "operator/cholesky.hpp"
 #include "operator/ldl.hpp"
 #include "operator/matrix_inverse.hpp"
@@ -20,4 +22,9 @@
 #include "spectral/matrix_exp.hpp"
 #include "spectral/qr.hpp"
 #include "spectral/svd.hpp"
-#include "vector/inner_product_space.hpp"
+#include "space/space_concepts.hpp"
+#include "space/coordinate_concepts.hpp"
+#include "space/coordinate_space.hpp"
+#include "space/matrix_space.hpp"
+#include "space/symmetric_matrix_space.hpp"
+#include "vector/vector_concepts.hpp"

@@ -88,9 +88,9 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * @return transformed hyperplane
    */
-  template <linalg::SquareMatrixLike Mat>
+  template <linalg::SquareMatrix Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
-             std::same_as<linalg::mat_type_t<Mat>, T>)
+             std::same_as<linalg::matrix_scalar_t<Mat>, T>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto [U_inv, event] = linalg::MatrixInverse<Mat>()(map.linear_part());
     static_cast<void>(event);
@@ -127,7 +127,7 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
 
-    static constexpr size_t ChildCodom =
+    static constexpr std::size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
     static_assert(ChildCodom == N,
                   "Convex set domain does not equal the child coordinate "

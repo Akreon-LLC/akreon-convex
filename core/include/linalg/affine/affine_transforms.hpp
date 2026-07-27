@@ -12,9 +12,11 @@
 
 #pragma once
 
-#include "config/assert.hpp"
+#include <utility>
 
 #include "affine_map.hpp"
+#include "config/assert.hpp"
+#include "linalg/vector/algebra_util.hpp"
 
 namespace affine {
 
@@ -26,7 +28,7 @@ namespace affine {
  * @brief Euler angle rotation about 2d plane
  */
 template <typename T>
-  requires(linalg::FieldLike<T> && !linalg::is_complex_v<T>)
+  requires(linalg::Field<T> && !linalg::is_complex_v<T>)
 struct Rotation2d {
   constexpr auto operator()(const T& phi) const {
     const auto cz = linalg::constexpr_cos(phi);
@@ -40,7 +42,7 @@ struct Rotation2d {
  * @brief Euler angle rotation about 3d roll, pitch, and yaw angles
  */
 template <typename T>
-  requires(linalg::FieldLike<T> && !linalg::is_complex_v<T>)
+  requires(linalg::Field<T> && !linalg::is_complex_v<T>)
 struct Rotation3d {
   constexpr auto x(const T& phi) const {
     const auto cx = linalg::constexpr_cos(phi);
@@ -70,15 +72,15 @@ struct Rotation3d {
 /**
  * @brief Scale directions spanning N dim space
  */
-template <typename T, size_t N>
-  requires(linalg::FieldLike<T> && !linalg::is_complex_v<T> && N > 0)
+template <typename T, std::size_t N>
+  requires(linalg::Field<T> && !linalg::is_complex_v<T> && N > 0)
 struct Scale {
   template <typename... Scalars>
   constexpr auto operator()(Scalars... scalars) const {
     auto S = linalg::make_identity<T, N>();
     int i = 0;
     auto set_elem = [&](const auto& s) {
-      S(i)(i) *= s;
+      S(i, i) *= s;
       i++;
     };
     ((void)set_elem(std::forward<Scalars>(scalars)), ...);
@@ -89,15 +91,15 @@ struct Scale {
 /**
  * @brief Shear transform where jth component "shears" ith direction
  */
-template <typename T, size_t N>
-  requires(linalg::FieldLike<T> && !linalg::is_complex_v<T> && N > 0)
+template <typename T, std::size_t N>
+  requires(linalg::Field<T> && !linalg::is_complex_v<T> && N > 0)
 struct Shear {
-  constexpr auto operator()(const size_t& i, const size_t& j,
+  constexpr auto operator()(const std::size_t& i, const std::size_t& j,
                             const T& s) const {
     AK_ASSERT((i < N && j < N) &&
               "Shear transform indices must be within matrix bounds");
     auto H = linalg::make_identity<T, N>();
-    H(i)(j) = s;
+    H(i, j) = s;
     return H;
   }
 };

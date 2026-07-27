@@ -108,7 +108,7 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
    * @return exp(x) in R
    */
   constexpr T eval(const PointT& x) const {
-    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto alpha = lift_map.linear_part()(0, 0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
       return alpha * linalg::constexpr_exp(x(0)) + beta;
@@ -184,8 +184,8 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
     const auto child_coord = child_builder.coord_map;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
-    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
-    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static constexpr std::size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr std::size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == 1,
                   "input affine map from cone block has invalid codom dim for "
                   "scalar fn domain (i.e., != 1");
@@ -196,9 +196,9 @@ struct Exp : Atom<Meta, Exp<Meta, Child>, Child> {
     g(1) = T(1);
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F(2)(Dom) = T(1);
+      F(2, Dom) = T(1);
     } else {
-      F(2)(Dom) = T(-1);
+      F(2, Dom) = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

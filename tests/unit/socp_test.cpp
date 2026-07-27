@@ -62,7 +62,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 6);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 6);
     STATIC_REQUIRE(g == g_exp);
 
     constexpr auto c = prob_min.linear_objective();
@@ -118,7 +118,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     STATIC_REQUIRE(all_equal(F, F_ball_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 9);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 9);
     STATIC_REQUIRE(g == Vectord<9>{0.0, 0.0, 1.0, -1.0, 2.0, 0.0, 0.0,
                                    0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
 

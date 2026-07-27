@@ -87,19 +87,19 @@ struct H2StateFeedback {
 
   using T = plant_type_t<Model>;
 
-  static constexpr size_t StateDim = plant_traits<Model>::StateDim;
-  static constexpr size_t InputDim = plant_traits<Model>::ControlDim;
-  static constexpr size_t OutputDim = plant_traits<Model>::PerformanceDim;
+  static constexpr std::size_t StateDim = plant_traits<Model>::StateDim;
+  static constexpr std::size_t InputDim = plant_traits<Model>::ControlDim;
+  static constexpr std::size_t OutputDim = plant_traits<Model>::PerformanceDim;
 
   using QMat = linalg::Matrix<T, StateDim, StateDim>;
   using YMat = linalg::Matrix<T, InputDim, StateDim>;
   using KMat = linalg::Matrix<T, InputDim, StateDim>;
   using ZMat = linalg::Matrix<T, OutputDim, OutputDim>;
 
-  static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
-  static constexpr size_t YDim = InputDim * StateDim;
-  static constexpr size_t ZDim = OutputDim * (OutputDim + 1) / 2;
-  static constexpr size_t DecVarDim = QDim + YDim + ZDim;
+  static constexpr std::size_t QDim = StateDim * (StateDim + 1) / 2;
+  static constexpr std::size_t YDim = InputDim * StateDim;
+  static constexpr std::size_t ZDim = OutputDim * (OutputDim + 1) / 2;
+  static constexpr std::size_t DecVarDim = QDim + YDim + ZDim;
 
   using DecVarSpace = linalg::RowVector<T, DecVarDim>;
 
@@ -176,8 +176,8 @@ struct H2StateFeedback {
         linalg::MatrixPencil<FMat, YDim>{}.template apply_full<YMat>(M_y);
 
     Fs F_blks{};
-    for (size_t i = 0; i < QDim; ++i) F_blks(i) = F_q_local(i);
-    for (size_t i = 0; i < YDim; ++i) F_blks(QDim + i) = F_y_local(i);
+    for (std::size_t i = 0; i < QDim; ++i) F_blks(i) = F_q_local(i);
+    for (std::size_t i = 0; i < YDim; ++i) F_blks(QDim + i) = F_y_local(i);
 
     return convex::LMI(F_blks, F_0, Z_hat);
   }
@@ -202,7 +202,7 @@ struct H2StateFeedback {
   template <convex::AtomLike DecVar>
   constexpr auto z_constraint(const SFModel& model, const DecVar& Z_hat,
                               T margin = 1e-6) const {
-    constexpr size_t LmiDim = OutputDim + StateDim;
+    constexpr std::size_t LmiDim = OutputDim + StateDim;
     using FMat = linalg::Matrix<T, LmiDim, LmiDim>;
     using Fs = linalg::Vector<FMat, DecVarDim>;
     auto M_z = [](const ZMat& E) -> FMat {
@@ -237,9 +237,10 @@ struct H2StateFeedback {
         linalg::MatrixPencil<FMat, YDim>{}.template apply_full<YMat>(M_y);
 
     Fs F_blks{};
-    for (size_t i = 0; i < QDim; ++i) F_blks(i) = F_q_local(i);
-    for (size_t i = 0; i < YDim; ++i) F_blks(QDim + i) = F_y_local(i);
-    for (size_t i = 0; i < ZDim; ++i) F_blks(QDim + YDim + i) = F_z_local(i);
+    for (std::size_t i = 0; i < QDim; ++i) F_blks(i) = F_q_local(i);
+    for (std::size_t i = 0; i < YDim; ++i) F_blks(QDim + i) = F_y_local(i);
+    for (std::size_t i = 0; i < ZDim; ++i)
+      F_blks(QDim + YDim + i) = F_z_local(i);
 
     const auto I = linalg::make_identity<T, LmiDim>();
     return convex::LMI(F_blks, T(-1) * margin * I, Z_hat);

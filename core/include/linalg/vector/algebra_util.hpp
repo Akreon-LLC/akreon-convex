@@ -16,7 +16,8 @@
 #include <limits>
 #include <optional>
 
-#include "algebra_traits.hpp"
+#include "linalg/constants.hpp"
+#include "vector_concepts.hpp"
 
 /// @brief macro for capping compile step eval (default max is ~512)
 #define MAX_STEP_EVAL 256
@@ -30,10 +31,10 @@ namespace linalg {
  *
  * @return tuple
  */
-template <typename T, size_t N>
+template <typename T, std::size_t N>
 constexpr auto array_to_tuple(const std::array<T, N>& x) {
-  auto to_tuple = [&]<size_t... Is>(const auto& arr,
-                                    std::index_sequence<Is...>) {
+  auto to_tuple = [&]<std::size_t... Is>(const auto& arr,
+                                         std::index_sequence<Is...>) {
     return std::make_tuple(arr[Is]...);
   };
   return to_tuple(x, std::make_index_sequence<N>{});
@@ -47,8 +48,8 @@ constexpr auto array_to_tuple(const std::array<T, N>& x) {
  *
  * @return T/F
  */
-template <FieldLike T>
-constexpr bool is_real(const std::complex<T>& z, scalar_type_t<T> tol = 1e-10) {
+template <Field T>
+constexpr bool is_real(const std::complex<T>& z, real_type_t<T> tol = 1e-10) {
   return z.imag() <= tol;
 }
 
@@ -60,7 +61,7 @@ constexpr bool is_real(const std::complex<T>& z, scalar_type_t<T> tol = 1e-10) {
  *
  * @return num / den when denominator is nonzero, else nullopt
  */
-template <RealLike T>
+template <Real T>
 constexpr std::optional<T> constexpr_div(const T& num, const T& den) {
   if (!(den != T(0))) return std::nullopt;
   return num / den;
@@ -75,7 +76,7 @@ constexpr std::optional<T> constexpr_div(const T& num, const T& den) {
  *
  * @return scalar division result or fallback
  */
-template <RealLike T>
+template <Real T>
 constexpr T constexpr_div_safe(const T& num, const T& den,
                                const T& fallback = T(0)) {
   if (const auto r = constexpr_div(num, den); r.has_value()) return *r;
@@ -90,10 +91,10 @@ constexpr T constexpr_div_safe(const T& num, const T& den,
  *
  * @return pow
  */
-template <RealLike T>
-constexpr T constexpr_pow(const T& x, const size_t& power) {
+template <Real T>
+constexpr T constexpr_pow(const T& x, const std::size_t& power) {
   T res(x);
-  for (size_t i = 1; i < power; ++i) res *= x;
+  for (std::size_t i = 1; i < power; ++i) res *= x;
   return res;
 }
 
@@ -109,7 +110,7 @@ constexpr T constexpr_pow(const T& x, const size_t& power) {
  *
  * @return sqrt(x)
  */
-template <RealLike T>
+template <Real T>
 constexpr std::optional<T> constexpr_sqrt(const T& x, T g = 1e-10,
                                           T tol = 1e-10) {
   if (!(x >= T(0))) return std::nullopt;
@@ -118,7 +119,7 @@ constexpr std::optional<T> constexpr_sqrt(const T& x, T g = 1e-10,
 
   auto abs = [](const auto& val) { return val < T(0) ? -val : val; };
 
-  for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
+  for (std::size_t k = 0; k < MAX_STEP_EVAL; ++k) {
     if (!(g > T(0))) g = T(1);
     if (abs(g * g - x) <= tol) return g;
     g = T(0.5) * (g + constexpr_div_safe(x, g, g));
@@ -136,7 +137,7 @@ constexpr std::optional<T> constexpr_sqrt(const T& x, T g = 1e-10,
  *
  * @return scalar sqrt with optional fallback handling
  */
-template <RealLike T>
+template <Real T>
 constexpr T constexpr_sqrt_safe(const T& x, const T& floor = T(0), T g = 1e-10,
                                 T tol = 1e-10) {
   if (const auto r = constexpr_sqrt(x, g, tol); r.has_value()) return *r;
@@ -151,13 +152,13 @@ constexpr T constexpr_sqrt_safe(const T& x, const T& floor = T(0), T g = 1e-10,
 /**
  * @brief perform absolute value computation
  *
- * @param x (FieldLike)
+ * @param x (Field)
  *
  * @return |x|
  */
-template <FieldLike T>
+template <Field T>
 constexpr auto constexpr_abs(const T& x) {
-  if constexpr (RealLike<T>) return x < 0 ? -1 * x : x;
+  if constexpr (Real<T>) return x < 0 ? -1 * x : x;
   else return constexpr_sqrt_safe(x.real() * x.real() + x.imag() * x.imag());
 }
 
@@ -174,8 +175,8 @@ constexpr auto constexpr_abs(const T& x) {
  *
  * @return nth root of x
  */
-template <RealLike T>
-constexpr std::optional<T> constexpr_nrt(T x, size_t root, T g = 1e-10,
+template <Real T>
+constexpr std::optional<T> constexpr_nrt(T x, std::size_t root, T g = 1e-10,
                                          T tol = 1e-10) {
   if (root == 0) return std::nullopt;
   if (x == T(0)) return std::numeric_limits<T>::min();
@@ -189,13 +190,13 @@ constexpr std::optional<T> constexpr_nrt(T x, size_t root, T g = 1e-10,
 
   if (!(g > T(0))) g = T(1);
 
-  auto pow_n = [&](const T& base, const size_t& n) {
+  auto pow_n = [&](const T& base, const std::size_t& n) {
     T pow(1);
-    for (size_t i = 0; i < n; ++i) pow *= base;
+    for (std::size_t i = 0; i < n; ++i) pow *= base;
     return pow;
   };
 
-  for (size_t k = 0; k < MAX_STEP_EVAL; ++k) {
+  for (std::size_t k = 0; k < MAX_STEP_EVAL; ++k) {
     const auto gkm1 = pow_n(g, root - 1);
     if (!(gkm1 > T(0))) return std::nullopt;
 
@@ -216,9 +217,10 @@ constexpr std::optional<T> constexpr_nrt(T x, size_t root, T g = 1e-10,
  *
  * @return scalar nth-root with optional fallback handling
  */
-template <RealLike T>
-constexpr T constexpr_nrt_safe(T x, const size_t& root, const T& floor = T(0),
-                               T g = 1e-10, T tol = 1e-10) {
+template <Real T>
+constexpr T constexpr_nrt_safe(T x, const std::size_t& root,
+                               const T& floor = T(0), T g = 1e-10,
+                               T tol = 1e-10) {
   if (const auto r = constexpr_nrt(x, root, g, tol); r.has_value()) return *r;
 
   const auto floor_safe = (floor >= T(0)) ? floor : T(0);
@@ -237,7 +239,7 @@ constexpr T constexpr_nrt_safe(T x, const size_t& root, const T& floor = T(0),
  *
  * @return cosine approx of x
  */
-template <RealLike T>
+template <Real T>
 constexpr auto constexpr_sin(const T& x, int terms = 16) {
   T sum = x, term = x;
   for (int k = 1; k < terms; ++k) {
@@ -256,7 +258,7 @@ constexpr auto constexpr_sin(const T& x, int terms = 16) {
  *
  * @return cosine approx of x
  */
-template <RealLike T>
+template <Real T>
 constexpr auto constexpr_cos(const T& x, int terms = 16) {
   T sum = T(1), term = T(1);
   for (int k = 1; k < terms; ++k) {
@@ -276,7 +278,7 @@ constexpr auto constexpr_cos(const T& x, int terms = 16) {
  *
  * @return y in R
  */
-template <RealLike T>
+template <Real T>
 constexpr std::optional<T> constexpr_atanh(const T& x, int terms = 16) {
   if (constexpr_abs(x) >= T(1)) return std::nullopt;
   const T x2 = x * x;
@@ -297,7 +299,7 @@ constexpr std::optional<T> constexpr_atanh(const T& x, int terms = 16) {
  *
  * @return scalar atanh result or fallback
  */
-template <RealLike T>
+template <Real T>
 constexpr T constexpr_atanh_safe(const T& x, const T& fallback = T(0),
                                  int terms = 16) {
   if (const auto r = constexpr_atanh(x, terms); r.has_value()) return *r;
@@ -311,7 +313,7 @@ constexpr T constexpr_atanh_safe(const T& x, const T& fallback = T(0),
  *
  * @return complex number
  */
-template <RealLike T>
+template <Real T>
 constexpr auto constexpr_expi(const T& theta, int terms = 16) {
   return std::complex<T>(constexpr_cos(theta, terms),
                          constexpr_sin(theta, terms));
@@ -327,7 +329,7 @@ constexpr auto constexpr_expi(const T& theta, int terms = 16) {
  *
  * @return real number
  */
-template <RealLike T>
+template <Real T>
 constexpr auto constexpr_exp(const T& x, int terms = 16) {
   T sum(1), term(1);
   for (int k = 1; k < terms; ++k) {
@@ -344,7 +346,7 @@ constexpr auto constexpr_exp(const T& x, int terms = 16) {
  *
  * @return complex number
  */
-template <ComplexLike T>
+template <Complex T>
 constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
   return constexpr_exp(lambda.real()) * constexpr_expi(lambda.imag(), terms);
 }
@@ -373,7 +375,7 @@ constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
  *
  * @return real number
  */
-template <RealLike T>
+template <Real T>
 constexpr std::optional<T> constexpr_ln(const T& x_in, int terms = 16) {
   if (!(x_in > T(0))) return std::nullopt;
 
@@ -393,9 +395,7 @@ constexpr std::optional<T> constexpr_ln(const T& x_in, int terms = 16) {
   const auto a = constexpr_atanh(y, terms);
   if (!a) return std::nullopt;
 
-  constexpr T ln2 = T(0.693147180559945309417232121458176568L);
-
-  return T(2) * (*a) + T(e) * ln2;
+  return T(2) * (*a) + T(e) * ln2_v<T>;
 }
 
 /**
@@ -410,7 +410,7 @@ constexpr std::optional<T> constexpr_ln(const T& x_in, int terms = 16) {
  *
  * @return ln(max(x, floor)) with NaN-safe clamping semantics
  */
-template <RealLike T>
+template <Real T>
 constexpr T constexpr_ln_safe(const T& x,
                               const T& floor = std::numeric_limits<T>::min(),
                               int terms = 16) {
@@ -431,11 +431,11 @@ constexpr T constexpr_ln_safe(const T& x,
  *
  * @return (void)
  */
-template <size_t Start, size_t End, typename Func>
+template <std::size_t Start, std::size_t End, typename Func>
   requires(End - Start >= 0)
 constexpr void constexpr_for(Func&& f) {
   if constexpr (Start < End) {
-    f(std::integral_constant<size_t, Start>{});
+    f(std::integral_constant<std::size_t, Start>{});
     constexpr_for<Start + 1, End>(std::forward<Func>(f));
   }
 }
@@ -448,8 +448,8 @@ constexpr void constexpr_for(Func&& f) {
  *
  * @return T/F
  */
-template <ComplexLike T>
-constexpr bool is_same(const T& a, const T& b, scalar_type_t<T> tol = 1e-10) {
+template <Complex T>
+constexpr bool is_same(const T& a, const T& b, real_type_t<T> tol = 1e-10) {
   return constexpr_abs(a - b) < tol;
 }
 
@@ -460,24 +460,20 @@ constexpr bool is_same(const T& a, const T& b, scalar_type_t<T> tol = 1e-10) {
  *
  * @return Vector of indices
  */
-template <VectorLike Vec>
-  requires(RealLike<vec_type_t<Vec>>)
+template <VectorContainer Vec>
+  requires(Real<vector_element_t<Vec>>)
 constexpr auto argsort_desc(const Vec& x) {
-  static constexpr size_t N = vec_size_v<Vec>;
+  static constexpr std::size_t N = vector_dim_v<Vec>;
 
-  std::array<size_t, N> p;
-  for (size_t i = 0; i < N; ++i) p[i] = i;
-  for (size_t i = 0; i + 1 < N; ++i) {
-    size_t largest = i;
-    for (size_t j = i + 1; j < N; ++j)
+  std::array<std::size_t, N> p;
+  for (std::size_t i = 0; i < N; ++i) p[i] = i;
+  for (std::size_t i = 0; i + 1 < N; ++i) {
+    std::size_t largest = i;
+    for (std::size_t j = i + 1; j < N; ++j)
       if (x(p[j]) > x(p[largest])) largest = j;
     if (largest != i) std::swap(p[i], p[largest]);
   }
   return p;
 }
-
-/// @brief useful constant ln(2)
-template <FieldLike T>
-inline constexpr T ln2_v{linalg::constexpr_ln_safe(T(2))};
 
 } // namespace linalg

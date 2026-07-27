@@ -109,7 +109,7 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
    * @return log(1 + exp(x))
    */
   constexpr T eval(const PointT& x) const {
-    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto alpha = lift_map.linear_part()(0, 0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
       return alpha *
@@ -204,8 +204,8 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
     const auto child_coord = child_builder.coord_map;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
-    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
-    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static constexpr std::size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr std::size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == 1,
                   "input affine map from cone block has invalid codom dim for "
                   "scalar fn domain (i.e., != 1");
@@ -214,18 +214,18 @@ struct Softplus : Atom<Meta, Softplus<Meta, Child>, Child> {
     linalg::Vector<T, 7> g;
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F(0)(Dom) = T(-1);
-      F(3)(Dom) = T(-1);
+      F(0, Dom) = T(-1);
+      F(3, Dom) = T(-1);
     } else {
-      F(0)(Dom) = T(1);
-      F(3)(Dom) = T(1);
+      F(0, Dom) = T(1);
+      F(3, Dom) = T(1);
     }
 
-    F(2)(Dom + 1) = T(1);
+    F(2, Dom + 1) = T(1);
     F = linalg::set_block<3, 4, 0, Dom>(F, child_coord.linear_part());
-    F(5)(3) = T(1);
-    F(6)(2) = T(-1);
-    F(6)(3) = T(-1);
+    F(5, 3) = T(1);
+    F(6, 2) = T(-1);
+    F(6, 3) = T(-1);
 
     g(1) = T(1);
     g(3) = child_coord.translation()(0);

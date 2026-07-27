@@ -21,7 +21,7 @@ namespace linalg {
 /**
  * @brief Symmetric linear operator CRTP base
  */
-template <SquareMatrixLike Mat, typename Derived>
+template <SquareMatrix Mat, typename Derived>
 struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
   /// @brief alias to extract base types
   using OperatorBase = Endomorphism<Mat, SymmetricOperator<Mat, Derived>>;
@@ -33,7 +33,7 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
   using OperatorBase::N;
 
   /// @brief helpers to get DIM from mat
-  static constexpr size_t DIM = (N * (N + 1)) / 2;
+  static constexpr std::size_t DIM = (N * (N + 1)) / 2;
 
   /**
    * @brief CTOR
@@ -50,21 +50,22 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
    *
    * @return element
    */
-  constexpr auto operator()(const size_t& i, const size_t& j) const {
+  constexpr auto operator()(const std::size_t& i, const std::size_t& j) const {
     const auto x = svec(index(i, j));
     if (i == j) return x;
-    return x / constexpr_sqrt_safe(T(2));
+    return x / sqrt2_v<T>;
   }
 
   /**
    * @brief index from (row, col)
    *
-   * @param size_t i = row index
-   * @param size_t j = col index
+   * @param std::size_t i = row index
+   * @param std::size_t j = col index
    *
    * @return index
    */
-  constexpr size_t index(const size_t& i, const size_t& j) const {
+  constexpr std::size_t index(const std::size_t& i,
+                              const std::size_t& j) const {
     AK_ASSERT((j < N && i < N) &&
               "SymmetricOperator index expects row/col inside [0, N)");
     if (i >= j) return i * (i + 1) / 2 + j;
@@ -129,7 +130,7 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
   template <typename DiagT>
   constexpr void compute_definiteness(const Vector<DiagT, N>& diag,
                                       const ScalarT& tol) {
-    size_t npos = 0, nneg = 0, nzero = 0;
+    std::size_t npos = 0, nneg = 0, nzero = 0;
 
     auto classify_scalar = [&](const auto& d_real) {
       if (d_real > tol) ++npos;

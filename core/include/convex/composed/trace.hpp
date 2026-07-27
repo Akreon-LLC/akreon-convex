@@ -22,37 +22,37 @@ template <typename Space>
 struct TraceWeights;
 
 /// @brief TraceWeights for non symmetric square matrix
-template <linalg::SquareMatrixLike Mat>
+template <linalg::SquareMatrix Mat>
   requires(!linalg::is_symmetric_matrix_space_v<Mat>)
 struct TraceWeights<Mat> {
   /// @brief alias and type extractions
   using T = linalg::space_type_t<Mat>;
-  static constexpr size_t N = linalg::mat_rows_v<Mat>;
-  static constexpr size_t Dim = linalg::space_dim_v<Mat>;
+  static constexpr std::size_t N = linalg::mat_rows_v<Mat>;
+  static constexpr std::size_t Dim = linalg::space_dim_v<Mat>;
   using Vec = linalg::Vector<T, Dim>;
 
   /// @brief make helper to form weights for trace objective
   static constexpr auto make() {
     Vec weights{};
-    for (size_t i = 0; i < N; ++i) weights(i * N + i) = T(1);
+    for (std::size_t i = 0; i < N; ++i) weights(i * N + i) = T(1);
     return weights;
   }
 };
 
 /// @brief TraceWeights for symmetric square matrix
-template <linalg::SquareMatrixLike Mat>
+template <linalg::SquareMatrix Mat>
 struct TraceWeights<linalg::SymmetricMatrix<Mat>> {
   /// @brief alias and type extractions
   using Space = linalg::SymmetricMatrix<Mat>;
   using T = linalg::space_type_t<Space>;
-  static constexpr size_t N = linalg::mat_rows_v<Mat>;
-  static constexpr size_t Dim = linalg::space_dim_v<Space>;
+  static constexpr std::size_t N = linalg::mat_rows_v<Mat>;
+  static constexpr std::size_t Dim = linalg::space_dim_v<Space>;
   using Vec = linalg::Vector<T, Dim>;
 
   /// @brief make helper to form weights for trace objective
   static constexpr auto make() {
     Vec weights{};
-    for (size_t i = 0; i < N; ++i) weights(i * (i + 1) / 2 + i) = T(1);
+    for (std::size_t i = 0; i < N; ++i) weights(i * (i + 1) / 2 + i) = T(1);
     return weights;
   }
 };
@@ -67,7 +67,7 @@ template <linalg::RnSpace Space>
 struct Trace {
   /// @brief alias and type extractions
   using T = linalg::space_type_t<Space>;
-  static constexpr size_t N = linalg::space_dim_v<Space>;
+  static constexpr std::size_t N = linalg::space_dim_v<Space>;
   using Vec = linalg::Vector<T, N>;
 
   static constexpr auto weights() { return TraceWeights<Space>::make(); }
@@ -113,13 +113,13 @@ constexpr auto make_trace(const Var& X) {
  *
  * @return linear objective equal to the trace of the selected block
  */
-template <size_t Offset, linalg::RnSpace TraceSpace, AtomLike Var>
+template <std::size_t Offset, linalg::RnSpace TraceSpace, AtomLike Var>
 constexpr auto make_trace_block(const Var& X) {
   static_assert(is_var_type_v<Var>, "Trace block must operate on a variable");
   using VarSpace = dom_space_t<meta_codom_t<atom_meta_t<Var>>>;
   using T = linalg::space_type_t<VarSpace>;
-  static constexpr size_t VarDim = linalg::space_dim_v<VarSpace>;
-  static constexpr size_t TraceDim = linalg::space_dim_v<TraceSpace>;
+  static constexpr std::size_t VarDim = linalg::space_dim_v<VarSpace>;
+  static constexpr std::size_t TraceDim = linalg::space_dim_v<TraceSpace>;
   static_assert(Offset + TraceDim <= VarDim,
                 "Trace block exceeds variable dimension");
   static_assert(std::same_as<T, linalg::space_type_t<TraceSpace>>,
@@ -127,7 +127,8 @@ constexpr auto make_trace_block(const Var& X) {
 
   linalg::Vector<T, VarDim> weights{};
   const auto trace_weights = Trace<TraceSpace>::weights();
-  for (size_t i = 0; i < TraceDim; ++i) weights(Offset + i) = trace_weights(i);
+  for (std::size_t i = 0; i < TraceDim; ++i)
+    weights(Offset + i) = trace_weights(i);
 
   return WeightedSum<VarSpace>()(weights, X);
 }

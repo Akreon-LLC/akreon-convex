@@ -22,11 +22,11 @@ namespace conic {
  *
  * x circ y = x_i y_i
  */
-template <linalg::VectorLike Vec>
+template <linalg::VectorContainer Vec>
 struct RplusCirc {
   /// @brief types and size extraction
-  using T = linalg::vec_type_t<Vec>;
-  static constexpr size_t N = linalg::vec_size_v<Vec>;
+  using T = linalg::vector_element_t<Vec>;
+  static constexpr std::size_t N = linalg::vector_dim_v<Vec>;
 
   /**
    * @brief circ (jordan map/product)
@@ -40,7 +40,7 @@ struct RplusCirc {
    */
   constexpr auto operator()(const Vec& x, const Vec& y) const {
     Vec res{};
-    for (size_t i = 0; i < N; ++i) res(i) = x(i) * y(i);
+    for (std::size_t i = 0; i < N; ++i) res(i) = x(i) * y(i);
     return res;
   }
 };
@@ -49,7 +49,7 @@ struct RplusCirc {
  *
  * R^n_+ = set of all nonneg R
  */
-template <linalg::VectorLike Slack>
+template <linalg::VectorContainer Slack>
 struct NonnegOrthantCone
     : public Cone<Slack, NonnegOrthantCone<Slack>, ConeType::SYMMETRIC> {
   /// @brief bring into scope alias from cone base
@@ -68,7 +68,7 @@ struct NonnegOrthantCone
    */
   constexpr Slack x0_impl() const {
     Slack s{};
-    for (size_t i = 0; i < M; ++i) s(i) = T(1);
+    for (std::size_t i = 0; i < M; ++i) s(i) = T(1);
     return s;
   }
 
@@ -87,7 +87,7 @@ struct NonnegOrthantCone
    * @return bool
    */
   constexpr bool in_cone_impl(const Slack& x) const {
-    for (size_t i = 0; i < M; ++i)
+    for (std::size_t i = 0; i < M; ++i)
       if (!(x(i) > T(0))) return false;
     return true;
   }
@@ -122,7 +122,7 @@ struct NonnegOrthantCone
                              const linalg::Vector<T, M>& p) const {
     constexpr T eta{0.99};
     T a{1};
-    for (size_t i = 0; i < M; ++i) {
+    for (std::size_t i = 0; i < M; ++i) {
       if (p(i) < T(0)) {
         const T cand = -x(i) / p(i);
         a = (cand < a) ? cand : a;
@@ -167,7 +167,7 @@ struct NonnegOrthantCone
           linalg::QuadraticRep<HessianMat, RplusCirc<Slack>>(e_impl()), event);
     Slack w_inv{};
     bool safeguarded = false;
-    for (size_t i = 0; i < M; ++i) {
+    for (std::size_t i = 0; i < M; ++i) {
       const T wi_safe = std::max(w(i), eps);
       safeguarded = safeguarded || (wi_safe != w(i));
       w_inv(i) = T(1) / wi_safe;
@@ -193,7 +193,7 @@ struct NonnegOrthantCone
   constexpr auto grad_impl(const Slack& x) const {
     Slack dx{};
     bool safeguarded = false;
-    for (size_t i = 0; i < M; ++i) {
+    for (std::size_t i = 0; i < M; ++i) {
       const T xi_safe = std::max(x(i), eps);
       safeguarded = safeguarded || (xi_safe != x(i));
       dx(i) = T(-1) / xi_safe;
@@ -218,7 +218,7 @@ struct NonnegOrthantCone
    * @return e (vector)
    */
   constexpr auto e_impl() const {
-    linalg::vec_traits<Slack> vec{};
+    linalg::vector_traits<Slack> vec{};
     return vec.fill(T(1));
   }
 
@@ -233,7 +233,7 @@ struct NonnegOrthantCone
   constexpr auto w_impl(const Slack& x, const Slack& y) const {
     Slack w{};
     bool safeguarded{false};
-    for (size_t i = 0; i < M; ++i) {
+    for (std::size_t i = 0; i < M; ++i) {
       const T x_safe = std::max(x(i), eps);
       const T y_safe = std::max(y(i), eps);
       safeguarded = safeguarded || (x_safe != x(i)) || (y_safe != y(i));
@@ -271,7 +271,7 @@ struct NonnegOrthantCone
   constexpr auto trace_impl(const Slack& x, const Slack& y) const {
     const auto x_circ_y = circ_impl(x, y);
     T res{};
-    for (size_t i = 0; i < M; ++i) res += x_circ_y(i);
+    for (std::size_t i = 0; i < M; ++i) res += x_circ_y(i);
     return res;
   }
 
@@ -285,7 +285,7 @@ struct NonnegOrthantCone
   constexpr auto inv_impl(const Slack& x) const {
     Slack res{};
     bool safeguarded = false;
-    for (size_t i = 0; i < M; ++i) {
+    for (std::size_t i = 0; i < M; ++i) {
       const T xi_safe = std::max(x(i), eps);
       safeguarded = safeguarded || (xi_safe != x(i));
       res(i) = T(1) / xi_safe;
@@ -306,7 +306,7 @@ struct NonnegOrthantCone
   constexpr auto gamma_F_impl(const Slack& x, const Slack& y) const {
     T res{};
     bool safeguarded = false;
-    for (size_t i = 0; i < M; ++i) {
+    for (std::size_t i = 0; i < M; ++i) {
       const auto xy_safe = std::max(x(i) * y(i), eps);
       safeguarded = safeguarded || (xy_safe != x(i) * y(i));
       res += linalg::constexpr_ln_safe(xy_safe, eps);

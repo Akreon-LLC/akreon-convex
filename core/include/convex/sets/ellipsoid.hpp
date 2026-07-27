@@ -74,7 +74,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     const auto [P_inv, event] = linalg::MatrixInverse<decltype(P)>()(P);
     static_cast<void>(event);
     const auto res = (delta_T * (P_inv * delta));
-    static_assert(linalg::vec_size_v<decltype(res)> == 1);
+    static_assert(linalg::vector_dim_v<decltype(res)> == 1);
     return res(0) <= T(1);
   }
 
@@ -105,9 +105,9 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    *
    * @return transformed ellipsoid
    */
-  template <linalg::SquareMatrixLike Mat>
+  template <linalg::SquareMatrix Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
-             std::same_as<T, linalg::mat_type_t<Mat>>)
+             std::same_as<T, linalg::matrix_scalar_t<Mat>>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto [U_inv, event] = linalg::MatrixInverse<Mat>()(map.linear_part());
     static_cast<void>(event);
@@ -154,7 +154,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
 
-    static constexpr size_t ChildCodom =
+    static constexpr std::size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
     static_assert(ChildCodom == N,
                   "Convex set domain does not equal the child coordinate "
@@ -165,18 +165,18 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
     const auto eig_decomp = linalg::EigenDecomposition(P);
     const auto& D = eig_decomp.lambda;
     linalg::Matrix<T, N, N> D_sqrt;
-    for (size_t i = 0; i < N; ++i)
-      D_sqrt(i)(i) = linalg::constexpr_sqrt_safe(D(i).real());
+    for (std::size_t i = 0; i < N; ++i)
+      D_sqrt(i, i) = linalg::constexpr_sqrt_safe(D(i).real());
 
     linalg::Matrix<T, N, N> VT;
     const auto& V = eig_decomp.V;
-    for (size_t i = 0; i < N; ++i)
-      for (size_t j = 0; j < N; ++j) VT(j)(i) = V(i)(j).real();
+    for (std::size_t i = 0; i < N; ++i)
+      for (std::size_t j = 0; j < N; ++j) VT(j, i) = V(i, j).real();
 
     const auto w = D_sqrt * VT;
     F = linalg::set_block<0, N, 0, N>(F, w);
     const auto wc = T(-1) * w * c;
-    for (size_t i = 0; i < N; ++i) g(i) = wc(i);
+    for (std::size_t i = 0; i < N; ++i) g(i) = wc(i);
     g(N) = T(1);
     const auto map = affine::AffineMap<decltype(F)>(F, g);
     const auto soc = conic::SecondOrderCone<linalg::Vector<T, N + 1>>();

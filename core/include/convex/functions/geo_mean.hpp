@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "convex/canonical_form_builder.hpp"
 #include "convex/convex_traits.hpp"
 
@@ -109,7 +111,7 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
   constexpr T eval(const PointT& x) const {
     T prod(1);
     std::for_each(x.begin(), x.end(), [&](const auto& pt) { prod *= pt; });
-    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto alpha = lift_map.linear_part()(0, 0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
       return T(-1) * alpha * linalg::constexpr_nrt_safe<T>(prod, N) + beta;
@@ -185,24 +187,24 @@ struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {
     const auto child_coord = child_builder.coord_map;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
-    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
-    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static constexpr std::size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr std::size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == N,
                   "input affine map from cone block has invalid dom which is a "
                   "mismatch between domain in the convex function");
     linalg::Matrix<T, N + 1, Dom + 1> F;
     F = linalg::set_block<0, N, 0, Dom>(F, child_coord.linear_part());
     linalg::Vector<T, N + 1> g;
-    for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
+    for (std::size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      F(N)(Dom) = T(-1);
+      F(N, Dom) = T(-1);
     } else {
-      F(N)(Dom) = T(1);
+      F(N, Dom) = T(1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
-    const linalg::vec_traits<linalg::Vector<T, N>> vec_t;
+    const linalg::vector_traits<linalg::Vector<T, N>> vec_t;
     const auto power_cone =
         conic::PowerCone<linalg::Vector<T, N + 1>>(vec_t.fill(T(1 / N)));
     const auto cones = std::make_tuple(power_cone);

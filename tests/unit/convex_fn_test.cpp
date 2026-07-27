@@ -51,8 +51,7 @@ TEST_CASE("Trace objective", "[convex_fn]") {
             .minimize(obj);
 
     constexpr auto c = prob.linear_objective();
-    constexpr auto c_exp =
-        RowVectord<8>{Vectord<8>{0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0}};
+    constexpr auto c_exp = Vectord<8>{0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     STATIC_REQUIRE(c == c_exp);
   }
 }

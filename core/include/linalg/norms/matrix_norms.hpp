@@ -26,15 +26,15 @@ namespace linalg {
  *
  * @return scalar
  */
-template <SquareMatrixLike Mat>
+template <SquareMatrix Mat>
 struct Fro {
   /// @brief alias and size
-  using T = mat_type_t<Mat>;
-  static constexpr size_t N = mat_rows_v<Mat>;
+  using T = matrix_scalar_t<Mat>;
+  static constexpr std::size_t N = mat_rows_v<Mat>;
 
   constexpr auto operator()(const Mat& A) {
-    scalar_type_t<T> result = 0;
-    if constexpr (RealLike<T>) {
+    real_type_t<T> result = 0;
+    if constexpr (Real<T>) {
       result = trace(transpose(A) * A);
     } else {
       const auto tmp = trace(conjugate_transpose(A) * A);

@@ -29,11 +29,11 @@ namespace convex::debug {
  */
 struct FixedBufferWriter {
   char* out{};
-  size_t cap{};
-  size_t pos{};
+  std::size_t cap{};
+  std::size_t pos{};
   bool truncated{};
 
-  constexpr size_t size() const { return pos; }
+  constexpr std::size_t size() const { return pos; }
   constexpr bool ok() const { return !truncated; }
   constexpr const char* c_str() const { return out; }
 
@@ -63,7 +63,7 @@ struct FixedBufferWriter {
       return false;
     }
 
-    const auto n = static_cast<size_t>(bytes);
+    const auto n = static_cast<std::size_t>(bytes);
     if (n >= cap - pos) {
       pos = cap - 1;
       out[pos] = '\0';
@@ -76,46 +76,46 @@ struct FixedBufferWriter {
   }
 };
 
-template <size_t N>
+template <std::size_t N>
 inline FixedBufferWriter make_writer(char (&out)[N]) {
   FixedBufferWriter w{out, N, 0, false};
   w.init();
   return w;
 }
 
-template <linalg::FieldLike T, size_t N>
+template <linalg::Field T, std::size_t N>
 inline bool append_array_slice(FixedBufferWriter& w, const std::array<T, N>& v,
-                               size_t size) {
+                               std::size_t size) {
   if (!w.append("[")) return false;
-  const size_t used = (size < N) ? size : N;
-  for (size_t i = 0; i < used; ++i) {
+  const std::size_t used = (size < N) ? size : N;
+  for (std::size_t i = 0; i < used; ++i) {
     if (!w.format((i + 1 == used) ? "%g" : "%g, ", static_cast<double>(v[i])))
       return false;
   }
   return w.append("]");
 }
 
-template <linalg::VectorLike Vec>
+template <linalg::VectorContainer Vec>
 inline bool append_vector(FixedBufferWriter& w, const Vec& v) {
   if (!w.append("[")) return false;
-  constexpr size_t N = linalg::vec_size_v<Vec>;
-  for (size_t i = 0; i < N; ++i) {
+  constexpr std::size_t N = linalg::vector_dim_v<Vec>;
+  for (std::size_t i = 0; i < N; ++i) {
     if (!w.format((i + 1 == N) ? "%g" : "%g, ", static_cast<double>(v(i))))
       return false;
   }
   return w.append("]");
 }
 
-template <linalg::MatrixLike Mat>
+template <linalg::MatrixContainer Mat>
 inline bool append_matrix(FixedBufferWriter& w, const Mat& M) {
   if (!w.append("[")) return false;
-  constexpr size_t Rows = linalg::mat_rows_v<Mat>;
-  constexpr size_t Cols = linalg::mat_cols_v<Mat>;
-  for (size_t i = 0; i < Rows; ++i) {
+  constexpr std::size_t Rows = linalg::mat_rows_v<Mat>;
+  constexpr std::size_t Cols = linalg::mat_cols_v<Mat>;
+  for (std::size_t i = 0; i < Rows; ++i) {
     if (!w.append("[")) return false;
-    for (size_t j = 0; j < Cols; ++j) {
+    for (std::size_t j = 0; j < Cols; ++j) {
       if (!w.format((j + 1 == Cols) ? "%g" : "%g, ",
-                    static_cast<double>(M(i)(j))))
+                    static_cast<double>(M(i, j))))
         return false;
     }
     if (!w.append((i + 1 == Rows) ? "]" : "],")) return false;
@@ -123,16 +123,18 @@ inline bool append_matrix(FixedBufferWriter& w, const Mat& M) {
   return w.append("]");
 }
 
-template <linalg::VectorLike Vec>
-inline size_t vector_to_cstr(const Vec& v, char* out, size_t out_size) {
+template <linalg::VectorContainer Vec>
+inline std::size_t vector_to_cstr(const Vec& v, char* out,
+                                  std::size_t out_size) {
   FixedBufferWriter w{out, out_size, 0, false};
   w.init();
   append_vector(w, v);
   return w.size();
 }
 
-template <linalg::MatrixLike Mat>
-inline size_t matrix_to_cstr(const Mat& M, char* out, size_t out_size) {
+template <linalg::MatrixContainer Mat>
+inline std::size_t matrix_to_cstr(const Mat& M, char* out,
+                                  std::size_t out_size) {
   FixedBufferWriter w{out, out_size, 0, false};
   w.init();
   append_matrix(w, M);

@@ -28,7 +28,7 @@ namespace convex {
  * @brief Empty solver trace for users/builds that only want the final result.
  */
 struct EmptySolverTrace {
-  size_t num_iters{};
+  std::size_t num_iters{};
   constexpr void reset() { *this = {}; }
 };
 
@@ -36,19 +36,19 @@ struct EmptySolverTrace {
  * @brief Final primal-dual solve result plus optional structural and iteration
  * traces.
  */
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar,
+template <linalg::VectorContainer Var, linalg::VectorContainer ConeVar,
+          linalg::VectorContainer NuVar,
           typename CanonicalTraceT = EmptyCanonicalTrace,
           typename SolverTraceT = EmptySolverTrace>
 struct PrimalDualResult {
-  using Scalar = linalg::vec_type_t<Var>;
+  using Scalar = linalg::vector_element_t<Var>;
   using CanonicalTrace = CanonicalTraceT;
   using SolverTrace = SolverTraceT;
 
   config::SolverResult tag{};     ///< Solver result tag
   linalg::NumericalEvent event{}; ///< Report of any numerical events
   bool stalled{}; ///< Tag that indicates if backtracking stalled
-  size_t
+  std::size_t
       num_iter{}; ///< Number of iterations until convergence, stalled, or max
 
   Scalar mu{};         ///< Normalized duality gap

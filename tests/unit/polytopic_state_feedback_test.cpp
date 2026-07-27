@@ -43,9 +43,9 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
   constexpr auto Z = Matrixd<2, 2>{};
   constexpr auto MatBuilder = mat_traits<Space>();
 
-  static constexpr size_t QDim = 3;
-  static constexpr size_t YDim = 4;
-  static constexpr size_t ZDim = QDim + YDim;
+  static constexpr std::size_t QDim = 3;
+  static constexpr std::size_t YDim = 4;
+  static constexpr std::size_t ZDim = QDim + YDim;
   using ZSpace = RowVectord<ZDim>;
   constexpr auto dec = Variable<VarMeta<ZSpace>>();
 
@@ -97,9 +97,9 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
-    static constexpr size_t SolverQDim = 3;
-    static constexpr size_t SolverYDim = 2;
-    static constexpr size_t SolverZDim = SolverQDim + SolverYDim;
+    static constexpr std::size_t SolverQDim = 3;
+    static constexpr std::size_t SolverYDim = 2;
+    static constexpr std::size_t SolverZDim = SolverQDim + SolverYDim;
     using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
@@ -140,15 +140,16 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     REQUIRE(!res.stalled);
 
     Vectord<SolverQDim> q_vec{};
-    for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
+    for (std::size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
     const auto Q_res = make_smat<2>(q_vec);
 
     RowVectord<2> Y_res{};
-    for (size_t j = 0; j < 2; ++j) Y_res(0)(j) = res.iterate.z(SolverQDim + j);
+    for (std::size_t j = 0; j < 2; ++j)
+      Y_res(0, j) = res.iterate.z(SolverQDim + j);
 
     REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-    REQUIRE(Q_res(0)(0) > 1e-6);
-    REQUIRE(Q_res(1)(1) > 1e-6);
+    REQUIRE(Q_res(0, 0) > 1e-6);
+    REQUIRE(Q_res(1, 1) > 1e-6);
 
     const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
     REQUIRE(Q_sym.is_valid());
@@ -192,9 +193,9 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
-    static constexpr size_t SolverQDim = 3;
-    static constexpr size_t SolverYDim = 2;
-    static constexpr size_t SolverZDim = SolverQDim + SolverYDim;
+    static constexpr std::size_t SolverQDim = 3;
+    static constexpr std::size_t SolverYDim = 2;
+    static constexpr std::size_t SolverZDim = SolverQDim + SolverYDim;
     using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
@@ -239,11 +240,12 @@ TEST_CASE("Polytopic State Feedback 2x2", "[polytopic_state_feedback_test]") {
     REQUIRE(!res.stalled);
 
     Vectord<SolverQDim> q_vec{};
-    for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
+    for (std::size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
     const auto Q_res = make_smat<2>(q_vec);
 
     RowVectord<2> Y_res{};
-    for (size_t j = 0; j < 2; ++j) Y_res(0)(j) = res.iterate.z(SolverQDim + j);
+    for (std::size_t j = 0; j < 2; ++j)
+      Y_res(0, j) = res.iterate.z(SolverQDim + j);
 
     const auto [K_res, K_event] = psf.K(Q_res, Y_res);
     REQUIRE(K_event == linalg::NumericalEvent::NONE);
@@ -296,8 +298,7 @@ TEST_CASE("H2 Polytopic State Feedback synthesis 2x2",
   REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 4);
 
   const auto c = prob.linear_objective();
-  const auto c_exp = RowVectord<H2::DecVarDim>{
-      Vectord<H2::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0}};
+  const auto c_exp = Vectord<H2::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
   REQUIRE(c == c_exp);
 
   using Solver = PrimalDualIPM<decltype(prob)>;
@@ -318,13 +319,14 @@ TEST_CASE("H2 Polytopic State Feedback synthesis 2x2",
   const auto Q_res = make_smat<2>(std::get<0>(q_yz_split));
   const auto y_z_split = linalg::splice<H2::YDim>(std::get<1>(q_yz_split));
   RowVectord<2> Y_res{};
-  for (size_t j = 0; j < H2::YDim; ++j) Y_res(0)(j) = std::get<0>(y_z_split)(j);
+  for (std::size_t j = 0; j < H2::YDim; ++j)
+    Y_res(0, j) = std::get<0>(y_z_split)(j);
   const auto Z_res = make_smat<1>(std::get<1>(y_z_split));
 
   REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-  REQUIRE(Q_res(0)(0) > 1e-6);
-  REQUIRE(Q_res(1)(1) > 1e-6);
-  REQUIRE(Z_res(0)(0) > 1e-6);
+  REQUIRE(Q_res(0, 0) > 1e-6);
+  REQUIRE(Q_res(1, 1) > 1e-6);
+  REQUIRE(Z_res(0, 0) > 1e-6);
 
   const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
   REQUIRE(Q_sym.is_valid());
@@ -355,9 +357,9 @@ TEST_CASE("H2 Polytopic State Feedback synthesis 2x2",
 
   const auto top_right = C_z * Q_res + D_u * Y_res;
   const auto epigraph =
-      Matrixd<3, 3>{Vectord<3>{Z_res(0)(0), top_right(0)(0), top_right(0)(1)},
-                    Vectord<3>{top_right(0)(0), Q_res(0)(0), Q_res(0)(1)},
-                    Vectord<3>{top_right(0)(1), Q_res(1)(0), Q_res(1)(1)}};
+      Matrixd<3, 3>{Vectord<3>{Z_res(0, 0), top_right(0, 0), top_right(0, 1)},
+                    Vectord<3>{top_right(0, 0), Q_res(0, 0), Q_res(0, 1)},
+                    Vectord<3>{top_right(0, 1), Q_res(1, 0), Q_res(1, 1)}};
   const auto epigraph_sym = SymmetricMatrix(epigraph, 1e-6);
   REQUIRE(epigraph_sym.is_valid());
   REQUIRE(epigraph_sym.is_psd());
@@ -410,8 +412,7 @@ TEST_CASE("Hinf Polytopic State Feedback synthesis 2x2",
   REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 4);
 
   const auto c = prob.linear_objective();
-  const auto c_exp = RowVectord<Hinf::DecVarDim>{
-      Vectord<Hinf::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0}};
+  const auto c_exp = Vectord<Hinf::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
   REQUIRE(c == c_exp);
 
   using Solver = PrimalDualIPM<decltype(prob)>;
@@ -433,13 +434,13 @@ TEST_CASE("Hinf Polytopic State Feedback synthesis 2x2",
   const auto y_gamma_split =
       linalg::splice<Hinf::YDim>(std::get<1>(q_y_gamma_split));
   RowVectord<2> Y_res{};
-  for (size_t j = 0; j < Hinf::YDim; ++j)
-    Y_res(0)(j) = std::get<0>(y_gamma_split)(j);
+  for (std::size_t j = 0; j < Hinf::YDim; ++j)
+    Y_res(0, j) = std::get<0>(y_gamma_split)(j);
   const auto gamma_res = std::get<1>(y_gamma_split)(0);
 
   REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-  REQUIRE(Q_res(0)(0) > 1e-6);
-  REQUIRE(Q_res(1)(1) > 1e-6);
+  REQUIRE(Q_res(0, 0) > 1e-6);
+  REQUIRE(Q_res(1, 1) > 1e-6);
   REQUIRE(gamma_res > 1e-6);
 
   const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);

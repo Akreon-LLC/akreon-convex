@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "affine/affine_traits.hpp"
+#include "linalg/affine/affine_traits.hpp"
 #include "cone_traits.hpp"
 #include "linalg/norms/norm_traits.hpp"
 
@@ -57,7 +57,7 @@ struct dom_traits<ConvexDomain<SpaceIn, Sign>> {
   using Space = SpaceIn;
   using T = linalg::space_type_t<Space>;
   using Point = linalg::space_point_t<Space>;
-  static constexpr size_t N = linalg::space_dim_v<Space>;
+  static constexpr std::size_t N = linalg::space_dim_v<Space>;
   static constexpr VarType sign = Sign;
 };
 
@@ -71,7 +71,8 @@ template <typename Dom>
 using dom_point_t = typename dom_traits<linalg::remove_cvref_t<Dom>>::Point;
 
 template <typename Dom>
-inline constexpr size_t dom_size_v = dom_traits<linalg::remove_cvref_t<Dom>>::N;
+inline constexpr std::size_t dom_size_v =
+    dom_traits<linalg::remove_cvref_t<Dom>>::N;
 
 template <typename Dom>
 inline constexpr VarType dom_vartype_v =
@@ -207,7 +208,7 @@ template <typename Meta, typename Child>
 struct Hyperplane;
 
 /// @brief forward declaration of LMI type
-template <typename Meta, typename Child, linalg::SquareMatrixLike MatIn>
+template <typename Meta, typename Child, linalg::SquareMatrix MatIn>
 struct LMI;
 
 /// @brief simple enum to describe ball type

@@ -101,7 +101,7 @@ inline bool append_canonical_trace(FixedBufferWriter& w, const Trace& trace) {
                 canonical_trace_num_equalities_v<Trace>))
     return false;
 
-  size_t i = 0;
+  std::size_t i = 0;
   bool ok = true;
   std::apply(
       [&](const auto&... nodes) {
@@ -143,8 +143,8 @@ inline bool append_canonical_trace(FixedBufferWriter& w, const Trace& trace) {
   return ok;
 }
 
-template <linalg::FieldLike T, size_t NumCones, typename ConeTuple,
-          size_t... Is>
+template <linalg::Field T, std::size_t NumCones, typename ConeTuple,
+          std::size_t... Is>
 inline bool append_cone_steps(FixedBufferWriter& w,
                               const PdIpmStepTrace<T, NumCones>& step,
                               const ConeTuple& cones,
@@ -167,11 +167,11 @@ inline bool append_cone_steps(FixedBufferWriter& w,
   return ok;
 }
 
-template <linalg::FieldLike T, size_t NumCones, typename CanonicalTraceT>
+template <linalg::Field T, std::size_t NumCones, typename CanonicalTraceT>
 inline bool append_iter_trace(FixedBufferWriter& w,
                               const PdIpmIterTrace<T, NumCones>& iter,
                               const CanonicalTraceT& canonical_trace,
-                              size_t k) {
+                              std::size_t k) {
   if (!w.format(
           "[%zu] mu=%g ax=%g ay=%g rd=%g rp=%g req=%g pz=%g pnu=%g "
           "px=%g py=%g tag=%s event=%s stalled=%d\n",
@@ -184,7 +184,8 @@ inline bool append_iter_trace(FixedBufferWriter& w,
           iter.stalled))
     return false;
 
-  constexpr size_t TraceCones = canonical_trace_num_cones_v<CanonicalTraceT>;
+  constexpr std::size_t TraceCones =
+      canonical_trace_num_cones_v<CanonicalTraceT>;
   if constexpr (TraceCones == NumCones) {
     if (!append_cone_steps(w, iter.predictor, canonical_trace.cones,
                            std::make_index_sequence<NumCones>{}, "pred"))
@@ -193,7 +194,7 @@ inline bool append_iter_trace(FixedBufferWriter& w,
                            std::make_index_sequence<NumCones>{}, "corr"))
       return false;
   } else {
-    for (size_t i = 0; i < NumCones; ++i) {
+    for (std::size_t i = 0; i < NumCones; ++i) {
       if (!w.format("    pred cone[%zu]: ", i)) return false;
       if (!append_cone_step(w, iter.predictor.cones[i])) return false;
       if (!w.append("\n")) return false;
@@ -206,7 +207,7 @@ inline bool append_iter_trace(FixedBufferWriter& w,
   return true;
 }
 
-template <linalg::FieldLike T, size_t NumCones, typename CanonicalTraceT>
+template <linalg::Field T, std::size_t NumCones, typename CanonicalTraceT>
 inline bool append_solver_trace(FixedBufferWriter& w,
                                 const PdIpmTrace<T, NumCones>& trace,
                                 const CanonicalTraceT& canonical_trace) {
@@ -214,9 +215,9 @@ inline bool append_solver_trace(FixedBufferWriter& w,
                 trace.num_iters, PD_IPM_STEPS, NumCones))
     return false;
 
-  const size_t used =
+  const std::size_t used =
       (trace.num_iters < PD_IPM_STEPS) ? trace.num_iters : PD_IPM_STEPS;
-  for (size_t k = 0; k < used; ++k) {
+  for (std::size_t k = 0; k < used; ++k) {
     if (!append_iter_trace(w, trace.iters[k], canonical_trace, k)) return false;
   }
   return true;
@@ -228,8 +229,8 @@ inline bool append_solver_trace(FixedBufferWriter& w, const Trace&,
   return w.append("solver_trace: <empty>\n");
 }
 
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar, typename CanonicalTraceT,
+template <linalg::VectorContainer Var, linalg::VectorContainer ConeVar,
+          linalg::VectorContainer NuVar, typename CanonicalTraceT,
           typename SolverTraceT>
 inline bool append_result(
     FixedBufferWriter& w,
@@ -275,13 +276,13 @@ inline bool append_result(
   return append_solver_trace(w, res.solver_trace, res.canonical_trace);
 }
 
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar, typename CanonicalTraceT,
+template <linalg::VectorContainer Var, linalg::VectorContainer ConeVar,
+          linalg::VectorContainer NuVar, typename CanonicalTraceT,
           typename SolverTraceT>
-inline size_t result_to_cstr(
+inline std::size_t result_to_cstr(
     const convex::PrimalDualResult<Var, ConeVar, NuVar, CanonicalTraceT,
                                    SolverTraceT>& res,
-    char* out, size_t out_size) {
+    char* out, std::size_t out_size) {
   FixedBufferWriter w{out, out_size, 0, false};
   w.init();
   append_result(w, res);
@@ -289,8 +290,8 @@ inline size_t result_to_cstr(
 }
 
 #ifdef AKREON_ENABLE_IOSTREAM
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar, typename CanonicalTraceT,
+template <linalg::VectorContainer Var, linalg::VectorContainer ConeVar,
+          linalg::VectorContainer NuVar, typename CanonicalTraceT,
           typename SolverTraceT>
 inline std::ostream& operator<<(
     std::ostream& os,

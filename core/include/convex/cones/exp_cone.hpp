@@ -24,7 +24,7 @@ namespace conic {
  * are strided by 3*N nominally. So u coords are the first M/3 rows, v are the
  * next M/3 rows, and w are the final rows
  */
-template <linalg::VectorLike Slack>
+template <linalg::VectorContainer Slack>
 struct ExpCone : public Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC> {
   /// @brief bring into scope alias from cone base
   using ConeBase = Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC>;
@@ -42,9 +42,9 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC> {
    */
   constexpr Slack x0_impl() const {
     Slack s{};
-    for (size_t i = 0; i < M / 3; ++i) s(i) = T(0);
-    for (size_t i = M / 3; i < 2 * M / 3; ++i) s(i) = T(1);
-    for (size_t i = 2 * M / 3; i < M; ++i) s(i) = T(2);
+    for (std::size_t i = 0; i < M / 3; ++i) s(i) = T(0);
+    for (std::size_t i = M / 3; i < 2 * M / 3; ++i) s(i) = T(1);
+    for (std::size_t i = 2 * M / 3; i < M; ++i) s(i) = T(2);
     return s;
   }
 
@@ -56,7 +56,7 @@ struct ExpCone : public Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC> {
    * @return bool
    */
   constexpr bool in_cone_impl(const Slack& x) const {
-    for (size_t i = 0; i < M / 3; ++i) {
+    for (std::size_t i = 0; i < M / 3; ++i) {
       const auto u = x(i);
       const auto v = x(M / 3 + i);
       const auto w = x(2 * M / 3 + i);

@@ -141,25 +141,30 @@ struct HinfMixedSensitivity {
   using WuModel = linalg::remove_cvref_t<WuPlant>;
   using T = plant_type_t<Model>;
 
-  static constexpr size_t PlantStateDim = plant_traits<Model>::StateDim;
-  static constexpr size_t WpStateDim = plant_traits<WpModel>::StateDim;
-  static constexpr size_t WtStateDim = plant_traits<WtModel>::StateDim;
-  static constexpr size_t WuStateDim = plant_traits<WuModel>::StateDim;
-  static constexpr size_t StateDim =
+  static constexpr std::size_t PlantStateDim = plant_traits<Model>::StateDim;
+  static constexpr std::size_t WpStateDim = plant_traits<WpModel>::StateDim;
+  static constexpr std::size_t WtStateDim = plant_traits<WtModel>::StateDim;
+  static constexpr std::size_t WuStateDim = plant_traits<WuModel>::StateDim;
+  static constexpr std::size_t StateDim =
       PlantStateDim + WpStateDim + WtStateDim + WuStateDim;
 
-  static constexpr size_t ControlDim = plant_traits<Model>::ControlDim;
-  static constexpr size_t MeasurementDim = plant_traits<Model>::MeasurementDim;
-  static constexpr size_t ExogenousDim = MeasurementDim;
+  static constexpr std::size_t ControlDim = plant_traits<Model>::ControlDim;
+  static constexpr std::size_t MeasurementDim =
+      plant_traits<Model>::MeasurementDim;
+  static constexpr std::size_t ExogenousDim = MeasurementDim;
 
-  static constexpr size_t WpOutputDim = plant_traits<WpModel>::PerformanceDim;
-  static constexpr size_t WtOutputDim = plant_traits<WtModel>::PerformanceDim;
-  static constexpr size_t WuOutputDim = plant_traits<WuModel>::PerformanceDim;
-  static constexpr size_t OutputDim = WpOutputDim + WtOutputDim + WuOutputDim;
+  static constexpr std::size_t WpOutputDim =
+      plant_traits<WpModel>::PerformanceDim;
+  static constexpr std::size_t WtOutputDim =
+      plant_traits<WtModel>::PerformanceDim;
+  static constexpr std::size_t WuOutputDim =
+      plant_traits<WuModel>::PerformanceDim;
+  static constexpr std::size_t OutputDim =
+      WpOutputDim + WtOutputDim + WuOutputDim;
 
-  static constexpr size_t WpInputDim = plant_traits<WpModel>::ControlDim;
-  static constexpr size_t WtInputDim = plant_traits<WtModel>::ControlDim;
-  static constexpr size_t WuInputDim = plant_traits<WuModel>::ControlDim;
+  static constexpr std::size_t WpInputDim = plant_traits<WpModel>::ControlDim;
+  static constexpr std::size_t WtInputDim = plant_traits<WtModel>::ControlDim;
+  static constexpr std::size_t WuInputDim = plant_traits<WuModel>::ControlDim;
 
   static_assert(WpInputDim == MeasurementDim,
                 "Wp control input must match plant measurement dimension");
@@ -168,14 +173,14 @@ struct HinfMixedSensitivity {
   static_assert(WuInputDim == ControlDim,
                 "Wu control input must match plant control dimension");
 
-  static constexpr size_t XEnd = PlantStateDim;
-  static constexpr size_t WpEnd = PlantStateDim + WpStateDim;
-  static constexpr size_t WtEnd = WpEnd + WtStateDim;
-  static constexpr size_t WuEnd = WtEnd + WuStateDim;
-  static constexpr size_t ZpEnd = WpOutputDim;
-  static constexpr size_t ZtEnd = WpOutputDim + WtOutputDim;
-  static constexpr size_t ZuEnd = OutputDim;
-  static constexpr size_t InputDim = ExogenousDim + ControlDim;
+  static constexpr std::size_t XEnd = PlantStateDim;
+  static constexpr std::size_t WpEnd = PlantStateDim + WpStateDim;
+  static constexpr std::size_t WtEnd = WpEnd + WtStateDim;
+  static constexpr std::size_t WuEnd = WtEnd + WuStateDim;
+  static constexpr std::size_t ZpEnd = WpOutputDim;
+  static constexpr std::size_t ZtEnd = WpOutputDim + WtOutputDim;
+  static constexpr std::size_t ZuEnd = OutputDim;
+  static constexpr std::size_t InputDim = ExogenousDim + ControlDim;
 
   using AMat = linalg::Matrix<T, StateDim, StateDim>;
   using BMat = linalg::Matrix<T, StateDim, InputDim>;
@@ -193,10 +198,10 @@ struct HinfMixedSensitivity {
   using KMat = typename Synthesis::KMat;
   using DecVarSpace = typename Synthesis::DecVarSpace;
 
-  static constexpr size_t QDim = Synthesis::QDim;
-  static constexpr size_t YDim = Synthesis::YDim;
-  static constexpr size_t GammaDim = Synthesis::GammaDim;
-  static constexpr size_t DecVarDim = Synthesis::DecVarDim;
+  static constexpr std::size_t QDim = Synthesis::QDim;
+  static constexpr std::size_t YDim = Synthesis::YDim;
+  static constexpr std::size_t GammaDim = Synthesis::GammaDim;
+  static constexpr std::size_t DecVarDim = Synthesis::DecVarDim;
 
   /**
    * @brief form the mixed-sensitivity augmented generalized plant

@@ -14,7 +14,7 @@
 
 #include "config/assert.hpp"
 
-#include "affine/affine_map.hpp"
+#include "linalg/affine/affine_map.hpp"
 #include "convex/cone_traits.hpp"
 #include "convex/convex_traits.hpp"
 #include "linalg/vector/algebra_util.hpp"
@@ -80,7 +80,7 @@ struct ConvexSet : Atom<Meta, ConvexSet<Meta, Derived, Child>, Child> {
    *
    * @return transformed set
    */
-  template <linalg::MatrixLike Mat>
+  template <linalg::MatrixContainer Mat>
   constexpr auto transform(const affine::AffineMap<Mat>& map) const {
     return self().transform_impl(map);
   }

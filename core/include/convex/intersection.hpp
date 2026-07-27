@@ -26,9 +26,10 @@ namespace convex {
  *
  * @return new builder
  */
-template <size_t idx = 0, typename Children, typename Builder, typename Fn>
+template <std::size_t idx = 0, typename Children, typename Builder, typename Fn>
 constexpr auto tuple_fold_cap(Children&& children, Builder&& builder, Fn&& fn) {
-  constexpr size_t N = std::tuple_size_v<std::remove_reference_t<Children>>;
+  constexpr std::size_t N =
+      std::tuple_size_v<std::remove_reference_t<Children>>;
   if constexpr (idx == N) return std::forward<Builder>(builder);
   else {
     auto&& child = std::get<idx>(std::forward<Children>(children));

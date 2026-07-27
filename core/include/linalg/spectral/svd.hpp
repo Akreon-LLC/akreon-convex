@@ -23,16 +23,16 @@ namespace linalg {
  * vectors, Sigma are the singular values, and V^T are the right singular
  * vectors
  */
-template <MatrixLike Mat>
+template <MatrixContainer Mat>
 struct SVD {
   // @brief aliasing complex and real types for eigen decomposition
-  using T = mat_type_t<Mat>;
-  using Real = scalar_type_t<T>;
-  using Complex = std::conditional_t<ComplexLike<T>, T, std::complex<Real>>;
+  using T = matrix_scalar_t<Mat>;
+  using Real = real_type_t<T>;
+  using Complex = std::conditional_t<linalg::Complex<T>, T, std::complex<Real>>;
 
   // @brief helpers for Rows & Cols
-  static constexpr size_t Rows = mat_rows_v<Mat>;
-  static constexpr size_t Cols = mat_cols_v<Mat>;
+  static constexpr std::size_t Rows = mat_rows_v<Mat>;
+  static constexpr std::size_t Cols = mat_cols_v<Mat>;
 
   /**
    * @brief CTOR
@@ -59,7 +59,7 @@ private:
   constexpr void svd(const Mat& A) {
     // 1. compute A^T A then solve eigen decomposition
     Matrix<T, Cols, Cols> M;
-    if constexpr (RealLike<T>) M = transpose(A) * A;
+    if constexpr (linalg::Real<T>) M = transpose(A) * A;
     else M = conjugate_transpose(A) * A;
 
     const auto result = EigenDecomposition(M);
@@ -69,7 +69,7 @@ private:
     // 2. convert eigenvalues to singular values
     const auto tmp_lambdas = result.lambda;
     Vector<Real, Cols> lambdas;
-    for (size_t i = 0; i < Cols; ++i) {
+    for (std::size_t i = 0; i < Cols; ++i) {
       AK_ASSERT(is_real(tmp_lambdas(i)) &&
                 "SVD expects real eigenvalues from A^*A");
       if (!is_real(tmp_lambdas(i))) {
@@ -85,16 +85,16 @@ private:
     // U (A^T A) VT -> U Sigma VT
     const auto& V = result.V;
 
-    for (size_t i = 0; i < Cols; ++i)
-      S(i)(i) = constexpr_sqrt_safe(std::max<Real>(0, lambdas(i)));
+    for (std::size_t i = 0; i < Cols; ++i)
+      S(i, i) = constexpr_sqrt_safe(std::max<Real>(0, lambdas(i)));
 
     // 3. back-solve for U with VT & sigmas
     // Sigma^{-1} A V = U
     U = make_identity<Complex, Rows>();
 
-    for (size_t i = 0; i < Cols; ++i) {
-      const auto u_i = (1 / S(i)(i)) * as_complex_matrix(A) * get_col(V, i);
-      for (size_t j = 0; j < Rows; ++j) U(j)(i) = u_i(j);
+    for (std::size_t i = 0; i < Cols; ++i) {
+      const auto u_i = (1 / S(i, i)) * as_complex_matrix(A) * get_col(V, i);
+      for (std::size_t j = 0; j < Rows; ++j) U(j, i) = u_i(j);
     }
 
     VT = conjugate_transpose(V);
@@ -116,13 +116,13 @@ private:
     Matrix<Real, Rows, Cols> S_tmp;
     Matrix<Complex, Rows, Rows> U_tmp;
     Matrix<Complex, Cols, Cols> VT_tmp;
-    for (size_t i = 0; i < Cols; ++i) {
+    for (std::size_t i = 0; i < Cols; ++i) {
       const auto idx = P[i];
-      S_tmp(i)(i) = S(idx)(idx);
+      S_tmp(i, i) = S(idx, idx);
 
-      for (size_t r = 0; r < Rows; ++r) U_tmp(r)(i) = U(r)(idx);
+      for (std::size_t r = 0; r < Rows; ++r) U_tmp(r, i) = U(r, idx);
 
-      for (size_t c = 0; c < Cols; ++c) VT_tmp(i)(c) = VT(idx)(c);
+      for (std::size_t c = 0; c < Cols; ++c) VT_tmp(i, c) = VT(idx, c);
     }
 
     // 3. store result

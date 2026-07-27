@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "affine/affine_map.hpp"
+#include "linalg/affine/affine_map.hpp"
 #include "cone_traits.hpp"
 #include "convex_traits.hpp"
 
@@ -46,13 +46,13 @@ template <affine::AffineMapLike PrevMap, affine::AffineMapLike NextMap>
 constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
   using PrevMatT = affine::affine_mat_t<PrevMap>;
   using NextMatT = affine::affine_mat_t<NextMap>;
-  using T = linalg::mat_type_t<PrevMatT>;
+  using T = linalg::matrix_scalar_t<PrevMatT>;
 
-  static constexpr size_t PrevDom = linalg::mat_cols_v<PrevMatT>;
-  static constexpr size_t PrevCodom = linalg::mat_rows_v<PrevMatT>;
+  static constexpr std::size_t PrevDom = linalg::mat_cols_v<PrevMatT>;
+  static constexpr std::size_t PrevCodom = linalg::mat_rows_v<PrevMatT>;
 
-  static constexpr size_t NextDom = linalg::mat_cols_v<NextMatT>;
-  static constexpr size_t NextCodom = linalg::mat_rows_v<NextMatT>;
+  static constexpr std::size_t NextDom = linalg::mat_cols_v<NextMatT>;
+  static constexpr std::size_t NextCodom = linalg::mat_rows_v<NextMatT>;
 
   /// (dakre) first step is seeding the selector map from first child then
   /// accumulate selector thereafter
@@ -60,17 +60,18 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
     return affine::AffineMap<linalg::remove_cvref_t<NextMatT>>(
         next.linear_part(), next.translation());
   } else {
-    static constexpr size_t FullDom = PrevDom > NextDom ? PrevDom : NextDom;
+    static constexpr std::size_t FullDom =
+        PrevDom > NextDom ? PrevDom : NextDom;
     linalg::Matrix<T, PrevCodom, FullDom> F{};
-    for (size_t i = 0; i < PrevCodom; ++i) {
-      for (size_t j = 0; j < FullDom; ++j) {
-        if (j < PrevDom) F(i)(j) += prev.linear_part()(i)(j);
-        if (j < NextDom) F(i)(j) += next.linear_part()(i)(j);
+    for (std::size_t i = 0; i < PrevCodom; ++i) {
+      for (std::size_t j = 0; j < FullDom; ++j) {
+        if (j < PrevDom) F(i, j) += prev.linear_part()(i, j);
+        if (j < NextDom) F(i, j) += next.linear_part()(i, j);
       }
     }
 
     linalg::Vector<T, PrevCodom> g{};
-    for (size_t i = 0; i < PrevCodom; ++i) {
+    for (std::size_t i = 0; i < PrevCodom; ++i) {
       g(i) = prev.translation()(i) + next.translation()(i);
     }
     return affine::AffineMap<decltype(F)>(F, g);
@@ -93,11 +94,12 @@ constexpr auto update_selector(const PrevMap& prev, const NextMap& next) {
  *
  * @return tuple containing the accumulated selector and builder
  */
-template <size_t idx = 0, typename Children, typename Builder, typename Fn,
+template <std::size_t idx = 0, typename Children, typename Builder, typename Fn,
           affine::AffineMapLike Map>
 constexpr auto tuple_fold_sum(Children&& children, Builder&& builder, Fn&& fn,
                               Map&& selector) {
-  constexpr size_t N = std::tuple_size_v<std::remove_reference_t<Children>>;
+  constexpr std::size_t N =
+      std::tuple_size_v<std::remove_reference_t<Children>>;
   if constexpr (idx == N)
     return std::tuple(selector, std::forward<Builder>(builder));
   else {
@@ -201,9 +203,9 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
     const auto res = tuple_fold_sum(this->children, builder, canonicalize_child,
                                     builder.coord_map);
     const auto selector = std::get<0>(res);
-    const auto F = map.linear_part()(0)(0) * selector.linear_part();
+    const auto F = map.linear_part()(0, 0) * selector.linear_part();
     const auto g =
-        map.linear_part()(0)(0) * selector.translation() + map.translation();
+        map.linear_part()(0, 0) * selector.translation() + map.translation();
     const auto new_selector =
         affine::AffineMap<decltype(selector.linear_part())>(F, g);
 

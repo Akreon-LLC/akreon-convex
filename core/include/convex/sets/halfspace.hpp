@@ -109,8 +109,8 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    *
    * @return transformed halfspace
    */
-  template <linalg::SquareMatrixLike Mat>
-    requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
+  template <linalg::SquareMatrix Mat>
+    requires(std::same_as<T, linalg::matrix_scalar_t<Mat>> &&
              linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto [U_inv, event] = linalg::MatrixInverse<Mat>()(map.linear_part());
@@ -148,7 +148,7 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
 
-    static constexpr size_t ChildCodom =
+    static constexpr std::size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
     static_assert(ChildCodom == N,
                   "Convex set domain does not equal the child coordinate "

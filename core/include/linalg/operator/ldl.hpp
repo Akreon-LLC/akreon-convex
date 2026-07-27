@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "config/assert.hpp"
 #include "linalg/linalg_util.hpp"
 #include "symmetric_operator.hpp"
@@ -21,7 +23,7 @@ namespace linalg {
 /**
  * @brief LDL^T factorization of a square / symmetric matrix A
  */
-template <SquareMatrixLike Mat>
+template <SquareMatrix Mat>
 struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   /// @brief alias for symmetric matrix
   using SymmetricBase = SymmetricOperator<Mat, LDL<Mat>>;
@@ -110,19 +112,19 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
    *
    * @return A^{-1} Y
    */
-  template <linalg::MatrixLike MatIn>
-    requires(std::same_as<linalg::mat_type_t<MatIn>, T>)
+  template <linalg::MatrixContainer MatIn>
+    requires(std::same_as<linalg::matrix_scalar_t<MatIn>, T>)
   constexpr auto apply(const MatIn& Y) const {
-    constexpr size_t YRows = linalg::mat_rows_v<MatIn>;
-    constexpr size_t YCols = linalg::mat_cols_v<MatIn>;
+    constexpr std::size_t YRows = linalg::mat_rows_v<MatIn>;
+    constexpr std::size_t YCols = linalg::mat_cols_v<MatIn>;
     static_assert(YRows == N, "Codom of Y must match expected dom of A");
 
     linalg::Matrix<T, N, YCols> A_inv_Y{};
-    for (size_t i = 0; i < YCols; ++i) {
+    for (std::size_t i = 0; i < YCols; ++i) {
       const auto y_col = get_col(Y, i);
       const auto [res, event] = solve(y_col);
       if (linalg::is_fatal_event(event)) return std::tuple(Y, event);
-      for (size_t j = 0; j < YRows; ++j) A_inv_Y(j)(i) = res(j);
+      for (std::size_t j = 0; j < YRows; ++j) A_inv_Y(j, i) = res(j);
     }
     return std::tuple(A_inv_Y, linalg::NumericalEvent::NONE);
   }
@@ -137,36 +139,36 @@ private:
    */
   constexpr void factor(Mat A) {
     const auto& tol = config.tol;
-    auto ldl_t = [&]<size_t j = 0>(this auto&& self) -> bool {
+    auto ldl_t = [&]<std::size_t j = 0>(this auto&& self) -> bool {
       /// (dakre) base case for recursion
       if constexpr (j >= SymmetricBase::N) return true;
       else {
         /// (dakre) handle j = 0 iteration separately (don't have prior intertia
         /// build up, only need to scale first col by first diag elem)
-        constexpr size_t next = j + 1;
+        constexpr std::size_t next = j + 1;
         if constexpr (j == 0) {
-          if (constexpr_abs(A(0)(0)) < tol) return false;
+          if (constexpr_abs(A(0, 0)) < tol) return false;
 
           const auto A_col = get_block<next, SymmetricBase::N, 0, next>(A);
-          const auto col_up = (T(1) / A(0)(0)) * A_col;
+          const auto col_up = (T(1) / A(0, 0)) * A_col;
 
           A = set_block<next, SymmetricBase::N, 0, next>(A, col_up);
         } else {
           /// (dakre) nominal LDL^T algo denoted in Golub & Van Load p. 158
           Vector<T, j> v{};
-          for (size_t k = 0; k < j; ++k) v(k) = A(j)(k) * A(k)(k);
+          for (std::size_t k = 0; k < j; ++k) v(k) = A(j, k) * A(k, k);
 
           const auto A_row = get_block<j, next, 0, j>(A);
-          A(j)(j) = A(j)(j) - (A_row * v)(0);
+          A(j, j) = A(j, j) - (A_row * v)(0);
 
-          if (constexpr_abs(A(j)(j)) < tol) return false;
+          if (constexpr_abs(A(j, j)) < tol) return false;
 
           if constexpr (next < SymmetricBase::N) {
             const auto A_col = get_block<next, SymmetricBase::N, j, next>(A);
             const auto A_blk = get_block<next, SymmetricBase::N, 0, j>(A);
 
             const auto col_up =
-                T(1) / A(j)(j) * (A_col - as_col_vector(A_blk * v));
+                T(1) / A(j, j) * (A_col - as_col_vector(A_blk * v));
 
             A = set_block<next, SymmetricBase::N, j, next>(A, col_up);
           }
@@ -198,9 +200,9 @@ private:
    */
   constexpr auto forward_solve(const Mat& L_mat, const Vector<T, N>& b) const {
     Vector<T, N> y{};
-    for (size_t i = 0; i < N; ++i) {
+    for (std::size_t i = 0; i < N; ++i) {
       T sum(0);
-      for (size_t j = 0; j < i; ++j) sum += L_mat(i)(j) * y(j);
+      for (std::size_t j = 0; j < i; ++j) sum += L_mat(i, j) * y(j);
       y(i) = b(i) - sum;
     }
     return y;
@@ -221,7 +223,7 @@ private:
     if (!this->is_valid())
       return std::tuple(z, linalg::NumericalEvent::FACTORIZATION_FAILED);
 
-    for (size_t i = 0; i < N; ++i) z(i) = y(i) / D_vec(i);
+    for (std::size_t i = 0; i < N; ++i) z(i) = y(i) / D_vec(i);
 
     return std::tuple(z, linalg::NumericalEvent::NONE);
   }
@@ -239,7 +241,7 @@ private:
     for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
       T sum(0);
       for (int j = i + 1; j < static_cast<int>(N); ++j)
-        sum += L_mat(i)(j) * x(j);
+        sum += L_mat(i, j) * x(j);
       x(i) = z(i) - sum;
     }
     return x;

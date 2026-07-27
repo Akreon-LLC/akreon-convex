@@ -30,21 +30,21 @@ namespace control {
  *   W     : lifted observer product, W = Q L
  *   gamma : shared induced L2-gain bound
  */
-template <ContinuousPlantModelLike Plant, size_t N>
+template <ContinuousPlantModelLike Plant, std::size_t N>
 struct HinfPolytopicStateObserver {
   /// @brief extracting alias and types
   using Model = linalg::remove_cvref_t<Plant>;
   using T = plant_type_t<Model>;
   using VertexObserver = HinfStateObserver<Model>;
 
-  static constexpr size_t StateDim = VertexObserver::StateDim;
-  static constexpr size_t ExogenousDim = VertexObserver::ExogenousDim;
-  static constexpr size_t MeasurementDim = VertexObserver::MeasurementDim;
-  static constexpr size_t PerformanceDim = VertexObserver::PerformanceDim;
-  static constexpr size_t QDim = VertexObserver::QDim;
-  static constexpr size_t WDim = VertexObserver::WDim;
-  static constexpr size_t GammaDim = VertexObserver::GammaDim;
-  static constexpr size_t DecVarDim = VertexObserver::DecVarDim;
+  static constexpr std::size_t StateDim = VertexObserver::StateDim;
+  static constexpr std::size_t ExogenousDim = VertexObserver::ExogenousDim;
+  static constexpr std::size_t MeasurementDim = VertexObserver::MeasurementDim;
+  static constexpr std::size_t PerformanceDim = VertexObserver::PerformanceDim;
+  static constexpr std::size_t QDim = VertexObserver::QDim;
+  static constexpr std::size_t WDim = VertexObserver::WDim;
+  static constexpr std::size_t GammaDim = VertexObserver::GammaDim;
+  static constexpr std::size_t DecVarDim = VertexObserver::DecVarDim;
 
   using QMat = typename VertexObserver::QMat;
   using WMat = typename VertexObserver::WMat;
@@ -86,14 +86,15 @@ struct HinfPolytopicStateObserver {
     static_assert(std::same_as<DecVarSpace, convex::dom_space_t<DecVarDom>>,
                   "Expected merged decision size [svec(Q); vec(W); gamma]");
 
-    auto make_vertex_lmis = [&]<size_t idx>() {
+    auto make_vertex_lmis = [&]<std::size_t idx>() {
       return VertexObserver()(poly(idx), Z_hat, margin);
     };
 
-    auto form_intersection = [&]<size_t... Is>(std::index_sequence<Is...>) {
-      return convex::Intersection(
-          make_vertex_lmis.template operator()<Is>()...);
-    };
+    auto form_intersection =
+        [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+          return convex::Intersection(
+              make_vertex_lmis.template operator()<Is>()...);
+        };
 
     return form_intersection(std::make_index_sequence<N>{});
   }
@@ -132,7 +133,8 @@ struct HinfPolytopicStateObserver {
  *
  * @return Hinf problem
  */
-template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike DecVar>
+template <ContinuousPlantModelLike Plant, std::size_t N,
+          convex::AtomLike DecVar>
 constexpr auto make_hinf_polytopic_state_observer_problem(
     const linalg::Vector<Plant, N>& poly, const DecVar& Z_hat,
     plant_type_t<Plant> margin = 1e-6) {

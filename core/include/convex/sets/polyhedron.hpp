@@ -70,9 +70,9 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    * @return T/F
    */
   constexpr bool is_well_formed() const {
-    for (size_t i = 0; i < M; ++i)
+    for (std::size_t i = 0; i < M; ++i)
       if (!Halfspace<HalfspaceMeta<Space>, Child, HalfspaceType::LH>(
-               A(i), b(i), std::get<0>(this->children))
+               A.row(i), b(i), std::get<0>(this->children))
                .is_well_formed())
         return false;
     return true;
@@ -86,10 +86,10 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    * @return T/F
    */
   constexpr bool contains_impl(const PointT& x, const T& tol) const {
-    for (size_t i = 0; i < M; ++i) {
+    for (std::size_t i = 0; i < M; ++i) {
       const auto half =
           Halfspace<HalfspaceMeta<Space>, Child, HalfspaceType::LH>(
-              A(i), b(i), std::get<0>(this->children));
+              A.row(i), b(i), std::get<0>(this->children));
       if (!half.contains(x, tol)) return false;
     }
     return true;
@@ -110,8 +110,8 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  template <linalg::SquareMatrixLike Mat>
-    requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
+  template <linalg::SquareMatrix Mat>
+    requires(std::same_as<T, linalg::matrix_scalar_t<Mat>> &&
              linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto& U = map.linear_part();
@@ -154,7 +154,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
 
-    static constexpr size_t ChildCodom =
+    static constexpr std::size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
     static_assert(ChildCodom == N,
                   "Convex set domain does not equal the child coordinate "

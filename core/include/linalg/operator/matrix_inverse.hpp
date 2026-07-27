@@ -21,11 +21,11 @@ namespace linalg {
 /**
  * @brief Matrix inverse via QR
  */
-template <MatrixLike MatIn>
+template <MatrixContainer MatIn>
 struct MatrixInverse {
   using Mat = linalg::remove_cvref_t<MatIn>;
-  using T = mat_type_t<Mat>;
-  static constexpr size_t N = mat_rows_v<Mat>;
+  using T = matrix_scalar_t<Mat>;
+  static constexpr std::size_t N = mat_rows_v<Mat>;
   static_assert(N >= 1, "inverse requires matrix dim of at least 1");
 
   /**
@@ -49,14 +49,14 @@ struct MatrixInverse {
   constexpr auto apply(const Mat& A) const {
     const auto qr = QR(A);
     Mat A_inv{};
-    for (size_t i = 0; i < N; ++i) {
+    for (std::size_t i = 0; i < N; ++i) {
       Vector<T, N> I_vec{};
       I_vec(i) = T(1);
       const auto [a_col, event] = qr.solve(I_vec);
       if (event != linalg::NumericalEvent::NONE)
         return std::tuple(A_inv, event);
 
-      for (size_t j = 0; j < N; ++j) A_inv(j)(i) = a_col(j);
+      for (std::size_t j = 0; j < N; ++j) A_inv(j, i) = a_col(j);
     }
     return std::tuple(A_inv, linalg::NumericalEvent::NONE);
   }
@@ -65,11 +65,11 @@ struct MatrixInverse {
 /**
  * @brief Symmetric matrix inverse via LDL^T
  */
-template <SquareMatrixLike MatIn>
+template <SquareMatrix MatIn>
 struct SymmetricMatrixInverse {
   using Mat = linalg::remove_cvref_t<MatIn>;
-  using T = mat_type_t<Mat>;
-  static constexpr size_t N = mat_rows_v<Mat>;
+  using T = matrix_scalar_t<Mat>;
+  static constexpr std::size_t N = mat_rows_v<Mat>;
   static_assert(N >= 1, "inverse requires matrix dim of at least 1");
 
   /**
@@ -93,9 +93,9 @@ struct SymmetricMatrixInverse {
   constexpr auto apply(const Mat& A) const {
     Mat A_inv{};
     if constexpr (N == 1) {
-      if (constexpr_abs(A(0)(0)) == T(0))
+      if (constexpr_abs(A(0, 0)) == T(0))
         return std::tuple(A_inv, linalg::NumericalEvent::FACTORIZATION_FAILED);
-      A_inv(0)(0) = T(1) / A(0)(0);
+      A_inv(0, 0) = T(1) / A(0, 0);
       return std::tuple(A_inv, linalg::NumericalEvent::NONE);
     } else {
       const auto ldl = LDL(A);
@@ -103,12 +103,12 @@ struct SymmetricMatrixInverse {
       if (!ldl.is_valid())
         return std::tuple(A_inv, linalg::NumericalEvent::FACTORIZATION_FAILED);
 
-      for (size_t i = 0; i < N; ++i) {
+      for (std::size_t i = 0; i < N; ++i) {
         Vector<T, N> I_vec{};
         I_vec(i) = T(1);
         const auto [a_col, event] = ldl.solve(I_vec);
         if (linalg::is_fatal_event(event)) return std::tuple(A_inv, event);
-        for (size_t j = 0; j < N; ++j) A_inv(j)(i) = a_col(j);
+        for (std::size_t j = 0; j < N; ++j) A_inv(j, i) = a_col(j);
       }
       return std::tuple(A_inv, linalg::NumericalEvent::NONE);
     }

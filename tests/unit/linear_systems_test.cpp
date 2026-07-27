@@ -48,7 +48,7 @@ TEST_CASE("Test linear ODE", "[dot(x) = Ax]") {
 
 TEST_CASE("Test linear system", "[y=Ax]") {
   constexpr auto x = Vectord<3>{3.0, -2.0, 1.0};
-  constexpr auto A = Vector<Vectord<3>, 3>{x, x, x};
+  constexpr auto A = Matrixd<3, 3>{x, x, x};
   constexpr auto y = A * x;
   STATIC_REQUIRE(y(0) == 14.0);
   STATIC_REQUIRE(y(1) == 14.0);
@@ -67,9 +67,9 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     constexpr auto A_prime = Q * R;
     STATIC_REQUIRE(all_equal(A_prime, A));
 
-    STATIC_REQUIRE(R(1)(0) == 0);
-    STATIC_REQUIRE(R(2)(0) == 0);
-    STATIC_REQUIRE(R(2)(1) == 0);
+    STATIC_REQUIRE(R(1, 0) == 0);
+    STATIC_REQUIRE(R(2, 0) == 0);
+    STATIC_REQUIRE(R(2, 1) == 0);
 
     constexpr auto QTQ = transpose(Q) * Q;
     STATIC_REQUIRE(all_equal(QTQ, make_identity<double, 3>()));
@@ -126,7 +126,7 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
     STATIC_REQUIRE(all_equal(A_prime, A));
 
     constexpr auto zero = std::complex<double>(0.0, 0.0);
-    STATIC_REQUIRE(R(1)(0) == zero);
+    STATIC_REQUIRE(R(1, 0) == zero);
 
     constexpr auto QTQ = conjugate_transpose(Q) * Q;
     STATIC_REQUIRE(all_equal(QTQ, make_identity<std::complex<double>, 2>()));
@@ -205,8 +205,8 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
     constexpr auto qr = QR(A);
     constexpr auto Q = qr.Q();
     constexpr auto R = qr.R();
-    STATIC_REQUIRE(Q(0)(0) == 1.0);
-    STATIC_REQUIRE(R(0)(0) == 0.0);
+    STATIC_REQUIRE(Q(0, 0) == 1.0);
+    STATIC_REQUIRE(R(0, 0) == 0.0);
   }
 }
 
@@ -251,7 +251,7 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     STATIC_REQUIRE(all_equal(as_complex_matrix(A), VLVT));
 
     constexpr auto rho = result.spectral_radius();
-    STATIC_REQUIRE(constexpr_abs(rho - expected(0)(0)) <= eps);
+    STATIC_REQUIRE(constexpr_abs(rho - expected(0, 0)) <= eps);
   }
 
   SECTION("Real A") {
@@ -291,11 +291,11 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
     STATIC_REQUIRE(all_equal(result, expected));
 
     constexpr auto V = res.V;
-    constexpr auto V1 = as_col_vector(V(0));
-    constexpr auto V2 = as_col_vector(V(1));
+    constexpr auto V1 = as_col_vector(V.row(0));
+    constexpr auto V2 = as_col_vector(V.row(1));
     constexpr auto V1TV2 = conjugate_transpose(V1) * V2;
-    STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).real() < eps);
-    STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).imag() < eps);
+    STATIC_REQUIRE((V1TV2 * V1TV2)(0, 0).real() < eps);
+    STATIC_REQUIRE((V1TV2 * V1TV2)(0, 0).imag() < eps);
 
     constexpr auto VTV = conjugate_transpose(V) * V;
     STATIC_REQUIRE(all_equal(VTV, make_identity<std::complex<double>, 2>()));
@@ -343,8 +343,7 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto Z1 = make_zeros<double, 2, 2>();
     constexpr auto all_zeros = [](const auto& Z) {
       bool rc = true;
-      for (const auto& row : Z)
-        for (const auto& elem : row) rc &= elem == 0;
+      for (const auto& elem : Z) rc &= elem == 0;
       return rc;
     };
     STATIC_REQUIRE(all_zeros(Z1));
@@ -358,17 +357,17 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     STATIC_REQUIRE(euclidean_distance(get_diag(S), Vectord<2>{0.0, 0.0}) <=
                    eps);
 
-    constexpr auto V1 = as_col_vector(VT(0));
-    constexpr auto V2 = as_col_vector(VT(1));
+    constexpr auto V1 = as_col_vector(VT.row(0));
+    constexpr auto V2 = as_col_vector(VT.row(1));
     constexpr auto V1TV2 = conjugate_transpose(V1) * V2;
-    STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).real() < eps);
-    STATIC_REQUIRE((V1TV2 * V1TV2)(0)(0).imag() < eps);
+    STATIC_REQUIRE((V1TV2 * V1TV2)(0, 0).real() < eps);
+    STATIC_REQUIRE((V1TV2 * V1TV2)(0, 0).imag() < eps);
 
-    constexpr auto U1 = as_col_vector(U(0));
-    constexpr auto U2 = as_col_vector(U(1));
+    constexpr auto U1 = as_col_vector(U.row(0));
+    constexpr auto U2 = as_col_vector(U.row(1));
     constexpr auto U1TU2 = conjugate_transpose(U1) * U2;
-    STATIC_REQUIRE((U1TU2 * U1TU2)(0)(0).real() < eps);
-    STATIC_REQUIRE((U1TU2 * U1TU2)(0)(0).imag() < eps);
+    STATIC_REQUIRE((U1TU2 * U1TU2)(0, 0).real() < eps);
+    STATIC_REQUIRE((U1TU2 * U1TU2)(0, 0).imag() < eps);
   }
 
   SECTION("Complex hermitian A") {

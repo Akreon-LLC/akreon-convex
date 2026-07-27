@@ -39,9 +39,9 @@ struct Atom {
   using PointT = dom_point_t<Domain>;
 
   /// @brief Domain dimension.
-  static constexpr size_t N = dom_size_v<Domain>;
+  static constexpr std::size_t N = dom_size_v<Domain>;
   /// @brief Codomain dimension.
-  static constexpr size_t M = dom_size_v<Codomain>;
+  static constexpr std::size_t M = dom_size_v<Codomain>;
   /// @brief Curvature declared by atom metadata.
   static constexpr CurvatureType Curvature = meta_curv_v<Meta>;
   /// @brief Domain sign declared by atom metadata.
@@ -125,7 +125,7 @@ struct Atom {
    * @return void
    */
   constexpr void validate_domain() const {
-    size_t num_convex = 0, num_concave = 0, num_affine = 0;
+    std::size_t num_convex = 0, num_concave = 0, num_affine = 0;
     auto validate_child = [&](const auto& child) {
       if constexpr (is_fn_type_v<decltype(self())>) {
         validate_fn_domain(child);

@@ -12,18 +12,18 @@
 
 #pragma once
 
-#include "affine_set.hpp"
+#include "affine_traits.hpp"
 #include "config/assert.hpp"
 #include "linalg/operator/matrix_inverse.hpp"
 
 namespace affine {
 
 /// @brief general affine map thats 2D
-template <linalg::FieldLike T>
+template <linalg::Field T>
 using AffineMap2d = AffineMap<linalg::Matrix<T, 2, 2>>;
 
 /// @brief general affine map thats 3D
-template <linalg::FieldLike T>
+template <linalg::Field T>
 using AffineMap3d = AffineMap<linalg::Matrix<T, 3, 3>>;
 
 /**
@@ -31,10 +31,10 @@ using AffineMap3d = AffineMap<linalg::Matrix<T, 3, 3>>;
  *
  * @return [I; 0]
  */
-template <linalg::SquareMatrixLike Mat>
+template <linalg::SquareMatrix Mat>
 constexpr AffineMap<Mat> make_map_id() {
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t N = linalg::mat_rows_v<Mat>;
+  using T = linalg::matrix_scalar_t<Mat>;
+  static constexpr std::size_t N = linalg::mat_rows_v<Mat>;
   return AffineMap<Mat>(linalg::make_identity<T, N>(), linalg::Vector<T, N>{});
 }
 
@@ -45,15 +45,15 @@ constexpr AffineMap<Mat> make_map_id() {
  *
  * @return [ 0... 1.. ; 0 ]
  */
-template <linalg::MatrixLike Mat>
+template <linalg::MatrixContainer Mat>
   requires(linalg::mat_rows_v<Mat> == 1)
-constexpr AffineMap<Mat> make_selector_map(const size_t& idx) {
+constexpr AffineMap<Mat> make_selector_map(const std::size_t& idx) {
   AK_ASSERT(idx < linalg::mat_cols_v<Mat> &&
             "make_selector_map index must be within [0, mat_cols)");
 
-  using T = linalg::mat_type_t<Mat>;
+  using T = linalg::matrix_scalar_t<Mat>;
   Mat A{};
-  A(0)(idx) = T(1);
+  A(0, idx) = T(1);
   return AffineMap<Mat>(A, linalg::Vector<T, 1>{});
 }
 
@@ -66,15 +66,15 @@ constexpr AffineMap<Mat> make_selector_map(const size_t& idx) {
  *
  * Applies linear transform via U and then translation by vector c
  */
-template <linalg::MatrixLike Mat>
+template <linalg::MatrixContainer Mat>
 class AffineMap {
 public:
   /// @brief alias to extract underlying type of affine set
-  using T = linalg::mat_type_t<Mat>;
+  using T = linalg::matrix_scalar_t<Mat>;
 
   /// @brief helpers to extracting M x N matrix
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
+  static constexpr std::size_t M = linalg::mat_rows_v<Mat>;
+  static constexpr std::size_t N = linalg::mat_cols_v<Mat>;
 
   /// @brief alias for underlying vector spanning R^n (domain)
   using DomVec = linalg::Vector<T, N>;
@@ -128,11 +128,11 @@ public:
    *
    * @return new affine map object with the new applied mapping
    */
-  template <linalg::MatrixLike OtherMat>
-    requires(std::same_as<T, linalg::mat_type_t<OtherMat>> &&
+  template <linalg::MatrixContainer OtherMat>
+    requires(std::same_as<T, linalg::matrix_scalar_t<OtherMat>> &&
              linalg::mat_rows_v<OtherMat> == N)
   constexpr auto compose(const AffineMap<OtherMat>& other) const {
-    constexpr size_t P = linalg::mat_cols_v<OtherMat>;
+    constexpr std::size_t P = linalg::mat_cols_v<OtherMat>;
     const auto U_comp = U * other.linear_part();
     const auto c_comp = U * other.translation() + c;
     return AffineMap<linalg::Matrix<T, M, P>>(U_comp, c_comp);

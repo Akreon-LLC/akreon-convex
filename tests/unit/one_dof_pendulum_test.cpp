@@ -19,7 +19,7 @@ using namespace dynamics;
 using namespace unit_test;
 using namespace linalg;
 
-template <typename ScalarT, size_t DoF = 1, size_t Nu = 0>
+template <typename ScalarT, std::size_t DoF = 1, std::size_t Nu = 0>
 class Pendulum
     : public DynamicalSystem<ScalarT, DoF, Nu, Pendulum<ScalarT, DoF, Nu>> {
 public:
@@ -56,9 +56,9 @@ TEST_CASE("Test Pendulum", "[pendulum]") {
   SECTION("Static case") {
     constexpr auto Q = seed_Q(Vector<double, 1>{0.0});
 
-    STATIC_REQUIRE(Q(0)(0) == 0.0);
-    STATIC_REQUIRE(Q(0)(1) == 1e-4);
-    STATIC_REQUIRE(Q(0)(2) == 2e-4);
+    STATIC_REQUIRE(Q(0, 0) == 0.0);
+    STATIC_REQUIRE(Q(0, 1) == 1e-4);
+    STATIC_REQUIRE(Q(0, 2) == 2e-4);
 
     constexpr auto pendulum = Pendulum<double>(Q, 1.0, 2.0);
 
@@ -79,11 +79,11 @@ TEST_CASE("Test Pendulum", "[pendulum]") {
                                 0.755329, 0.748568};
     const double h = 0.01;
     auto Q = seed_Q(Vector<double, 1>{M_PI / 4});
-    for (size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < 10; ++i) {
       const auto result = Solve(Pendulum<double>(Q, 1.0, 1.0), h);
       Q = std::get<0>(result);
       REQUIRE(L2<Vector<double, 1>>()(
-                  Vector<double, 1>{Q(0)(2) - expected(i)}) <= 1e-4);
+                  Vector<double, 1>{Q(0, 2) - expected(i)}) <= 1e-4);
     }
   }
 }

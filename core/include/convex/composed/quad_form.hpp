@@ -27,7 +27,7 @@ namespace convex {
  *
  * 0.5 p x^2 + q x + r
  */
-template <linalg::FieldLike T>
+template <linalg::Field T>
 struct ScalarQuadForm {
   /// @brief aliases from type info
   using Space = linalg::Matrix<T, 1, 1>;
@@ -86,7 +86,7 @@ template <linalg::RnSpace Space>
 struct QuadForm {
   /// @brief alias and helpers
   using T = linalg::space_type_t<Space>;
-  static constexpr size_t N = linalg::space_dim_v<Space>;
+  static constexpr std::size_t N = linalg::space_dim_v<Space>;
 
   /// @brief matrix type for P
   using Mat = linalg::Matrix<T, N, N>;
