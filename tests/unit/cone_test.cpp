@@ -233,7 +233,7 @@ TEST_CASE("Test SOC", "[cone_test]") {
       const auto x_eigs = soc.eigs(x);
       const auto det = std::get<0>(x_eigs) * std::get<1>(x_eigs);
       const auto xv = std::get<0>(splice<3>(x));
-      REQUIRE(constexpr_abs(det - (x(3) * x(3) - dot(xv, xv))) < eps);
+      REQUIRE(constexpr_abs(det - (x(3) * x(3) - inner_product(xv, xv))) < eps);
 
       const auto [Hw, H_event] = soc.H(x, y);
       REQUIRE(H_event == linalg::NumericalEvent::NONE);

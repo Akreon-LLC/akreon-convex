@@ -116,7 +116,7 @@ struct SOCCirc {
     const auto t2 = y(N - 1);
 
     const auto a = t2 * primal + t1 * dual;
-    const auto b = linalg::dot(primal, dual) + t1 * t2;
+    const auto b = linalg::inner_product(primal, dual) + t1 * t2;
 
     Vec res{};
     for (std::size_t i = 0; i < N - 1; ++i) res(i) = a(i);
@@ -237,9 +237,9 @@ struct SecondOrderCone
     const auto dvar = std::get<0>(linalg::splice<M - 1>(p));
     const auto dt = p(M - 1);
 
-    const auto a = dt * dt - linalg::dot(dvar, dvar);
-    const auto b = T(2) * (t * dt - linalg::dot(var, dvar));
-    const auto c = t * t - linalg::dot(var, var);
+    const auto a = dt * dt - linalg::inner_product(dvar, dvar);
+    const auto b = T(2) * (t * dt - linalg::inner_product(var, dvar));
+    const auto c = t * t - linalg::inner_product(var, var);
 
     if (linalg::constexpr_abs(a) <= eps) {
       if (b < T(0)) alpha = std::min(alpha, -c / b);
@@ -477,7 +477,7 @@ struct SecondOrderCone
     for (std::size_t i = 0; i < M - 1; ++i) adj_v(i) = T(-1) * v(i);
     adj_v(M - 1) = t;
 
-    const auto det = t * t - linalg::dot(v, v);
+    const auto det = t * t - linalg::inner_product(v, v);
     if (std::isnan(det) || linalg::constexpr_abs(det) <= eps)
       return std::tuple((T(1) / eps) * adj_v,
                         linalg::NumericalEvent::NUMERICAL_SAFEGUARD);

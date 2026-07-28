@@ -150,9 +150,9 @@ bool all_nonnegative(const Vec& z, double tol) {
 inline auto make_fuzz_config() {
   PrimalDualIPMConfig<double> cfg{};
   cfg.steps = 24;
-  cfg.primal_feas_tol = 5e-4;
-  cfg.dual_feas_tol = 5e-4;
-  cfg.duality_gap_tol = 5e-4;
+  cfg.primal_feas_tol = TOL;
+  cfg.dual_feas_tol = TOL;
+  cfg.duality_gap_tol = TOL;
   return cfg;
 }
 

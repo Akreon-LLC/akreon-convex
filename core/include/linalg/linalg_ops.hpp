@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "operator/inner_product.hpp"
 #include "operator/operator_traits.hpp"
 #include "vector/vector.hpp"
 
@@ -125,25 +126,6 @@ constexpr auto operator-(const Vec& A, const Vec& B) {
 template <MatrixContainer Mat>
 constexpr auto operator-(const Mat& A, const Mat& B) {
   return A + matrix_scalar_t<Mat>(-1) * B;
-}
-
-/**
- * @brief dot product or inner product between two vectors A and B
- *
- * A^T A = scalar or dot(A, B) = scalar
- *
- * @param vector of type T with N elements
- * @param vector of type T with N elements
- *
- * @return scalar
- */
-template <FieldVector Vec>
-constexpr auto dot(const Vec& A, const Vec& B) {
-  using T = vector_element_t<Vec>;
-  constexpr auto N = vector_dim_v<Vec>;
-  T value = T(0);
-  for (std::size_t i = 0; i < N; ++i) value += A(i) * B(i);
-  return value;
 }
 
 /**

@@ -735,7 +735,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob2.constraint_map().linear_part())> ==
         6);
-    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
     constexpr mat_traits<Matrix<double, 9, 6>> F_mat;
     constexpr auto F =
         F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0, 0.0,
@@ -1010,7 +1010,7 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
         linalg::mat_cols_v<decltype(prob2.constraint_map().linear_part())> ==
         4);
 
-    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
     constexpr mat_traits<Matrix<double, 6, 4>> F_mat;
     constexpr auto F = F_mat(0.0, 0.0, 1.0, 0.0, -inv_sqrt2, 0.0, 0.0, 0.0,
                              inv_sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,

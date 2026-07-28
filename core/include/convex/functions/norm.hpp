@@ -44,8 +44,8 @@ using NormConcaveMeta = ConvexAtomMeta<NormDom<Dom>, NormConcaveCodom<Codom>,
 /**
  * @brief norm convex function wrapper
  */
-template <typename Meta, typename Child, linalg::NormLike NormFunc>
-  requires(dom_size_v<meta_dom_t<Meta>> == linalg::norm_size_v<NormFunc>)
+template <typename Meta, typename Child, linalg::NormFunction NormFunc>
+  requires(dom_size_v<meta_dom_t<Meta>> == linalg::norm_dim_v<NormFunc>)
 struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
   /// @brief bring into scope the convex fn alias / helpers
   using ConvexBase = Atom<Meta, Norm<Meta, Child, NormFunc>, Child>;

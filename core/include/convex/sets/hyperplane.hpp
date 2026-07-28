@@ -63,7 +63,7 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    * @return T/F
    */
   constexpr bool contains_impl(const PointT& x, const T& tol) const {
-    return linalg::constexpr_abs(linalg::dot(a, x) - b) < tol;
+    return linalg::constexpr_abs(linalg::inner_product(a, x) - b) < tol;
   }
 
   /**

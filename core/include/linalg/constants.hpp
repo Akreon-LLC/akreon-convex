@@ -16,7 +16,7 @@
 namespace linalg {
 
 template <Field T>
-inline constexpr T sqrt2_v{T(1.414213562373095L)};
+inline constexpr T sqrt2_v{T(1.414213562373095048801688724209698079L)};
 
 template <Field T>
 inline constexpr T inv_sqrt2_v{T(1) / sqrt2_v<T>};

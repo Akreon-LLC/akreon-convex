@@ -177,7 +177,7 @@ TEST_CASE("Minimal QP 2 Vars (Square Objective)", "[qp_test]") {
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
   constexpr auto x1 = x(1);
-  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+  constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
 
   SECTION("Min square(x0 - 1) s.t. x0 >= 0, x1 == 0") {
     constexpr auto x0_geq =
@@ -236,7 +236,7 @@ TEST_CASE("Minimal QP 1 Var (Square Objective Free Var)", "[qp_test]") {
   constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
-  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+  constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
 
   SECTION("Min square(x0 - 1)") {
     constexpr auto sq = Square(x0.add(-1.0));
@@ -282,7 +282,7 @@ TEST_CASE("Minimal QP 1 Var (Square Root Objective)", "[qp_test]") {
   constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
-  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+  constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
 
   SECTION("Max sqrt(x0) s.t. 0 <= x0 <= 1") {
     constexpr auto x0_leq =
@@ -336,7 +336,7 @@ TEST_CASE("Minimal QP 2 Vars (Harmonic Mean Objective)", "[qp_test]") {
   constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto hmean_x = HarmonicMean(x);
-  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+  constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
 
   SECTION("Max hmean(x) s.t. x >= 0, x0 + x1 == 2") {
     constexpr mat_traits<Matrixd<2, 2>> A_nonneg_mat;
@@ -401,7 +401,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
   constexpr auto prob_init = make_problem(x);
   constexpr auto x0 = x(0);
 
-  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+  constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
 
   SECTION("Feasibility min c^T x s.t. (x - 1)^2 <= 5") {
     constexpr auto sq = Square(x0.add(-1.0));
@@ -471,8 +471,7 @@ TEST_CASE("Minimal QP 1 Var (RSOC)", "[qp_test]") {
 
     constexpr auto g = prob_min.constraint_map().translation();
     STATIC_REQUIRE(vector_dim_v<decltype(g)> == 5);
-    STATIC_REQUIRE(g ==
-                   Vectord<5>{constexpr_sqrt_safe(2.0), 0.0, 0.0, 1.0, 0.0});
+    STATIC_REQUIRE(g == Vectord<5>{sqrt2_v<double>, 0.0, 0.0, 1.0, 0.0});
     STATIC_REQUIRE(prob_min.validate());
     STATIC_REQUIRE(prob_min.linear_objective() == Vectord<2>{1.0, 0.0});
 
@@ -499,7 +498,7 @@ TEST_CASE("Minimal QP 1 Var (Huber Objective)", "[qp_test]") {
   constexpr auto x0 = x(0);
   constexpr auto delta = 2.0;
   constexpr auto huber_x0 = Huber(delta, x0);
-  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+  constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
 
   SECTION("Min huber(x0) s.t. x0 >= 0") {
     constexpr auto x0_geq =

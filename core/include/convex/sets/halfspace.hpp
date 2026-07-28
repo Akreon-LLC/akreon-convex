@@ -72,10 +72,10 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
   constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
     switch (Type) {
       case HalfspaceType::UH:
-        return linalg::dot(a, x) >= b;
+        return linalg::inner_product(a, x) >= b;
       case HalfspaceType::LH:
       default:
-        return linalg::dot(a, x) <= b;
+        return linalg::inner_product(a, x) <= b;
     }
   }
 

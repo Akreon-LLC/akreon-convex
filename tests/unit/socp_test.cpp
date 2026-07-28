@@ -36,7 +36,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
           x_trans);
   constexpr auto square = Square(norm);
   constexpr auto half_square = square.mul<0.5>();
-  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+  constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
   constexpr auto sqrt5 = constexpr_sqrt_safe(5.0);
 
   constexpr auto F_mat = mat_traits<Matrixd<6, 4>>();

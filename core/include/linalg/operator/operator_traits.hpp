@@ -62,26 +62,6 @@ struct QuadraticRep;
 template <SquareMatrix Mat>
 struct Cholesky;
 
-/// @brief type traits definition for linear operator (subspace of Rn)
-template <SquareMatrix Mat, typename Derived>
-struct space_traits<Endomorphism<Mat, Derived>> {
-  using value_type = matrix_scalar_t<Mat>;
-  using Point = Mat;
-
-  static constexpr std::size_t N = mat_rows_v<Mat>;
-  static constexpr std::size_t DIM = N * N;
-};
-
-/// @brief type traits definition for symmetric operator (subspace of Rn)
-template <SquareMatrix Mat, typename Derived>
-struct space_traits<SymmetricOperator<Mat, Derived>> {
-  using value_type = matrix_scalar_t<Mat>;
-  using Point = Mat;
-
-  static constexpr std::size_t N = mat_rows_v<Mat>;
-  static constexpr std::size_t DIM = N * (N + 1) / 2;
-};
-
 /// @brief type traits definition for symmetric matrices (subspace of R^n)
 template <SquareMatrix Mat>
 struct space_traits<SymmetricMatrix<Mat>> {
@@ -124,56 +104,6 @@ struct coordinate_map<SymmetricMatrix<Mat>> {
     }
     return element;
   }
-};
-
-/// @brief type traits definition for hessenberg matrices (subspace of R^n)
-template <SquareMatrix Mat>
-struct space_traits<Hessenberg<Mat>> {
-  using value_type = matrix_scalar_t<Mat>;
-  using Point = Mat;
-
-  static constexpr std::size_t N = mat_rows_v<Mat>;
-  static constexpr std::size_t DIM = N * N;
-};
-
-/// @brief type traits definition for hessian matrices (subspace of R^n)
-template <SquareMatrix Mat, DifferentialType Type>
-struct space_traits<Hessian<Mat, Type>> {
-  using value_type = matrix_scalar_t<Mat>;
-  using Point = Mat;
-
-  static constexpr std::size_t N = mat_rows_v<Mat>;
-  static constexpr std::size_t DIM = N * N;
-};
-
-/// @brief type traits definition for Cholesky (subspace of R^n)
-template <SquareMatrix Mat>
-struct space_traits<LDL<Mat>> {
-  using value_type = matrix_scalar_t<Mat>;
-  using Point = Mat;
-
-  static constexpr std::size_t N = mat_rows_v<Mat>;
-  static constexpr std::size_t DIM = N * (N + 1) / 2;
-};
-
-/// @brief type traits definition for P(x) (subspace of J)
-template <SquareMatrix Mat, typename Circ>
-struct space_traits<QuadraticRep<Mat, Circ>> {
-  using value_type = matrix_scalar_t<Mat>;
-  using Point = Mat;
-
-  static constexpr std::size_t N = mat_rows_v<Mat>;
-  static constexpr std::size_t DIM = N * N;
-};
-
-/// @brief type traits definition for LDL (subspace of R^n)
-template <SquareMatrix Mat>
-struct space_traits<Cholesky<Mat>> {
-  using value_type = matrix_scalar_t<Mat>;
-  using Point = Mat;
-
-  static constexpr std::size_t N = mat_rows_v<Mat>;
-  static constexpr std::size_t DIM = N * (N + 1) / 2;
 };
 
 /// @brief mat type traits definition for linear operator
@@ -333,52 +263,67 @@ template <typename Space>
 inline constexpr bool is_symmetric_matrix_space_v =
     is_symmetric_matrix_space<remove_cvref_t<Space>>::value;
 
-/// @brief underlying type of symmetric operator
-template <typename Operator>
-using operator_type_t =
+template <class Operator>
+struct operator_traits;
+
+template <typename T, std::size_t Rows, std::size_t Cols>
+struct operator_traits<Matrix<T, Rows, Cols>> {
+  using scalar_type = T;
+  using domain_type = Vector<T, Cols>;
+  using codomain_type = Vector<T, Rows>;
+  using matrix_type = Matrix<T, Rows, Cols>;
+};
+
+template <class Operator>
+  requires requires {
     typename mat_traits<remove_cvref_t<Operator>>::value_type;
+    typename vector_traits<remove_cvref_t<Operator>>::Vec;
+  }
+struct operator_traits<Operator> {
+  using scalar_type = typename mat_traits<remove_cvref_t<Operator>>::value_type;
+  using domain_type = typename vector_traits<remove_cvref_t<Operator>>::Vec;
+  using codomain_type = domain_type;
+  using matrix_type = typename mat_traits<remove_cvref_t<Operator>>::MatT;
+};
 
-/// @brief operator vec type (dom == codom)
-template <typename Operator>
-using operator_vec_t = typename vector_traits<remove_cvref_t<Operator>>::Vec;
+template <class Operator>
+using operator_traits_t = operator_traits<remove_cvref_t<Operator>>;
 
-/// @brief operator mat type
-template <typename Operator>
-using operator_mat_t = typename mat_traits<remove_cvref_t<Operator>>::MatT;
+template <class Operator>
+using operator_scalar_t = typename operator_traits_t<Operator>::scalar_type;
 
-/// @brief helper to extract rows from symmetric operator
-template <typename Operator>
-inline constexpr std::size_t operator_rows_v =
-    mat_traits<remove_cvref_t<Operator>>::ROWS;
+template <class Operator>
+using operator_domain_t = typename operator_traits_t<Operator>::domain_type;
 
-/// @brief helper to extract cols from symmetric operator
-template <typename Operator>
-inline constexpr std::size_t operator_cols_v =
-    mat_traits<remove_cvref_t<Operator>>::COLS;
+template <class Operator>
+using operator_codomain_t = typename operator_traits_t<Operator>::codomain_type;
 
-/// @brief helper to extract dim from symmetric operator
-template <typename Operator>
-inline constexpr std::size_t operator_dim_v =
-    space_traits<remove_cvref_t<Operator>>::DIM;
+template <class Operator>
+using operator_matrix_t = typename operator_traits_t<Operator>::matrix_type;
 
-/// @brief Linear Operator Concept
-template <typename Operator>
-concept LinearOperatorLike =
-    MatrixContainer<Operator> ||
-    requires(const Operator& op, const operator_type_t<Operator>& X) {
-      { op.apply(X) } -> std::convertible_to<operator_type_t<Operator>>;
-    } || requires(const Operator& op, const operator_vec_t<Operator>& x) {
-      { op.apply(x) } -> std::convertible_to<operator_vec_t<Operator>>;
+template <MatrixContainer Mat>
+constexpr auto apply(const Mat& matrix, const operator_domain_t<Mat>& vector)
+    -> operator_codomain_t<Mat> {
+  operator_codomain_t<Mat> result{};
+  for (std::size_t row = 0; row < mat_rows_v<Mat>; ++row)
+    for (std::size_t col = 0; col < mat_cols_v<Mat>; ++col)
+      result(row) += matrix(row, col) * vector(col);
+  return result;
+}
+
+template <class Operator>
+concept LinearOperator =
+    requires(const remove_cvref_t<Operator>& op,
+             const operator_domain_t<Operator>& value) {
+      { apply(op, value) } -> std::same_as<operator_codomain_t<Operator>>;
+    } ||
+    requires(const remove_cvref_t<Operator>& op,
+             const operator_domain_t<Operator>& value) {
+      { op.apply(value) } -> std::same_as<operator_codomain_t<Operator>>;
     };
 
-/// @brief Endomorphism concept
-template <typename Operator>
-concept EndomorphismLike =
-    LinearOperatorLike<Operator> || requires(const Operator& op) {
-      { op.type } -> std::convertible_to<SymmetricOperatorType>;
-      {
-        op.L
-      } -> std::convertible_to<
-          Vector<operator_type_t<Operator>, operator_dim_v<Operator>>>;
-    };
+template <class Operator>
+concept EndomorphicOperator =
+    LinearOperator<Operator> &&
+    std::same_as<operator_domain_t<Operator>, operator_codomain_t<Operator>>;
 } // namespace linalg

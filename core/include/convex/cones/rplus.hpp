@@ -311,8 +311,10 @@ struct NonnegOrthantCone
       safeguarded = safeguarded || (xy_safe != x(i) * y(i));
       res += linalg::constexpr_ln_safe(xy_safe, eps);
     }
-    const auto xTy_safe = std::max(linalg::dot(x, y), eps) / nu_impl();
-    safeguarded = safeguarded || (xTy_safe * nu_impl() != linalg::dot(x, y));
+    const auto xTy_safe =
+        std::max(linalg::inner_product(x, y), eps) / nu_impl();
+    safeguarded =
+        safeguarded || (xTy_safe * nu_impl() != linalg::inner_product(x, y));
     res = nu_impl() * linalg::constexpr_ln_safe(xTy_safe, eps) - res;
     return std::tuple(res, safeguarded
                                ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD

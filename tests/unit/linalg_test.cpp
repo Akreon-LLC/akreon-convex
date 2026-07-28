@@ -99,18 +99,18 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(E(0) == 2.0);
     STATIC_REQUIRE(E(1) == 4.0);
 
-    STATIC_REQUIRE(9.0 == dot(A, B));
-    STATIC_REQUIRE(10.0 != dot(A, B));
+    STATIC_REQUIRE(9.0 == inner_product(A, B));
+    STATIC_REQUIRE(10.0 != inner_product(A, B));
 
     constexpr std::complex<double> c(1.0, 2.0);
     constexpr auto X = Vectorcd<5>{c, c, c, c, c};
-    constexpr auto result = dot(conjugate(X), X);
+    constexpr auto result = inner_product(X, X);
     STATIC_REQUIRE(result == std::complex<double>{25, 0});
 
     constexpr auto G = A - B;
     STATIC_REQUIRE(G(0) == 2.0);
     STATIC_REQUIRE(G(1) == -3.0);
-    STATIC_REQUIRE(dot(G, G) == 13.0);
+    STATIC_REQUIRE(inner_product(G, G) == 13.0);
     STATIC_REQUIRE(L2<Vector<double, 2>>()(G) > 0);
     STATIC_REQUIRE(L2<Vector<double, 2>>()(G) == euclidean_distance(A, B));
     STATIC_REQUIRE(L1<Vector<double, 2>>()(G) > 0);
@@ -594,7 +594,8 @@ TEST_CASE("svec/smat preserve symmetric geometry", "[symmetric_matrices]") {
 
     STATIC_REQUIRE(all_equal(A_roundtrip, A));
     STATIC_REQUIRE(all_equal(make_svec(A_roundtrip), svec));
-    STATIC_REQUIRE(constexpr_abs(dot(svec, svec) - trace(A * A)) < 1e-10);
+    STATIC_REQUIRE(constexpr_abs(inner_product(svec, svec) - trace(A * A)) <
+                   1e-10);
   }
 }
 
@@ -745,10 +746,9 @@ TEST_CASE("Matrix Pencil") {
     constexpr auto F_blks = pencil.template apply_sym_mat<Mat>(
         [](const Mat& E) constexpr { return E; });
 
-    constexpr auto s2 = constexpr_sqrt_safe(2.0);
+    constexpr auto inv_s2 = inv_sqrt2_v<double>;
     constexpr auto E11 = Mat{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 0.0}};
-    constexpr auto E12 =
-        Mat{Vectord<2>{0.0, 1.0 / s2}, Vectord<2>{1.0 / s2, 0.0}};
+    constexpr auto E12 = Mat{Vectord<2>{0.0, inv_s2}, Vectord<2>{inv_s2, 0.0}};
     constexpr auto E22 = Mat{Vectord<2>{0.0, 0.0}, Vectord<2>{0.0, 1.0}};
 
     STATIC_REQUIRE(F_blks(0) == E11);
@@ -762,22 +762,22 @@ TEST_CASE("Matrix Pencil") {
     constexpr auto F_blks = pencil.template apply_sym_mat<Mat>(
         [](const Mat& E) constexpr { return E; });
 
-    constexpr auto s2 = constexpr_sqrt_safe(2.0);
+    constexpr auto inv_s2 = inv_sqrt2_v<double>;
     constexpr auto E11 =
         Mat{Vectord<3>{1.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0},
             Vectord<3>{0.0, 0.0, 0.0}};
     constexpr auto E21 =
-        Mat{Vectord<3>{0.0, 1.0 / s2, 0.0}, Vectord<3>{1.0 / s2, 0.0, 0.0},
+        Mat{Vectord<3>{0.0, inv_s2, 0.0}, Vectord<3>{inv_s2, 0.0, 0.0},
             Vectord<3>{0.0, 0.0, 0.0}};
     constexpr auto E22 =
         Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 1.0, 0.0},
             Vectord<3>{0.0, 0.0, 0.0}};
     constexpr auto E31 =
-        Mat{Vectord<3>{0.0, 0.0, 1.0 / s2}, Vectord<3>{0.0, 0.0, 0.0},
-            Vectord<3>{1.0 / s2, 0.0, 0.0}};
+        Mat{Vectord<3>{0.0, 0.0, inv_s2}, Vectord<3>{0.0, 0.0, 0.0},
+            Vectord<3>{inv_s2, 0.0, 0.0}};
     constexpr auto E32 =
-        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 1.0 / s2},
-            Vectord<3>{0.0, 1.0 / s2, 0.0}};
+        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, inv_s2},
+            Vectord<3>{0.0, inv_s2, 0.0}};
     constexpr auto E33 =
         Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0},
             Vectord<3>{0.0, 0.0, 1.0}};

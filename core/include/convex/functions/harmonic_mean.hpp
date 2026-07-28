@@ -208,11 +208,11 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
     g(2) = child_coord.translation()(1);
 
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      F(0, Dom) = T(1) / linalg::constexpr_sqrt_safe(T(2));
+      F(0, Dom) = linalg::inv_sqrt2_v<T>;
       F(1, Dom) = T(-0.5);
       F(2, Dom) = T(-0.5);
     } else {
-      F(0, Dom) = T(-1) / linalg::constexpr_sqrt_safe(T(2));
+      F(0, Dom) = -linalg::inv_sqrt2_v<T>;
       F(1, Dom) = T(0.5);
       F(2, Dom) = T(0.5);
     }

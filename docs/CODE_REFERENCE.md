@@ -40,6 +40,69 @@ export a library target for downstream linkage. C++ consumers use
 - `control.hpp` for control models and synthesis
 - `dynamics.hpp` for dynamical systems
 
+## Linear Algebra Taxonomy
+
+The linalg types use focused contracts rather than a universal mapping
+abstraction:
+
+| Construct | Meaning |
+|---|---|
+| `Vector` / `Matrix` | Fixed-size mathematical object containers |
+| `coordinate_map<Space>` | Converts space elements to and from coordinates |
+| `AffineMap` | Affine transformation `x -> A*x + b` |
+| `LinearOperator` | Linear action with explicit domain and codomain types |
+| `StandardInnerProduct` | Field-aware pairing on a vector domain |
+| `NormFunction` | Real-valued magnitude functional |
+| Factorizations | Algorithms or representations, not mathematical spaces |
+
+These contracts deliberately remain separate. A matrix or vector can
+participate in linear algebra without being assigned a coordinate-space policy.
+`coordinate_map` is reserved for representation conversion, while
+`operator_traits` describes the types accepted and returned by linear action.
+
+### Inner products
+
+`inner_product(x, y)` is the single vector-pairing operation. It delegates to
+`StandardInnerProduct<Vec>` and follows the scalar field:
+
+```text
+real:     <x, y> = sum(x(i) * y(i))
+complex:  <x, y> = sum(conj(x(i)) * y(i))
+```
+
+The complex convention conjugates the first argument, so `<x, x>` is real and
+nonnegative. The former explicit pattern `dot(conjugate(x), y)` is therefore
+written `inner_product(x, y)`; there is no separate `dot` operation with
+different complex semantics.
+
+`StandardInnerProduct` exposes `domain_type`, `scalar_type`, and
+`codomain_type`. `inner_product_traits` provides the corresponding normalized
+aliases and removes cv/ref qualification before specialization lookup.
+
+### Norm functions
+
+`L1`, `L2`, `Linf`, and `Fro` use the same associated-type vocabulary:
+
+- `norm_domain_t<Norm>` is the vector or matrix being measured.
+- `norm_scalar_t<Norm>` is the domain's real or complex field scalar.
+- `norm_codomain_t<Norm>` is the associated real scalar.
+- `norm_dim_v<Norm>` is the finite coordinate dimension.
+
+`NormFunction` validates both trait registration and the callable result. The
+Frobenius norm accepts rectangular field matrices as well as square matrices.
+
+### Linear operators
+
+`operator_traits` describes `scalar_type`, `domain_type`, `codomain_type`, and
+the matrix representation when one exists. For `Matrix<T, Rows, Cols>`, the
+domain is `Vector<T, Cols>` and the codomain is `Vector<T, Rows>`.
+
+`LinearOperator` verifies application against those associated types.
+`EndomorphicOperator` additionally requires identical domain and codomain
+types. Factorizations and algorithmic operator wrappers do not receive
+`space_traits` merely because they store or act on matrices; genuine spaces
+retain the separate element/coordinate contract.
+
 ## akreon-native Integration
 
 `akreon-native` is the runtime-facing consumer of the SDK. Its build sets

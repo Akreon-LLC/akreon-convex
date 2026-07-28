@@ -37,7 +37,7 @@ namespace convex {
 template <linalg::VectorContainer ConeVar>
 constexpr auto mu(const ConeVar& x, const ConeVar& y,
                   const linalg::vector_element_t<ConeVar>& nu) {
-  return linalg::dot(x, y) / nu;
+  return linalg::inner_product(x, y) / nu;
 }
 
 /**
@@ -344,8 +344,8 @@ private:
 #endif
     }
 
-    res.convex_obj = linalg::dot(c, z);
-    res.dual_obj = -linalg::dot(g, y);
+    res.convex_obj = linalg::inner_product(c, z);
+    res.dual_obj = -linalg::inner_product(g, y);
   }
 
   /**

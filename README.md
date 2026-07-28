@@ -42,6 +42,19 @@ SDK does not currently publish a CMake library target; C++ consumers add
 - `control.hpp` for control models and synthesis
 - `dynamics.hpp` for dynamical-system abstractions
 
+The linalg API uses one field-aware vector pairing:
+
+```cpp
+constexpr linalg::Vector<double, 3> x{1.0, 2.0, 3.0};
+constexpr linalg::Vector<double, 3> y{4.0, 5.0, 6.0};
+constexpr auto xy = linalg::inner_product(x, y);
+```
+
+`inner_product(x, y)` delegates to `StandardInnerProduct`. Over real fields it
+computes `sum(x(i) * y(i))`; over complex fields it computes
+`sum(conj(x(i)) * y(i))`. Norm functions expose explicit domain, scalar, and
+real codomain associated types through `norm_traits`.
+
 **Manual flags (if needed)**
 
 1. `cmake -S . -B <build-dir> -DBUILD_UNIT_TESTS=<ON|OFF> -DBUILD_FUNCTIONAL_TESTS=<ON|OFF>`

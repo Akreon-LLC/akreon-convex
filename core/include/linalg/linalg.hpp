@@ -12,7 +12,11 @@
 #pragma once
 
 #include "constants.hpp"
+#include "linalg_ops.hpp"
 #include "matrix/matrix_concepts.hpp"
+#include "norms/matrix_norms.hpp"
+#include "norms/vector_norms.hpp"
+#include "operator/inner_product.hpp"
 #include "operator/cholesky.hpp"
 #include "operator/ldl.hpp"
 #include "operator/matrix_inverse.hpp"

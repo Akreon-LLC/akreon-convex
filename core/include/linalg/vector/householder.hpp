@@ -71,14 +71,14 @@ private:
       // (dakre) normalize v like reals otherwise hosueholder mat wont
       // orthogonalize correctly!!
       v = (real_type_t<T>(1) / L2<Vector<T, 1>>()(Vector<T, 1>{v(0)})) * v;
-      const auto vv = dot(conjugate(v), v);
+      const auto vv = inner_product(v, v);
       AK_ASSERT(is_real(vv) &&
-                "Householder complex branch expects real dot(conj(v), v)");
+                "Householder complex branch expects real inner_product(v, v)");
       beta = real_type_t<T>(2) / vv.real();
     } else {
       const auto x_shifted = get_elements<1, N>(x);
       real_type_t<T> sigma;
-      sigma = dot(x_shifted, x_shifted);
+      sigma = inner_product(x_shifted, x_shifted);
 
       v = x;
       v(0) = 1;
