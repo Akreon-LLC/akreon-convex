@@ -80,7 +80,7 @@ struct Inequality {
       }
     };
 
-    auto make_broadcast = [](const T& scalar) {
+    auto make_broadcast = [](T scalar) {
       linalg::Vector<T, M> out{};
       for (std::size_t i = 0; i < M; ++i) out(i) = scalar;
       return out;

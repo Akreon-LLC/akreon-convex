@@ -85,7 +85,7 @@ struct Polyhedron : ConvexSet<Meta, Polyhedron<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& tol) const {
+  constexpr bool contains_impl(const PointT& x, T tol) const {
     for (std::size_t i = 0; i < M; ++i) {
       const auto half =
           Halfspace<HalfspaceMeta<Space>, Child, HalfspaceType::LH>(

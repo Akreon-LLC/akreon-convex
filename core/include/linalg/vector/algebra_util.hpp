@@ -19,17 +19,20 @@
 #include "linalg/constants.hpp"
 #include "vector_concepts.hpp"
 
-/// @brief macro for capping compile step eval (default max is ~512)
+/**
+ * @brief Maximum Newton/refinement iterations used by constexpr utilities.
+ *
+ * The cap keeps compile-time evaluation bounded on compilers with finite
+ * constexpr step budgets.
+ */
 #define MAX_STEP_EVAL 256
 
 namespace linalg {
 
 /**
- * @brief array to tuple
- *
- * @param array types
- *
- * @return tuple
+ * @brief Copy a fixed-size array into a tuple of the same length.
+ * @param x Source array in index order.
+ * @return Tuple containing `x[0]` through `x[N - 1]`.
  */
 template <typename T, std::size_t N>
 constexpr auto array_to_tuple(const std::array<T, N>& x) {
@@ -41,12 +44,14 @@ constexpr auto array_to_tuple(const std::array<T, N>& x) {
 }
 
 /**
- * @brief Checks if the complex variable is imaginary to a tolerance
+ * @brief Check whether a complex value's imaginary component is below a bound.
  *
- * @param complex variable of type T
- * @param tolerance satisfying the imaginary value check
+ * This function evaluates `z.imag() <= tol` exactly; it is primarily used where
+ * the expected imaginary residual is nonnegative. It does not take the
+ * absolute value of the imaginary component.
  *
- * @return T/F
+ * @param z Complex value to inspect.
+ * @param tol Upper bound for its imaginary component.
  */
 template <Field T>
 constexpr bool is_real(const std::complex<T>& z, real_type_t<T> tol = 1e-10) {
@@ -54,7 +59,7 @@ constexpr bool is_real(const std::complex<T>& z, real_type_t<T> tol = 1e-10) {
 }
 
 /**
- * @brief constexpr-safe division with optional domain check
+ * @brief Divide two real scalars with an explicit zero-denominator result.
  *
  * @param num numerator
  * @param den denominator
@@ -62,13 +67,13 @@ constexpr bool is_real(const std::complex<T>& z, real_type_t<T> tol = 1e-10) {
  * @return num / den when denominator is nonzero, else nullopt
  */
 template <Real T>
-constexpr std::optional<T> constexpr_div(const T& num, const T& den) {
+constexpr std::optional<T> constexpr_div(T num, T den) {
   if (!(den != T(0))) return std::nullopt;
   return num / den;
 }
 
 /**
- * @brief constexpr-safe scalar division with fallback
+ * @brief Divide two real scalars, returning a fallback for a zero denominator.
  *
  * @param num numerator
  * @param den denominator
@@ -77,42 +82,43 @@ constexpr std::optional<T> constexpr_div(const T& num, const T& den) {
  * @return scalar division result or fallback
  */
 template <Real T>
-constexpr T constexpr_div_safe(const T& num, const T& den,
-                               const T& fallback = T(0)) {
+constexpr T constexpr_div_safe(T num, T den, T fallback = T(0)) {
   if (const auto r = constexpr_div(num, den); r.has_value()) return *r;
   return fallback;
 }
 
 /**
- * @brief power of a scalar
+ * @brief Multiply a real scalar by itself `power` times under the current API.
  *
- * @param x in R
- * @param power in N
+ * The existing implementation initializes the result with `x`; callers use it
+ * with positive powers. Consequently, `power == 0` also returns `x` rather than
+ * the conventional multiplicative identity.
  *
- * @return pow
+ * @param x Real base.
+ * @param power Nonnegative integral exponent; conventionally positive here.
  */
 template <Real T>
-constexpr T constexpr_pow(const T& x, const std::size_t& power) {
+constexpr T constexpr_pow(T x, std::size_t power) {
   T res(x);
   for (std::size_t i = 1; i < power; ++i) res *= x;
   return res;
 }
 
 /**
- * @brief perform square root of input variable x via root finding
+ * @brief Approximate a nonnegative square root with Newton iteration.
  *
  * f(g) = g^2 - x to df/dg = 2 g
  * Newton formula : g_{k+1} = g_k - frac{g^2 - x} / {2 g_k} equivalent to 0.5 *
  * (g_n + x / g_n)
  *
- * @param x in R
- * @param g in R (guess)
- *
- * @return sqrt(x)
+ * @param x Nonnegative radicand; a negative value returns `std::nullopt`.
+ * @param g Positive initial guess; nonpositive guesses are replaced with one.
+ * @param tol Absolute squared-residual tolerance.
+ * @return Approximation, or `std::nullopt` outside the real domain. The current
+ * zero-input convention returns `std::numeric_limits<T>::min()`.
  */
 template <Real T>
-constexpr std::optional<T> constexpr_sqrt(const T& x, T g = 1e-10,
-                                          T tol = 1e-10) {
+constexpr std::optional<T> constexpr_sqrt(T x, T g = 1e-10, T tol = 1e-10) {
   if (!(x >= T(0))) return std::nullopt;
   if (x == T(0)) return std::numeric_limits<T>::min();
   if (!(g > T(0))) g = T(1);
@@ -128,7 +134,7 @@ constexpr std::optional<T> constexpr_sqrt(const T& x, T g = 1e-10,
 }
 
 /**
- * @brief safe scalar sqrt wrapper around optional constexpr_sqrt
+ * @brief Return a scalar square root with a sanitized fallback radicand.
  *
  * @param x input scalar
  * @param floor minimum scalar for fallback
@@ -138,7 +144,7 @@ constexpr std::optional<T> constexpr_sqrt(const T& x, T g = 1e-10,
  * @return scalar sqrt with optional fallback handling
  */
 template <Real T>
-constexpr T constexpr_sqrt_safe(const T& x, const T& floor = T(0), T g = 1e-10,
+constexpr T constexpr_sqrt_safe(T x, T floor = T(0), T g = 1e-10,
                                 T tol = 1e-10) {
   if (const auto r = constexpr_sqrt(x, g, tol); r.has_value()) return *r;
 
@@ -150,30 +156,33 @@ constexpr T constexpr_sqrt_safe(const T& x, const T& floor = T(0), T g = 1e-10,
 }
 
 /**
- * @brief perform absolute value computation
+ * @brief Compute real absolute value or complex magnitude.
  *
- * @param x (Field)
- *
- * @return |x|
+ * @param x Real or complex field scalar.
+ * @return `|x|` in the associated real type.
  */
-template <Field T>
+template <Real T>
+constexpr T constexpr_abs(T x) {
+  return x < T(0) ? T(-1) * x : x;
+}
+
+template <Complex T>
 constexpr auto constexpr_abs(const T& x) {
-  if constexpr (Real<T>) return x < 0 ? -1 * x : x;
-  else return constexpr_sqrt_safe(x.real() * x.real() + x.imag() * x.imag());
+  return constexpr_sqrt_safe(x.real() * x.real() + x.imag() * x.imag());
 }
 
 /**
- * @brief nth root of an input var x in Reals via newton step
+ * @brief Approximate a real nth root with Newton iteration.
  *
  * f(g) = g^n - x to df/dg = n g^{n-1}
  * Newton formula : g_{k+1} = g_k - frac{g_k^n - x}{n g^{n-1}} equivalent to
  * g_{k+1} = 1/n ((n - 1) g_k + x / g_k^{n-1})
  *
- * @param x in R
- * @param root in N
- * @param g in R (guess)
- *
- * @return nth root of x
+ * @param x Real radicand. Negative values require an odd root degree.
+ * @param root Root degree; zero returns `std::nullopt`.
+ * @param g Positive initial guess.
+ * @param tol Absolute reconstruction tolerance.
+ * @return Approximation or `std::nullopt` for an invalid real-domain request.
  */
 template <Real T>
 constexpr std::optional<T> constexpr_nrt(T x, std::size_t root, T g = 1e-10,
@@ -190,7 +199,7 @@ constexpr std::optional<T> constexpr_nrt(T x, std::size_t root, T g = 1e-10,
 
   if (!(g > T(0))) g = T(1);
 
-  auto pow_n = [&](const T& base, const std::size_t& n) {
+  auto pow_n = [&](T base, std::size_t n) {
     T pow(1);
     for (std::size_t i = 0; i < n; ++i) pow *= base;
     return pow;
@@ -207,7 +216,7 @@ constexpr std::optional<T> constexpr_nrt(T x, std::size_t root, T g = 1e-10,
 }
 
 /**
- * @brief safe scalar nth-root wrapper around optional constexpr_nrt
+ * @brief Return a scalar nth root with a sanitized fallback radicand.
  *
  * @param x input scalar
  * @param root root degree
@@ -218,9 +227,8 @@ constexpr std::optional<T> constexpr_nrt(T x, std::size_t root, T g = 1e-10,
  * @return scalar nth-root with optional fallback handling
  */
 template <Real T>
-constexpr T constexpr_nrt_safe(T x, const std::size_t& root,
-                               const T& floor = T(0), T g = 1e-10,
-                               T tol = 1e-10) {
+constexpr T constexpr_nrt_safe(T x, std::size_t root, T floor = T(0),
+                               T g = 1e-10, T tol = 1e-10) {
   if (const auto r = constexpr_nrt(x, root, g, tol); r.has_value()) return *r;
 
   const auto floor_safe = (floor >= T(0)) ? floor : T(0);
@@ -231,16 +239,16 @@ constexpr T constexpr_nrt_safe(T x, const std::size_t& root,
 }
 
 /**
- * @brief perform sin via taylor series approximation
+ * @brief Approximate sine with a truncated Taylor recurrence.
  *
  * sum_{k=0}^{infinity}frac{(-1)^{k}x^{2k+1}}{(2k+1)!}
  *
- * @param x as type T
- *
- * @return cosine approx of x
+ * @param x Angle in radians.
+ * @param terms Number of series terms.
+ * @return Sine approximation.
  */
 template <Real T>
-constexpr auto constexpr_sin(const T& x, int terms = 16) {
+constexpr auto constexpr_sin(T x, int terms = 16) {
   T sum = x, term = x;
   for (int k = 1; k < terms; ++k) {
     term *= (-(x * x)) / (T(2 * k) * T(2 * k + 1));
@@ -250,16 +258,16 @@ constexpr auto constexpr_sin(const T& x, int terms = 16) {
 }
 
 /**
- * @brief perform sin via taylor series approximation
+ * @brief Approximate cosine with a truncated Taylor recurrence.
  *
  * sum_{k=0}^{infinity}frac{(-1)^{k}x^{2k}}{(2k)!} = cos x
  *
- * @param x as type T
- *
- * @return cosine approx of x
+ * @param x Angle in radians.
+ * @param terms Number of series terms.
+ * @return Cosine approximation.
  */
 template <Real T>
-constexpr auto constexpr_cos(const T& x, int terms = 16) {
+constexpr auto constexpr_cos(T x, int terms = 16) {
   T sum = T(1), term = T(1);
   for (int k = 1; k < terms; ++k) {
     term *= (-(x * x)) / (T(2 * k - 1) * T(2 * k));
@@ -275,11 +283,11 @@ constexpr auto constexpr_cos(const T& x, int terms = 16) {
  * frac{x^{2n+1}}{2n+1}
  *
  * @param x in (-1, 1)
- *
+ * @param terms Number of odd-power series terms.
  * @return y in R
  */
 template <Real T>
-constexpr std::optional<T> constexpr_atanh(const T& x, int terms = 16) {
+constexpr std::optional<T> constexpr_atanh(T x, int terms = 16) {
   if (constexpr_abs(x) >= T(1)) return std::nullopt;
   const T x2 = x * x;
   T term(x), sum(x);
@@ -300,37 +308,36 @@ constexpr std::optional<T> constexpr_atanh(const T& x, int terms = 16) {
  * @return scalar atanh result or fallback
  */
 template <Real T>
-constexpr T constexpr_atanh_safe(const T& x, const T& fallback = T(0),
-                                 int terms = 16) {
+constexpr T constexpr_atanh_safe(T x, T fallback = T(0), int terms = 16) {
   if (const auto r = constexpr_atanh(x, terms); r.has_value()) return *r;
   return fallback;
 }
 
 /**
- * @brief perform exp on an imaginary number (unit circle)
+ * @brief Approximate `exp(i * theta)` on the complex unit circle.
  *
- * @param theta in R (e^{i theta})
- *
- * @return complex number
+ * @param theta Angle in radians.
+ * @param terms Number of sine and cosine series terms.
+ * @return Complex unit-circle approximation.
  */
 template <Real T>
-constexpr auto constexpr_expi(const T& theta, int terms = 16) {
+constexpr auto constexpr_expi(T theta, int terms = 16) {
   return std::complex<T>(constexpr_cos(theta, terms),
                          constexpr_sin(theta, terms));
 }
 
 /**
- * @brief exp (sum of a power series)
+ * @brief Approximate the real exponential with a truncated power series.
  *
  * exp(x) = 1 + x + x^2/2! + x^3/3!... = sum_{n=0}^infinity
  * frac{x^n}{n!}
  *
- * @param x in R
- *
- * @return real number
+ * @param x Real exponent.
+ * @param terms Number of series terms.
+ * @return Real exponential approximation.
  */
 template <Real T>
-constexpr auto constexpr_exp(const T& x, int terms = 16) {
+constexpr auto constexpr_exp(T x, int terms = 16) {
   T sum(1), term(1);
   for (int k = 1; k < terms; ++k) {
     term *= x / k;
@@ -340,11 +347,11 @@ constexpr auto constexpr_exp(const T& x, int terms = 16) {
 }
 
 /**
- * @brief perform exp on eigenvalue : lambda = alpha + j omega
+ * @brief Approximate the exponential of a complex scalar.
  *
- * @param lambda in C
- *
- * @return complex number
+ * @param lambda Complex exponent `alpha + i * omega`.
+ * @param terms Number of series terms used by each component approximation.
+ * @return Complex exponential approximation.
  */
 template <Complex T>
 constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
@@ -373,10 +380,13 @@ constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
  * - perform atan(y) as before
  * - sum 2a with e*ln(2)
  *
- * @return real number
+ * @param x_in Positive real argument.
+ * @param terms Number of inverse-hyperbolic-tangent series terms.
+ * @return Logarithm approximation, or `std::nullopt` outside the positive
+ * domain.
  */
 template <Real T>
-constexpr std::optional<T> constexpr_ln(const T& x_in, int terms = 16) {
+constexpr std::optional<T> constexpr_ln(T x_in, int terms = 16) {
   if (!(x_in > T(0))) return std::nullopt;
 
   T x = x_in;
@@ -411,8 +421,7 @@ constexpr std::optional<T> constexpr_ln(const T& x_in, int terms = 16) {
  * @return ln(max(x, floor)) with NaN-safe clamping semantics
  */
 template <Real T>
-constexpr T constexpr_ln_safe(const T& x,
-                              const T& floor = std::numeric_limits<T>::min(),
+constexpr T constexpr_ln_safe(T x, T floor = std::numeric_limits<T>::min(),
                               int terms = 16) {
   const T floor_safe = (floor > T(0)) ? floor : std::numeric_limits<T>::min();
   const T x_safe = (x > floor_safe) ? x : floor_safe;
@@ -423,13 +432,13 @@ constexpr T constexpr_ln_safe(const T& x,
   return l_floor.has_value() ? *l_floor : T(0);
 }
 
-/*
+/**
  * @brief constexpr for loop which recursively unrolls a dynamic for loop into
  * compile time recursive loop
  *
- * @param functor object that is forwarded
- *
- * @return (void)
+ * @tparam Start Inclusive compile-time start index.
+ * @tparam End Exclusive compile-time end index.
+ * @param f Callable receiving each index as `std::integral_constant`.
  */
 template <std::size_t Start, std::size_t End, typename Func>
   requires(End - Start >= 0)
@@ -441,12 +450,11 @@ constexpr void constexpr_for(Func&& f) {
 }
 
 /**
- * @brief compare complex vars
+ * @brief Compare complex scalars by magnitude of their difference.
  *
- * @param complex var a
- * @param complex var b
- *
- * @return T/F
+ * @param a First complex scalar.
+ * @param b Second complex scalar.
+ * @param tol Strict magnitude tolerance.
  */
 template <Complex T>
 constexpr bool is_same(const T& a, const T& b, real_type_t<T> tol = 1e-10) {
@@ -454,11 +462,10 @@ constexpr bool is_same(const T& a, const T& b, real_type_t<T> tol = 1e-10) {
 }
 
 /**
- * @brief argsort in descending manner
+ * @brief Return coordinate indices sorted by descending real value.
  *
- * @param Vector type T size N x 1
- *
- * @return Vector of indices
+ * @param x Fixed-size real vector.
+ * @return `std::array<std::size_t, N>` containing a descending permutation.
  */
 template <VectorContainer Vec>
   requires(Real<vector_element_t<Vec>>)

@@ -47,7 +47,7 @@ constexpr AffineMap<Mat> make_map_id() {
  */
 template <linalg::MatrixContainer Mat>
   requires(linalg::mat_rows_v<Mat> == 1)
-constexpr AffineMap<Mat> make_selector_map(const std::size_t& idx) {
+constexpr AffineMap<Mat> make_selector_map(std::size_t idx) {
   AK_ASSERT(idx < linalg::mat_cols_v<Mat> &&
             "make_selector_map index must be within [0, mat_cols)");
 

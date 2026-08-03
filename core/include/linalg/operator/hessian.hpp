@@ -52,7 +52,7 @@ struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
    *
    * @return element
    */
-  constexpr auto operator()(const std::size_t& i, const std::size_t& j) const {
+  constexpr auto operator()(std::size_t i, std::size_t j) const {
     return H(i, j);
   }
 

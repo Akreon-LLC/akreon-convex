@@ -71,7 +71,7 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& tol) const {
+  constexpr bool contains_impl(const PointT& x, T tol) const {
     return linalg::L2<AmbientVec>()(A * x - b) < tol;
   }
 

@@ -49,7 +49,7 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    * @param Point (i.e., n-dim vec of type T)
    * @param b bias scalar
    */
-  constexpr explicit Hyperplane(const PointT& a_in, const T& b_in,
+  constexpr explicit Hyperplane(const PointT& a_in, T b_in,
                                 const Child& child_in)
       : ConvexBase(child_in), a(a_in), b(b_in) {}
 
@@ -62,7 +62,7 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& tol) const {
+  constexpr bool contains_impl(const PointT& x, T tol) const {
     return linalg::constexpr_abs(linalg::inner_product(a, x) - b) < tol;
   }
 

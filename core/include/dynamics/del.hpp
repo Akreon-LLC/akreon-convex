@@ -23,7 +23,7 @@ template <typename T_fn, typename V_fn, typename ScalarT, std::size_t DoF>
   requires(linalg::Field<ScalarT>)
 constexpr auto Ld(const linalg::Vector<ScalarT, DoF>& q0,
                   const linalg::Vector<ScalarT, DoF>& q1, const T_fn& T,
-                  const V_fn& V, const double& h) {
+                  const V_fn& V, double h) {
   const auto kinetic = T(q0, q1) / (h * h);
   const auto conservative = 0.5 * (V(q0) + V(q1));
   return h * (kinetic - conservative);

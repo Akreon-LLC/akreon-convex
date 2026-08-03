@@ -50,7 +50,7 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
    *
    * @return element
    */
-  constexpr auto operator()(const std::size_t& i, const std::size_t& j) const {
+  constexpr auto operator()(std::size_t i, std::size_t j) const {
     const auto x = svec(index(i, j));
     if (i == j) return x;
     return x / sqrt2_v<T>;
@@ -64,8 +64,7 @@ struct SymmetricOperator : Endomorphism<Mat, SymmetricOperator<Mat, Derived>> {
    *
    * @return index
    */
-  constexpr std::size_t index(const std::size_t& i,
-                              const std::size_t& j) const {
+  constexpr std::size_t index(std::size_t i, std::size_t j) const {
     AK_ASSERT((j < N && i < N) &&
               "SymmetricOperator index expects row/col inside [0, N)");
     if (i >= j) return i * (i + 1) / 2 + j;

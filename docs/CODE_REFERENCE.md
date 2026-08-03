@@ -60,6 +60,137 @@ participate in linear algebra without being assigned a coordinate-space policy.
 `coordinate_map` is reserved for representation conversion, while
 `operator_traits` describes the types accepted and returned by linear action.
 
+### Matrix container
+
+`Matrix<T, Rows, Cols>` is an owning, fixed-size container whose shape is part
+of its type. It stores `Rows * Cols` field elements inline in contiguous
+row-major order and performs no dynamic allocation. Default construction
+value-initializes the elements, and the container API is `constexpr` so matrices
+can participate in compile-time contracts and calculations.
+
+Use zero-based two-dimensional indexing:
+
+```cpp
+constexpr linalg::Matrix<double, 2, 3> A{
+    linalg::Vector<double, 3>{1.0, 2.0, 3.0},
+    linalg::Vector<double, 3>{4.0, 5.0, 6.0}};
+
+static_assert(A(0, 2) == 3.0);
+static_assert(A(1, 0) == 4.0);
+```
+
+The row-vector constructor supports CTAD, so the explicit matrix type may be
+omitted when all rows have the same field type and dimension:
+
+```cpp
+constexpr auto A = linalg::Matrix{
+    linalg::Vector<double, 2>{1.0, 2.0},
+    linalg::Vector<double, 2>{3.0, 4.0}};
+// A is Matrix<double, 2, 2>.
+```
+
+`row(i)` returns a vector copy. `view()` returns a fixed-extent `std::span` over
+the contiguous storage, while `begin()` and `end()` traverse the same flattened
+row-major order. Element and row access use `AK_ASSERT` for bounds checking.
+
+Conversions between vectors and one-dimensional matrices are explicit through
+`as_row_matrix`, `as_col_matrix`, and `as_vector`. A general rectangular matrix
+does not implicitly flatten to a vector.
+
+The container itself does not assert symmetry, positive semidefiniteness, or a
+coordinate convention. Matrix arithmetic is supplied by the linalg algebra
+layer. Structured objects and optimization spaces add their semantics through
+dedicated types, traits, and `coordinate_map` specializations.
+
+`Vector<T, Dim>` follows the same fixed-size ownership model while remaining
+generic over its coordinate type. Field-based algorithms require `FieldVector`;
+non-field fixed-size data should use `std::array` unless vector semantics are
+intended. `VectorContainer` itself promises only registered element and
+dimension metadata. `RealVector`, `ComplexVector`, and `CompatibleVectors`
+provide focused refinements without implying that every algebraic operation is
+available.
+
+Vector construction supports CTAD through the common coordinate type:
+
+```cpp
+constexpr auto x = linalg::Vector{1.0, 2.0, 3.0};
+static_assert(std::same_as<decltype(x), const linalg::Vector<double, 3>>);
+static_assert(x(1) == 2.0);
+```
+
+`vector_element_t<Vec>` removes one registered vector layer, whereas
+`vector_scalar_t<Vec>` recursively unwraps nested vector containers. Most
+linear-algebra algorithms consume the former because they operate on the
+immediate field coordinates.
+
+`linalg_ops.hpp` owns arithmetic such as vector/matrix addition, scalar
+multiplication, transpose, matrix products, and matrix-vector application.
+`linalg_util.hpp` owns structural operations such as half-open slices, block
+copy/replacement, triangular extraction, and `svec`/`smat` conversion. Keeping
+these operations outside the containers prevents storage types from acquiring
+implicit space or operator semantics.
+
+Matrix-generic code reads normalized metadata through `matrix_scalar_t<Mat>`,
+`mat_rows_v<Mat>`, and `mat_cols_v<Mat>`. These aliases remove cv/ref
+qualification before consulting `mat_traits`, so `Matrixd<2, 3>`,
+`const Matrixd<2, 3>`, and `Matrixd<2, 3>&` share one registration. New matrix
+representations opt in by specializing `mat_traits` with `value_type`, `ROWS`,
+and `COLS`; the unspecialized primary template is intentionally incomplete.
+
+The matrix concepts are focused compile-time classifications:
+
+- `MatrixContainer` requires registered field and shape metadata.
+- `SquareMatrix`, `RealMatrix`, and `ComplexMatrix` refine shape or scalar type.
+- `MatVecCompatible` checks equal scalar types and matching inner dimensions.
+- `MatMulCompatible` checks equal scalar types and compatible matrix shapes.
+
+`MatrixContainer` does not promise arithmetic, element access, symmetry, or
+space membership. Algorithms state those additional requirements where they
+are used. This keeps a representation trait from silently assigning broader
+mathematical meaning to a container.
+
+### Spaces and coordinates
+
+The space layer distinguishes an abstract finite-dimensional space from the C++
+type used to represent one of its elements and from the vector used to store its
+coordinates. `space_traits<Space>` registers:
+
+- `scalar_type`: the underlying real or complex field;
+- `element_type`: the canonical mathematical object representation;
+- `coordinate_type`: its finite coordinate representation; and
+- `DIM`: the number of independent scalar coordinates.
+
+`Space` checks this metadata. `CoordinatizedSpace` additionally requires an
+explicit `coordinate_map<Space>` with exact element-to-coordinate and
+coordinate-to-element operations. The free functions make that delegation
+visible at call sites:
+
+```cpp
+using Space = linalg::MatrixSpace<double, 2, 3>;
+
+constexpr auto coordinate = linalg::coordinates<Space>(matrix);
+constexpr auto round_trip = linalg::from_coordinates<Space>(coordinate);
+```
+
+`CoordinateSpace<T, Dim>` uses `Vector<T, Dim>` for both representations.
+`MatrixSpace<T, Rows, Cols>` flattens matrices in row-major order, mapping
+`A(row, col)` to coordinate `row * Cols + col`.
+
+`SymmetricMatrixSpace<T, Dim>` instead has only `Dim * (Dim + 1) / 2`
+independent coordinates. Its `svec`/`smat` map applies square-root-of-two
+scaling to off-diagonal entries. This makes coordinate inner products agree
+with the Frobenius inner product of the represented symmetric matrices. A
+`PsdCone<AmbientSpace>` then describes the positive-semidefinite subset by
+testing the canonical element's `is_psd()` predicate; PSD membership is not a
+property of the plain `Matrix` container.
+
+The older `VectorSpace` contract remains for APIs expressed through
+`space_type_t` and `space_point_t`. New representation-aware APIs should prefer
+`Space`, `CoordinatizedSpace`, `space_element_t`, and `space_coordinate_t`.
+Concepts validate callable expressions and exact result types, but do not prove
+the mathematical vector-space axioms or that coordinate conversions are mutual
+inverses; implementations and round-trip tests retain that responsibility.
+
 ### Inner products
 
 `inner_product(x, y)` is the single vector-pairing operation. It delegates to

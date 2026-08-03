@@ -64,7 +64,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
    *
    * @param child
    */
-  constexpr explicit Huber(const T& delta_in, const Child& child_in)
+  constexpr explicit Huber(T delta_in, const Child& child_in)
       : ConvexBase(child_in), delta(delta_in),
         lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
     AK_ASSERT(delta_in >= T(0) && "Huber expects delta >= 0");
@@ -76,7 +76,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
    * @param child
    * @param map
    */
-  constexpr explicit Huber(const T& delta_in, const Child& child_in,
+  constexpr explicit Huber(T delta_in, const Child& child_in,
                            const affine::AffineMap<LiftedVarMat<T>>& map_in)
       : ConvexBase(child_in), delta(delta_in), lift_map(map_in) {
     AK_ASSERT(delta_in >= T(0) && "Huber expects delta >= 0");
@@ -176,7 +176,7 @@ struct Huber : Atom<Meta, Huber<Meta, Child>, Child> {
    *
    * @return abs fn (updated map)
    */
-  constexpr auto add(const T& beta) const {
+  constexpr auto add(T beta) const {
     LiftedVarBias<T> bias{beta + lift_map.translation()(0)};
     affine::AffineMap<LiftedVarMat<T>> new_map(lift_map.linear_part(), bias);
     return Huber<Meta, Child>(delta, std::get<0>(this->children), new_map);

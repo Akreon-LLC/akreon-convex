@@ -24,49 +24,46 @@
 namespace linalg {
 
 /**
- * @brief Vector structure definition
+ * @brief Owning, fixed-size vector container.
  *
- * Vector is constexpr friendly static compile time container holding N elements
- * of type T
+ * `Vector` stores exactly `N` values inline in a `std::array`; its dimension is
+ * part of the type and no dynamic allocation occurs. The container is
+ * intentionally generic over `T`. Field-based algorithms opt in separately
+ * through `FieldVector`, while `std::array` remains available for arbitrary
+ * non-mathematical fixed-size data.
+ *
+ * Coordinates use zero-based `vector(index)` access guarded by `AK_ASSERT`.
+ * Default construction value-initializes every coordinate. Iteration is const,
+ * while mutable contiguous access is available through `view()`.
+ *
+ * @tparam T Stored coordinate type.
+ * @tparam N Compile-time coordinate count.
  */
 template <typename T, std::size_t N>
 struct Vector {
   /**
-   * @brief CTOR with initializer list taking in variadic argument list of
-   * coordinates
+   * @brief Construct from exactly `N` coordinate values.
    *
-   * @param variadic coordinates to be initialized via initialization list
+   * @param coords Coordinates in increasing index order.
    */
   template <typename... Coords>
   constexpr Vector(Coords... coords)
     requires(sizeof...(coords) == N)
       : coordinates{coords...} {}
 
-  /**
-   * @brief default CTOR
-   */
+  /** @brief Construct a value-initialized vector. */
   constexpr Vector() : coordinates{} {}
 
-  /**
-   * @brief standard iterable begin function
-   *
-   * @return iterator to coordinates
-   */
+  /** @brief Const iterator to the first coordinate. */
   constexpr auto begin() const { return coordinates.begin(); }
 
-  /**
-   * @brief standard iterable end function
-   *
-   * @return iterator to coordinates (end)
-   */
+  /** @brief Const iterator one past the final coordinate. */
   constexpr auto end() const { return coordinates.end(); }
 
   /**
-   * @brief operator overload parenthesis (const / immutable)
-   *
-   * @param index to acquire coordinates
-   *
-   * @return coordinates at index
+   * @brief Read a coordinate at a zero-based index.
+   * @param idx Coordinate index in `[0, N)`.
+   * @return Const reference to the stored coordinate.
    */
   constexpr const T& operator()(std::size_t idx) const {
     AK_ASSERT(idx < N && "Vector const access index out of bounds");
@@ -74,11 +71,9 @@ struct Vector {
   }
 
   /**
-   * @brief operator overload parenthesis (const / immutable)
-   *
-   * @param index to acquire coordinates
-   *
-   * @return coordinates at index
+   * @brief Read or modify a coordinate at a zero-based index.
+   * @param idx Coordinate index in `[0, N)`.
+   * @return Mutable reference to the stored coordinate.
    */
   constexpr T& operator()(std::size_t idx) {
     AK_ASSERT(idx < N && "Vector mutable access index out of bounds");
@@ -86,59 +81,47 @@ struct Vector {
   }
 
   /**
-   * @brief equality operator overload to check if two vectors are equivalent
-   *
-   * @param another vector to compare with this
-   *
-   * @return T/F
+   * @brief Compare coordinates for exact element-wise equality.
+   * @param other Shape-compatible vector to compare.
    */
   constexpr bool operator==(const Vector& other) const {
     return is_equal(other);
   }
 
   /**
-   * @brief equality operator overload to check if two vectors are not
-   * equivalent
-   *
-   * @param another vector to compare with this
-   *
-   * @return T/F
+   * @brief Compare coordinates for element-wise inequality.
+   * @param other Shape-compatible vector to compare.
    */
   constexpr bool operator!=(const Vector& other) const {
     return !is_equal(other);
   }
 
   /**
-   * @brief windowing operation to peak inside the vector coordinates
-   *
-   * @return non-owning view to coordinates
+   * @brief Obtain a mutable fixed-extent view of contiguous coordinate storage.
    */
   constexpr auto view() { return std::span<T, N>{coordinates}; }
 
-  /**
-   * @brief size of vector
-   *
-   * @return N
-   */
+  /** @brief Return the compile-time coordinate count `N`. */
   constexpr auto size() const { return N; }
 
 private:
-  /**
-   * @brief check if given vector's coordinates are equivalent to this
-   * coordinates
-   *
-   * @return T/F
-   */
+  /** @brief Implement exact coordinate-wise equality. */
   constexpr bool is_equal(const Vector& other) const {
     for (std::size_t i = 0; i < N; ++i)
       if (other.coordinates[i] != coordinates[i]) return false;
     return true;
   }
 
-  /** @brief Vector member variables */
-  std::array<T, N> coordinates; ///< coordinates of vector
+  std::array<T, N> coordinates; ///< Inline contiguous coordinate storage.
 };
 
+/**
+ * @brief Deduce coordinate type and dimension from constructor arguments.
+ *
+ * The coordinate type is their `std::common_type_t`; the dimension is the
+ * number of arguments. For example, `Vector{1.0, 2.0}` deduces
+ * `Vector<double, 2>`.
+ */
 template <typename T, typename... Ts>
 Vector(T, Ts...) -> Vector<std::common_type_t<T, Ts...>, 1 + sizeof...(Ts)>;
 

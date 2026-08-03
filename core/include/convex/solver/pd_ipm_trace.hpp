@@ -55,11 +55,11 @@ struct PdIpmStepTrace {
    *
    * @return cone at index
    */
-  constexpr auto& cone(const std::size_t& idx) {
+  constexpr auto& cone(std::size_t idx) {
     AK_ASSERT(idx < NumCones);
     return cones[idx];
   }
-  constexpr const auto& cone(const std::size_t& idx) const {
+  constexpr const auto& cone(std::size_t idx) const {
     AK_ASSERT(idx < NumCones);
     return cones[idx];
   }
@@ -137,12 +137,10 @@ struct PdIpmTrace {
    *
    * @return iter at k
    */
-  constexpr auto& iter(const std::size_t& k) { return iters[k]; }
-  constexpr const auto& iter(const std::size_t& k) const { return iters[k]; }
-  constexpr auto& operator[](const std::size_t& k) { return iters[k]; }
-  constexpr const auto& operator[](const std::size_t& k) const {
-    return iters[k];
-  }
+  constexpr auto& iter(std::size_t k) { return iters[k]; }
+  constexpr const auto& iter(std::size_t k) const { return iters[k]; }
+  constexpr auto& operator[](std::size_t k) { return iters[k]; }
+  constexpr const auto& operator[](std::size_t k) const { return iters[k]; }
 
   /**
    * @brief current

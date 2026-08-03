@@ -138,7 +138,7 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
    *
    * @return elem
    */
-  constexpr auto operator()(const std::size_t& i, const std::size_t& j) const {
+  constexpr auto operator()(std::size_t i, std::size_t j) const {
     if (i >= 2 && j <= (i - 2)) return T(0);
     return H_pack(i, j);
   }

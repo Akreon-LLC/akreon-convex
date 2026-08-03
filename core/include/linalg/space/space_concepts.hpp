@@ -21,6 +21,18 @@
 
 namespace linalg {
 
+/**
+ * @brief Legacy vector-space expression contract for a registered space.
+ *
+ * The registered `Point` type must support addition, subtraction, and scalar
+ * multiplication by the registered `value_type`. The distributive expressions
+ * are checked for type compatibility. As with other C++ concepts, this verifies
+ * syntax and result types rather than proving the vector-space axioms.
+ *
+ * New element-coordinate modeling should use `Space` and
+ * `CoordinatizedSpace`; this concept remains for APIs expressed through the
+ * legacy `space_point_t`/`space_type_t` vocabulary.
+ */
 template <class Space>
 concept VectorSpace =
     requires(const space_point_t<Space>& x, const space_point_t<Space>& y,
@@ -35,6 +47,12 @@ concept VectorSpace =
       } -> std::convertible_to<space_point_t<Space>>;
     };
 
+/**
+ * @brief Real, coordinatized space satisfying the vector-space expressions.
+ *
+ * This combines the legacy arithmetic contract with the explicit modern
+ * coordinate conversion contract.
+ */
 template <class Space>
 concept RnSpace = VectorSpace<Space> && CoordinatizedSpace<Space> &&
                   Real<space_type_t<Space>>;

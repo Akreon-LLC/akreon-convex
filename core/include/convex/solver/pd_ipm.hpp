@@ -416,7 +416,7 @@ private:
    */
   template <std::size_t idx = 0, std::size_t Start = 0>
   constexpr T seed_prob(const auto& K, ConeVar& x, ConeVar& y,
-                        const bool& warm_start) const {
+                        bool warm_start) const {
     if constexpr (idx >= NumCones) return T(0);
     else {
       const auto Ki = std::get<idx>(K);

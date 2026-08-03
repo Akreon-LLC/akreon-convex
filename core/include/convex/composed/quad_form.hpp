@@ -44,7 +44,7 @@ struct ScalarQuadForm {
    * @return sum object embedding QP
    */
   template <AtomLike Var>
-  constexpr auto operator()(const T& p, const T& q, const T& r, const Var& x) {
+  constexpr auto operator()(T p, T q, T r, const Var& x) {
     static_assert(
         std::same_as<dom_space_t<meta_codom_t<atom_meta_t<Var>>>, Space>,
         "Scalar quad form requires scalar codomain");
@@ -70,7 +70,7 @@ struct ScalarQuadForm {
    * @return sum object embedding qp
    */
   template <AtomLike Var>
-  constexpr auto operator()(const T& p, const T& q, const Var& x) {
+  constexpr auto operator()(T p, T q, const Var& x) {
     return this->operator()(p, q, T(0), x);
   }
 };
@@ -110,8 +110,7 @@ struct QuadForm {
    * @return 0.5 x^T P x + q^T x + r
    */
   template <AtomLike Var>
-  constexpr auto operator()(const Mat& P, const Vec& q, const T& r,
-                            const Var& x) {
+  constexpr auto operator()(const Mat& P, const Vec& q, T r, const Var& x) {
     static_assert(N > 1,
                   "Use ScalarQuadForm<T> for scalar quadratic expressions");
     static_assert(is_var_type_v<Var>, "Quad form must operate on a var type");

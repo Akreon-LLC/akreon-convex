@@ -68,7 +68,7 @@ struct Ellipsoid : ConvexSet<Meta, Ellipsoid<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, T /* tol */) const {
     const auto delta = x - c;
     const auto delta_T = linalg::transpose(as_col_vector(delta));
     const auto [P_inv, event] = linalg::MatrixInverse<decltype(P)>()(P);

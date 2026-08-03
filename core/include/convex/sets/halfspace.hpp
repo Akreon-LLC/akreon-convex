@@ -55,7 +55,7 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    * @param b bias scalar
    * @param child
    */
-  constexpr explicit Halfspace(const PointT& a_in, const T& b_in,
+  constexpr explicit Halfspace(const PointT& a_in, T b_in,
                                const Child& child_in)
       : ConvexBase(child_in), a(a_in), b(b_in) {}
 
@@ -69,7 +69,7 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, T /* tol */) const {
     switch (Type) {
       case HalfspaceType::UH:
         return linalg::inner_product(a, x) >= b;

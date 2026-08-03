@@ -22,11 +22,11 @@
 namespace linalg {
 
 /**
- * @brief get n elements based on start to end indices
+ * @brief Copy the half-open vector slice `[Start, End)`.
  *
  * @param vector of type T with N elements
  *
- * @return vector of type T with End - Start elements
+ * @return Vector of type `T` with `End - Start` elements.
  */
 template <std::size_t Start, std::size_t End, VectorContainer Vec>
   requires(End - Start < vector_dim_v<Vec> && Start < vector_dim_v<Vec>)
@@ -154,7 +154,7 @@ constexpr auto as_vector(const RowVector<T, N>& A) {
  * @return vector X
  */
 template <MatrixContainer Mat>
-constexpr auto get_col(const Mat& A, const std::size_t& idx) {
+constexpr auto get_col(const Mat& A, std::size_t idx) {
   using T = matrix_scalar_t<Mat>;
   constexpr auto Rows = mat_rows_v<Mat>;
   AK_ASSERT(idx < mat_cols_v<Mat> && "get_col index out of bounds");
@@ -172,7 +172,7 @@ constexpr auto get_col(const Mat& A, const std::size_t& idx) {
  * @return vector X
  */
 template <MatrixContainer Mat>
-constexpr auto get_row(const Mat& A, const std::size_t& idx) {
+constexpr auto get_row(const Mat& A, std::size_t idx) {
   AK_ASSERT(idx < mat_rows_v<Mat> && "get_row index out of bounds");
   return A.row(idx);
 }
@@ -210,8 +210,7 @@ constexpr auto make_diag(const Vector<T, N>& X) {
 }
 
 /**
- * @brief get n rows from a matrix based on start & end indices provided as
- * template args
+ * @brief Copy the half-open matrix row range `[Start, End)`.
  *
  * @param matrix A of type T Rows x Cols elements
  *
@@ -229,8 +228,7 @@ constexpr auto get_n_rows(const Mat& A) {
 }
 
 /**
- * @brief get n cols from a matrix based on start & end indices provided as
- * template args
+ * @brief Copy the half-open matrix column range `[Start, End)`.
  *
  * @param matrix A of type T Rows x Cols elements
  *
@@ -248,11 +246,14 @@ constexpr auto get_n_cols(const Mat& A) {
 }
 
 /**
- * @brief get block from matrix
+ * @brief Copy a compile-time rectangular matrix block.
  *
  * @param matrix A of type T Rows x Cols elements
  *
- * @return matrix
+ * Row and column bounds are half-open:
+ * `[StartRow, EndRow) x [StartCol, EndCol)`.
+ *
+ * @return Owning matrix with the selected block shape.
  */
 template <std::size_t StartRow, std::size_t EndRow, std::size_t StartCol,
           std::size_t EndCol, MatrixContainer Mat>
@@ -268,12 +269,15 @@ constexpr auto get_block(const Mat& A) {
 }
 
 /**
- * @brief set block of matrix from matrix
+ * @brief Return a matrix copy with one compile-time block replaced.
  *
  * @param matrix A of type T Rows x Cols elements
  * @param matrix B of type T (EndRow - StartRow) x (EndCol - StartCol)
  *
- * @return matrix A
+ * Bounds are half-open. `A` is accepted by value, so this operation does not
+ * mutate the caller's original matrix.
+ *
+ * @return Updated matrix copy.
  */
 template <std::size_t StartRow, std::size_t EndRow, std::size_t StartCol,
           std::size_t EndCol, MatrixContainer Mat>
@@ -481,6 +485,11 @@ constexpr auto get_svec(const Mat& A) {
   return vec;
 }
 
+/**
+ * @brief Compatibility spelling for `get_svec(A)`.
+ * @param A Square matrix to encode in lower-triangular `svec` order.
+ * @return Square-root-of-two-scaled symmetric coordinates.
+ */
 template <SquareMatrix Mat>
 constexpr auto make_svec(const Mat& A) {
   return get_svec(A);
@@ -525,11 +534,14 @@ constexpr auto get_lower_triangle(const Mat& A) {
 }
 
 /**
- * @brief make unit lower triangle
+ * @brief Construct a unit lower-triangular matrix from strict-lower entries.
  *
  * @param vector x
  *
- * @return matrix L
+ * Coordinates are consumed row by row below the diagonal. Diagonal entries are
+ * set to one and upper-triangular entries remain value-initialized zero.
+ *
+ * @return Unit lower-triangular matrix `L`.
  */
 template <SquareMatrix Mat, VectorContainer Vec>
   requires(std::same_as<matrix_scalar_t<Mat>, vector_element_t<Vec>>)
@@ -549,11 +561,14 @@ constexpr auto make_unit_lower_triangle(const Vec& x) {
 }
 
 /**
- * @brief make lower triangle
+ * @brief Construct a lower-triangular matrix including its diagonal.
  *
  * @param x (vector)
  *
- * @return L (matrix)
+ * Coordinates are consumed row by row through the diagonal; entries above the
+ * diagonal remain value-initialized zero.
+ *
+ * @return Lower-triangular matrix `L`.
  */
 template <SquareMatrix Mat, VectorContainer Vec>
   requires(std::same_as<matrix_scalar_t<Mat>, vector_element_t<Vec>>)

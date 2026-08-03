@@ -153,7 +153,7 @@ struct HarmonicMean : Atom<Meta, HarmonicMean<Meta, Child>, Child> {
    *
    * @return harmonic mean fn
    */
-  constexpr auto add(const T& beta) const {
+  constexpr auto add(T beta) const {
     LiftedVarBias<T> bias{beta + lift_map.translation()(0)};
     affine::AffineMap<LiftedVarMat<T>> new_map(lift_map.linear_part(), bias);
     return HarmonicMean<Meta, Child>(std::get<0>(this->children), new_map);

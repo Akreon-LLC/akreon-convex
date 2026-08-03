@@ -19,42 +19,37 @@
 
 namespace linalg {
 /**
- * @brief Householder Vector
+ * @brief Compact representation of a real or complex Householder reflector.
  *
- * Householder vector constructed based on algorithm implementation in Matrix
- * Algorithms by Golub & Van Loan
+ * The stored `v` and real coefficient `beta` represent
+ * `P = I - beta * v * v^T` over a real field and
+ * `P = I - beta * v * v^*` over a complex field. Construction follows the
+ * Golub and Van Loan algorithm and selects a numerically stable leading
+ * coordinate. Applying the reflector maps the input toward a multiple of the
+ * first coordinate vector.
+ *
+ * For `N == 1`, the representation is the identity reflector (`v = [1]`,
+ * `beta = 0`). A zero complex input similarly requires no reflector.
+ *
+ * @tparam T Real or complex field scalar.
+ * @tparam N Positive compile-time vector dimension.
  */
 template <typename T, std::size_t N>
   requires(Field<T> && N > 0)
 struct HouseholderVector {
   /**
-   * @brief CTOR to compute householder vector
-   *
-   * Householder reflector: P = I - beta v v^T is perp and Px = ||x||_2 e_1
-   * beta = 2 / v^T v
-   *
-   * @param vector x to be transformed into householder
+   * @brief Compute the compact reflector representation for `x`.
+   * @param x Vector to reduce toward the first coordinate axis.
    */
   constexpr HouseholderVector(const Vector<T, N>& x) : beta(real_type_t<T>(0)) {
     make_householder(x, std::integral_constant<std::size_t, N>{});
   }
 
-  /** @brief Vector member variables */
-  Vector<T, N> v;      ///< householder vector
-  real_type_t<T> beta; ///< scalar to form P
+  Vector<T, N> v;      ///< Reflector direction vector.
+  real_type_t<T> beta; ///< Real coefficient in `I - beta * v * v^*`.
 
 private:
-  /**
-   * @brief from a vector X create a householder vector
-   *
-   * The whole idea of householder vectors is to generate orthogonal vectors
-   * such that Q^T Q = I or Q^* Q = I in C from the householder reflectors
-   * described above
-   *
-   * @param vector x with type T and N elements
-   *
-   * @return (void)
-   */
+  /** @brief Compute the general `N > 1` reflector representation. */
   constexpr void make_householder(const Vector<T, N>& x, auto) {
     if constexpr (Complex<T>) {
       const T norm_x = L2<Vector<T, N>>()(x);
@@ -94,15 +89,7 @@ private:
     }
   }
 
-  /**
-   * @brief handles edge case where N = 1 return degenerate householder vector
-   * beta = 0 & v = [1 ... 0]
-   *
-   * @param vector type T with N elements (null)
-   * @param integral constant of 1 of type std::size_t
-   *
-   * @return (void)
-   */
+  /** @brief Construct the identity-reflector representation for `N == 1`. */
   constexpr void make_householder(const Vector<T, N>&,
                                   std::integral_constant<std::size_t, 1>) {
     beta = real_type_t<T>(0);

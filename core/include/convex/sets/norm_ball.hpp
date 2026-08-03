@@ -51,8 +51,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    *
    * @param Point (i.e., n-dim vector of type T)
    */
-  constexpr explicit NormBall(const PointT& c_in, const T& r_in,
-                              const Child& child_in)
+  constexpr explicit NormBall(const PointT& c_in, T r_in, const Child& child_in)
       : ConvexBase(child_in), c(c_in), r(r_in) {}
 
   /**
@@ -63,7 +62,7 @@ struct NormBall : ConvexSet<Meta, NormBall<Meta, Child, Type>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, T /* tol */) const {
     switch (Type) {
       case NormBallType::L2:
         return linalg::L2<PointT>()(x - c) <= r;

@@ -49,6 +49,12 @@ constexpr auto operator+(const Vec& A, const Vec& B) {
   return add(A, B);
 }
 
+/**
+ * @brief Add two shape-compatible matrices element by element.
+ * @param A Left matrix.
+ * @param B Right matrix of the same registered type and shape.
+ * @return Owning `Matrix` containing `A(row,col) + B(row,col)`.
+ */
 template <MatrixContainer Mat>
 constexpr auto add(const Mat& A, const Mat& B) {
   using T = matrix_scalar_t<Mat>;
@@ -61,6 +67,7 @@ constexpr auto add(const Mat& A, const Mat& B) {
   return result;
 }
 
+/** @brief Matrix addition operator delegating to `add`. */
 template <MatrixContainer Mat>
 constexpr auto operator+(const Mat& A, const Mat& B) {
   return add(A, B);
@@ -95,6 +102,12 @@ constexpr auto operator*(const Alpha& alpha, const Vec& A) {
   return scalar_multiplication(alpha, A);
 }
 
+/**
+ * @brief Multiply every matrix entry by a field scalar.
+ * @param alpha Scalar multiplier.
+ * @param A Matrix operand.
+ * @return Owning matrix with the same shape and registered matrix scalar type.
+ */
 template <MatrixContainer Mat, Field Alpha>
 constexpr auto scalar_multiplication(const Alpha& alpha, const Mat& A) {
   using T = matrix_scalar_t<Mat>;
@@ -107,6 +120,7 @@ constexpr auto scalar_multiplication(const Alpha& alpha, const Mat& A) {
   return result;
 }
 
+/** @brief Left scalar-matrix multiplication operator. */
 template <MatrixContainer Mat, Field Alpha>
 constexpr auto operator*(const Alpha& alpha, const Mat& A) {
   return scalar_multiplication(alpha, A);
@@ -123,6 +137,7 @@ constexpr auto operator-(const Vec& A, const Vec& B) {
   return A + vector_scalar_t<Vec>(-1) * B;
 }
 
+/** @brief Subtract two matrices as `A + (-1) * B`. */
 template <MatrixContainer Mat>
 constexpr auto operator-(const Mat& A, const Mat& B) {
   return A + matrix_scalar_t<Mat>(-1) * B;
@@ -217,14 +232,16 @@ constexpr auto splice(const Vec& x) {
 }
 
 /**
- * @brief outer product between two matrices A & B
+ * @brief Multiply matrix-shaped column and row operands as an outer product.
  *
  * A * B = C where C is a new matrix of Rows_of_A x Cols_of_B
  *
  * @param matrix A of type T Rows1 x Cols1 elements
  * @param matrix B of type T Cols1 x Cols2 elements
  *
- * @return matrix
+ * @return Matrix with `mat_rows_v<MatA>` rows and `mat_cols_v<MatB>` columns.
+ * The implementation uses `A(i, 0) * B(0, j)`; callers should supply a
+ * one-column left operand and one-row right operand.
  */
 template <MatrixContainer MatA, MatrixContainer MatB>
   requires(MatMulCompatible<MatA, MatB>)
@@ -299,12 +316,12 @@ constexpr auto conjugate_transpose(const Mat& A)
 }
 
 /**
- * @brief operator overload for matrix multiplication
+ * @brief Multiply compatible matrices with the standard row-column product.
  *
  * @param matrix A of type T Rows x Cols elements
  * @param matrix B of type T Cols x Rows elements
  *
- * @return A*B
+ * @return `Matrix<T, rows(A), cols(B)>`.
  */
 template <MatrixContainer MatA, MatrixContainer MatB>
   requires(MatMulCompatible<MatA, MatB>)
@@ -325,12 +342,12 @@ constexpr auto operator*(const MatA& A, const MatB& B) {
 }
 
 /**
- * @brief operator overload for matrix multiplication between matrix and vector
+ * @brief Apply a compatible matrix to a vector.
  *
  * @param matrix A of type T Rows x Cols elements
  * @param vector X of type T Cols elements
  *
- * @return A*X
+ * @return Vector over the same field with dimension `mat_rows_v<Mat>`.
  */
 template <MatrixContainer Mat, VectorContainer Vec>
   requires(MatVecCompatible<Mat, Vec>)

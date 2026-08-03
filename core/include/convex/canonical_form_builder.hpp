@@ -64,7 +64,7 @@ struct CanonicalFormBuilder {
    */
   template <convex::AtomType Type, affine::AffineMapLike LiftedMap,
             typename... Cs>
-  constexpr auto make(const int& idx, const LiftedMap& lift_map,
+  constexpr auto make(int idx, const LiftedMap& lift_map,
                       const std::tuple<Cs...>& cones) const {
     const auto new_map = this->template update_map<Type>();
     const auto new_eq_map = this->template update_eq_map<Type>();
@@ -119,7 +119,7 @@ struct CanonicalFormBuilder {
    */
   template <convex::AtomType Type, affine::AffineMapLike LiftedMap,
             LocalEmissionLike Emission>
-  constexpr auto realize(const int& idx, const LiftedMap& lift_map,
+  constexpr auto realize(int idx, const LiftedMap& lift_map,
                          const Emission& emission) const {
     const auto traced = add_cone_trace<Type, Emission>(emission);
     const auto local_builder = make_builder<DecVarDom>(

@@ -61,7 +61,7 @@ auto make_vec(std::mt19937& rng, std::uniform_real_distribution<T>& dist) {
 
 template <typename T, std::size_t Rows, std::size_t Cols>
   requires(Field<T> && !is_complex_v<T>)
-bool fuzz_test(const real_type_t<T>& tol) {
+bool fuzz_test(real_type_t<T> tol) {
   std::mt19937 rng(42);
   std::uniform_real_distribution<T> dist(-10.0, 10.0);
   for (std::size_t i = 0; i < TRIALS; ++i) {

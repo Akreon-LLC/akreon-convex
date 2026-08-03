@@ -72,7 +72,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, T /* tol */) const {
     auto res = B;
     for (std::size_t i = 0; i < N; ++i) res = res + (x(i) * A(i));
     linalg::LDL ldl(res);

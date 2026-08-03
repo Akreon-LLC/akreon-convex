@@ -37,8 +37,7 @@ struct Endomorphism {
    *
    * @return element
    */
-  constexpr const T& operator()(const std::size_t& i,
-                                const std::size_t& j) const {
+  constexpr const T& operator()(std::size_t i, std::size_t j) const {
     return self()(i, j);
   }
 
@@ -50,9 +49,7 @@ struct Endomorphism {
    *
    * @return element (mutable)
    */
-  constexpr T& operator()(const std::size_t& i, const std::size_t& j) {
-    return self()(i, j);
-  }
+  constexpr T& operator()(std::size_t i, std::size_t j) { return self()(i, j); }
 
   /**
    * @brief self

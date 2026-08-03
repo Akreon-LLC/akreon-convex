@@ -347,7 +347,7 @@ private:
    *
    * @return (void)
    */
-  constexpr void back_sub_1x1_block(const Mat& H, const int& idx,
+  constexpr void back_sub_1x1_block(const Mat& H, int idx,
                                     Vector<Complex, N>& x) {
     // (dakre) solve (H - lambda I) x = 0 by way of back sub from idx to top
     // (H_rr - Lambda) x_r + sum_0^idx H_rc * x_c = 0 ... isolate x_r and
@@ -394,7 +394,7 @@ private:
    *
    * @return (void)
    */
-  constexpr void seed_complex_block(const Mat& H, const int& idx,
+  constexpr void seed_complex_block(const Mat& H, int idx,
                                     Vector<Complex, N>& x) {
     const auto& a = H(idx - 1, idx - 1);
     const auto& b = H(idx - 1, idx);
@@ -431,7 +431,7 @@ private:
    *
    * @return (void)
    */
-  constexpr void seed_real_block(const int& idx, Vector<Complex, N>& x) {
+  constexpr void seed_real_block(int idx, Vector<Complex, N>& x) {
     for (std::size_t i = 0; i < N; ++i) x(i) = Complex(0);
     x(idx) = Complex(1);
   }

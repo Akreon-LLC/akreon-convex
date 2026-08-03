@@ -102,7 +102,7 @@ enum struct NumericalEvent : uint8_t {
  *
  * @return T/F
  */
-inline constexpr bool is_fatal_event(const NumericalEvent& event) {
+inline constexpr bool is_fatal_event(NumericalEvent event) {
   return event == NumericalEvent::FACTORIZATION_FAILED ||
          event == NumericalEvent::EVD_FAILED;
 }

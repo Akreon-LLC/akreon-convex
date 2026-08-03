@@ -177,7 +177,7 @@ struct Sum : Atom<Meta, Sum<Meta, Cs...>, Cs...> {
    *
    * @return transformed sum atom
    */
-  constexpr auto add(const T& beta) const {
+  constexpr auto add(T beta) const {
     affine::AffineMap<MatT> new_map(
         map.linear_part(), linalg::Vector<T, 1>{beta} + map.translation());
     return Sum<Meta, Cs...>(new_map, this->children);

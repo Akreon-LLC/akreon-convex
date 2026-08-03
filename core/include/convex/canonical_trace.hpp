@@ -226,9 +226,9 @@ constexpr auto extend_canonical_trace(const Trace& trace,
  * @return canonical trace object
  */
 template <typename ConeTuple>
-constexpr auto make_canonical_cone_records(
-    const std::size_t& node_id, const std::size_t& global_cone_start,
-    const std::size_t& cone_offset_start) {
+constexpr auto make_canonical_cone_records(std::size_t node_id,
+                                           std::size_t global_cone_start,
+                                           std::size_t cone_offset_start) {
   using Tuple = linalg::remove_cvref_t<ConeTuple>;
 
   auto make_records = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
