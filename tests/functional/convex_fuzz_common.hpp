@@ -24,17 +24,17 @@ using namespace config;
 namespace functional_test {
 
 /// @brief global fuzz test params
-constexpr size_t TRIALS = 100;
+constexpr std::size_t TRIALS = 100;
 constexpr double TOL = 1e-3;
 
 /// @brief aliases for fuzz tests
-template <size_t N>
+template <std::size_t N>
 using SpaceT = Matrix<double, 1, N>;
 
-template <size_t N>
+template <std::size_t N>
 using VecT = Vector<double, N>;
 
-template <size_t N>
+template <std::size_t N>
 using MatT = Matrix<double, N, N>;
 
 /**
@@ -46,15 +46,15 @@ using MatT = Matrix<double, N, N>;
  *
  * @return new prob
  */
-template <size_t N, typename Var, typename Prob>
+template <std::size_t N, typename Var, typename Prob>
 auto make_bounded_nonneg_problem(const Var& x, const Prob& prob,
                                  const double cap) {
   Matrix<double, N + 1, N> A{};
   Vector<double, N + 1> b{};
 
-  for (size_t i = 0; i < N; ++i) {
-    A(i)(i) = -1.0;
-    A(N)(i) = 1.0;
+  for (std::size_t i = 0; i < N; ++i) {
+    A(i, i) = -1.0;
+    A(N, i) = 1.0;
   }
   b(N) = cap;
 
@@ -70,12 +70,12 @@ auto make_bounded_nonneg_problem(const Var& x, const Prob& prob,
  *
  * @return new prob
  */
-template <size_t N, typename Var, typename Prob>
+template <std::size_t N, typename Var, typename Prob>
 auto make_nonneg_problem(const Var& x, const Prob& prob) {
   Matrix<double, N, N> A{};
   Vector<double, N> b{};
 
-  for (size_t i = 0; i < N; ++i) A(i)(i) = -1.0;
+  for (std::size_t i = 0; i < N; ++i) A(i, i) = -1.0;
 
   const auto nonneg_poly = Polyhedron(A, b, x);
   return prob.in_set(nonneg_poly);
@@ -89,10 +89,10 @@ auto make_nonneg_problem(const Var& x, const Prob& prob) {
  *
  * @return vec
  */
-template <size_t N>
+template <std::size_t N>
 auto make_vec(std::mt19937& rng, std::uniform_real_distribution<double>& d) {
   VecT<N> x{};
-  for (size_t i = 0; i < N; ++i) x(i) = d(rng);
+  for (std::size_t i = 0; i < N; ++i) x(i) = d(rng);
   return x;
 }
 
@@ -104,11 +104,11 @@ auto make_vec(std::mt19937& rng, std::uniform_real_distribution<double>& d) {
  *
  * @return P
  */
-template <size_t N>
+template <std::size_t N>
 auto make_diag_psd(std::mt19937& rng,
                    std::uniform_real_distribution<double>& d) {
   MatT<N> P{};
-  for (size_t i = 0; i < N; ++i) P(i)(i) = d(rng);
+  for (std::size_t i = 0; i < N; ++i) P(i, i) = d(rng);
   return P;
 }
 
@@ -119,10 +119,10 @@ auto make_diag_psd(std::mt19937& rng,
  *
  * @return sum
  */
-template <size_t N, linalg::VectorLike Vec>
+template <std::size_t N, linalg::VectorContainer Vec>
 double sum_decision(const Vec& z) {
   double s = 0.0;
-  for (size_t i = 0; i < N; ++i) s += z(i);
+  for (std::size_t i = 0; i < N; ++i) s += z(i);
   return s;
 }
 
@@ -134,9 +134,9 @@ double sum_decision(const Vec& z) {
  *
  * @return T/F
  */
-template <size_t N, linalg::VectorLike Vec>
+template <std::size_t N, linalg::VectorContainer Vec>
 bool all_nonnegative(const Vec& z, double tol) {
-  for (size_t i = 0; i < N; ++i) {
+  for (std::size_t i = 0; i < N; ++i) {
     if (z(i) < -tol) return false;
   }
   return true;
@@ -150,9 +150,9 @@ bool all_nonnegative(const Vec& z, double tol) {
 inline auto make_fuzz_config() {
   PrimalDualIPMConfig<double> cfg{};
   cfg.steps = 24;
-  cfg.primal_feas_tol = 5e-4;
-  cfg.dual_feas_tol = 5e-4;
-  cfg.duality_gap_tol = 5e-4;
+  cfg.primal_feas_tol = TOL;
+  cfg.dual_feas_tol = TOL;
+  cfg.duality_gap_tol = TOL;
   return cfg;
 }
 
@@ -160,15 +160,15 @@ inline auto make_fuzz_config() {
  * @brief run trials
  *
  * @param name (string)
- * @param trials (size_t)
+ * @param trials (std::size_t)
  * @param trial func
  *
  * @return T/F
  */
 template <typename Fn>
-bool run_trials(const char* name, const size_t trials, Fn&& fn) {
+bool run_trials(const char* name, const std::size_t trials, Fn&& fn) {
   std::mt19937 rng(0xC0FFEE);
-  for (size_t i = 0; i < trials; ++i) {
+  for (std::size_t i = 0; i < trials; ++i) {
     if (!fn(rng)) {
       std::fprintf(stderr, "%s failed on trial %zu\n", name, i);
       return false;

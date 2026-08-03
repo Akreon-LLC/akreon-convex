@@ -30,11 +30,11 @@ namespace control {
  *
  * @return tuple(K, numerical event)
  */
-template <linalg::SquareMatrixLike PMat, linalg::MatrixLike YMat>
+template <linalg::SquareMatrix PMat, linalg::MatrixContainer YMat>
 constexpr auto recover_state_feedback_gain(const PMat& P, const YMat& Y) {
-  using T = linalg::mat_type_t<PMat>;
-  static constexpr size_t InputDim = linalg::mat_rows_v<YMat>;
-  static constexpr size_t StateDim = linalg::mat_cols_v<YMat>;
+  using T = linalg::matrix_scalar_t<PMat>;
+  static constexpr std::size_t InputDim = linalg::mat_rows_v<YMat>;
+  static constexpr std::size_t StateDim = linalg::mat_cols_v<YMat>;
   static_assert(linalg::mat_rows_v<PMat> == StateDim,
                 "P row dimension must match Y column dimension");
   static_assert(linalg::mat_cols_v<PMat> == StateDim,
@@ -60,11 +60,11 @@ constexpr auto recover_state_feedback_gain(const PMat& P, const YMat& Y) {
  *
  * @return tuple(L, numerical event)
  */
-template <linalg::SquareMatrixLike QMat, linalg::MatrixLike WMat>
+template <linalg::SquareMatrix QMat, linalg::MatrixContainer WMat>
 constexpr auto recover_state_observer_gain(const QMat& Q, const WMat& W) {
-  using T = linalg::mat_type_t<QMat>;
-  static constexpr size_t StateDim = linalg::mat_rows_v<WMat>;
-  static constexpr size_t MeasurementDim = linalg::mat_cols_v<WMat>;
+  using T = linalg::matrix_scalar_t<QMat>;
+  static constexpr std::size_t StateDim = linalg::mat_rows_v<WMat>;
+  static constexpr std::size_t MeasurementDim = linalg::mat_cols_v<WMat>;
   static_assert(linalg::mat_rows_v<QMat> == StateDim,
                 "Q row dimension must match W row dimension");
   static_assert(linalg::mat_cols_v<QMat> == StateDim,

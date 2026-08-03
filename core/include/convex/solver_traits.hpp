@@ -23,8 +23,8 @@
 namespace convex {
 
 /// @brief forward declaration of pd result
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar, typename CanonicalTrace,
+template <linalg::VectorContainer Var, linalg::VectorContainer ConeVar,
+          linalg::VectorContainer NuVar, typename CanonicalTrace,
           typename SolverTrace>
 struct PrimalDualResult;
 

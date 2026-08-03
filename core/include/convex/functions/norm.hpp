@@ -44,8 +44,8 @@ using NormConcaveMeta = ConvexAtomMeta<NormDom<Dom>, NormConcaveCodom<Codom>,
 /**
  * @brief norm convex function wrapper
  */
-template <typename Meta, typename Child, linalg::NormLike NormFunc>
-  requires(dom_size_v<meta_dom_t<Meta>> == linalg::norm_size_v<NormFunc>)
+template <typename Meta, typename Child, linalg::NormFunction NormFunc>
+  requires(dom_size_v<meta_dom_t<Meta>> == linalg::norm_dim_v<NormFunc>)
 struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
   /// @brief bring into scope the convex fn alias / helpers
   using ConvexBase = Atom<Meta, Norm<Meta, Child, NormFunc>, Child>;
@@ -119,7 +119,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
    * @return y (scalar in R)
    */
   constexpr T eval(const PointT& x) const {
-    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto alpha = lift_map.linear_part()(0, 0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONVEX)
       return alpha * NormFunc()(x) + beta;
@@ -163,7 +163,7 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
    *
    * @return abs fn (updated map)
    */
-  constexpr auto add(const T& beta) const {
+  constexpr auto add(T beta) const {
     LiftedVarBias<T> bias{beta + lift_map.translation()(0)};
     affine::AffineMap<LiftedVarMat<T>> new_map(lift_map.linear_part(), bias);
     return Norm<Meta, Child, NormFunc>(std::get<0>(this->children), new_map);
@@ -243,8 +243,8 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
     const auto child_coord = child_builder.coord_map;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
-    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
-    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static constexpr std::size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr std::size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == N,
                   "Input affine map from cone block has invalid dom which is a "
                   "mismatch between domain in the convex function");
@@ -256,12 +256,12 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
       F = linalg::set_block<0, N, 0, Dom>(F, child_coord.linear_part());
 
       linalg::Vector<T, N + 1> g;
-      for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
+      for (std::size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
 
       if constexpr (Tag == CurvatureType::CONCAVE) {
-        F(N)(N) = T(-1);
+        F(N, N) = T(-1);
       } else {
-        F(N)(N) = T(1);
+        F(N, N) = T(1);
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
@@ -279,14 +279,14 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
                                             T(-1) * child_coord.linear_part());
 
       linalg::Vector<T, 2 * N> g;
-      for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
-      for (size_t i = 0; i < N; ++i)
+      for (std::size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
+      for (std::size_t i = 0; i < N; ++i)
         g(i + N) = T(-1) * child_coord.translation()(i);
 
       if constexpr (Tag == CurvatureType::CONVEX) {
-        for (size_t i = 0; i < 2 * N; ++i) F(i)(N) = T(1);
+        for (std::size_t i = 0; i < 2 * N; ++i) F(i, N) = T(1);
       } else {
-        for (size_t i = 0; i < 2 * N; ++i) F(i)(N) = T(-1);
+        for (std::size_t i = 0; i < 2 * N; ++i) F(i, N) = T(-1);
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);
@@ -305,18 +305,18 @@ struct Norm : Atom<Meta, Norm<Meta, Child, NormFunc>, Child> {
                                             T(-1) * child_coord.linear_part());
       F = linalg::set_block<0, N, N, 2 * N>(F, I);
       F = linalg::set_block<N, 2 * N, N, 2 * N>(F, I);
-      for (size_t i = 0; i < N; ++i) F(2 * N)(N + i) = T(-1);
+      for (std::size_t i = 0; i < N; ++i) F(2 * N, N + i) = T(-1);
       F = linalg::set_block<2 * N + 1, 3 * N + 1, N, 2 * N>(F, I);
 
       linalg::Vector<T, 3 * N + 1> g;
-      for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
-      for (size_t i = 0; i < N; ++i)
+      for (std::size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
+      for (std::size_t i = 0; i < N; ++i)
         g(i + N) = T(-1) * child_coord.translation()(i);
 
       if constexpr (Tag == CurvatureType::CONVEX) {
-        F(2 * N)(2 * N) = T(1);
+        F(2 * N, 2 * N) = T(1);
       } else {
-        F(2 * N)(2 * N) = T(-1);
+        F(2 * N, 2 * N) = T(-1);
       }
 
       const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

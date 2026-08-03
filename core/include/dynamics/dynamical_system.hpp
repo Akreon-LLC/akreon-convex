@@ -16,8 +16,9 @@
 
 namespace dynamics {
 
-template <typename ScalarT, size_t DoF, size_t Nu, typename DerivedSystem>
-  requires(linalg::FieldLike<ScalarT>)
+template <typename ScalarT, std::size_t DoF, std::size_t Nu,
+          typename DerivedSystem>
+  requires(linalg::Field<ScalarT>)
 class DynamicalSystem {
 public:
   constexpr explicit DynamicalSystem(
@@ -66,14 +67,14 @@ private:
   }
 };
 
-template <typename ScalarT, size_t DoF>
+template <typename ScalarT, std::size_t DoF>
 constexpr auto seed_Q(const linalg::Vector<ScalarT, DoF>& ic,
                       ScalarT perturbation = 1e-4) {
   linalg::Matrix<ScalarT, DoF, 3> Q;
-  for (size_t i = 0; i < DoF; ++i) {
-    Q(i)(0) = ic(i);
-    Q(i)(1) = ic(i) + perturbation;
-    Q(i)(2) = Q(i)(1) + (Q(i)(1) - Q(i)(0));
+  for (std::size_t i = 0; i < DoF; ++i) {
+    Q(i, 0) = ic(i);
+    Q(i, 1) = ic(i) + perturbation;
+    Q(i, 2) = Q(i, 1) + (Q(i, 1) - Q(i, 0));
   }
   return Q;
 }

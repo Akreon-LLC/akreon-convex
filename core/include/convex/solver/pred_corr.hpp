@@ -26,14 +26,15 @@ namespace convex {
 /**
  * @brief Predictor Corrector
  */
-template <size_t NumCones, linalg::MatrixLike ConeMat, linalg::MatrixLike EqMat,
-          linalg::VectorLike Var, linalg::VectorLike ConeVar>
+template <std::size_t NumCones, linalg::MatrixContainer ConeMat,
+          linalg::MatrixContainer EqMat, linalg::VectorContainer Var,
+          linalg::VectorContainer ConeVar>
 struct PredictorCorrector {
   /// @brief extract T and N from Mat
-  using T = linalg::mat_type_t<ConeMat>;
-  static constexpr size_t N = linalg::mat_cols_v<ConeMat>;
+  using T = linalg::matrix_scalar_t<ConeMat>;
+  static constexpr std::size_t N = linalg::mat_cols_v<ConeMat>;
 
-  static constexpr size_t EqRows = linalg::mat_rows_v<EqMat>;
+  static constexpr std::size_t EqRows = linalg::mat_rows_v<EqMat>;
   using NuVar = linalg::Vector<T, EqRows>;
   using Step = NewtonStep<Var, ConeVar, NuVar>;
 
@@ -53,7 +54,7 @@ struct PredictorCorrector {
    *
    * @return pz_rhs, step (ignore rhs on return), event
    */
-  template <size_t idx = 0, size_t Start = 0>
+  template <std::size_t idx = 0, std::size_t Start = 0>
   constexpr auto predictor(Var&& pz_rhs, const auto& K, const auto& M_inv,
                            const auto& eq, const ConeMat& F, const ConeVar& rp,
                            const Var& rd, const NuVar& req, const ConeVar& x,
@@ -69,13 +70,13 @@ struct PredictorCorrector {
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
-      constexpr size_t KiRows = linalg::vec_size_v<Slack>;
-      constexpr size_t End = Start + KiRows;
+      constexpr std::size_t KiRows = linalg::vector_dim_v<Slack>;
+      constexpr std::size_t End = Start + KiRows;
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{}, rpk{};
 
-      for (size_t i = Start, j = 0; i < End; ++i, ++j) {
+      for (std::size_t i = Start, j = 0; i < End; ++i, ++j) {
         xk(j) = x(i);
         yk(j) = y(i);
         rpk(j) = rp(i);
@@ -122,7 +123,7 @@ struct PredictorCorrector {
       const auto px_local = F_blk * step.pz + rpk;
       const auto py_local = T(-1) * rhs_c - P.apply(px_local);
 
-      for (size_t i = Start, j = 0; i < End; ++i, ++j) {
+      for (std::size_t i = Start, j = 0; i < End; ++i, ++j) {
         step.px(i) = px_local(j), step.py(i) = py_local(j);
       }
 
@@ -148,7 +149,7 @@ struct PredictorCorrector {
    * @param y (y in K^* iterate)
    * @return pz_rhs, step (ignore rhs on return), event
    */
-  template <size_t idx = 0, size_t Start = 0>
+  template <std::size_t idx = 0, std::size_t Start = 0>
   constexpr auto corrector(Var&& pz_rhs, const ConeVar& px_aff,
                            const ConeVar& py_aff, const auto& K,
                            const auto& M_inv, const auto& eq, const ConeMat& F,
@@ -165,13 +166,13 @@ struct PredictorCorrector {
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
-      constexpr size_t KiRows = linalg::vec_size_v<Slack>;
-      constexpr size_t End = Start + KiRows;
+      constexpr std::size_t KiRows = linalg::vector_dim_v<Slack>;
+      constexpr std::size_t End = Start + KiRows;
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{}, px_aff_k{}, py_aff_k{}, rpk{};
 
-      for (size_t i = Start, j = 0; i < End; ++i, ++j) {
+      for (std::size_t i = Start, j = 0; i < End; ++i, ++j) {
         xk(j) = x(i);
         yk(j) = y(i);
         px_aff_k(j) = px_aff(i);
@@ -225,7 +226,7 @@ struct PredictorCorrector {
       const auto px_local = F_blk * step.pz + rpk;
       const auto py_local = T(-1) * rhs_c - P.apply(px_local);
 
-      for (size_t i = Start, j = 0; i < End; ++i, ++j) {
+      for (std::size_t i = Start, j = 0; i < End; ++i, ++j) {
         step.px(i) = px_local(j), step.py(i) = py_local(j);
       }
 

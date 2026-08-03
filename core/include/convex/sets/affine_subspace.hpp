@@ -71,7 +71,7 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& tol) const {
+  constexpr bool contains_impl(const PointT& x, T tol) const {
     return linalg::L2<AmbientVec>()(A * x - b) < tol;
   }
 
@@ -110,9 +110,9 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
    *
    * @return transformed affine subspace
    */
-  template <linalg::SquareMatrixLike TMat>
+  template <linalg::SquareMatrix TMat>
     requires(linalg::mat_cols_v<TMat> == N &&
-             std::same_as<linalg::mat_type_t<TMat>, T>)
+             std::same_as<linalg::matrix_scalar_t<TMat>, T>)
   constexpr auto transform_impl(const affine::AffineMap<TMat>& map) const {
     const auto [U_inv, event] =
         linalg::MatrixInverse<TMat>()(map.linear_part());
@@ -142,7 +142,7 @@ struct AffineSubspace : ConvexSet<Meta, AffineSubspace<Meta, Child>, Child> {
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
 
-    static constexpr size_t ChildCodom =
+    static constexpr std::size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
     static_assert(ChildCodom == N,
                   "Convex set domain does not equal the child coordinate "

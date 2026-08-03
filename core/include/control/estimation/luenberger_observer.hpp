@@ -55,17 +55,17 @@ struct LuenbergerObserver {
   using T = plant_type_t<Model>;
   using State = plant_state_vec_t<Model>;
 
-  static constexpr size_t StateDim = plant_traits<Model>::StateDim;
-  static constexpr size_t OutputDim = plant_traits<Model>::MeasurementDim;
+  static constexpr std::size_t StateDim = plant_traits<Model>::StateDim;
+  static constexpr std::size_t OutputDim = plant_traits<Model>::MeasurementDim;
 
   using QMat = linalg::Matrix<T, StateDim, StateDim>;
   using WMat = linalg::Matrix<T, StateDim, OutputDim>;
   using LMat = linalg::Matrix<T, StateDim, OutputDim>;
   using FMat = QMat;
 
-  static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
-  static constexpr size_t WDim = StateDim * OutputDim;
-  static constexpr size_t ZDim = QDim + WDim;
+  static constexpr std::size_t QDim = StateDim * (StateDim + 1) / 2;
+  static constexpr std::size_t WDim = StateDim * OutputDim;
+  static constexpr std::size_t ZDim = QDim + WDim;
 
   using ZSpace = linalg::RowVector<T, ZDim>;
   using Fs = linalg::Vector<FMat, ZDim>;
@@ -124,8 +124,8 @@ struct LuenbergerObserver {
             [](const QMat& E) -> QMat { return E; });
 
     Fs F_blks{};
-    for (size_t i = 0; i < QDim; ++i) F_blks(i) = Fq(i);
-    for (size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = QMat{};
+    for (std::size_t i = 0; i < QDim; ++i) F_blks(i) = Fq(i);
+    for (std::size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = QMat{};
 
     return convex::LMI(F_blks, T(-1) * margin * I, Z);
   }
@@ -157,8 +157,8 @@ struct LuenbergerObserver {
         linalg::MatrixPencil<FMat, WDim>{}.template apply_full<WMat>(M_w);
 
     Fs F_blks{};
-    for (size_t i = 0; i < QDim; ++i) F_blks(i) = Fq_local(i);
-    for (size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = Fw_local(i);
+    for (std::size_t i = 0; i < QDim; ++i) F_blks(i) = Fq_local(i);
+    for (std::size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = Fw_local(i);
 
     return convex::LMI(F_blks, FMat{}, Z);
   }

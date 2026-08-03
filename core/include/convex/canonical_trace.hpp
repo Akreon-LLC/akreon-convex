@@ -35,8 +35,8 @@ enum struct CanonicalConeKind : uint8_t {
 };
 
 /// @brief Sentinel used when a canonical node does not have a parent node.
-inline constexpr size_t canonical_no_parent =
-    std::numeric_limits<size_t>::max();
+inline constexpr std::size_t canonical_no_parent =
+    std::numeric_limits<std::size_t>::max();
 
 /**
  * @brief Structural atom emitted during canonicalization.
@@ -46,17 +46,17 @@ inline constexpr size_t canonical_no_parent =
  * layers can group solver slices by the atom/set that produced them.
  */
 struct CanonicalNodeRecord {
-  size_t node_id{}; ///< Stable index of this trace node.
+  std::size_t node_id{}; ///< Stable index of this trace node.
 
   /// Parent trace node in a richer lineage DAG, or `canonical_no_parent` for
   /// root/flat emissions.
-  size_t parent_id{canonical_no_parent};
+  std::size_t parent_id{canonical_no_parent};
 
   /// Canonicalization role that produced this node.
   AtomType atom_type{};
 
   /// Index of this node within its parent's children.
-  size_t child_index{};
+  std::size_t child_index{};
 };
 
 /**
@@ -66,12 +66,13 @@ struct CanonicalNodeRecord {
  * dual, and residual vectors returned by the PD-IPM solver.
  */
 struct CanonicalConeRecord {
-  size_t node_id{};           ///< Node that emitted this cone.
-  size_t local_cone_index{};  ///< Cone index within the emitting node.
-  size_t global_cone_index{}; ///< Cone index in the accumulated cone block.
+  std::size_t node_id{};          ///< Node that emitted this cone.
+  std::size_t local_cone_index{}; ///< Cone index within the emitting node.
+  std::size_t
+      global_cone_index{}; ///< Cone index in the accumulated cone block.
   CanonicalConeKind cone_kind{CanonicalConeKind::UNKNOWN};
-  size_t cone_offset{}; ///< Starting row in the global cone vectors.
-  size_t cone_dim{};    ///< Number of rows occupied by this cone.
+  std::size_t cone_offset{}; ///< Starting row in the global cone vectors.
+  std::size_t cone_dim{};    ///< Number of rows occupied by this cone.
 };
 
 /**
@@ -81,10 +82,11 @@ struct CanonicalConeRecord {
  * and equality residual vectors returned by the PD-IPM solver.
  */
 struct CanonicalEqualityRecord {
-  size_t node_id{};        ///< Node that emitted these equality rows.
-  size_t local_eq_index{}; ///< Equality block index within the emitting node.
-  size_t row_offset{};     ///< Starting row in the global equality vectors.
-  size_t row_count{};      ///< Number of equality rows in this slice.
+  std::size_t node_id{}; ///< Node that emitted these equality rows.
+  std::size_t
+      local_eq_index{};     ///< Equality block index within the emitting node.
+  std::size_t row_offset{}; ///< Starting row in the global equality vectors.
+  std::size_t row_count{};  ///< Number of equality rows in this slice.
 };
 
 /**
@@ -115,73 +117,73 @@ struct canonical_trace_traits<
   using Cones = ConeTuple;
   using Equalities = EqualityTuple;
 
-  static constexpr size_t NumNodes = std::tuple_size_v<NodeTuple>;
-  static constexpr size_t NumCones = std::tuple_size_v<ConeTuple>;
-  static constexpr size_t NumEqualities = std::tuple_size_v<EqualityTuple>;
+  static constexpr std::size_t NumNodes = std::tuple_size_v<NodeTuple>;
+  static constexpr std::size_t NumCones = std::tuple_size_v<ConeTuple>;
+  static constexpr std::size_t NumEqualities = std::tuple_size_v<EqualityTuple>;
 };
 
 template <typename Trace>
 using canonical_trace_nodes_t =
-    typename canonical_trace_traits<std::remove_cvref_t<Trace>>::Nodes;
+    typename canonical_trace_traits<linalg::remove_cvref_t<Trace>>::Nodes;
 
 template <typename Trace>
 using canonical_trace_cones_t =
-    typename canonical_trace_traits<std::remove_cvref_t<Trace>>::Cones;
+    typename canonical_trace_traits<linalg::remove_cvref_t<Trace>>::Cones;
 
 template <typename Trace>
 using canonical_trace_equalities_t =
-    typename canonical_trace_traits<std::remove_cvref_t<Trace>>::Equalities;
+    typename canonical_trace_traits<linalg::remove_cvref_t<Trace>>::Equalities;
 
 template <typename Trace>
-inline constexpr size_t canonical_trace_num_nodes_v =
-    canonical_trace_traits<std::remove_cvref_t<Trace>>::NumNodes;
+inline constexpr std::size_t canonical_trace_num_nodes_v =
+    canonical_trace_traits<linalg::remove_cvref_t<Trace>>::NumNodes;
 
 template <typename Trace>
-inline constexpr size_t canonical_trace_num_cones_v =
-    canonical_trace_traits<std::remove_cvref_t<Trace>>::NumCones;
+inline constexpr std::size_t canonical_trace_num_cones_v =
+    canonical_trace_traits<linalg::remove_cvref_t<Trace>>::NumCones;
 
 template <typename Trace>
-inline constexpr size_t canonical_trace_num_equalities_v =
-    canonical_trace_traits<std::remove_cvref_t<Trace>>::NumEqualities;
+inline constexpr std::size_t canonical_trace_num_equalities_v =
+    canonical_trace_traits<linalg::remove_cvref_t<Trace>>::NumEqualities;
 
 template <typename Cone>
 struct canonical_cone_kind {
   static constexpr CanonicalConeKind value = CanonicalConeKind::UNKNOWN;
 };
 
-template <linalg::VectorLike Vec>
+template <linalg::VectorContainer Vec>
 struct canonical_cone_kind<conic::NonnegOrthantCone<Vec>> {
   static constexpr CanonicalConeKind value = CanonicalConeKind::NONNEG_ORTHANT;
 };
 
-template <linalg::VectorLike Vec>
+template <linalg::VectorContainer Vec>
 struct canonical_cone_kind<conic::SecondOrderCone<Vec>> {
   static constexpr CanonicalConeKind value = CanonicalConeKind::SECOND_ORDER;
 };
 
-template <linalg::VectorLike Vec, size_t Dim>
+template <linalg::VectorContainer Vec, std::size_t Dim>
 struct canonical_cone_kind<conic::PositiveSemidefiniteCone<Vec, Dim>> {
   static constexpr CanonicalConeKind value =
       CanonicalConeKind::POSITIVE_SEMIDEFINITE;
 };
 
-template <linalg::VectorLike Vec>
+template <linalg::VectorContainer Vec>
 struct canonical_cone_kind<conic::ExpCone<Vec>> {
   static constexpr CanonicalConeKind value = CanonicalConeKind::EXP;
 };
 
-template <linalg::VectorLike Vec>
+template <linalg::VectorContainer Vec>
 struct canonical_cone_kind<conic::PowerCone<Vec>> {
   static constexpr CanonicalConeKind value = CanonicalConeKind::POWER;
 };
 
 template <typename Cone>
 inline constexpr CanonicalConeKind canonical_cone_kind_v =
-    canonical_cone_kind<std::remove_cvref_t<Cone>>::value;
+    canonical_cone_kind<linalg::remove_cvref_t<Cone>>::value;
 
-template <typename ConeTuple, size_t Index>
-consteval size_t cone_tuple_offset_before_v() {
-  using Tuple = std::remove_cvref_t<ConeTuple>;
+template <typename ConeTuple, std::size_t Index>
+consteval std::size_t cone_tuple_offset_before_v() {
+  using Tuple = linalg::remove_cvref_t<ConeTuple>;
   if constexpr (Index == 0) {
     return 0;
   } else {
@@ -217,19 +219,19 @@ constexpr auto extend_canonical_trace(const Trace& trace,
 /**
  * @brief Make canonical cone records for a node-emitted tuple of cones.
  *
- * @param node_id (size_t)
- * @param global_cone_state (size_t)
- * @param cone_offset_start (size_t)
+ * @param node_id (std::size_t)
+ * @param global_cone_state (std::size_t)
+ * @param cone_offset_start (std::size_t)
  *
  * @return canonical trace object
  */
 template <typename ConeTuple>
-constexpr auto make_canonical_cone_records(const size_t& node_id,
-                                           const size_t& global_cone_start,
-                                           const size_t& cone_offset_start) {
-  using Tuple = std::remove_cvref_t<ConeTuple>;
+constexpr auto make_canonical_cone_records(std::size_t node_id,
+                                           std::size_t global_cone_start,
+                                           std::size_t cone_offset_start) {
+  using Tuple = linalg::remove_cvref_t<ConeTuple>;
 
-  auto make_records = [&]<size_t... Is>(std::index_sequence<Is...>) {
+  auto make_records = [&]<std::size_t... Is>(std::index_sequence<Is...>) {
     return std::make_tuple(CanonicalConeRecord{
         node_id, Is, global_cone_start + Is,
         canonical_cone_kind_v<std::tuple_element_t<Is, Tuple>>,

@@ -30,11 +30,11 @@ namespace linalg {
  * L(x) : J -> J... (linear op)
  * x circ y -> J x J -> J... (bilinear map)
  */
-template <SquareMatrixLike JxJ, typename Circ>
+template <SquareMatrix JxJ, typename Circ>
 struct QuadraticRep {
   /// @brief extract type & sizes
-  using T = mat_type_t<JxJ>;
-  static constexpr size_t N = mat_rows_v<JxJ>;
+  using T = matrix_scalar_t<JxJ>;
+  static constexpr std::size_t N = mat_rows_v<JxJ>;
   using J = Vector<T, N>;
 
   /**
@@ -69,15 +69,15 @@ struct QuadraticRep {
    *
    * @return P(x)Y
    */
-  template <MatrixLike MatX>
+  template <MatrixContainer MatX>
     requires(N == mat_rows_v<MatX>)
   constexpr auto apply(const MatX& Y) const {
-    constexpr size_t Cols = mat_cols_v<MatX>;
+    constexpr std::size_t Cols = mat_cols_v<MatX>;
     Matrix<T, N, Cols> result{};
-    for (size_t j = 0; j < Cols; ++j) {
+    for (std::size_t j = 0; j < Cols; ++j) {
       const auto y_col = get_col(Y, j);
       const auto p_y_col = apply(y_col);
-      for (size_t i = 0; i < N; ++i) result(i)(j) = p_y_col(i);
+      for (std::size_t i = 0; i < N; ++i) result(i, j) = p_y_col(i);
     }
     return result;
   }

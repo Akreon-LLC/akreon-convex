@@ -19,15 +19,15 @@ namespace linalg {
 /**
  * @brief Endomorphism operator CRTP base
  */
-template <SquareMatrixLike Mat, typename Derived>
+template <SquareMatrix Mat, typename Derived>
 struct Endomorphism {
   /// @brief alias helpers for types
-  using T = mat_type_t<Mat>;
-  using ScalarT = scalar_type_t<T>;
+  using T = matrix_scalar_t<Mat>;
+  using ScalarT = real_type_t<T>;
   using ComplexT = std::complex<ScalarT>;
 
   /// @brief helper to extract N
-  static constexpr size_t N = mat_rows_v<Mat>;
+  static constexpr std::size_t N = mat_rows_v<Mat>;
 
   /**
    * @brief get element at (i,j) index
@@ -37,7 +37,7 @@ struct Endomorphism {
    *
    * @return element
    */
-  constexpr const T& operator()(const size_t& i, const size_t& j) const {
+  constexpr const T& operator()(std::size_t i, std::size_t j) const {
     return self()(i, j);
   }
 
@@ -49,9 +49,7 @@ struct Endomorphism {
    *
    * @return element (mutable)
    */
-  constexpr T& operator()(const size_t& i, const size_t& j) {
-    return self()(i, j);
-  }
+  constexpr T& operator()(std::size_t i, std::size_t j) { return self()(i, j); }
 
   /**
    * @brief self

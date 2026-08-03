@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "affine/affine_map.hpp"
+#include "linalg/affine/affine_map.hpp"
 #include "convex/canonical_trace.hpp"
 #include "convex/cone_traits.hpp"
 
@@ -39,17 +39,18 @@ using EmptyTrace = convex::EmptyCanonicalTrace;
 template <affine::AffineMapLike CoordMap, typename ConeTuple,
           affine::AffineMapLike EqMap, typename Trace = EmptyTrace>
 struct LocalEmission {
-  using Tuple = std::remove_cvref_t<ConeTuple>;
+  using Tuple = linalg::remove_cvref_t<ConeTuple>;
 
-  static constexpr size_t local_coord_rows =
+  static constexpr std::size_t local_coord_rows =
       linalg::mat_rows_v<affine::affine_mat_t<CoordMap>>;
-  static constexpr size_t local_coord_cols =
+  static constexpr std::size_t local_coord_cols =
       linalg::mat_cols_v<affine::affine_mat_t<CoordMap>>;
-  static constexpr size_t cone_count = cone_tuple_num_cones_v<Tuple>;
-  static constexpr size_t local_cone_dim = cone_tuple_local_cone_dim_v<Tuple>;
-  static constexpr size_t local_eq_rows =
+  static constexpr std::size_t cone_count = cone_tuple_num_cones_v<Tuple>;
+  static constexpr std::size_t local_cone_dim =
+      cone_tuple_local_cone_dim_v<Tuple>;
+  static constexpr std::size_t local_eq_rows =
       linalg::mat_rows_v<affine::affine_mat_t<EqMap>>;
-  static constexpr size_t local_eq_cols =
+  static constexpr std::size_t local_eq_cols =
       linalg::mat_cols_v<affine::affine_mat_t<EqMap>>;
 
   /**
@@ -81,9 +82,9 @@ struct LocalEmission {
  */
 template <affine::AffineMapLike EqMap, typename Trace = EmptyTrace>
 struct LocalEqualityEmission {
-  static constexpr size_t local_eq_rows =
+  static constexpr std::size_t local_eq_rows =
       linalg::mat_rows_v<affine::affine_mat_t<EqMap>>;
-  static constexpr size_t local_eq_cols =
+  static constexpr std::size_t local_eq_cols =
       linalg::mat_cols_v<affine::affine_mat_t<EqMap>>;
 
   constexpr explicit LocalEqualityEmission(const EqMap& eq_map_in)
@@ -130,17 +131,17 @@ struct emission_traits<LocalEmission<CoordMap, ConeTuple, EqMap, Trace>> {
   using LocalEqualityMap = EqMap;
   using TraceT = Trace;
 
-  static constexpr size_t LocalCoordRows =
+  static constexpr std::size_t LocalCoordRows =
       LocalEmission<CoordMap, ConeTuple, EqMap, Trace>::local_coord_rows;
-  static constexpr size_t LocalCoordCols =
+  static constexpr std::size_t LocalCoordCols =
       LocalEmission<CoordMap, ConeTuple, EqMap, Trace>::local_coord_cols;
-  static constexpr size_t NumCones =
+  static constexpr std::size_t NumCones =
       LocalEmission<CoordMap, ConeTuple, EqMap, Trace>::cone_count;
-  static constexpr size_t LocalConeDim =
+  static constexpr std::size_t LocalConeDim =
       LocalEmission<CoordMap, ConeTuple, EqMap, Trace>::local_cone_dim;
-  static constexpr size_t LocalEqRows =
+  static constexpr std::size_t LocalEqRows =
       LocalEmission<CoordMap, ConeTuple, EqMap, Trace>::local_eq_rows;
-  static constexpr size_t LocalEqCols =
+  static constexpr std::size_t LocalEqCols =
       LocalEmission<CoordMap, ConeTuple, EqMap, Trace>::local_eq_cols;
 };
 
@@ -150,9 +151,9 @@ struct emission_traits<LocalEqualityEmission<EqMap, Trace>> {
   using LocalEqualityMap = EqMap;
   using TraceT = Trace;
 
-  static constexpr size_t LocalEqRows =
+  static constexpr std::size_t LocalEqRows =
       LocalEqualityEmission<EqMap, Trace>::local_eq_rows;
-  static constexpr size_t LocalEqCols =
+  static constexpr std::size_t LocalEqCols =
       LocalEqualityEmission<EqMap, Trace>::local_eq_cols;
 };
 
@@ -190,27 +191,27 @@ using emission_trace_t =
     typename emission_traits<linalg::remove_cvref_t<Emission>>::TraceT;
 
 template <typename Emission>
-inline constexpr size_t emission_local_coord_rows_v =
+inline constexpr std::size_t emission_local_coord_rows_v =
     emission_traits<linalg::remove_cvref_t<Emission>>::LocalCoordRows;
 
 template <typename Emission>
-inline constexpr size_t emission_local_coord_cols_v =
+inline constexpr std::size_t emission_local_coord_cols_v =
     emission_traits<linalg::remove_cvref_t<Emission>>::LocalCoordCols;
 
 template <typename Emission>
-inline constexpr size_t emission_num_cones_v =
+inline constexpr std::size_t emission_num_cones_v =
     emission_traits<linalg::remove_cvref_t<Emission>>::NumCones;
 
 template <typename Emission>
-inline constexpr size_t emission_local_cone_dim_v =
+inline constexpr std::size_t emission_local_cone_dim_v =
     emission_traits<linalg::remove_cvref_t<Emission>>::LocalConeDim;
 
 template <typename Emission>
-inline constexpr size_t emission_local_eq_rows_v =
+inline constexpr std::size_t emission_local_eq_rows_v =
     emission_traits<linalg::remove_cvref_t<Emission>>::LocalEqRows;
 
 template <typename Emission>
-inline constexpr size_t emission_local_eq_cols_v =
+inline constexpr std::size_t emission_local_eq_cols_v =
     emission_traits<linalg::remove_cvref_t<Emission>>::LocalEqCols;
 
 template <typename Emission>
@@ -220,21 +221,23 @@ template <typename Emission>
 using emission_eq_map_t = emission_local_eq_map_t<Emission>;
 
 template <typename Emission>
-inline constexpr size_t emission_coord_rows_v =
+inline constexpr std::size_t emission_coord_rows_v =
     emission_local_coord_rows_v<Emission>;
 
 template <typename Emission>
-inline constexpr size_t emission_coord_cols_v =
+inline constexpr std::size_t emission_coord_cols_v =
     emission_local_coord_cols_v<Emission>;
 
 template <typename Emission>
-inline constexpr size_t emission_cone_dim_v =
+inline constexpr std::size_t emission_cone_dim_v =
     emission_local_cone_dim_v<Emission>;
 
 template <typename Emission>
-inline constexpr size_t emission_eq_rows_v = emission_local_eq_rows_v<Emission>;
+inline constexpr std::size_t emission_eq_rows_v =
+    emission_local_eq_rows_v<Emission>;
 
 template <typename Emission>
-inline constexpr size_t emission_eq_cols_v = emission_local_eq_cols_v<Emission>;
+inline constexpr std::size_t emission_eq_cols_v =
+    emission_local_eq_cols_v<Emission>;
 
 } // namespace conic

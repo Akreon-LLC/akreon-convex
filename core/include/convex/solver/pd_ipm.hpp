@@ -34,10 +34,10 @@ namespace convex {
  *
  * @return mu
  */
-template <linalg::VectorLike ConeVar>
+template <linalg::VectorContainer ConeVar>
 constexpr auto mu(const ConeVar& x, const ConeVar& y,
-                  const linalg::vec_type_t<ConeVar>& nu) {
-  return linalg::dot(x, y) / nu;
+                  const linalg::vector_element_t<ConeVar>& nu) {
+  return linalg::inner_product(x, y) / nu;
 }
 
 /**
@@ -53,14 +53,14 @@ constexpr auto mu(const ConeVar& x, const ConeVar& y,
  *
  * @return M
  */
-template <linalg::SquareMatrixLike Mat, linalg::MatrixLike EqMat>
+template <linalg::SquareMatrix Mat, linalg::MatrixContainer EqMat>
 constexpr auto regularize(
     Mat M, const EqMat& A,
-    const config::RegularizationConfig<linalg::mat_type_t<EqMat>>& reg) {
-  using T = linalg::mat_type_t<Mat>;
-  constexpr size_t N = linalg::mat_cols_v<Mat>;
-  constexpr size_t EqRows = linalg::mat_rows_v<EqMat>;
-  constexpr size_t EqCols = linalg::mat_cols_v<EqMat>;
+    const config::RegularizationConfig<linalg::matrix_scalar_t<EqMat>>& reg) {
+  using T = linalg::matrix_scalar_t<Mat>;
+  constexpr std::size_t N = linalg::mat_cols_v<Mat>;
+  constexpr std::size_t EqRows = linalg::mat_rows_v<EqMat>;
+  constexpr std::size_t EqCols = linalg::mat_cols_v<EqMat>;
 
   const auto d = get_diag(M);
   T s{0};
@@ -70,14 +70,14 @@ constexpr auto regularize(
   const auto delta = reg.global_eps * s;
   const auto eq_delta = reg.eq_eps * s;
 
-  for (size_t j = 0; j < N; ++j) {
+  for (std::size_t j = 0; j < N; ++j) {
     T bump = delta;
 
     if constexpr (EqRows != 0 && EqCols != 0) {
       bool eq_active = false;
       if (j < EqCols) {
-        for (size_t i = 0; i < EqRows; ++i) {
-          if (linalg::constexpr_abs(A(i)(j)) > T(0)) {
+        for (std::size_t i = 0; i < EqRows; ++i) {
+          if (linalg::constexpr_abs(A(i, j)) > T(0)) {
             eq_active = true;
             break;
           }
@@ -87,7 +87,7 @@ constexpr auto regularize(
       if (eq_active && linalg::constexpr_abs(d(j)) < eq_delta) bump = eq_delta;
     }
 
-    M(j)(j) += bump;
+    M(j, j) += bump;
   }
 
   return M;
@@ -110,12 +110,12 @@ struct PrimalDualIPM {
   using T = linalg::space_type_t<DecVar>;
 
   /// @brief helpers for size of cones & F mat size & A mat rows
-  static constexpr size_t NumCones = std::tuple_size_v<
+  static constexpr std::size_t NumCones = std::tuple_size_v<
       decltype(std::declval<const Problem&>().constraint_cones())>;
-  static constexpr size_t M = linalg::mat_rows_v<ConeMat>;
-  static constexpr size_t N = linalg::mat_cols_v<ConeMat>;
+  static constexpr std::size_t M = linalg::mat_rows_v<ConeMat>;
+  static constexpr std::size_t N = linalg::mat_cols_v<ConeMat>;
 
-  static constexpr size_t EqRows = linalg::mat_rows_v<EqMat>;
+  static constexpr std::size_t EqRows = linalg::mat_rows_v<EqMat>;
   using NuVar = linalg::Vector<T, EqRows>;
 
   /// @brief useful types for PD-IPM
@@ -207,7 +207,7 @@ private:
    * @return result
    */
   constexpr void solve(const Problem& prob, bool warm_start = false) {
-    const auto c = linalg::as_vector(prob.linear_objective());
+    const auto c = prob.linear_objective();
     const auto g = prob.constraint_map().translation();
     const auto F = prob.constraint_map().linear_part();
     const auto A = prob.equality_map().linear_part();
@@ -344,8 +344,8 @@ private:
 #endif
     }
 
-    res.convex_obj = linalg::dot(c, z);
-    res.dual_obj = -linalg::dot(g, y);
+    res.convex_obj = linalg::inner_product(c, z);
+    res.dual_obj = -linalg::inner_product(g, y);
   }
 
   /**
@@ -370,7 +370,7 @@ private:
    *
    * @return (S, nu)
    */
-  template <size_t idx = 0, size_t Start = 0>
+  template <std::size_t idx = 0, std::size_t Start = 0>
   constexpr auto accumulate_block(BlockMat&& M_blk, const ConeMat& F,
                                   const auto& K, const ConeVar& x,
                                   const ConeVar& y) const {
@@ -380,13 +380,13 @@ private:
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
 
-      constexpr size_t KiRows = linalg::vec_size_v<Slack>;
-      constexpr size_t End = Start + KiRows;
+      constexpr std::size_t KiRows = linalg::vector_dim_v<Slack>;
+      constexpr std::size_t End = Start + KiRows;
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{};
 
-      for (size_t i = Start, j = 0; i < End; ++i, ++j)
+      for (std::size_t i = Start, j = 0; i < End; ++i, ++j)
         xk(j) = x(i), yk(j) = y(i);
 
       const auto [P, event] = Ki.H(xk, yk);
@@ -414,21 +414,21 @@ private:
    *
    * @return nu
    */
-  template <size_t idx = 0, size_t Start = 0>
+  template <std::size_t idx = 0, std::size_t Start = 0>
   constexpr T seed_prob(const auto& K, ConeVar& x, ConeVar& y,
-                        const bool& warm_start) const {
+                        bool warm_start) const {
     if constexpr (idx >= NumCones) return T(0);
     else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
 
-      constexpr size_t KiRows = linalg::vec_size_v<Slack>;
-      constexpr size_t End = Start + KiRows;
+      constexpr std::size_t KiRows = linalg::vector_dim_v<Slack>;
+      constexpr std::size_t End = Start + KiRows;
 
       if (warm_start) {
         using ConePoint = linalg::Vector<T, End - Start>;
         ConePoint xk{}, yk{};
-        for (size_t i = Start, j = 0; i < End; ++i, ++j)
+        for (std::size_t i = Start, j = 0; i < End; ++i, ++j)
           xk(j) = x(i), yk(j) = y(i);
 
         if (Ki.in_cone(xk) && Ki.in_dual_cone(yk))
@@ -436,7 +436,7 @@ private:
       }
 
       const auto x0 = Ki.x0(), y0 = Ki.y0();
-      for (size_t i = Start, j = 0; i < End; ++i, ++j)
+      for (std::size_t i = Start, j = 0; i < End; ++i, ++j)
         x(i) = x0(j), y(i) = y0(j);
 
       return Ki.nu() + seed_prob<idx + 1, End>(K, x, y, warm_start);
@@ -458,7 +458,7 @@ private:
    *
    * @return alpha_max
    */
-  template <size_t idx = 0, size_t Start = 0>
+  template <std::size_t idx = 0, std::size_t Start = 0>
   constexpr auto alpha_max(T&& alpha_x, T&& alpha_y, const auto& K,
                            const ConeVar& x, const ConeVar& y,
                            const ConeVar& px, const ConeVar& py) const {
@@ -469,13 +469,13 @@ private:
     } else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
-      constexpr size_t KiRows = linalg::vec_size_v<Slack>;
-      constexpr size_t End = Start + KiRows;
+      constexpr std::size_t KiRows = linalg::vector_dim_v<Slack>;
+      constexpr std::size_t End = Start + KiRows;
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{}, pxk{}, pyk{};
 
-      for (size_t i = Start, j = 0; i < End; ++i, ++j)
+      for (std::size_t i = Start, j = 0; i < End; ++i, ++j)
         xk(j) = x(i), yk(j) = y(i), pxk(j) = px(i), pyk(j) = py(i);
 
       alpha_x = std::min(Ki.alpha_max(xk, pxk), alpha_x);
@@ -497,7 +497,7 @@ private:
    *
    * @return T/F
    */
-  template <size_t idx = 0, size_t Start = 0>
+  template <std::size_t idx = 0, std::size_t Start = 0>
   constexpr bool check_functional_proximity(const auto& K, const ConeVar& x,
                                             const ConeVar& y) const {
     if constexpr (idx >= NumCones) {
@@ -505,12 +505,12 @@ private:
     } else {
       const auto Ki = std::get<idx>(K);
       using Slack = conic::cone_slack_t<decltype(Ki)>;
-      constexpr size_t KiRows = linalg::vec_size_v<Slack>;
-      constexpr size_t End = Start + KiRows;
+      constexpr std::size_t KiRows = linalg::vector_dim_v<Slack>;
+      constexpr std::size_t End = Start + KiRows;
 
       using ConePoint = linalg::Vector<T, End - Start>;
       ConePoint xk{}, yk{};
-      for (size_t i = Start, j = 0; i < End; ++i, ++j)
+      for (std::size_t i = Start, j = 0; i < End; ++i, ++j)
         xk(j) = x(i), yk(j) = y(i);
 
       const auto beta_limit = beta + config.Delta;
@@ -558,7 +558,7 @@ private:
 
     constexpr auto zeta{1.05};
 
-    for (size_t i = 0; i < config.backtrack_steps; ++i) {
+    for (std::size_t i = 0; i < config.backtrack_steps; ++i) {
       const auto z_tmp = z + ax * pz;
       const auto nu_tmp = nu + ax * pnu;
       const auto x_tmp = x + ax * px;
@@ -690,11 +690,11 @@ private:
 
       const auto S = A * M_inv_AT;
 
-      if (S(0)(0) < schur_config.tol)
+      if (S(0, 0) < schur_config.tol)
         return std::tuple(std::optional<Coupling>{},
                           linalg::NumericalEvent::FACTORIZATION_FAILED);
 
-      return std::tuple(std::optional<Coupling>{Coupling(A, S(0)(0))},
+      return std::tuple(std::optional<Coupling>{Coupling(A, S(0, 0))},
                         linalg::NumericalEvent::NONE);
     } else {
       const auto [M_inv_AT, event] = M_ldl.apply(linalg::transpose(A));

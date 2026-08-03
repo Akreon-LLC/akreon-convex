@@ -19,7 +19,7 @@ using namespace dynamics;
 using namespace unit_test;
 using namespace linalg;
 
-template <typename ScalarT, size_t DoF = 1, size_t Nu = 0>
+template <typename ScalarT, std::size_t DoF = 1, std::size_t Nu = 0>
 class SMD : public DynamicalSystem<ScalarT, DoF, Nu, SMD<ScalarT, DoF, Nu>> {
 public:
   constexpr explicit SMD(const Matrix<ScalarT, DoF, 3>& coords,
@@ -54,9 +54,9 @@ TEST_CASE("Test SMD", "[smd]") {
   SECTION("Static case") {
     constexpr auto Q = seed_Q(Vector<double, 1>{0.0});
 
-    STATIC_REQUIRE(Q(0)(0) == 0.0);
-    STATIC_REQUIRE(Q(0)(1) == 1e-4);
-    STATIC_REQUIRE(Q(0)(2) == 2e-4);
+    STATIC_REQUIRE(Q(0, 0) == 0.0);
+    STATIC_REQUIRE(Q(0, 1) == 1e-4);
+    STATIC_REQUIRE(Q(0, 2) == 2e-4);
 
     constexpr auto smd = SMD<double>(Q, 1.0, 2.0, 3.0);
 
@@ -74,11 +74,11 @@ TEST_CASE("Test SMD", "[smd]") {
                                 0.99965, 0.999402, 0.999104, 0.998757, 0.99836};
     const double h = 0.01;
     auto Q = seed_Q(Vector<double, 1>{1.0});
-    for (size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < 10; ++i) {
       const auto result = Solve(SMD<double>(Q, 1.0, 0.5, 2.0), h);
       Q = std::get<0>(result);
       REQUIRE(L2<Vector<double, 1>>()(
-                  Vector<double, 1>{Q(0)(2) - expected(i)}) <= 1e-4);
+                  Vector<double, 1>{Q(0, 2) - expected(i)}) <= 1e-4);
     }
   }
 }

@@ -24,7 +24,7 @@ namespace linalg {
  * This class depends on square like matrix type and tests if it's symmetric (A
  * = A^T or A = A^H) then stores in reduced flattend vector for look up
  */
-template <SquareMatrixLike Mat>
+template <SquareMatrix Mat>
 struct SymmetricMatrix : SymmetricOperator<Mat, SymmetricMatrix<Mat>> {
   /// @brief alias for symmetric matrix
   using SymmetricBase = SymmetricOperator<Mat, SymmetricMatrix<Mat>>;
@@ -61,7 +61,7 @@ private:
   constexpr void factor(const Mat& A, const ScalarT& tol) {
     // (0) First see if the incoming matrix is symmetric
     bool valid = false;
-    if constexpr (RealLike<T>) valid = all_equal(A, transpose(A));
+    if constexpr (Real<T>) valid = all_equal(A, transpose(A));
     else valid = all_equal(A, conjugate_transpose(A));
 
     // (1) No need to set data for invalid one and set type

@@ -27,7 +27,7 @@ namespace linalg {
  * H^{-1}: B(x) -> A, (i.e., F''(w)^{-1} s -> x) acts as a pull-back operator
  * mapping gradient space vectors back to tangent / primal direction
  */
-template <SquareMatrixLike Mat,
+template <SquareMatrix Mat,
           DifferentialType Type = DifferentialType::PUSHFORWARD>
 struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
   /// @brief alias from base class
@@ -52,8 +52,8 @@ struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
    *
    * @return element
    */
-  constexpr auto operator()(const size_t& i, const size_t& j) const {
-    return H(i)(j);
+  constexpr auto operator()(std::size_t i, std::size_t j) const {
+    return H(i, j);
   }
 
   /**
@@ -66,7 +66,7 @@ struct Hessian : Endomorphism<Mat, Hessian<Mat, Type>> {
    *
    * @return B or A pending on diffeomorphism
    */
-  template <MatrixLike MatX>
+  template <MatrixContainer MatX>
     requires(N == mat_rows_v<MatX>)
   constexpr auto apply(const MatX& X) const {
     return H * X;

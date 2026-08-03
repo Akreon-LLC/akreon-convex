@@ -67,11 +67,11 @@ using NegVarMeta =
     ConvexAtomMeta<NegVarDom<Dom>, NegVarDom<Dom>, CurvatureType::AFFINE>;
 
 /// @brief alias for nominal psd matrix variable domain
-template <linalg::SquareMatrixLike Mat>
+template <linalg::SquareMatrix Mat>
 using SymMatVarDom = ConvexDomain<linalg::SymmetricMatrix<Mat>, VarType::PSD>;
 
 /// @brief alias for nominal psd matrix
-template <linalg::SquareMatrixLike Mat>
+template <linalg::SquareMatrix Mat>
 using SymMatVarMeta =
     ConvexAtomMeta<SymMatVarDom<Mat>, SymMatVarDom<Mat>, CurvatureType::AFFINE>;
 
@@ -83,7 +83,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
   using typename BaseT::Domain;
   using typename BaseT::T;
 
-  static constexpr size_t N = dom_size_v<meta_dom_t<atom_meta_t<Child>>>;
+  static constexpr std::size_t N = dom_size_v<meta_dom_t<atom_meta_t<Child>>>;
 
   using SelMatT = linalg::RowVector<T, N>;
   using TransT = linalg::Vector<T, 1>;
@@ -94,7 +94,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
    * @param index
    * @param child (var)
    */
-  constexpr explicit ScalarView(const size_t& idx_in, const Child& child_in)
+  constexpr explicit ScalarView(std::size_t idx_in, const Child& child_in)
       : BaseT(std::make_tuple(child_in)),
         map(affine::make_selector_map<SelMatT>(idx_in)), idx(idx_in) {
     AK_ASSERT(is_var_type_v<Child> &&
@@ -108,7 +108,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
    * @param child (var)
    * @param selector map (linear map onto index)
    */
-  constexpr explicit ScalarView(const size_t& idx_in, const Child& child_in,
+  constexpr explicit ScalarView(std::size_t idx_in, const Child& child_in,
                                 const affine::AffineMap<SelMatT>& map_in)
       : BaseT(std::make_tuple(child_in)), map(map_in), idx(idx_in) {
     AK_ASSERT(is_var_type_v<Child> &&
@@ -122,7 +122,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
    *
    * @return new var (updated map)
    */
-  constexpr auto mul(const T& alpha) const {
+  constexpr auto mul(T alpha) const {
     affine::AffineMap<SelMatT> new_map(alpha * map.linear_part(),
                                        map.translation());
     return ScalarView(idx, std::get<0>(this->children), new_map);
@@ -135,7 +135,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
    *
    * @return new var (updated map)
    */
-  constexpr auto add(const T& beta) const {
+  constexpr auto add(T beta) const {
     affine::AffineMap<SelMatT> new_map(map.linear_part(),
                                        TransT{beta} + map.translation());
     return ScalarView(idx, std::get<0>(this->children), new_map);
@@ -157,7 +157,7 @@ struct ScalarView : Atom<Meta, ScalarView<Meta, Child>, Child> {
 
   /** @brief member var */
   affine::AffineMap<SelMatT> map; ///< selector map of scalar view onto var
-  size_t idx;                     ///< index of orig var
+  std::size_t idx;                ///< index of orig var
 };
 
 /**
@@ -203,10 +203,11 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    *
    * @return ScalarView of var at index
    */
-  constexpr ScalarViewT operator()(const size_t& idx) const {
+  constexpr ScalarViewT operator()(std::size_t idx) const {
     AK_ASSERT(idx < N && "Variable index out of bounds");
     affine::AffineMap<linalg::RowVector<T, N>> scalar_map(
-        this->map.linear_part()(idx), this->map.translation()(idx));
+        linalg::as_row_matrix(this->map.linear_part().row(idx)),
+        this->map.translation()(idx));
     return ScalarViewT(idx, *this, scalar_map);
   }
 
@@ -217,7 +218,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    *
    * @return new var (updated map)
    */
-  constexpr auto mul(const T& alpha) const {
+  constexpr auto mul(T alpha) const {
     affine::AffineMap<LinearMatT> new_map(alpha * map.linear_part(),
                                           map.translation());
     return Variable(new_map);
@@ -273,7 +274,7 @@ struct Variable : Atom<Meta, Variable<Meta>> {
    * @return tuple(ScalarViews...)
    */
   constexpr auto split() const {
-    auto form_tup = [this]<size_t... Is>(std::index_sequence<Is...>) {
+    auto form_tup = [this]<std::size_t... Is>(std::index_sequence<Is...>) {
       return std::make_tuple(((*this)(Is))...);
     };
     return form_tup(std::make_index_sequence<N>{});

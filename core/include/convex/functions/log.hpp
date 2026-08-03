@@ -111,7 +111,7 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
   constexpr T eval(const PointT& x) const {
     AK_ASSERT(x(0) > T(0) && "Invalid domain for log(x)");
 
-    const auto alpha = lift_map.linear_part()(0)(0);
+    const auto alpha = lift_map.linear_part()(0, 0);
     const auto beta = lift_map.translation()(0);
     if constexpr (Tag == CurvatureType::CONCAVE)
       return alpha * linalg::constexpr_ln(x(0)).value() + beta;
@@ -149,7 +149,7 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
    *
    * @return abs fn (updated map)
    */
-  constexpr auto add(const T& beta) const {
+  constexpr auto add(T beta) const {
     LiftedVarBias<T> bias{beta + lift_map.translation()(0)};
     affine::AffineMap<LiftedVarMat<T>> new_map(lift_map.linear_part(), bias);
     return Log<Meta, Child>(std::get<0>(this->children), new_map);
@@ -188,8 +188,8 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
     const auto child_coord = child_builder.coord_map;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
-    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
-    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static constexpr std::size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr std::size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == 1,
                   "input affine map from cone block has invalid codom dim for "
                   "scalar fn domain (i.e., != 1");
@@ -200,9 +200,9 @@ struct Log : Atom<Meta, Log<Meta, Child>, Child> {
     g(2) = child_coord.translation()(0);
 
     if constexpr (Tag == CurvatureType::CONCAVE) {
-      F(0)(Dom) = T(1);
+      F(0, Dom) = T(1);
     } else {
-      F(0)(Dom) = T(-1);
+      F(0, Dom) = T(-1);
     }
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

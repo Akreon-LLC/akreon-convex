@@ -43,9 +43,9 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
   constexpr auto Z = Matrixd<2, 2>{};
   constexpr auto MatBuilder = mat_traits<Space>();
 
-  static constexpr size_t QDim = 3;
-  static constexpr size_t WDim = 4;
-  static constexpr size_t ZDim = QDim + WDim;
+  static constexpr std::size_t QDim = 3;
+  static constexpr std::size_t WDim = 4;
+  static constexpr std::size_t ZDim = QDim + WDim;
   using ZSpace = RowVectord<ZDim>;
   constexpr auto dec = Variable<VarMeta<ZSpace>>();
 
@@ -97,9 +97,9 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
-    static constexpr size_t SolverQDim = 3;
-    static constexpr size_t SolverWDim = 2;
-    static constexpr size_t SolverZDim = SolverQDim + SolverWDim;
+    static constexpr std::size_t SolverQDim = 3;
+    static constexpr std::size_t SolverWDim = 2;
+    static constexpr std::size_t SolverZDim = SolverQDim + SolverWDim;
     using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
@@ -134,16 +134,16 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     REQUIRE(!res.stalled);
 
     Vectord<SolverQDim> q_vec{};
-    for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
+    for (std::size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
     const auto Q_res = make_smat<2>(q_vec);
 
     ColVectord<2> W_res{};
-    for (size_t j = 0; j < SolverWDim; ++j)
-      W_res(j)(0) = res.iterate.z(SolverQDim + j);
+    for (std::size_t j = 0; j < SolverWDim; ++j)
+      W_res(j, 0) = res.iterate.z(SolverQDim + j);
 
     REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-    REQUIRE(Q_res(0)(0) > 1e-6);
-    REQUIRE(Q_res(1)(1) > 1e-6);
+    REQUIRE(Q_res(0, 0) > 1e-6);
+    REQUIRE(Q_res(1, 1) > 1e-6);
 
     const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
     REQUIRE(Q_sym.is_valid());
@@ -187,9 +187,9 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     using SolverPlant = PlantModel<SolverPlantSS, SolverInputs, SolverOutputs>;
     constexpr auto BCol = ColVectord<2>{Vectord<1>{1.0}, Vectord<1>{0.5}};
     constexpr auto CRow = RowVectord<2>{Vectord<2>{1.0, 0.0}};
-    static constexpr size_t SolverQDim = 3;
-    static constexpr size_t SolverWDim = 2;
-    static constexpr size_t SolverZDim = SolverQDim + SolverWDim;
+    static constexpr std::size_t SolverQDim = 3;
+    static constexpr std::size_t SolverWDim = 2;
+    static constexpr std::size_t SolverZDim = SolverQDim + SolverWDim;
     using SolverZSpace = RowVectord<SolverZDim>;
     constexpr auto solver_dec = Variable<VarMeta<SolverZSpace>>();
 
@@ -233,12 +233,12 @@ TEST_CASE("Polytopic Observer 2x2", "[polytopic_observer_test]") {
     REQUIRE(!res.stalled);
 
     Vectord<SolverQDim> q_vec{};
-    for (size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
+    for (std::size_t i = 0; i < SolverQDim; ++i) q_vec(i) = res.iterate.z(i);
     const auto Q_res = make_smat<2>(q_vec);
 
     ColVectord<2> W_res{};
-    for (size_t j = 0; j < SolverWDim; ++j)
-      W_res(j)(0) = res.iterate.z(SolverQDim + j);
+    for (std::size_t j = 0; j < SolverWDim; ++j)
+      W_res(j, 0) = res.iterate.z(SolverQDim + j);
 
     const auto [L_res, L_event] = po.L(Q_res, W_res);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
@@ -303,8 +303,7 @@ TEST_CASE("H2 Polytopic State Observer synthesis 2x2",
   REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 4);
 
   const auto c = prob.linear_objective();
-  const auto c_exp = RowVectord<H2::DecVarDim>{
-      Vectord<H2::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0}};
+  const auto c_exp = Vectord<H2::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
   REQUIRE(c == c_exp);
 
   using Solver = PrimalDualIPM<decltype(prob)>;
@@ -325,13 +324,14 @@ TEST_CASE("H2 Polytopic State Observer synthesis 2x2",
   const auto Q_res = make_smat<2>(std::get<0>(q_wz_split));
   const auto w_z_split = linalg::splice<H2::WDim>(std::get<1>(q_wz_split));
   ColVectord<2> W_res{};
-  for (size_t i = 0; i < H2::WDim; ++i) W_res(i)(0) = std::get<0>(w_z_split)(i);
+  for (std::size_t i = 0; i < H2::WDim; ++i)
+    W_res(i, 0) = std::get<0>(w_z_split)(i);
   const auto Z_res = make_smat<1>(std::get<1>(w_z_split));
 
   REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-  REQUIRE(Q_res(0)(0) > 1e-6);
-  REQUIRE(Q_res(1)(1) > 1e-6);
-  REQUIRE(Z_res(0)(0) > 1e-6);
+  REQUIRE(Q_res(0, 0) > 1e-6);
+  REQUIRE(Q_res(1, 1) > 1e-6);
+  REQUIRE(Z_res(0, 0) > 1e-6);
 
   const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
   REQUIRE(Q_sym.is_valid());
@@ -362,9 +362,9 @@ TEST_CASE("H2 Polytopic State Observer synthesis 2x2",
 
   const auto bottom_left = Q_res * B_w - W_res * D_yw;
   const auto epigraph = Matrixd<3, 3>{
-      Vectord<3>{Z_res(0)(0), bottom_left(0)(0), bottom_left(1)(0)},
-      Vectord<3>{bottom_left(0)(0), Q_res(0)(0), Q_res(0)(1)},
-      Vectord<3>{bottom_left(1)(0), Q_res(1)(0), Q_res(1)(1)}};
+      Vectord<3>{Z_res(0, 0), bottom_left(0, 0), bottom_left(1, 0)},
+      Vectord<3>{bottom_left(0, 0), Q_res(0, 0), Q_res(0, 1)},
+      Vectord<3>{bottom_left(1, 0), Q_res(1, 0), Q_res(1, 1)}};
   const auto epigraph_sym = SymmetricMatrix(epigraph, 1e-6);
   REQUIRE(epigraph_sym.is_valid());
   REQUIRE(epigraph_sym.is_psd());
@@ -418,8 +418,7 @@ TEST_CASE("Hinf Polytopic State Observer synthesis 2x2",
   REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 4);
 
   const auto c = prob.linear_objective();
-  const auto c_exp = RowVectord<Hinf::DecVarDim>{
-      Vectord<Hinf::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0}};
+  const auto c_exp = Vectord<Hinf::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
   REQUIRE(c == c_exp);
 
   using Solver = PrimalDualIPM<decltype(prob)>;
@@ -442,13 +441,13 @@ TEST_CASE("Hinf Polytopic State Observer synthesis 2x2",
   const auto w_gamma_split =
       linalg::splice<Hinf::WDim>(std::get<1>(q_w_gamma_split));
   ColVectord<2> W_res{};
-  for (size_t i = 0; i < Hinf::WDim; ++i)
-    W_res(i)(0) = std::get<0>(w_gamma_split)(i);
+  for (std::size_t i = 0; i < Hinf::WDim; ++i)
+    W_res(i, 0) = std::get<0>(w_gamma_split)(i);
   const auto gamma_res = std::get<1>(w_gamma_split)(0);
 
   REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-  REQUIRE(Q_res(0)(0) > 1e-6);
-  REQUIRE(Q_res(1)(1) > 1e-6);
+  REQUIRE(Q_res(0, 0) > 1e-6);
+  REQUIRE(Q_res(1, 1) > 1e-6);
   REQUIRE(gamma_res > 1e-6);
 
   const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);

@@ -45,12 +45,12 @@ inline constexpr void log(const auto& res, const auto& trace) {
  *
  * @return void
  */
-template <linalg::MatrixLike Mat>
+template <linalg::MatrixContainer Mat>
 inline constexpr void log_mat(const Mat& A) {
-  constexpr size_t M = linalg::mat_rows_v<Mat>;
-  constexpr size_t N = linalg::mat_cols_v<Mat>;
-  for (size_t i = 0; i < M; ++i) {
-    for (size_t j = 0; j < N; ++j) std::cout << A(i)(j) << " ";
+  constexpr std::size_t M = linalg::mat_rows_v<Mat>;
+  constexpr std::size_t N = linalg::mat_cols_v<Mat>;
+  for (std::size_t i = 0; i < M; ++i) {
+    for (std::size_t j = 0; j < N; ++j) std::cout << A(i, j) << " ";
     std::cout << std::endl;
   }
 }
@@ -62,10 +62,10 @@ inline constexpr void log_mat(const Mat& A) {
  *
  * @return void
  */
-template <linalg::VectorLike Vec>
+template <linalg::VectorContainer Vec>
 inline constexpr void log_vec(const Vec& b) {
-  constexpr size_t N = linalg::vec_size_v<Vec>;
-  for (size_t i = 0; i < N; ++i) std::cout << b(i) << " ";
+  constexpr std::size_t N = linalg::vector_dim_v<Vec>;
+  for (std::size_t i = 0; i < N; ++i) std::cout << b(i) << " ";
   std::cout << std::endl;
 }
 

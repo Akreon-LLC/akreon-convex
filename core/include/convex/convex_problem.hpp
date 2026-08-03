@@ -100,11 +100,11 @@ struct ConvexProblem {
    */
   constexpr auto feasibility() const {
     const auto cb = builder.cb;
-    static constexpr size_t ConeN =
+    static constexpr std::size_t ConeN =
         linalg::mat_cols_v<decltype(cb.map.linear_part())>;
-    static constexpr size_t EqN =
+    static constexpr std::size_t EqN =
         linalg::mat_cols_v<decltype(builder.eq_map.linear_part())>;
-    static constexpr size_t AugN = (ConeN > EqN) ? ConeN : EqN;
+    static constexpr std::size_t AugN = (ConeN > EqN) ? ConeN : EqN;
     linalg::RowVector<T, AugN> c{};
     affine::AffineMap<decltype(c)> new_map(c);
 
@@ -133,17 +133,18 @@ struct ConvexProblem {
           "convex function, or index of var instead of raw type");
     } else if constexpr (is_index_type_v<Atom>) {
       const auto cb = builder.cb;
-      static constexpr size_t ConeN =
+      static constexpr std::size_t ConeN =
           linalg::mat_cols_v<decltype(cb.map.linear_part())>;
-      static constexpr size_t EqN =
+      static constexpr std::size_t EqN =
           linalg::mat_cols_v<decltype(builder.eq_map.linear_part())>;
-      static constexpr size_t AugN = (ConeN > EqN) ? ConeN : EqN;
+      static constexpr std::size_t AugN = (ConeN > EqN) ? ConeN : EqN;
       linalg::RowVector<T, AugN> c{};
       auto b = builder.coord_map.translation()(0) + atom.map.translation()(0);
-      static constexpr size_t N =
+      static constexpr std::size_t N =
           linalg::space_dim_v<conic::builder_dom_t<Builder>>;
-      constexpr size_t CopyN = (N < AugN) ? N : AugN;
-      for (size_t i = 0; i < CopyN; ++i) c(0)(i) = atom.map.linear_part()(0)(i);
+      constexpr std::size_t CopyN = (N < AugN) ? N : AugN;
+      for (std::size_t i = 0; i < CopyN; ++i)
+        c(0, i) = atom.map.linear_part()(0, i);
       const affine::AffineMap<decltype(c)> new_map(c, b);
       const auto new_builder =
           conic::make_builder<conic::builder_dom_t<Builder>>(
@@ -157,18 +158,18 @@ struct ConvexProblem {
       } else {
         const auto obj_builder =
             atom.template canonicalize<AtomType::CAP>(builder);
-        static constexpr size_t ConeN =
+        static constexpr std::size_t ConeN =
             linalg::mat_cols_v<decltype(obj_builder.cb.map.linear_part())>;
-        static constexpr size_t EqN =
+        static constexpr std::size_t EqN =
             linalg::mat_cols_v<decltype(obj_builder.eq_map.linear_part())>;
-        static constexpr size_t FullN = (ConeN > EqN) ? ConeN : EqN;
-        static constexpr size_t ObjN =
+        static constexpr std::size_t FullN = (ConeN > EqN) ? ConeN : EqN;
+        static constexpr std::size_t ObjN =
             linalg::mat_cols_v<decltype(obj_builder.coord_map.linear_part())>;
 
         linalg::RowVector<T, FullN> c{};
-        constexpr size_t CopyN = (ObjN < FullN) ? ObjN : FullN;
-        for (size_t i = 0; i < CopyN; ++i)
-          c(0)(i) = obj_builder.coord_map.linear_part()(0)(i);
+        constexpr std::size_t CopyN = (ObjN < FullN) ? ObjN : FullN;
+        for (std::size_t i = 0; i < CopyN; ++i)
+          c(0, i) = obj_builder.coord_map.linear_part()(0, i);
 
         const auto b = obj_builder.coord_map.translation()(0);
         const auto obj_map = affine::AffineMap<decltype(c)>(c, b);
@@ -228,7 +229,7 @@ struct ConvexProblem {
   constexpr auto linear_objective() const
     requires(Stage == StageType::PROBLEM_SET)
   {
-    return builder.coord_map.linear_part();
+    return linalg::as_vector(builder.coord_map.linear_part());
   }
 
   /**

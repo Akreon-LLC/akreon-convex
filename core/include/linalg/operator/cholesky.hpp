@@ -21,7 +21,7 @@ namespace linalg {
 /**
  * @brief A = GG^T cholesky decomposition where A in S^n_++
  */
-template <SquareMatrixLike Mat>
+template <SquareMatrix Mat>
 struct Cholesky : SymmetricOperator<Mat, Cholesky<Mat>> {
   /// @brief alias for symmetric operators
   using SymmetricBase = SymmetricOperator<Mat, Cholesky<Mat>>;
@@ -70,11 +70,11 @@ private:
    * @return void
    */
   constexpr void factor(Mat A) {
-    auto chol = [&]<size_t j = 0>(this auto&& self) {
+    auto chol = [&]<std::size_t j = 0>(this auto&& self) {
       if constexpr (j >= SymmetricBase::N) {
         return;
       } else {
-        constexpr size_t next = j + 1;
+        constexpr std::size_t next = j + 1;
         if constexpr (j > 0) {
           const auto A_jn_j = get_block<j, SymmetricBase::N, j, next>(A);
           const auto A_jn_0j = get_block<j, SymmetricBase::N, 0, j>(A);
@@ -83,7 +83,7 @@ private:
           A = set_block<j, SymmetricBase::N, j, next>(A, lhs);
         }
         const auto A_jn_j = get_block<j, SymmetricBase::N, j, next>(A);
-        const auto a_jj = constexpr_sqrt_safe(A(j)(j));
+        const auto a_jj = constexpr_sqrt_safe(A(j, j));
         A = set_block<j, SymmetricBase::N, j, next>(A, T(1) / a_jj * A_jn_j);
         return self.template operator()<next>();
       }

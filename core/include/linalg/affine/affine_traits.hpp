@@ -12,31 +12,21 @@
 
 #pragma once
 
-#include "linalg/vector/algebra_traits.hpp"
+#include "linalg/space/space_concepts.hpp"
 
 namespace affine {
 
 /// @brief forward declaration of affine map
-template <linalg::MatrixLike Mat>
+template <linalg::MatrixContainer Mat>
 class AffineMap;
-
-/// @brief forward declaration of parametric affine set
-template <linalg::MatrixLike Mat>
-class ParametricAffineSet;
 
 /// @brief meta type traits for affine map
 template <class Mat>
 struct affine_traits;
 
 /// @brief derived type traits for affine map
-template <linalg::MatrixLike Mat>
+template <linalg::MatrixContainer Mat>
 struct affine_traits<AffineMap<Mat>> {
-  using AffineMat = Mat;
-};
-
-/// @brief derived type traits for affine map
-template <linalg::MatrixLike Mat>
-struct affine_traits<ParametricAffineSet<Mat>> {
   using AffineMat = Mat;
 };
 

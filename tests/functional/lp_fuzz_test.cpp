@@ -21,7 +21,7 @@ namespace functional_test {
  *
  * @return T/F
  */
-template <size_t N>
+template <std::size_t N>
 bool run_lp_trial(std::mt19937& rng) {
   using Space = SpaceT<N>;
   const auto x = Variable<VarMeta<Space>>();

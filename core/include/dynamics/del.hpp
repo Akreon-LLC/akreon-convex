@@ -19,34 +19,36 @@
 
 namespace dynamics {
 
-template <typename T_fn, typename V_fn, typename ScalarT, size_t DoF>
-  requires(linalg::FieldLike<ScalarT>)
+template <typename T_fn, typename V_fn, typename ScalarT, std::size_t DoF>
+  requires(linalg::Field<ScalarT>)
 constexpr auto Ld(const linalg::Vector<ScalarT, DoF>& q0,
                   const linalg::Vector<ScalarT, DoF>& q1, const T_fn& T,
-                  const V_fn& V, const double& h) {
+                  const V_fn& V, double h) {
   const auto kinetic = T(q0, q1) / (h * h);
   const auto conservative = 0.5 * (V(q0) + V(q1));
   return h * (kinetic - conservative);
 }
 
-template <size_t k, typename T_fn, typename V_fn, typename ScalarT, size_t DoF>
-  requires(linalg::FieldLike<ScalarT> && k < 2)
+template <std::size_t k, typename T_fn, typename V_fn, typename ScalarT,
+          std::size_t DoF>
+  requires(linalg::Field<ScalarT> && k < 2)
 constexpr auto DLd(linalg::Matrix<ScalarT, DoF, 3> Q, const T_fn& T,
                    const V_fn& V, const ScalarT& h, ScalarT eps = 1e-8) {
   linalg::Vector<ScalarT, DoF> grad;
-  for (size_t i = 0; i < DoF; ++i) {
-    Q(i)(1) += eps;
+  for (std::size_t i = 0; i < DoF; ++i) {
+    Q(i, 1) += eps;
     const auto pos = Ld(get_col(Q, k), get_col(Q, k + 1), T, V, h);
-    Q(i)(1) -= (2 * eps);
+    Q(i, 1) -= (2 * eps);
     const auto neg = Ld(get_col(Q, k), get_col(Q, k + 1), T, V, h);
-    Q(i)(1) += eps;
+    Q(i, 1) += eps;
     grad(i) = (pos - neg) / (2 * eps);
   }
   return grad;
 }
 
-template <size_t k, typename Qnc_fn, typename ScalarT, size_t DoF, size_t Nu>
-  requires(linalg::FieldLike<ScalarT> && k < 2)
+template <std::size_t k, typename Qnc_fn, typename ScalarT, std::size_t DoF,
+          std::size_t Nu>
+  requires(linalg::Field<ScalarT> && k < 2)
 constexpr auto Fd(const linalg::Matrix<ScalarT, DoF, 3>& Q,
                   const linalg::Vector<ScalarT, Nu>& U, const Qnc_fn& Qnc,
                   const ScalarT& h) {
@@ -59,7 +61,7 @@ constexpr auto Fd(const linalg::Matrix<ScalarT, DoF, 3>& Q,
   // (current test accuracy fails the below)
 #if 0
   linalg::Vector<ScalarT, DoF> v_mid;
-  for (size_t i = 0; i < DoF; ++i) v_mid[i] = (qkp1(i) - qk(i)) / h;
+  for (std::size_t i = 0; i < DoF; ++i) v_mid[i] = (qkp1(i) - qk(i)) / h;
 
   if constexpr (k == 0)
     return 0.5 * h * Qnc(qk, v_mid, U, h);
@@ -75,7 +77,8 @@ constexpr auto Fd(const linalg::Matrix<ScalarT, DoF, 3>& Q,
 // just want to simulate and not care about forming A and B... likewise
 // underlying qr solve could be better leveraged with LDL or something else...
 // so need to test out and improve accuracy, speed, and memory footprint
-template <typename ScalarT, size_t DoF, size_t Nu, typename DerivedSystem>
+template <typename ScalarT, std::size_t DoF, std::size_t Nu,
+          typename DerivedSystem>
 constexpr auto Solve(
     const DynamicalSystem<ScalarT, DoF, Nu, DerivedSystem>& system,
     const ScalarT& h, ScalarT eps = 1e-8, ScalarT tol = 1e-4) {
@@ -93,18 +96,19 @@ constexpr auto Solve(
            Fd<0>(Q, U, Qnc, h) + Fd<1>(Q, U, Qnc, h);
   };
 
-  auto calc_J = [&eps, &DEL](auto Q, const auto& U,
-                             size_t idx) -> linalg::Matrix<ScalarT, DoF, DoF> {
+  auto calc_J = [&eps,
+                 &DEL](auto Q, const auto& U,
+                       std::size_t idx) -> linalg::Matrix<ScalarT, DoF, DoF> {
     linalg::Matrix<ScalarT, DoF, DoF> J;
-    for (size_t j = 0; j < DoF; ++j) {
-      Q(j)(idx) += eps;
+    for (std::size_t j = 0; j < DoF; ++j) {
+      Q(j, idx) += eps;
       const auto pos = DEL(Q, U);
 
-      Q(j)(idx) -= (2 * eps);
+      Q(j, idx) -= (2 * eps);
       const auto neg = DEL(Q, U);
 
       const auto grad = (1 / (2 * eps)) * (pos - neg);
-      for (size_t k = 0; k < DoF; ++k) J(k)(j) = grad(k);
+      for (std::size_t k = 0; k < DoF; ++k) J(k, j) = grad(k);
     }
     return J;
   };
@@ -112,14 +116,14 @@ constexpr auto Solve(
   auto calc_J_wrt_U = [&eps, &DEL](const auto& Q,
                                    auto U) -> linalg::Matrix<ScalarT, DoF, Nu> {
     linalg::Matrix<ScalarT, DoF, Nu> J;
-    for (size_t j = 0; j < Nu; ++j) {
+    for (std::size_t j = 0; j < Nu; ++j) {
       U(j) += eps;
       const auto pos = DEL(Q, U);
       U(j) -= eps;
       const auto neg = DEL(Q, U);
 
       const auto grad = (1 / (2 * eps)) * (pos - neg);
-      for (size_t k = 0; k < DoF; ++k) J(k)(j) = grad(k);
+      for (std::size_t k = 0; k < DoF; ++k) J(k, j) = grad(k);
     }
     return J;
   };
@@ -130,7 +134,7 @@ constexpr auto Solve(
     const auto R_qkm1 = calc_J(Q, U, 0);
     const auto R_qk = calc_J(Q, U, 1);
 
-    constexpr size_t RHS_COLS = (Nu > 0) ? 2 * DoF + Nu : 2 * DoF;
+    constexpr std::size_t RHS_COLS = (Nu > 0) ? 2 * DoF + Nu : 2 * DoF;
 
     linalg::Matrix<ScalarT, DoF, RHS_COLS> RHS;
     RHS = linalg::set_block<0, DoF, 0, DoF>(RHS, ScalarT(-1) * R_qk);
@@ -142,10 +146,10 @@ constexpr auto Solve(
     }
 
     linalg::Matrix<ScalarT, DoF, RHS_COLS> S;
-    for (size_t i = 0; i < RHS_COLS; ++i) {
+    for (std::size_t i = 0; i < RHS_COLS; ++i) {
       const auto [x_i, flag] = J_qr.solve(get_col(RHS, i));
       static_cast<void>(flag);
-      for (size_t j = 0; j < DoF; ++j) S(j)(i) = x_i(j);
+      for (std::size_t j = 0; j < DoF; ++j) S(j, i) = x_i(j);
     }
 
     linalg::Matrix<ScalarT, 2 * DoF, 2 * DoF> A;
@@ -172,7 +176,7 @@ constexpr auto Solve(
   linalg::Matrix<ScalarT, 2 * DoF, Nu> B;
   linalg::Matrix<ScalarT, DoF, 3> Q;
 
-  for (size_t i = 0; i < MAX_STEP_EVAL; ++i) {
+  for (std::size_t i = 0; i < MAX_STEP_EVAL; ++i) {
     Q = system.get_Q();
     const auto U = system.get_U();
 
@@ -189,14 +193,14 @@ constexpr auto Solve(
     B = std::get<1>(ss);
 
     // Update Qkp1 column for next timestep
-    for (size_t j = 0; j < DoF; ++j) Q(j)(2) += Q_delta(j);
+    for (std::size_t j = 0; j < DoF; ++j) Q(j, 2) += Q_delta(j);
 
     if (linalg::L2<linalg::Vector<ScalarT, DoF>>()(Q_delta) < tol) break;
   }
 
-  for (size_t i = 0; i < DoF; ++i) {
-    Q(i)(0) = Q(i)(1);
-    Q(i)(1) = Q(i)(2);
+  for (std::size_t i = 0; i < DoF; ++i) {
+    Q(i, 0) = Q(i, 1);
+    Q(i, 1) = Q(i, 2);
   }
 
   return std::tuple{Q, A, B};

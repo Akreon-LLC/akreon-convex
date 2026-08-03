@@ -30,7 +30,7 @@ namespace convex {
  * duplicated here. Join this record with `CanonicalTrace::cones[i]` when
  * producing debug output.
  */
-template <linalg::FieldLike T>
+template <linalg::Field T>
 struct ConeStepTrace {
   T mu{};          ///< Local normalized duality gap for this cone.
   T rhs_c_norm{};  ///< ||rhs_c||_2 in this cone block.
@@ -39,7 +39,7 @@ struct ConeStepTrace {
 };
 
 /// @brief Predictor or corrector cone diagnostics for one outer iteration.
-template <linalg::FieldLike T, size_t NumCones>
+template <linalg::Field T, std::size_t NumCones>
 struct PdIpmStepTrace {
   /**
    * @brief reset
@@ -55,11 +55,11 @@ struct PdIpmStepTrace {
    *
    * @return cone at index
    */
-  constexpr auto& cone(const size_t& idx) {
+  constexpr auto& cone(std::size_t idx) {
     AK_ASSERT(idx < NumCones);
     return cones[idx];
   }
-  constexpr const auto& cone(const size_t& idx) const {
+  constexpr const auto& cone(std::size_t idx) const {
     AK_ASSERT(idx < NumCones);
     return cones[idx];
   }
@@ -74,7 +74,7 @@ struct PdIpmStepTrace {
  * This is intentionally global/iteration-level. Per-cone scalar diagnostics are
  * stored under `predictor` and `corrector`.
  */
-template <linalg::FieldLike T, size_t NumCones>
+template <linalg::Field T, std::size_t NumCones>
 struct PdIpmIterTrace {
 
   /**
@@ -110,11 +110,11 @@ struct PdIpmIterTrace {
  * `num_iters` is the number of committed iterations. `current()` returns the
  * next writable slot until `commit_iter()` is called.
  */
-template <linalg::FieldLike T, size_t NumCones>
+template <linalg::Field T, std::size_t NumCones>
 struct PdIpmTrace {
   constexpr void reset() { *this = {}; }
   /// @brief static export of num cones
-  static constexpr size_t num_cones = NumCones;
+  static constexpr std::size_t num_cones = NumCones;
 
   /**
    * @brief full (num_iters >= PD_IPM_STEPS)
@@ -128,19 +128,19 @@ struct PdIpmTrace {
    *
    * @return num_iters
    */
-  constexpr size_t size() const { return num_iters; }
+  constexpr std::size_t size() const { return num_iters; }
 
   /**
    * @brief iter & relevent overrides
    *
-   * @param k (size_t)
+   * @param k (std::size_t)
    *
    * @return iter at k
    */
-  constexpr auto& iter(const size_t& k) { return iters[k]; }
-  constexpr const auto& iter(const size_t& k) const { return iters[k]; }
-  constexpr auto& operator[](const size_t& k) { return iters[k]; }
-  constexpr const auto& operator[](const size_t& k) const { return iters[k]; }
+  constexpr auto& iter(std::size_t k) { return iters[k]; }
+  constexpr const auto& iter(std::size_t k) const { return iters[k]; }
+  constexpr auto& operator[](std::size_t k) { return iters[k]; }
+  constexpr const auto& operator[](std::size_t k) const { return iters[k]; }
 
   /**
    * @brief current
@@ -173,8 +173,8 @@ struct PdIpmTrace {
 
   /** @brief public member vars */
   std::array<PdIpmIterTrace<T, NumCones>, PD_IPM_STEPS>
-      iters{};        ///< array of pd ipm trace objects
-  size_t num_iters{}; ///< number of iterations
+      iters{};             ///< array of pd ipm trace objects
+  std::size_t num_iters{}; ///< number of iterations
 };
 
 /// @brief Empty object used when full snapshot tracing is disabled.
@@ -183,7 +183,7 @@ struct EmptyPdIpmSnapshot {};
 /**
  * @brief Cone snap shot at current iterate
  */
-template <linalg::FieldLike T, size_t MaxConeDim>
+template <linalg::Field T, std::size_t MaxConeDim>
 struct PdIpmConeSnapshot {
   std::array<T, MaxConeDim> xk{};    ///< primal var at k
   std::array<T, MaxConeDim> yk{};    ///< dual var at k
@@ -195,7 +195,7 @@ struct PdIpmConeSnapshot {
 /**
  * @brief Global snap shot at current iterate
  */
-template <linalg::FieldLike T, size_t VarDim, size_t EqDim>
+template <linalg::Field T, std::size_t VarDim, std::size_t EqDim>
 struct PdIpmGlobalStepSnapshot {
   std::array<T, VarDim> pz{}; ///< dec var newton step
   std::array<T, EqDim> pnu{}; ///< equality newton step
@@ -207,8 +207,8 @@ struct PdIpmGlobalStepSnapshot {
  * This stores cone-local snapshots per cone, and stores global `pz`/`pnu` once
  * per predictor/corrector pass rather than duplicating them per cone.
  */
-template <linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
-          size_t VarDim, size_t EqDim>
+template <linalg::Field T, std::size_t NumCones, std::size_t MaxConeDim,
+          std::size_t VarDim, std::size_t EqDim>
 struct PdIpmFullIterSnapshot {
   std::array<PdIpmConeSnapshot<T, MaxConeDim>, NumCones>
       predictor_cones{}; ///< predictor cone snap shot
@@ -221,14 +221,14 @@ struct PdIpmFullIterSnapshot {
 };
 
 /// @brief Alias for snap shot storage (full or empty)
-template <bool Enable, linalg::FieldLike T, size_t NumCones, size_t MaxConeDim,
-          size_t VarDim, size_t EqDim>
+template <bool Enable, linalg::Field T, std::size_t NumCones,
+          std::size_t MaxConeDim, std::size_t VarDim, std::size_t EqDim>
 using PdIpmSnapshotStorage = std::conditional_t<
     Enable, PdIpmFullIterSnapshot<T, NumCones, MaxConeDim, VarDim, EqDim>,
     EmptyPdIpmSnapshot>;
 
 /// @brief Convenience alias for a solver trace matched to a CanonicalTrace.
-template <linalg::FieldLike T, typename CanonicalTraceT>
+template <linalg::Field T, typename CanonicalTraceT>
 using PdIpmTraceForCanonicalTrace =
     PdIpmTrace<T, canonical_trace_num_cones_v<CanonicalTraceT>>;
 

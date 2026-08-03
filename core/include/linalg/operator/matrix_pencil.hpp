@@ -16,10 +16,10 @@
 
 namespace linalg {
 
-template <SquareMatrixLike Mat, size_t Dim>
+template <SquareMatrix Mat, std::size_t Dim>
 struct MatrixPencil {
   /// @brief extracting alias and types
-  using T = mat_type_t<Mat>;
+  using T = matrix_scalar_t<Mat>;
   using Fs = Vector<Mat, Dim>;
 
   /**
@@ -31,15 +31,15 @@ struct MatrixPencil {
    *
    * @return Fs
    */
-  template <MatrixLike FullMat, typename Fn>
+  template <MatrixContainer FullMat, typename Fn>
   constexpr auto apply_full(const Fn& op) const {
-    static constexpr size_t Rows = mat_rows_v<FullMat>;
-    static constexpr size_t Cols = mat_cols_v<FullMat>;
+    static constexpr std::size_t Rows = mat_rows_v<FullMat>;
+    static constexpr std::size_t Cols = mat_cols_v<FullMat>;
     Fs F_blks{};
-    for (size_t i = 0, idx = 0; i < Rows; ++i) {
-      for (size_t j = 0; j < Cols; ++j, ++idx) {
+    for (std::size_t i = 0, idx = 0; i < Rows; ++i) {
+      for (std::size_t j = 0; j < Cols; ++j, ++idx) {
         FullMat E{};
-        E(i)(j) = T(1);
+        E(i, j) = T(1);
         F_blks(idx) = op(E);
       }
     }
@@ -55,16 +55,16 @@ struct MatrixPencil {
    *
    * @return Fs
    */
-  template <SquareMatrixLike SymMat, typename Fn>
+  template <SquareMatrix SymMat, typename Fn>
   constexpr auto apply_sym_mat(const Fn& op) const {
-    static constexpr size_t N = mat_rows_v<SymMat>;
+    static constexpr std::size_t N = mat_rows_v<SymMat>;
 
     Fs F_blks{};
-    for (size_t i = 0, idx = 0; i < N; ++i) {
-      for (size_t j = 0; j <= i; ++j) {
+    for (std::size_t i = 0, idx = 0; i < N; ++i) {
+      for (std::size_t j = 0; j <= i; ++j) {
         SymMat E{};
-        if (i == j) E(i)(j) = T(1);
-        else E(i)(j) = E(j)(i) = T(1) / linalg::constexpr_sqrt_safe(T(2));
+        if (i == j) E(i, j) = T(1);
+        else E(i, j) = E(j, i) = linalg::inv_sqrt2_v<T>;
 
         F_blks(idx++) = op(E);
       }

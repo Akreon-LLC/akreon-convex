@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "linalg/vector/algebra_traits.hpp"
+#include "linalg/space/space_concepts.hpp"
 #include "linalg/vector/algebra_util.hpp"
 
 namespace config {
@@ -27,17 +27,17 @@ namespace config {
 /**
  * @brief FactorConfig
  */
-template <linalg::RealLike T>
+template <linalg::Real T>
 struct FactorConfig {
-  size_t steps{64};   ///< total number of iter
-  T tol{1e-8};        ///< tolerance of of solution
-  T floor_eps{1e-10}; ///< machine precision (lower bounds)
+  std::size_t steps{64}; ///< total number of iter
+  T tol{1e-8};           ///< tolerance of of solution
+  T floor_eps{1e-10};    ///< machine precision (lower bounds)
 };
 
 /**
  * @brief RegularizationConfig
  */
-template <linalg::RealLike T>
+template <linalg::Real T>
 struct RegularizationConfig {
   T global_eps{1e-12}; ///< tikhonov reg applied to full schur kkt
   T eq_eps{1e-8};      ///< tikhonov reg applied to only weak equality dir
@@ -46,14 +46,14 @@ struct RegularizationConfig {
 /**
  * @brief PrimalDualIPMConfig
  */
-template <linalg::RealLike T>
+template <linalg::Real T>
 struct PrimalDualIPMConfig {
-  size_t steps{PD_IPM_STEPS};    ///< total number of iter
-  size_t backtrack_steps{64};    ///< total number of backtracking steps
-  T primal_feas_tol{1e-5};       ///< tolerance for primal feasbility
-  T dual_feas_tol{1e-5};         ///< tolerance for dual feasbility
-  T duality_gap_tol{1e-5};       ///< tolerance for complementarity
-  T Delta{2 * linalg::ln2_v<T>}; ///< relative neighborhood around F(Beta)
+  std::size_t steps{PD_IPM_STEPS}; ///< total number of iter
+  std::size_t backtrack_steps{64}; ///< total number of backtracking steps
+  T primal_feas_tol{1e-5};         ///< tolerance for primal feasbility
+  T dual_feas_tol{1e-5};           ///< tolerance for dual feasbility
+  T duality_gap_tol{1e-5};         ///< tolerance for complementarity
+  T Delta{2 * linalg::ln2_v<T>};   ///< relative neighborhood around F(Beta)
   FactorConfig<T> schur{.tol = T(1e-12),
                         .floor_eps = T(1e-14)}; ///< Schur Factor Config
   RegularizationConfig<T> reg;                  ///< Regularization config
@@ -102,7 +102,7 @@ enum struct NumericalEvent : uint8_t {
  *
  * @return T/F
  */
-inline constexpr bool is_fatal_event(const NumericalEvent& event) {
+inline constexpr bool is_fatal_event(NumericalEvent event) {
   return event == NumericalEvent::FACTORIZATION_FAILED ||
          event == NumericalEvent::EVD_FAILED;
 }

@@ -33,7 +33,7 @@ struct Inequality {
   using Codom = meta_codom_t<Meta>;
   using T = dom_type_t<Domain>;
   using Point = dom_point_t<Domain>;
-  static constexpr size_t M = dom_size_v<Codom>;
+  static constexpr std::size_t M = dom_size_v<Codom>;
 
   static_assert(is_fn_type_v<LHS> || is_index_type_v<LHS> || is_var_type_v<LHS>,
                 "LHS Atom must be fn, index, or var type");
@@ -80,9 +80,9 @@ struct Inequality {
       }
     };
 
-    auto make_broadcast = [](const T& scalar) {
+    auto make_broadcast = [](T scalar) {
       linalg::Vector<T, M> out{};
-      for (size_t i = 0; i < M; ++i) out(i) = scalar;
+      for (std::size_t i = 0; i < M; ++i) out(i) = scalar;
       return out;
     };
 
@@ -95,7 +95,7 @@ struct Inequality {
     };
 
     if constexpr (dom_vartype_v<Codom> == VarType::PSD &&
-                  linalg::MatrixLike<linalg::remove_cvref_t<RHS>>) {
+                  linalg::MatrixContainer<RHS>) {
       static_assert(is_var_type_v<LHS>,
                     "PSD inequalities only support variable lhs");
       static_assert(IType == InequalityType::GEQ,
@@ -103,7 +103,7 @@ struct Inequality {
 
       using CodomPoint = dom_point_t<Codom>;
       using RHSMat = linalg::remove_cvref_t<RHS>;
-      using RHSScalar = linalg::mat_type_t<RHSMat>;
+      using RHSScalar = linalg::matrix_scalar_t<RHSMat>;
       static_assert(linalg::mat_rows_v<RHSMat> ==
                         linalg::mat_rows_v<CodomPoint>,
                     "PSD inequality rhs row dim mismatch");
@@ -116,10 +116,10 @@ struct Inequality {
       const auto child_builder = canonicalize_atom(lhs, builder);
       const auto child_coord = child_builder.coord_map;
 
-      static constexpr size_t MatDim = linalg::mat_rows_v<CodomPoint>;
-      static constexpr size_t K = MatDim * (MatDim + 1) / 2;
+      static constexpr std::size_t MatDim = linalg::mat_rows_v<CodomPoint>;
+      static constexpr std::size_t K = MatDim * (MatDim + 1) / 2;
 
-      if constexpr (linalg::RealLike<RHSScalar>)
+      if constexpr (linalg::Real<RHSScalar>)
         AK_ASSERT(linalg::all_equal(rhs, linalg::transpose(rhs)) &&
                   "PSD inequality expects symmetric matrix rhs");
       else
@@ -135,7 +135,7 @@ struct Inequality {
       const auto emission =
           conic::LocalEmission(coord_map_up, cones, child_builder.eq_map);
       return child_builder.template realize<AtomType::CAP>(emission);
-    } else if constexpr (linalg::FieldLike<RHS>) {
+    } else if constexpr (linalg::Field<RHS>) {
       const auto child_builder = canonicalize_atom(lhs, builder);
       const auto child_coord = child_builder.coord_map;
 
@@ -149,8 +149,8 @@ struct Inequality {
                       "PSD inequalities currently only support X >= 0");
         AK_ASSERT(rhs == T(0) && "PSD inequality expects zero rhs");
 
-        static constexpr size_t MatDim = linalg::mat_rows_v<CodomPoint>;
-        static constexpr size_t K = MatDim * (MatDim + 1) / 2;
+        static constexpr std::size_t MatDim = linalg::mat_rows_v<CodomPoint>;
+        static constexpr std::size_t K = MatDim * (MatDim + 1) / 2;
 
         const auto F = child_coord.linear_part();
         const auto g = child_coord.translation();
@@ -190,7 +190,7 @@ struct Inequality {
         }
       }
     } else {
-      if constexpr (!linalg::MatrixLike<linalg::remove_cvref_t<RHS>>) {
+      if constexpr (!linalg::MatrixContainer<RHS>) {
         static_assert(
             is_fn_type_v<RHS> || is_index_type_v<RHS> || is_var_type_v<RHS>,
             "RHS Atom must be fn, index, var, scalar, or matrix type");

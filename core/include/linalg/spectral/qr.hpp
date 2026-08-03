@@ -30,15 +30,15 @@ namespace linalg {
  * For short and fat matrices just transpose A -> QR -> transpose result back
  * into A = L Q result
  */
-template <MatrixLike Mat>
+template <MatrixContainer Mat>
 struct QR {
   // @brief alias for underlying type
-  using T = mat_type_t<Mat>;
-  using ScalarT = scalar_type_t<T>;
+  using T = matrix_scalar_t<Mat>;
+  using ScalarT = real_type_t<T>;
 
   // @brief get rows and cols from matrix type
-  static constexpr size_t Rows = mat_rows_v<Mat>;
-  static constexpr size_t Cols = mat_cols_v<Mat>;
+  static constexpr std::size_t Rows = mat_rows_v<Mat>;
+  static constexpr std::size_t Cols = mat_cols_v<Mat>;
 
   static_assert(Rows >= Cols && Rows > 0,
                 "QR Factorization requires [square | overdetermined] system");
@@ -85,10 +85,10 @@ struct QR {
    */
   constexpr auto rank(ScalarT tol = 1e-6) const {
     const auto LT = R();
-    const size_t mn = std::min(Rows, Cols);
-    size_t rank = 0;
-    for (size_t i = 0; i < mn; ++i)
-      if (L2<Vector<T, 1>>()(Vector<T, 1>{LT(i)(i)}) > tol) rank += 1;
+    const std::size_t mn = std::min(Rows, Cols);
+    std::size_t rank = 0;
+    for (std::size_t i = 0; i < mn; ++i)
+      if (L2<Vector<T, 1>>()(Vector<T, 1>{LT(i, i)}) > tol) rank += 1;
     return rank;
   }
 
@@ -107,7 +107,7 @@ struct QR {
     const auto U = Q();
     const auto LT = R();
 
-    if constexpr (ComplexLike<T>) c = conjugate_transpose(U) * b;
+    if constexpr (Complex<T>) c = conjugate_transpose(U) * b;
     else c = transpose(U) * b;
 
     return back_solve(LT, c);
@@ -138,7 +138,8 @@ private:
    */
   constexpr void solve_householder(Mat A) {
     H = A;
-    constexpr_for<0, Cols>([&]<size_t j>(std::integral_constant<size_t, j>) {
+    constexpr_for<0, Cols>([&]<std::size_t j>(
+                               std::integral_constant<std::size_t, j>) {
       const auto& Q_jm = get_n_rows<j, Rows>(H);
       const auto& Q_jm_j = get_col(Q_jm, j);
 
@@ -147,14 +148,15 @@ private:
       const auto& v = as_col_vector(q.v);
 
       auto Q_jm_jn = get_n_cols<j, Cols>(Q_jm);
-      if constexpr (ComplexLike<T>)
+      if constexpr (Complex<T>)
         Q_jm_jn = Q_jm_jn - (beta(j) * v) * (conjugate_transpose(v) * Q_jm_jn);
       else Q_jm_jn = Q_jm_jn - (beta(j) * v) * (transpose(v) * Q_jm_jn);
 
-      for (size_t k = j, a = 0; k < Rows; ++k, ++a)
-        for (size_t l = j, b = 0; l < Cols; ++l, ++b) H(k)(l) = Q_jm_jn(a)(b);
+      for (std::size_t k = j, a = 0; k < Rows; ++k, ++a)
+        for (std::size_t l = j, b = 0; l < Cols; ++l, ++b)
+          H(k, l) = Q_jm_jn(a, b);
 
-      for (size_t k = j + 1, a = 1; k < Rows; ++k, ++a) H(k)(j) = v(a)(0);
+      for (std::size_t k = j + 1, a = 1; k < Rows; ++k, ++a) H(k, j) = v(a, 0);
     });
   }
 
@@ -168,22 +170,23 @@ private:
    */
   constexpr auto get_unitary_matrix() const {
     auto U = make_identity<T, Rows>();
-    constexpr_for<0, Cols>([&]<size_t jj>(std::integral_constant<size_t, jj>) {
-      const size_t j = Cols - jj - 1;
+    constexpr_for<0, Cols>([&]<std::size_t jj>(
+                               std::integral_constant<std::size_t, jj>) {
+      const std::size_t j = Cols - jj - 1;
       Vector<T, Rows - j> v;
       v(0) = T(1);
-      for (size_t i = j + 1, a = 1; i < Rows; ++i, ++a) v(a) = H(i)(j);
+      for (std::size_t i = j + 1, a = 1; i < Rows; ++i, ++a) v(a) = H(i, j);
 
       const auto& v_col = as_col_vector(v);
 
       auto Q_block = get_n_rows<j, Rows>(U);
-      if constexpr (ComplexLike<T>)
+      if constexpr (Complex<T>)
         Q_block = Q_block -
                   (beta(j) * v_col) * (conjugate_transpose(v_col) * Q_block);
       else Q_block = Q_block - (beta(j) * v_col) * (transpose(v_col) * Q_block);
 
-      for (size_t r = j, a = 0; r < Rows; ++r, ++a)
-        for (size_t c = 0; c < Rows; ++c) U(r)(c) = Q_block(a)(c);
+      for (std::size_t r = j, a = 0; r < Rows; ++r, ++a)
+        for (std::size_t c = 0; c < Rows; ++c) U(r, c) = Q_block(a, c);
     });
     return U;
   }
@@ -205,11 +208,11 @@ private:
     linalg::NumericalEvent event{linalg::NumericalEvent::NONE};
     for (int i = static_cast<int>(mn) - 1; i >= 0; --i) {
       T sum = 0;
-      for (size_t j = i + 1; j < Cols; ++j) sum += (R(i)(j) * x(j));
+      for (std::size_t j = i + 1; j < Cols; ++j) sum += (R(i, j) * x(j));
 
-      AK_ASSERT(R(i)(i) != T(0) &&
+      AK_ASSERT(R(i, i) != T(0) &&
                 "QR back_solve requires non-zero diagonal in R");
-      T d = R(i)(i);
+      T d = R(i, i);
       ScalarT mag = constexpr_abs(d);
       if (mag <= config.floor_eps) {
         d = (mag > ScalarT(0)) ? d * config.floor_eps / mag

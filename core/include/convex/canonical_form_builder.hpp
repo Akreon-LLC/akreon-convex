@@ -12,7 +12,7 @@
 
 #pragma once
 
-#include "affine/affine_map.hpp"
+#include "linalg/affine/affine_map.hpp"
 #include "config/assert.hpp"
 #include "convex/canonical_emission.hpp"
 #include "convex/cone_traits.hpp"
@@ -34,10 +34,10 @@ struct CanonicalFormBuilder {
   /// @brief Affine matrix type for the current cone-coordinate selector.
   using CoordMapT = affine::affine_mat_t<CoordMap>;
   /// @brief Scalar field used by the canonical form.
-  using T = linalg::mat_type_t<CoordMapT>;
+  using T = linalg::matrix_scalar_t<CoordMapT>;
 
   /// @brief Number of original decision variables before auxiliary columns.
-  static constexpr size_t N = linalg::space_dim_v<DecVarDom>;
+  static constexpr std::size_t N = linalg::space_dim_v<DecVarDom>;
 
   /**
    * @brief Construct a builder from existing canonical-form components.
@@ -64,22 +64,22 @@ struct CanonicalFormBuilder {
    */
   template <convex::AtomType Type, affine::AffineMapLike LiftedMap,
             typename... Cs>
-  constexpr auto make(const int& idx, const LiftedMap& lift_map,
+  constexpr auto make(int idx, const LiftedMap& lift_map,
                       const std::tuple<Cs...>& cones) const {
     const auto new_map = this->template update_map<Type>();
     const auto new_eq_map = this->template update_eq_map<Type>();
-    static constexpr size_t FullDom =
+    static constexpr std::size_t FullDom =
         linalg::mat_cols_v<decltype(new_map.linear_part())>;
 
     linalg::Vector<T, FullDom> sel{};
     linalg::Vector<T, 1> bias{lift_map.translation()(0)};
 
-    AK_ASSERT(idx < 0 && static_cast<size_t>(-idx) <= FullDom &&
+    AK_ASSERT(idx < 0 && static_cast<std::size_t>(-idx) <= FullDom &&
               "Aux variable selector index out of bounds in "
               "CanonicalFormBuilder::make");
 
-    const size_t selector_idx = FullDom - static_cast<size_t>(-idx);
-    sel(selector_idx) = lift_map.linear_part()(0)(0);
+    const std::size_t selector_idx = FullDom - static_cast<std::size_t>(-idx);
+    sel(selector_idx) = lift_map.linear_part()(0, 0);
     const linalg::RowVector<T, FullDom> sel_row = linalg::as_row_vector(sel);
     const auto new_coord_map =
         affine::AffineMap<decltype(sel_row)>(sel_row, bias);
@@ -119,7 +119,7 @@ struct CanonicalFormBuilder {
    */
   template <convex::AtomType Type, affine::AffineMapLike LiftedMap,
             LocalEmissionLike Emission>
-  constexpr auto realize(const int& idx, const LiftedMap& lift_map,
+  constexpr auto realize(int idx, const LiftedMap& lift_map,
                          const Emission& emission) const {
     const auto traced = add_cone_trace<Type, Emission>(emission);
     const auto local_builder = make_builder<DecVarDom>(
@@ -161,15 +161,15 @@ struct CanonicalFormBuilder {
     using LocalEqMap = emission_local_eq_map_t<Emission>;
     using LocalEqMat = affine::affine_mat_t<LocalEqMap>;
 
-    static_assert(std::same_as<T, linalg::mat_type_t<LocalEqMat>>,
+    static_assert(std::same_as<T, linalg::matrix_scalar_t<LocalEqMat>>,
                   "type mismatch between equality emission and builder");
 
-    static constexpr size_t CurrentRows = linalg::mat_rows_v<CurrentEqMat>;
-    static constexpr size_t CurrentCols = linalg::mat_cols_v<CurrentEqMat>;
-    static constexpr size_t LocalRows = linalg::mat_rows_v<LocalEqMat>;
-    static constexpr size_t LocalCols = linalg::mat_cols_v<LocalEqMat>;
-    static constexpr size_t FullRows = CurrentRows + LocalRows;
-    static constexpr size_t FullCols =
+    static constexpr std::size_t CurrentRows = linalg::mat_rows_v<CurrentEqMat>;
+    static constexpr std::size_t CurrentCols = linalg::mat_cols_v<CurrentEqMat>;
+    static constexpr std::size_t LocalRows = linalg::mat_rows_v<LocalEqMat>;
+    static constexpr std::size_t LocalCols = linalg::mat_cols_v<LocalEqMat>;
+    static constexpr std::size_t FullRows = CurrentRows + LocalRows;
+    static constexpr std::size_t FullCols =
         CurrentCols > LocalCols ? CurrentCols : LocalCols;
 
     linalg::Matrix<T, FullRows, FullCols> A{};
@@ -178,13 +178,14 @@ struct CanonicalFormBuilder {
     if constexpr (CurrentRows != 0 && CurrentCols != 0) {
       A = linalg::set_block<0, CurrentRows, 0, CurrentCols>(
           A, eq_map.linear_part());
-      for (size_t i = 0; i < CurrentRows; ++i) b(i) = eq_map.translation()(i);
+      for (std::size_t i = 0; i < CurrentRows; ++i)
+        b(i) = eq_map.translation()(i);
     }
 
     if constexpr (LocalRows != 0 && LocalCols != 0) {
       A = linalg::set_block<CurrentRows, FullRows, 0, LocalCols>(
           A, emission.local_eq_map.linear_part());
-      for (size_t i = 0; i < LocalRows; ++i)
+      for (std::size_t i = 0; i < LocalRows; ++i)
         b(i + CurrentRows) = emission.local_eq_map.translation()(i);
     }
 
@@ -217,12 +218,12 @@ private:
     // The builder owns global offsets: atom emissions only describe local
     // cones/equalities, while the builder knows how many rows were realized
     // before this emission.
-    constexpr size_t NodeId =
+    constexpr std::size_t NodeId =
         convex::canonical_trace_num_nodes_v<CanonicalTrace>;
-    constexpr size_t GlobalConeStart = conic::cone_block_num_cones_v<CB>;
-    constexpr size_t ConeOffsetStart = conic::cone_block_map_rows_v<CB>;
-    constexpr size_t LocalEqRows = emission_local_eq_rows_v<Emission>;
-    constexpr size_t EqOffsetStart = linalg::mat_rows_v<EqMapT>;
+    constexpr std::size_t GlobalConeStart = conic::cone_block_num_cones_v<CB>;
+    constexpr std::size_t ConeOffsetStart = conic::cone_block_map_rows_v<CB>;
+    constexpr std::size_t LocalEqRows = emission_local_eq_rows_v<Emission>;
+    constexpr std::size_t EqOffsetStart = linalg::mat_rows_v<EqMapT>;
 
     const auto nodes = std::make_tuple(convex::CanonicalNodeRecord{
         NodeId, convex::canonical_no_parent, Type, 0});
@@ -251,10 +252,10 @@ private:
   constexpr auto add_equality_trace(const Emission& /*emission*/) const {
     using EqMapT = affine::affine_mat_t<EqMap>;
 
-    constexpr size_t NodeId =
+    constexpr std::size_t NodeId =
         convex::canonical_trace_num_nodes_v<CanonicalTrace>;
-    constexpr size_t LocalEqRows = emission_local_eq_rows_v<Emission>;
-    constexpr size_t EqOffsetStart = linalg::mat_rows_v<EqMapT>;
+    constexpr std::size_t LocalEqRows = emission_local_eq_rows_v<Emission>;
+    constexpr std::size_t EqOffsetStart = linalg::mat_rows_v<EqMapT>;
 
     const auto nodes = std::make_tuple(convex::CanonicalNodeRecord{
         NodeId, convex::canonical_no_parent, convex::AtomType::SET, 0});
@@ -284,31 +285,31 @@ private:
     const auto& cone_map = cb.map;
     using ConeMapT = affine::affine_mat_t<decltype(cone_map)>;
 
-    static_assert(std::same_as<T, linalg::mat_type_t<ConeMapT>>,
+    static_assert(std::same_as<T, linalg::matrix_scalar_t<ConeMapT>>,
                   "type mismatch between cone map and coord map");
 
-    static constexpr size_t CoordDom = linalg::mat_cols_v<CoordMapT>;
-    static constexpr size_t CoordCodom = linalg::mat_rows_v<CoordMapT>;
+    static constexpr std::size_t CoordDom = linalg::mat_cols_v<CoordMapT>;
+    static constexpr std::size_t CoordCodom = linalg::mat_rows_v<CoordMapT>;
 
-    static constexpr size_t ConeDom = linalg::mat_cols_v<ConeMapT>;
-    static constexpr size_t ConeCodom = linalg::mat_rows_v<ConeMapT>;
-    static constexpr size_t ConeAux = ConeDom == 0 ? 0 : ConeDom - N;
-    static constexpr size_t CoordAux = CoordDom - N;
+    static constexpr std::size_t ConeDom = linalg::mat_cols_v<ConeMapT>;
+    static constexpr std::size_t ConeCodom = linalg::mat_rows_v<ConeMapT>;
+    static constexpr std::size_t ConeAux = ConeDom == 0 ? 0 : ConeDom - N;
+    static constexpr std::size_t CoordAux = CoordDom - N;
 
     static constexpr bool is_op =
         Type == convex::AtomType::ADD || Type == convex::AtomType::CAP;
     static constexpr bool is_add = Type == convex::AtomType::ADD;
 
     /// (dakre) F cols: [ dec vars | cone aux | coord aux ]
-    static constexpr size_t FullDom =
+    static constexpr std::size_t FullDom =
         is_add
             ? (N + ConeAux + CoordAux)
             : (is_op ? ((ConeDom > CoordDom) ? ConeDom : CoordDom) : CoordDom);
-    static constexpr size_t FullCodom = ConeCodom + CoordCodom;
+    static constexpr std::size_t FullCodom = ConeCodom + CoordCodom;
 
-    static constexpr size_t CoordAuxStartCol =
+    static constexpr std::size_t CoordAuxStartCol =
         is_add ? ((ConeDom == 0) ? N : ConeDom) : N;
-    static constexpr size_t CoordAuxEndCol =
+    static constexpr std::size_t CoordAuxEndCol =
         is_add ? (CoordAuxStartCol + CoordAux) : CoordDom;
 
     linalg::Matrix<T, FullCodom, FullDom> F{};
@@ -318,7 +319,8 @@ private:
     if constexpr (ConeDom != 0) {
       F = linalg::set_block<0, ConeCodom, 0, ConeDom>(F,
                                                       cone_map.linear_part());
-      for (size_t i = 0; i < ConeCodom; ++i) g(i) = cone_map.translation()(i);
+      for (std::size_t i = 0; i < ConeCodom; ++i)
+        g(i) = cone_map.translation()(i);
     }
 
     /// (1) fill bottom left from coord map
@@ -336,7 +338,7 @@ private:
                             CoordAuxEndCol>(F, coord_aux_blk);
     }
 
-    for (size_t i = 0; i < CoordCodom; ++i)
+    for (std::size_t i = 0; i < CoordCodom; ++i)
       g(i + ConeCodom) = coord_map.translation()(i);
 
     const auto new_map = affine::AffineMap<decltype(F)>(F, g);
@@ -355,27 +357,27 @@ private:
   constexpr auto update_eq_map() const {
     using EqMapT = affine::affine_mat_t<EqMap>;
 
-    static_assert(std::same_as<T, linalg::mat_type_t<EqMapT>>,
+    static_assert(std::same_as<T, linalg::matrix_scalar_t<EqMapT>>,
                   "type mismatch between equality map and coord map");
 
-    static constexpr size_t CoordDom = linalg::mat_cols_v<CoordMapT>;
-    static constexpr size_t CoordAux = CoordDom - N;
+    static constexpr std::size_t CoordDom = linalg::mat_cols_v<CoordMapT>;
+    static constexpr std::size_t CoordAux = CoordDom - N;
 
-    static constexpr size_t EqDom = linalg::mat_cols_v<EqMapT>;
-    static constexpr size_t EqCodom = linalg::mat_rows_v<EqMapT>;
-    static constexpr size_t EqAux = EqDom == 0 ? 0 : EqDom - N;
+    static constexpr std::size_t EqDom = linalg::mat_cols_v<EqMapT>;
+    static constexpr std::size_t EqCodom = linalg::mat_rows_v<EqMapT>;
+    static constexpr std::size_t EqAux = EqDom == 0 ? 0 : EqDom - N;
 
     static constexpr bool is_op =
         Type == convex::AtomType::ADD || Type == convex::AtomType::CAP;
     static constexpr bool is_add = Type == convex::AtomType::ADD;
 
-    static constexpr size_t FullDom =
+    static constexpr std::size_t FullDom =
         is_add ? (N + EqAux + CoordAux)
                : (is_op ? ((EqDom > CoordDom) ? EqDom : CoordDom) : CoordDom);
 
-    static constexpr size_t CoordAuxStartCol =
+    static constexpr std::size_t CoordAuxStartCol =
         is_add ? ((EqDom == 0) ? N : EqDom) : N;
-    static constexpr size_t CoordAuxEndCol =
+    static constexpr std::size_t CoordAuxEndCol =
         is_add ? (CoordAuxStartCol + CoordAux) : CoordDom;
 
     linalg::Matrix<T, EqCodom, FullDom> A{};
@@ -383,7 +385,7 @@ private:
 
     if constexpr (EqCodom != 0 && EqDom != 0) {
       A = linalg::set_block<0, EqCodom, 0, EqDom>(A, eq_map.linear_part());
-      for (size_t i = 0; i < EqCodom; ++i) b(i) = eq_map.translation()(i);
+      for (std::size_t i = 0; i < EqCodom; ++i) b(i) = eq_map.translation()(i);
     }
 
     if constexpr (EqCodom != 0 && Type != convex::AtomType::VAR &&
@@ -426,7 +428,7 @@ constexpr auto make_builder(const CoordMap& coord_map, const CB& cb,
  *
  * @return empty cone block
  */
-template <linalg::FieldLike T>
+template <linalg::Field T>
 constexpr auto create_empty_cblk() {
   constexpr auto empty = std::make_tuple();
   constexpr conic::ConeBlock cb(
@@ -441,7 +443,7 @@ constexpr auto create_empty_cblk() {
  *
  * @return equality affine map
  */
-template <linalg::FieldLike T>
+template <linalg::Field T>
 constexpr auto create_empty_eq_map() {
   return affine::AffineMap(linalg::Matrix<T, 0, 0>{}, linalg::Vector<T, 0>{});
 }

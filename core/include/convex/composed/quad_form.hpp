@@ -27,7 +27,7 @@ namespace convex {
  *
  * 0.5 p x^2 + q x + r
  */
-template <linalg::FieldLike T>
+template <linalg::Field T>
 struct ScalarQuadForm {
   /// @brief aliases from type info
   using Space = linalg::Matrix<T, 1, 1>;
@@ -44,7 +44,7 @@ struct ScalarQuadForm {
    * @return sum object embedding QP
    */
   template <AtomLike Var>
-  constexpr auto operator()(const T& p, const T& q, const T& r, const Var& x) {
+  constexpr auto operator()(T p, T q, T r, const Var& x) {
     static_assert(
         std::same_as<dom_space_t<meta_codom_t<atom_meta_t<Var>>>, Space>,
         "Scalar quad form requires scalar codomain");
@@ -70,7 +70,7 @@ struct ScalarQuadForm {
    * @return sum object embedding qp
    */
   template <AtomLike Var>
-  constexpr auto operator()(const T& p, const T& q, const Var& x) {
+  constexpr auto operator()(T p, T q, const Var& x) {
     return this->operator()(p, q, T(0), x);
   }
 };
@@ -86,7 +86,7 @@ template <linalg::RnSpace Space>
 struct QuadForm {
   /// @brief alias and helpers
   using T = linalg::space_type_t<Space>;
-  static constexpr size_t N = linalg::space_dim_v<Space>;
+  static constexpr std::size_t N = linalg::space_dim_v<Space>;
 
   /// @brief matrix type for P
   using Mat = linalg::Matrix<T, N, N>;
@@ -110,8 +110,7 @@ struct QuadForm {
    * @return 0.5 x^T P x + q^T x + r
    */
   template <AtomLike Var>
-  constexpr auto operator()(const Mat& P, const Vec& q, const T& r,
-                            const Var& x) {
+  constexpr auto operator()(const Mat& P, const Vec& q, T r, const Var& x) {
     static_assert(N > 1,
                   "Use ScalarQuadForm<T> for scalar quadratic expressions");
     static_assert(is_var_type_v<Var>, "Quad form must operate on a var type");

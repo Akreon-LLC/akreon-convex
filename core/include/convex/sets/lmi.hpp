@@ -35,7 +35,7 @@ using LMIMeta =
  *
  * LMI solution set: `0 <= B + sum(x_i A_i)`.
  */
-template <typename Meta, typename Child, linalg::SquareMatrixLike MatIn>
+template <typename Meta, typename Child, linalg::SquareMatrix MatIn>
 struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
   /// @brief bring into scope the type traits from the base class
   using ConvexBase = ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child>;
@@ -47,7 +47,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
 
   /// @brief lifted matrix for P
   using Mat = linalg::remove_cvref_t<MatIn>;
-  static constexpr size_t MatDim = linalg::mat_rows_v<Mat>;
+  static constexpr std::size_t MatDim = linalg::mat_rows_v<Mat>;
   static_assert(linalg::mat_cols_v<Mat> == MatDim,
                 "LMI expects square coefficient matrices");
 
@@ -72,9 +72,9 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, T /* tol */) const {
     auto res = B;
-    for (size_t i = 0; i < N; ++i) res = res + (x(i) * A(i));
+    for (std::size_t i = 0; i < N; ++i) res = res + (x(i) * A(i));
     linalg::LDL ldl(res);
     return ldl.is_psd();
   }
@@ -99,7 +99,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
   template <typename Other>
   constexpr bool is_equal_impl(const Other& other) const {
     if (!linalg::all_equal(B, other.B)) return false;
-    for (size_t i = 0; i < N; ++i)
+    for (std::size_t i = 0; i < N; ++i)
       if (!linalg::all_equal(A(i), other.A(i))) return false;
     return true;
   }
@@ -111,7 +111,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
    *
    * @return new set
    */
-  template <linalg::MatrixLike Mat>
+  template <linalg::MatrixContainer Mat>
   constexpr auto transform_impl(const affine::AffineMap<Mat>& /* map */) const {
     AK_ASSERT(false && "LMI does not support transformations");
   }
@@ -133,27 +133,27 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
 
-    static constexpr size_t ChildCodom =
+    static constexpr std::size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
     static_assert(ChildCodom == N,
                   "Convex set domain does not equal the child coordinate "
                   "linear map's codomain in size");
 
-    static constexpr size_t K = MatDim * (MatDim + 1) / 2;
+    static constexpr std::size_t K = MatDim * (MatDim + 1) / 2;
     linalg::Matrix<T, K, N> F_local{};
     linalg::Vector<T, K> g_local{};
 
     auto update_F = [&F_local](const auto& i, const auto& M) {
       const auto m_svec = linalg::get_svec(M);
-      for (size_t row_idx = 0; row_idx < K; ++row_idx)
-        F_local(row_idx)(i) = m_svec(row_idx);
+      for (std::size_t row_idx = 0; row_idx < K; ++row_idx)
+        F_local(row_idx, i) = m_svec(row_idx);
     };
 
     auto update_g = [&g_local](const auto& M) {
       g_local = linalg::get_svec(M);
     };
 
-    for (size_t i = 0; i < N; ++i) update_F(i, A(i));
+    for (std::size_t i = 0; i < N; ++i) update_F(i, A(i));
     update_g(B);
 
     const auto F = F_local * child_coord.linear_part();
@@ -176,7 +176,7 @@ struct LMI : ConvexSet<Meta, LMI<Meta, Child, MatIn>, Child> {
 
 /// (dakre) CTAD - class template argument deduction for egononic use of LMI
 /// instead of full template path
-template <typename Mat, size_t N, typename Child>
+template <typename Mat, std::size_t N, typename Child>
 LMI(const linalg::Vector<Mat, N>&, const Mat&, const Child&)
     -> LMI<LMIMeta<dom_space_t<meta_codom_t<atom_meta_t<Child>>>>,
            atom_decay_t<Child>, Mat>;

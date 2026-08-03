@@ -19,7 +19,7 @@ using namespace dynamics;
 using namespace unit_test;
 using namespace linalg;
 
-template <typename ScalarT, size_t DoF = 2, size_t Nu = 0>
+template <typename ScalarT, std::size_t DoF = 2, std::size_t Nu = 0>
 class Pendulum
     : public DynamicalSystem<ScalarT, DoF, Nu, Pendulum<ScalarT, DoF, Nu>> {
 public:
@@ -73,13 +73,13 @@ TEST_CASE("Test Pendulum", "[pendulum]") {
     constexpr auto zeros = Vector<double, 2>{0.0, 0.0};
     constexpr auto Q = seed_Q(zeros);
 
-    STATIC_REQUIRE(Q(0)(0) == 0.0);
-    STATIC_REQUIRE(Q(0)(1) == 1e-4);
-    STATIC_REQUIRE(Q(0)(2) == 2e-4);
+    STATIC_REQUIRE(Q(0, 0) == 0.0);
+    STATIC_REQUIRE(Q(0, 1) == 1e-4);
+    STATIC_REQUIRE(Q(0, 2) == 2e-4);
 
-    STATIC_REQUIRE(Q(1)(0) == 0.0);
-    STATIC_REQUIRE(Q(1)(1) == 1e-4);
-    STATIC_REQUIRE(Q(1)(2) == 2e-4);
+    STATIC_REQUIRE(Q(1, 0) == 0.0);
+    STATIC_REQUIRE(Q(1, 1) == 1e-4);
+    STATIC_REQUIRE(Q(1, 2) == 2e-4);
 
     constexpr auto pendulum = Pendulum<double>(Q, 1.0, 2.0, 1.0, 2.0);
 
@@ -101,13 +101,13 @@ TEST_CASE("Test Pendulum", "[pendulum]") {
                                           0.51966,  0.51854};
     const double h = 0.01;
     auto Q = seed_Q(Vector<double, 2>{M_PI / 4, M_PI / 6});
-    for (size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < 10; ++i) {
       const auto result = Solve(Pendulum<double>(Q, 1.0, 1.0, 1.0, 1.0), h);
       Q = std::get<0>(result);
       REQUIRE(L2<Vector<double, 1>>()(
-                  Vector<double, 1>{Q(0)(2) - expected_theta_one(i)}) <= 1e-4);
+                  Vector<double, 1>{Q(0, 2) - expected_theta_one(i)}) <= 1e-4);
       REQUIRE(L2<Vector<double, 1>>()(
-                  Vector<double, 1>{Q(1)(2) - expected_theta_two(i)}) <= 1e-4);
+                  Vector<double, 1>{Q(1, 2) - expected_theta_two(i)}) <= 1e-4);
     }
   }
 }

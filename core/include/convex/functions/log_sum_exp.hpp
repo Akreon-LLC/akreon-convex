@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "convex/canonical_form_builder.hpp"
 #include "convex/convex_traits.hpp"
 
@@ -149,7 +151,7 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
    *
    * @return abs fn (updated map)
    */
-  constexpr auto add(const T& beta) const {
+  constexpr auto add(T beta) const {
     LiftedVarBias<T> bias{beta + lift_map.translation()(0)};
     affine::AffineMap<LiftedVarMat<T>> new_map(lift_map.linear_part(), bias);
     return LogSumExp<Meta, Child>(std::get<0>(this->children), new_map);
@@ -202,8 +204,8 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
     const auto child_coord = child_builder.coord_map;
 
     using AffineMatT = affine::affine_mat_t<decltype(child_coord)>;
-    static constexpr size_t Dom = linalg::mat_cols_v<AffineMatT>;
-    static constexpr size_t Codom = linalg::mat_rows_v<AffineMatT>;
+    static constexpr std::size_t Dom = linalg::mat_cols_v<AffineMatT>;
+    static constexpr std::size_t Codom = linalg::mat_rows_v<AffineMatT>;
     static_assert(Codom == N,
                   "Input affine map from cone block has invalid dom which is a "
                   "mismatch between domain in the convex function");
@@ -215,14 +217,14 @@ struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {
     const auto I = linalg::make_identity<T, Dom>();
 
     if constexpr (Tag == CurvatureType::CONVEX) {
-      for (size_t i = 0; i < N; ++i) F(i)(N) = T(-1);
+      for (std::size_t i = 0; i < N; ++i) F(i, N) = T(-1);
     } else {
-      for (size_t i = 0; i < N; ++i) F(i)(N) = T(1);
+      for (std::size_t i = 0; i < N; ++i) F(i, N) = T(1);
     }
     F = linalg::set_block<2 * N, 3 * N, N + 1, 2 * N + 1>(F, I);
-    for (size_t i = 0; i < N; ++i) F(3 * N)(N + 1 + i) = T(-1);
-    for (size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
-    for (size_t i = N; i < 2 * N; ++i) g(i) = T(1);
+    for (std::size_t i = 0; i < N; ++i) F(3 * N, N + 1 + i) = T(-1);
+    for (std::size_t i = 0; i < N; ++i) g(i) = child_coord.translation()(i);
+    for (std::size_t i = N; i < 2 * N; ++i) g(i) = T(1);
     g(3 * N) = T(1);
 
     const auto coord_map_up = affine::AffineMap<decltype(F)>(F, g);

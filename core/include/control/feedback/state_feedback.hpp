@@ -59,17 +59,17 @@ struct StateFeedback {
   using T = plant_type_t<Model>;
   using State = plant_state_vec_t<Model>;
 
-  static constexpr size_t StateDim = plant_traits<Model>::StateDim;
-  static constexpr size_t InputDim = plant_traits<Model>::ControlDim;
+  static constexpr std::size_t StateDim = plant_traits<Model>::StateDim;
+  static constexpr std::size_t InputDim = plant_traits<Model>::ControlDim;
 
   using PMat = linalg::Matrix<T, StateDim, StateDim>;
   using YMat = linalg::Matrix<T, InputDim, StateDim>;
   using KMat = linalg::Matrix<T, InputDim, StateDim>;
   using FMat = PMat;
 
-  static constexpr size_t PDim = StateDim * (StateDim + 1) / 2;
-  static constexpr size_t YDim = InputDim * StateDim;
-  static constexpr size_t ZDim = PDim + YDim;
+  static constexpr std::size_t PDim = StateDim * (StateDim + 1) / 2;
+  static constexpr std::size_t YDim = InputDim * StateDim;
+  static constexpr std::size_t ZDim = PDim + YDim;
 
   using ZSpace = linalg::RowVector<T, ZDim>;
   using Fs = linalg::Vector<FMat, ZDim>;
@@ -129,8 +129,8 @@ struct StateFeedback {
             [](const PMat& E) -> PMat { return E; });
 
     Fs P_blks{};
-    for (size_t i = 0; i < PDim; ++i) P_blks(i) = Fp_psd(i);
-    for (size_t i = 0; i < YDim; ++i) P_blks(PDim + i) = PMat{};
+    for (std::size_t i = 0; i < PDim; ++i) P_blks(i) = Fp_psd(i);
+    for (std::size_t i = 0; i < YDim; ++i) P_blks(PDim + i) = PMat{};
 
     return convex::LMI(P_blks, T(-1) * margin * I, Z);
   }
@@ -162,8 +162,8 @@ struct StateFeedback {
         linalg::MatrixPencil<FMat, YDim>{}.template apply_full<YMat>(M_y);
 
     Fs F_blks{};
-    for (size_t i = 0; i < PDim; ++i) F_blks(i) = Fp_local(i);
-    for (size_t i = 0; i < YDim; ++i) F_blks(PDim + i) = Fy_local(i);
+    for (std::size_t i = 0; i < PDim; ++i) F_blks(i) = Fp_local(i);
+    for (std::size_t i = 0; i < YDim; ++i) F_blks(PDim + i) = Fy_local(i);
 
     return convex::LMI(F_blks, FMat{}, Z);
   }

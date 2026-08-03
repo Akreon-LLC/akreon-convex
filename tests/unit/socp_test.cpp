@@ -36,7 +36,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
           x_trans);
   constexpr auto square = Square(norm);
   constexpr auto half_square = square.mul<0.5>();
-  constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+  constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
   constexpr auto sqrt5 = constexpr_sqrt_safe(5.0);
 
   constexpr auto F_mat = mat_traits<Matrixd<6, 4>>();
@@ -62,7 +62,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 6);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 6);
     STATIC_REQUIRE(g == g_exp);
 
     constexpr auto c = prob_min.linear_objective();
@@ -118,7 +118,7 @@ TEST_CASE("Minimal SOCP 2 Vars", "[socp_test]") {
     STATIC_REQUIRE(all_equal(F, F_ball_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 9);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 9);
     STATIC_REQUIRE(g == Vectord<9>{0.0, 0.0, 1.0, -1.0, 2.0, 0.0, 0.0,
                                    0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
 

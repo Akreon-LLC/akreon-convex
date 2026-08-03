@@ -66,9 +66,9 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     STATIC_REQUIRE(all_equal(F, F_exp));
 
     constexpr auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 5);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 5);
     STATIC_REQUIRE(g == Vectord<5>{1.0, 0.0, 1.0, 0.0, 0.0});
-    STATIC_REQUIRE(prob_min.linear_objective() == Matrixd<1, 2>{c});
+    STATIC_REQUIRE(prob_min.linear_objective() == c);
 
     /// (dakre) moving this to runtime path as compile time is slow
     PrimalDualIPMConfig<double> cfg{};
@@ -209,10 +209,10 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     REQUIRE(all_equal(F, F_exp));
 
     const auto g = prob_min.constraint_map().translation();
-    STATIC_REQUIRE(vec_size_v<decltype(g)> == 8);
+    STATIC_REQUIRE(vector_dim_v<decltype(g)> == 8);
     REQUIRE(g == Vectord<8>{1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0});
 
-    STATIC_REQUIRE(prob_min.linear_objective() == Matrixd<1, 2>{c});
+    STATIC_REQUIRE(prob_min.linear_objective() == c);
     PrimalDualIPMConfig<double> cfg{};
     cfg.steps = 64;
     cfg.primal_feas_tol = 1e-4;
@@ -392,7 +392,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
     STATIC_REQUIRE(prob.validate());
     STATIC_REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value ==
                    2);
-    STATIC_REQUIRE(prob.linear_objective() == Matrixd<1, 3>{c});
+    STATIC_REQUIRE(prob.linear_objective() == c);
 
     const PrimalDualIPM solver(prob);
     const auto& res = solver.res;

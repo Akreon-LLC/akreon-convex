@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "linalg/constants.hpp"
 #include "cone.hpp"
 
 namespace conic {
@@ -46,9 +47,9 @@ template <affine::AffineMapLike Map>
 struct Rotated2SOC {
   /// @brief extract alias & types
   using Mat = affine::affine_mat_t<Map>;
-  using T = linalg::mat_type_t<Mat>;
-  static constexpr size_t M = linalg::mat_rows_v<Mat>;
-  static constexpr size_t N = linalg::mat_cols_v<Mat>;
+  using T = linalg::matrix_scalar_t<Mat>;
+  static constexpr std::size_t M = linalg::mat_rows_v<Mat>;
+  static constexpr std::size_t N = linalg::mat_cols_v<Mat>;
 
   /**
    * @brief transform native RSOC coord map to SOC map
@@ -67,15 +68,14 @@ struct Rotated2SOC {
                   "(u, v, w)");
 
     const auto I = linalg::make_identity<T, M - 2>();
-    const auto sqrt2 = linalg::constexpr_sqrt_safe(T(2));
 
     linalg::Matrix<T, M, M> A{};
 
     A = linalg::set_block<0, M - 2, 0, M - 2>(A, I);
-    A(M - 2)(M - 2) = T(1) / sqrt2;
-    A(M - 2)(M - 1) = T(-1) / sqrt2;
-    A(M - 1)(M - 2) = T(1) / sqrt2;
-    A(M - 1)(M - 1) = T(1) / sqrt2;
+    A(M - 2, M - 2) = linalg::inv_sqrt2_v<T>;
+    A(M - 2, M - 1) = -linalg::inv_sqrt2_v<T>;
+    A(M - 1, M - 2) = linalg::inv_sqrt2_v<T>;
+    A(M - 1, M - 1) = linalg::inv_sqrt2_v<T>;
 
     affine::AffineMap<decltype(A)> r2soc(A);
     return r2soc.compose(map);
@@ -93,11 +93,11 @@ struct Rotated2SOC {
  *
  * @return x circ y (bilinear product)
  */
-template <linalg::VectorLike Vec>
+template <linalg::VectorContainer Vec>
 struct SOCCirc {
   /// @brief types and size extraction
-  using T = linalg::vec_type_t<Vec>;
-  static constexpr size_t N = linalg::vec_size_v<Vec>;
+  using T = linalg::vector_element_t<Vec>;
+  static constexpr std::size_t N = linalg::vector_dim_v<Vec>;
 
   /**
    * @brief circ (jordan map/product)
@@ -116,10 +116,10 @@ struct SOCCirc {
     const auto t2 = y(N - 1);
 
     const auto a = t2 * primal + t1 * dual;
-    const auto b = linalg::dot(primal, dual) + t1 * t2;
+    const auto b = linalg::inner_product(primal, dual) + t1 * t2;
 
     Vec res{};
-    for (size_t i = 0; i < N - 1; ++i) res(i) = a(i);
+    for (std::size_t i = 0; i < N - 1; ++i) res(i) = a(i);
     res(N - 1) = b;
     return res;
   }
@@ -130,7 +130,7 @@ struct SOCCirc {
  *
  * K_soc = { (x, t) | ||x|| <= t }
  */
-template <linalg::VectorLike Slack>
+template <linalg::VectorContainer Slack>
 struct SecondOrderCone
     : public Cone<Slack, SecondOrderCone<Slack>, ConeType::SYMMETRIC> {
   /// @brief bring into scope alias from cone base
@@ -169,7 +169,7 @@ struct SecondOrderCone
    */
   constexpr bool in_cone_impl(const Slack& x) const {
     T res{};
-    for (size_t i = 0; i < M - 1; ++i) res += x(i) * x(i);
+    for (std::size_t i = 0; i < M - 1; ++i) res += x(i) * x(i);
     res = linalg::constexpr_sqrt_safe(res);
     return res < x(M - 1);
   }
@@ -237,9 +237,9 @@ struct SecondOrderCone
     const auto dvar = std::get<0>(linalg::splice<M - 1>(p));
     const auto dt = p(M - 1);
 
-    const auto a = dt * dt - linalg::dot(dvar, dvar);
-    const auto b = T(2) * (t * dt - linalg::dot(var, dvar));
-    const auto c = t * t - linalg::dot(var, var);
+    const auto a = dt * dt - linalg::inner_product(dvar, dvar);
+    const auto b = T(2) * (t * dt - linalg::inner_product(var, dvar));
+    const auto c = t * t - linalg::inner_product(var, var);
 
     if (linalg::constexpr_abs(a) <= eps) {
       if (b < T(0)) alpha = std::min(alpha, -c / b);
@@ -474,10 +474,10 @@ struct SecondOrderCone
     const auto v = std::get<0>(linalg::splice<M - 1>(x));
     const auto t = x(M - 1);
     Slack adj_v;
-    for (size_t i = 0; i < M - 1; ++i) adj_v(i) = T(-1) * v(i);
+    for (std::size_t i = 0; i < M - 1; ++i) adj_v(i) = T(-1) * v(i);
     adj_v(M - 1) = t;
 
-    const auto det = t * t - linalg::dot(v, v);
+    const auto det = t * t - linalg::inner_product(v, v);
     if (std::isnan(det) || linalg::constexpr_abs(det) <= eps)
       return std::tuple((T(1) / eps) * adj_v,
                         linalg::NumericalEvent::NUMERICAL_SAFEGUARD);
@@ -512,7 +512,7 @@ struct SecondOrderCone
                                 linalg::constexpr_sqrt_safe(lam2));
 
     Slack v_zero{};
-    for (size_t i = 0; i < M - 1; ++i) v_zero(i) = v(i);
+    for (std::size_t i = 0; i < M - 1; ++i) v_zero(i) = v(i);
 
     auto x_sqrt = alpha * e_impl();
     if (v_norm > eps) x_sqrt = x_sqrt + beta * (T(1) / v_norm) * v_zero;

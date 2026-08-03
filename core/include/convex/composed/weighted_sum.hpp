@@ -26,7 +26,7 @@ template <linalg::RnSpace Space>
 struct WeightedSum {
   /// @brief type
   using T = linalg::space_type_t<Space>;
-  static constexpr size_t N = linalg::space_dim_v<Space>;
+  static constexpr std::size_t N = linalg::space_dim_v<Space>;
 
   /// @brief vec type for q
   using Vec = linalg::Vector<T, N>;

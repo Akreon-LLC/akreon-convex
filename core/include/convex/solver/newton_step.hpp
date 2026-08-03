@@ -17,8 +17,8 @@ namespace convex {
 /**
  * @brief Newton step bundle for the primal-dual interior-point iterate.
  */
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
+template <linalg::VectorContainer Var, linalg::VectorContainer ConeVar,
+          linalg::VectorContainer NuVar>
 struct NewtonStep {
   Var pz{};     ///< decision-variable step
   NuVar pnu{};  ///< equality-multiplier step

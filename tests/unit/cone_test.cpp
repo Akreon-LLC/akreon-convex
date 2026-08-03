@@ -41,7 +41,7 @@ TEST_CASE("Test cone formations", "[cone_test]") {
 
   SECTION("Test power cone") {
     using Slack = Vectord<4>;
-    constexpr vec_traits<Vectord<3>> vec_t;
+    constexpr vector_traits<Vectord<3>> vec_t;
     constexpr PowerCone<Slack> pcone(vec_t.fill(1.0 / 3.0));
     STATIC_REQUIRE(pcone.in_cone(pcone.x0()));
   }
@@ -54,7 +54,7 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
     STATIC_REQUIRE(rplus.in_cone(rplus.x0()));
     STATIC_REQUIRE(rplus.in_dual_cone(rplus.y0()));
 
-    constexpr vec_traits<Slack> vec;
+    constexpr vector_traits<Slack> vec;
     constexpr auto p = vec.fill(2.0);
     STATIC_REQUIRE(
         linalg::constexpr_abs(rplus.alpha_max(rplus.x0(), p) - 0.99) < eps);
@@ -97,17 +97,17 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
     auto make_rplus_point = [](std::mt19937& rng) {
       std::uniform_real_distribution<double> coord_dist(0.05, 3.0);
       Slack x{};
-      for (size_t i = 0; i < 8; ++i) x(i) = coord_dist(rng);
+      for (std::size_t i = 0; i < 8; ++i) x(i) = coord_dist(rng);
       return x;
     };
 
     std::mt19937 rng(0xBEEF);
-    constexpr size_t trials = 512;
+    constexpr std::size_t trials = 512;
     constexpr double tol = 1e-5;
     constexpr double eta = 0.99;
     constexpr double boundary_eps = 1e-8;
 
-    for (size_t i = 0; i < trials; ++i) {
+    for (std::size_t i = 0; i < trials; ++i) {
       const auto x = make_rplus_point(rng);
       const auto y = make_rplus_point(rng);
       const auto p = (-2.0) * x;
@@ -127,7 +127,7 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
       QuadraticRep<Matrixd<8, 8>, RplusCirc<Slack>> P(w);
       REQUIRE(l2(x - P.apply(y)) < eps);
       Slack w_inv{};
-      for (size_t j = 0; j < 8; ++j) w_inv(j) = 1.0 / w(j);
+      for (std::size_t j = 0; j < 8; ++j) w_inv(j) = 1.0 / w(j);
       REQUIRE(l2(rplus.circ(w, w_inv) - rplus.e()) < eps);
 
       QuadraticRep<Matrixd<8, 8>, RplusCirc<Slack>> P_inv(w_inv);
@@ -152,7 +152,7 @@ TEST_CASE("Test SOC", "[cone_test]") {
     STATIC_REQUIRE(soc.in_cone(soc.x0()));
     STATIC_REQUIRE(soc.in_dual_cone(soc.y0()));
 
-    constexpr vec_traits<Slack> vec;
+    constexpr vector_traits<Slack> vec;
     constexpr auto p = vec.fill(0.5);
     STATIC_REQUIRE(linalg::constexpr_abs(soc.alpha_max(soc.x0(), p) - 0.99) <
                    eps);
@@ -196,7 +196,7 @@ TEST_CASE("Test SOC", "[cone_test]") {
       std::uniform_real_distribution<double> margin_dist(0.05, 2.0);
 
       Slack x{};
-      for (size_t i = 0; i < 3; ++i) x(i) = coord_dist(rng);
+      for (std::size_t i = 0; i < 3; ++i) x(i) = coord_dist(rng);
 
       Vectord<3> v{x(0), x(1), x(2)};
       x(3) = L2<Vectord<3>>()(v) + margin_dist(rng);
@@ -204,12 +204,12 @@ TEST_CASE("Test SOC", "[cone_test]") {
     };
 
     std::mt19937 rng(0xC0FFEE);
-    constexpr size_t trials = 512;
+    constexpr std::size_t trials = 512;
     constexpr double tol = 1e-5;
     constexpr double eta = 0.99;
     constexpr double boundary_eps = 1e-8;
 
-    for (size_t i = 0; i < trials; ++i) {
+    for (std::size_t i = 0; i < trials; ++i) {
       const auto x = make_soc_point(rng);
       const auto y = make_soc_point(rng);
       const auto p = (-2.0) * x;
@@ -233,7 +233,7 @@ TEST_CASE("Test SOC", "[cone_test]") {
       const auto x_eigs = soc.eigs(x);
       const auto det = std::get<0>(x_eigs) * std::get<1>(x_eigs);
       const auto xv = std::get<0>(splice<3>(x));
-      REQUIRE(constexpr_abs(det - (x(3) * x(3) - dot(xv, xv))) < eps);
+      REQUIRE(constexpr_abs(det - (x(3) * x(3) - inner_product(xv, xv))) < eps);
 
       const auto [Hw, H_event] = soc.H(x, y);
       REQUIRE(H_event == linalg::NumericalEvent::NONE);
@@ -342,12 +342,12 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     };
 
     std::mt19937 rng(0xFACE);
-    constexpr size_t trials = 256;
+    constexpr std::size_t trials = 256;
     constexpr double tol = 1e-5;
     constexpr double eta = 0.99;
     constexpr double boundary_eps = 1e-8;
 
-    for (size_t i = 0; i < trials; ++i) {
+    for (std::size_t i = 0; i < trials; ++i) {
       const auto x = make_psd_point(rng);
       const auto y = make_psd_point(rng);
       const auto p = (-2.0) * x;
@@ -465,12 +465,12 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     };
 
     std::mt19937 rng(0xBADA55);
-    constexpr size_t trials = 128;
+    constexpr std::size_t trials = 128;
     constexpr double tol = 1e-5;
     constexpr double eta = 0.99;
     constexpr double boundary_eps = 1e-8;
 
-    for (size_t i = 0; i < trials; ++i) {
+    for (std::size_t i = 0; i < trials; ++i) {
       const auto x = make_psd_point(rng);
       const auto y = make_psd_point(rng);
       const auto p = (-2.0) * x;
@@ -546,12 +546,12 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
     };
 
     std::mt19937 rng(0xD00DFEED);
-    constexpr size_t trials = 96;
+    constexpr std::size_t trials = 96;
     constexpr double tol = 1e-5;
     constexpr double eta = 0.99;
     constexpr double boundary_eps = 1e-8;
 
-    for (size_t i = 0; i < trials; ++i) {
+    for (std::size_t i = 0; i < trials; ++i) {
       const auto x = make_psd_point(rng);
       const auto y = make_psd_point(rng);
       const auto p = (-2.0) * x;

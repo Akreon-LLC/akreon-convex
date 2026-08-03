@@ -51,8 +51,7 @@ TEST_CASE("Trace objective", "[convex_fn]") {
             .minimize(obj);
 
     constexpr auto c = prob.linear_objective();
-    constexpr auto c_exp =
-        RowVectord<8>{Vectord<8>{0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0}};
+    constexpr auto c_exp = Vectord<8>{0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0};
     STATIC_REQUIRE(c == c_exp);
   }
 }
@@ -210,7 +209,7 @@ TEST_CASE("Test inv pos function", "[convex_fn]") {
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{1.0}) == 1.0);
     STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}) == 0.5);
 
-    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
     constexpr auto F =
         F_mat(0.0, 0.0, inv_sqrt2, -inv_sqrt2, inv_sqrt2, inv_sqrt2);
@@ -503,7 +502,7 @@ TEST_CASE("Test square function", "[convex_fn]") {
     STATIC_REQUIRE(square_fn(Vectord<1>{0.0}) == 0.0);
     STATIC_REQUIRE(square_fn(Vectord<1>{2.0}) == 4.0);
 
-    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
     constexpr auto F = F_mat(1.0, 0.0, 0.0, -inv_sqrt2, 0.0, inv_sqrt2);
 
@@ -622,7 +621,7 @@ TEST_CASE("Square Root Function", "[convex_fn]") {
     STATIC_REQUIRE(sqrt_fn(Vectord<1>{0.0}) == constexpr_sqrt_safe(0.0));
     STATIC_REQUIRE(sqrt_fn(Vectord<1>{2.0}) == constexpr_sqrt_safe(2.0));
 
-    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
     constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
     constexpr auto F = F_mat(0.0, 1.0, -inv_sqrt2, 0.0, inv_sqrt2, 0.0);
 
@@ -734,7 +733,7 @@ TEST_CASE("Harmonic Mean Function", "[convex_fn]") {
     constexpr auto canon_cb = new_builder.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 1);
 
-    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
     constexpr mat_traits<Matrix<double, 3, 3>> F_mat;
     constexpr auto F = F_mat(0.0, 0.0, inv_sqrt2, inv_sqrt2, -inv_sqrt2, 0.0,
                              inv_sqrt2, inv_sqrt2, -inv_sqrt2);
@@ -839,7 +838,7 @@ TEST_CASE("Huber Function", "[convex_fn]") {
     constexpr auto canon_cb = new_builder.cb;
     STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 2);
 
-    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
     constexpr mat_traits<Matrix<double, 9, 6>> F_mat;
     constexpr auto F =
         F_mat(1.0, -1.0, -1.0, 0.0, 0.0, 0.0, -1.0, 1.0, 1.0, 0.0, 0.0, 0.0,

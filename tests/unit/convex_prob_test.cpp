@@ -274,7 +274,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     constexpr auto map = canon_cb.map;
     STATIC_REQUIRE(mat_rows_v<decltype(map.linear_part())> == 5);
     STATIC_REQUIRE(mat_cols_v<decltype(map.linear_part())> == 5);
-    STATIC_REQUIRE(vec_size_v<decltype(map.translation())> == 5);
+    STATIC_REQUIRE(vector_dim_v<decltype(map.translation())> == 5);
     constexpr mat_traits<Matrix<double, 5, 5>> F_mat;
     constexpr auto F =
         F_mat(0.0, 1.5, 0.0, 1.0, 0.0, 0.0, -1.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
@@ -333,7 +333,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(std::tuple_size<decltype(builder3.cb.cones)>::value == 1);
     STATIC_REQUIRE(mat_rows_v<decltype(builder3.cb.map.linear_part())> == 2);
     STATIC_REQUIRE(mat_cols_v<decltype(builder3.cb.map.linear_part())> == 3);
-    STATIC_REQUIRE(vec_size_v<decltype(builder3.cb.map.translation())> == 2);
+    STATIC_REQUIRE(vector_dim_v<decltype(builder3.cb.map.translation())> == 2);
 
     constexpr mat_traits<Matrix<double, 2, 3>> F_mat;
     constexpr auto F = F_mat(-1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
@@ -380,7 +380,7 @@ TEST_CASE("Test var setup", "[convex_vars]") {
     STATIC_REQUIRE(canon_cb.validate());
     STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 15);
     STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 9);
-    STATIC_REQUIRE(vec_size_v<decltype(canon_cb.map.translation())> == 15);
+    STATIC_REQUIRE(vector_dim_v<decltype(canon_cb.map.translation())> == 15);
   }
 
   SECTION("Weighted sum") {
@@ -456,7 +456,7 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     constexpr auto map = canon_cb.map;
     STATIC_REQUIRE(mat_rows_v<decltype(map.linear_part())> == 10);
     STATIC_REQUIRE(mat_cols_v<decltype(map.linear_part())> == 5);
-    STATIC_REQUIRE(vec_size_v<decltype(map.translation())> == 10);
+    STATIC_REQUIRE(vector_dim_v<decltype(map.translation())> == 10);
     constexpr mat_traits<Matrix<double, 10, 5>> F_mat;
     constexpr auto F =
         F_mat(1.0, 1.0, 0.0, 0.0, 0.0, -1.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 1.0,
@@ -569,7 +569,7 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
     constexpr auto map = canon2_cb.map;
     STATIC_REQUIRE(mat_rows_v<decltype(map.linear_part())> == 10);
     STATIC_REQUIRE(mat_cols_v<decltype(map.linear_part())> == 6);
-    STATIC_REQUIRE(vec_size_v<decltype(map.translation())> == 10);
+    STATIC_REQUIRE(vector_dim_v<decltype(map.translation())> == 10);
     constexpr mat_traits<Matrix<double, 10, 6>> F_mat;
     constexpr auto F =
         F_mat(1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
@@ -675,8 +675,8 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
                    0);
     STATIC_REQUIRE(mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
                    0);
-    STATIC_REQUIRE(vec_size_v<decltype(prob3.constraint_map().translation())> ==
-                   0);
+    STATIC_REQUIRE(
+        vector_dim_v<decltype(prob3.constraint_map().translation())> == 0);
     STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(), I));
     STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<3>{});
   }
@@ -735,7 +735,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob2.constraint_map().linear_part())> ==
         6);
-    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
     constexpr mat_traits<Matrix<double, 9, 6>> F_mat;
     constexpr auto F =
         F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -inv_sqrt2, 0.0, 0.0,
@@ -841,8 +841,8 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
         0);
-    STATIC_REQUIRE(vec_size_v<decltype(prob3.constraint_map().translation())> ==
-                   0);
+    STATIC_REQUIRE(
+        vector_dim_v<decltype(prob3.constraint_map().translation())> == 0);
 
     constexpr mat_traits<Matrix<double, 1, 3>> Aeq_mat;
     constexpr auto Aeq = Aeq_mat(1.0, -1.0, 0.0);
@@ -892,8 +892,8 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
                    0);
     STATIC_REQUIRE(mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
                    0);
-    STATIC_REQUIRE(vec_size_v<decltype(prob3.constraint_map().translation())> ==
-                   0);
+    STATIC_REQUIRE(
+        vector_dim_v<decltype(prob3.constraint_map().translation())> == 0);
     STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(), I));
     STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<3>{});
   }
@@ -927,8 +927,8 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
                    0);
     STATIC_REQUIRE(mat_rows_v<decltype(prob3.constraint_map().linear_part())> ==
                    0);
-    STATIC_REQUIRE(vec_size_v<decltype(prob3.constraint_map().translation())> ==
-                   0);
+    STATIC_REQUIRE(
+        vector_dim_v<decltype(prob3.constraint_map().translation())> == 0);
     STATIC_REQUIRE(all_equal(prob3.equality_map().linear_part(),
                              linalg::make_identity<double, 3>()));
     STATIC_REQUIRE(prob3.equality_map().translation() == Vectord<3>{});
@@ -1010,7 +1010,7 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
         linalg::mat_cols_v<decltype(prob2.constraint_map().linear_part())> ==
         4);
 
-    constexpr auto inv_sqrt2 = 1.0 / constexpr_sqrt_safe(2.0);
+    constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
     constexpr mat_traits<Matrix<double, 6, 4>> F_mat;
     constexpr auto F = F_mat(0.0, 0.0, 1.0, 0.0, -inv_sqrt2, 0.0, 0.0, 0.0,
                              inv_sqrt2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,

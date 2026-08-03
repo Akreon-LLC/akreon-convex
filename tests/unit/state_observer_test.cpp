@@ -106,21 +106,21 @@ TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
     const auto z_split = linalg::splice<Observer::QDim>(res.iterate.z);
     const auto Q_res = make_smat<2>(std::get<0>(z_split));
     Matrixd<2, 2> W_res{};
-    for (size_t i = 0; i < 2; ++i)
-      for (size_t j = 0; j < 2; ++j)
-        W_res(i)(j) = std::get<1>(z_split)(i * 2 + j);
+    for (std::size_t i = 0; i < 2; ++i)
+      for (std::size_t j = 0; j < 2; ++j)
+        W_res(i, j) = std::get<1>(z_split)(i * 2 + j);
 
     REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-    REQUIRE(Q_res(0)(0) > 1e-6);
-    REQUIRE(Q_res(1)(1) > 1e-6);
+    REQUIRE(Q_res(0, 0) > 1e-6);
+    REQUIRE(Q_res(1, 1) > 1e-6);
 
     const auto [L_res, L_event] = obs.L(Q_res, W_res);
     REQUIRE(L_event == linalg::NumericalEvent::NONE);
     REQUIRE(all_equal(W_res, Q_res * L_res, 1e-4));
 
     const auto error_dynamics = A - L_res * C;
-    REQUIRE(error_dynamics(0)(0) < 0.0);
-    REQUIRE(error_dynamics(1)(1) < 0.0);
+    REQUIRE(error_dynamics(0, 0) < 0.0);
+    REQUIRE(error_dynamics(1, 1) < 0.0);
 
     const auto cert = (-1.0) * (transpose(A) * Q_res + Q_res * A - W_res * C -
                                 transpose(C) * transpose(W_res));
@@ -150,17 +150,17 @@ TEST_CASE("Luenberger Observer 2x2", "[state_observer_test]") {
     const auto W_feas = I;
     Vectord<Observer::ZDim> z_feas{};
     const auto q_feas = get_svec(Q_feas);
-    for (size_t i = 0; i < Observer::QDim; ++i) z_feas(i) = q_feas(i);
-    for (size_t i = 0; i < 2; ++i)
-      for (size_t j = 0; j < 2; ++j)
-        z_feas(Observer::QDim + i * 2 + j) = W_feas(i)(j);
+    for (std::size_t i = 0; i < Observer::QDim; ++i) z_feas(i) = q_feas(i);
+    for (std::size_t i = 0; i < 2; ++i)
+      for (std::size_t j = 0; j < 2; ++j)
+        z_feas(Observer::QDim + i * 2 + j) = W_feas(i, j);
     const auto x_feas = prob.constraint_map().linear_part() * z_feas +
                         prob.constraint_map().translation();
 
     const auto Q_slack =
         make_smat<2>(Vectord<3>{x_feas(0), x_feas(1), x_feas(2)});
-    REQUIRE(Q_slack(0)(0) > 0.0);
-    REQUIRE(Q_slack(1)(1) > 0.0);
+    REQUIRE(Q_slack(0, 0) > 0.0);
+    REQUIRE(Q_slack(1, 1) > 0.0);
 
     const auto cert_slack =
         make_smat<2>(Vectord<3>{x_feas(3), x_feas(4), x_feas(5)});
@@ -214,14 +214,14 @@ TEST_CASE("Luenberger Observer 3x3", "[state_observer_test]") {
     const auto z_split = linalg::splice<Observer::QDim>(res.iterate.z);
     const auto Q_res = make_smat<3>(std::get<0>(z_split));
     Matrixd<3, 3> W_res{};
-    for (size_t i = 0; i < 3; ++i)
-      for (size_t j = 0; j < 3; ++j)
-        W_res(i)(j) = std::get<1>(z_split)(i * 3 + j);
+    for (std::size_t i = 0; i < 3; ++i)
+      for (std::size_t j = 0; j < 3; ++j)
+        W_res(i, j) = std::get<1>(z_split)(i * 3 + j);
 
     REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-    REQUIRE(Q_res(0)(0) > 1e-6);
-    REQUIRE(Q_res(1)(1) > 1e-6);
-    REQUIRE(Q_res(2)(2) > 1e-6);
+    REQUIRE(Q_res(0, 0) > 1e-6);
+    REQUIRE(Q_res(1, 1) > 1e-6);
+    REQUIRE(Q_res(2, 2) > 1e-6);
 
     const auto cert = (-1.0) * (transpose(A) * Q_res + Q_res * A - W_res * C -
                                 transpose(C) * transpose(W_res));
@@ -257,18 +257,18 @@ TEST_CASE("Luenberger Observer 3x3", "[state_observer_test]") {
     const auto W_feas = I;
     Vectord<Observer::ZDim> z_feas{};
     const auto q_feas = get_svec(Q_feas);
-    for (size_t i = 0; i < Observer::QDim; ++i) z_feas(i) = q_feas(i);
-    for (size_t i = 0; i < 3; ++i)
-      for (size_t j = 0; j < 3; ++j)
-        z_feas(Observer::QDim + i * 3 + j) = W_feas(i)(j);
+    for (std::size_t i = 0; i < Observer::QDim; ++i) z_feas(i) = q_feas(i);
+    for (std::size_t i = 0; i < 3; ++i)
+      for (std::size_t j = 0; j < 3; ++j)
+        z_feas(Observer::QDim + i * 3 + j) = W_feas(i, j);
     const auto x_feas = prob.constraint_map().linear_part() * z_feas +
                         prob.constraint_map().translation();
 
     const auto Q_slack = make_smat<3>(Vectord<6>{
         x_feas(0), x_feas(1), x_feas(2), x_feas(3), x_feas(4), x_feas(5)});
-    REQUIRE(Q_slack(0)(0) > 0.0);
-    REQUIRE(Q_slack(1)(1) > 0.0);
-    REQUIRE(Q_slack(2)(2) > 0.0);
+    REQUIRE(Q_slack(0, 0) > 0.0);
+    REQUIRE(Q_slack(1, 1) > 0.0);
+    REQUIRE(Q_slack(2, 2) > 0.0);
 
     const auto cert_slack = make_smat<3>(Vectord<6>{
         x_feas(6), x_feas(7), x_feas(8), x_feas(9), x_feas(10), x_feas(11)});
@@ -307,8 +307,7 @@ TEST_CASE("H2 State Observer synthesis 2x2", "[state_observer_test]") {
   REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 2);
 
   const auto c = prob.linear_objective();
-  const auto c_exp = RowVectord<H2::DecVarDim>{
-      Vectord<H2::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0}};
+  const auto c_exp = Vectord<H2::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
   REQUIRE(c == c_exp);
 
   using Solver = PrimalDualIPM<decltype(prob)>;
@@ -327,13 +326,14 @@ TEST_CASE("H2 State Observer synthesis 2x2", "[state_observer_test]") {
   const auto Q_res = make_smat<2>(std::get<0>(q_wz_split));
   const auto w_z_split = linalg::splice<H2::WDim>(std::get<1>(q_wz_split));
   ColVectord<2> W_res{};
-  for (size_t i = 0; i < H2::WDim; ++i) W_res(i)(0) = std::get<0>(w_z_split)(i);
+  for (std::size_t i = 0; i < H2::WDim; ++i)
+    W_res(i, 0) = std::get<0>(w_z_split)(i);
   const auto Z_res = make_smat<1>(std::get<1>(w_z_split));
 
   REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-  REQUIRE(Q_res(0)(0) > 1e-6);
-  REQUIRE(Q_res(1)(1) > 1e-6);
-  REQUIRE(Z_res(0)(0) > 1e-6);
+  REQUIRE(Q_res(0, 0) > 1e-6);
+  REQUIRE(Q_res(1, 1) > 1e-6);
+  REQUIRE(Z_res(0, 0) > 1e-6);
 
   const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
   REQUIRE(Q_sym.is_valid());
@@ -357,9 +357,9 @@ TEST_CASE("H2 State Observer synthesis 2x2", "[state_observer_test]") {
 
   const auto bottom_left = Q_res * B_w - W_res * D_yw;
   const auto epigraph = Matrixd<3, 3>{
-      Vectord<3>{Z_res(0)(0), bottom_left(0)(0), bottom_left(1)(0)},
-      Vectord<3>{bottom_left(0)(0), Q_res(0)(0), Q_res(0)(1)},
-      Vectord<3>{bottom_left(1)(0), Q_res(1)(0), Q_res(1)(1)}};
+      Vectord<3>{Z_res(0, 0), bottom_left(0, 0), bottom_left(1, 0)},
+      Vectord<3>{bottom_left(0, 0), Q_res(0, 0), Q_res(0, 1)},
+      Vectord<3>{bottom_left(1, 0), Q_res(1, 0), Q_res(1, 1)}};
   const auto epigraph_sym = SymmetricMatrix(epigraph, 1e-6);
   REQUIRE(epigraph_sym.is_valid());
   REQUIRE(epigraph_sym.is_psd());
@@ -401,8 +401,7 @@ TEST_CASE("Hinf State Observer synthesis 2x2", "[state_observer_test]") {
   REQUIRE(std::tuple_size<decltype(prob.constraint_cones())>::value == 2);
 
   const auto c = prob.linear_objective();
-  const auto c_exp = RowVectord<Hinf::DecVarDim>{
-      Vectord<Hinf::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0}};
+  const auto c_exp = Vectord<Hinf::DecVarDim>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
   REQUIRE(c == c_exp);
 
   const auto Q_res =
@@ -418,8 +417,8 @@ TEST_CASE("Hinf State Observer synthesis 2x2", "[state_observer_test]") {
   const auto BRL_slack = make_smat<4>(std::get<1>(slack_split));
 
   REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-  REQUIRE(Q_res(0)(0) > 1e-6);
-  REQUIRE(Q_res(1)(1) > 1e-6);
+  REQUIRE(Q_res(0, 0) > 1e-6);
+  REQUIRE(Q_res(1, 1) > 1e-6);
   REQUIRE(gamma_res > 1e-6);
 
   const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);
@@ -521,13 +520,13 @@ TEST_CASE("Hinf State Observer synthesis with zero D_ew is numerically stable",
   const auto w_gamma_split =
       linalg::splice<Hinf::WDim>(std::get<1>(q_w_gamma_split));
   ColVectord<2> W_res{};
-  for (size_t i = 0; i < Hinf::WDim; ++i)
-    W_res(i)(0) = std::get<0>(w_gamma_split)(i);
+  for (std::size_t i = 0; i < Hinf::WDim; ++i)
+    W_res(i, 0) = std::get<0>(w_gamma_split)(i);
   const auto gamma_res = std::get<1>(w_gamma_split)(0);
 
   REQUIRE(all_equal(Q_res, transpose(Q_res), rel_tol));
-  REQUIRE(Q_res(0)(0) > 1e-6);
-  REQUIRE(Q_res(1)(1) > 1e-6);
+  REQUIRE(Q_res(0, 0) > 1e-6);
+  REQUIRE(Q_res(1, 1) > 1e-6);
   REQUIRE(gamma_res > 1e-6);
 
   const auto Q_sym = SymmetricMatrix(Q_res, 1e-6);

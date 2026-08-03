@@ -19,8 +19,8 @@ namespace convex {
 /**
  * @brief PrimalDualIterate
  */
-template <linalg::VectorLike Var, linalg::VectorLike ConeVar,
-          linalg::VectorLike NuVar>
+template <linalg::VectorContainer Var, linalg::VectorContainer ConeVar,
+          linalg::VectorContainer NuVar>
 struct PrimalDualIterate {
   Var z{};     ///< decision var in Rn + aux lifts
   ConeVar x{}; ///< primal cone var in K

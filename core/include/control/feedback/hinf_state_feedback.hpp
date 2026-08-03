@@ -106,20 +106,20 @@ struct HinfStateFeedback {
 
   using T = plant_type_t<Model>;
 
-  static constexpr size_t StateDim = plant_traits<Model>::StateDim;
+  static constexpr std::size_t StateDim = plant_traits<Model>::StateDim;
   static constexpr PortRole ExogenousPortRole = PortRole::EXOGENOUS;
-  static constexpr size_t InputDim = plant_traits<Model>::ControlDim;
-  static constexpr size_t ExogenousDim = plant_traits<Model>::ExogenousDim;
-  static constexpr size_t OutputDim = plant_traits<Model>::PerformanceDim;
+  static constexpr std::size_t InputDim = plant_traits<Model>::ControlDim;
+  static constexpr std::size_t ExogenousDim = plant_traits<Model>::ExogenousDim;
+  static constexpr std::size_t OutputDim = plant_traits<Model>::PerformanceDim;
 
   using QMat = linalg::Matrix<T, StateDim, StateDim>;
   using YMat = linalg::Matrix<T, InputDim, StateDim>;
   using KMat = linalg::Matrix<T, InputDim, StateDim>;
 
-  static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
-  static constexpr size_t YDim = InputDim * StateDim;
-  static constexpr size_t GammaDim = 1;
-  static constexpr size_t DecVarDim = QDim + YDim + GammaDim;
+  static constexpr std::size_t QDim = StateDim * (StateDim + 1) / 2;
+  static constexpr std::size_t YDim = InputDim * StateDim;
+  static constexpr std::size_t GammaDim = 1;
+  static constexpr std::size_t DecVarDim = QDim + YDim + GammaDim;
 
   using DecVarSpace = linalg::RowVector<T, DecVarDim>;
 
@@ -183,7 +183,7 @@ struct HinfStateFeedback {
             [](const QMat& E) -> FMat { return E; });
 
     Fs F_blks{};
-    for (size_t i = 0; i < QDim; ++i) F_blks(i) = F_q(i);
+    for (std::size_t i = 0; i < QDim; ++i) F_blks(i) = F_q(i);
 
     const auto I = linalg::make_identity<T, StateDim>();
     return convex::LMI(F_blks, T(-1) * margin * I, Z_hat);
@@ -206,9 +206,9 @@ struct HinfStateFeedback {
   template <convex::AtomLike DecVar>
   constexpr auto brl_constraint(const SFModel& model, const DecVar& Z_hat,
                                 T margin = 1e-6) const {
-    constexpr size_t StateEnd = StateDim;
-    constexpr size_t DisturbanceEnd = StateDim + ExogenousDim;
-    constexpr size_t LmiDim = StateDim + ExogenousDim + OutputDim;
+    constexpr std::size_t StateEnd = StateDim;
+    constexpr std::size_t DisturbanceEnd = StateDim + ExogenousDim;
+    constexpr std::size_t LmiDim = StateDim + ExogenousDim + OutputDim;
 
     using FMat = linalg::Matrix<T, LmiDim, LmiDim>;
     using Fs = linalg::Vector<FMat, DecVarDim>;
@@ -243,7 +243,7 @@ struct HinfStateFeedback {
 
     auto M_gamma = [](const linalg::Matrix<T, 1, 1>& E) -> FMat {
       FMat F{};
-      const auto gamma = E(0)(0);
+      const auto gamma = E(0, 0);
       const auto I_w = linalg::make_identity<T, ExogenousDim>();
       const auto I_z = linalg::make_identity<T, OutputDim>();
       F = linalg::set_block<StateEnd, DisturbanceEnd, StateEnd, DisturbanceEnd>(
@@ -262,8 +262,8 @@ struct HinfStateFeedback {
             .template apply_full<linalg::Matrix<T, 1, 1>>(M_gamma);
 
     Fs F_blks{};
-    for (size_t i = 0; i < QDim; ++i) F_blks(i) = F_q(i);
-    for (size_t i = 0; i < YDim; ++i) F_blks(QDim + i) = F_y(i);
+    for (std::size_t i = 0; i < QDim; ++i) F_blks(i) = F_q(i);
+    for (std::size_t i = 0; i < YDim; ++i) F_blks(QDim + i) = F_y(i);
     F_blks(QDim + YDim) = F_gamma(0);
 
     FMat F_0{};

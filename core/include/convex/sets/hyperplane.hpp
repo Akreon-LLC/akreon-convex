@@ -49,7 +49,7 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    * @param Point (i.e., n-dim vec of type T)
    * @param b bias scalar
    */
-  constexpr explicit Hyperplane(const PointT& a_in, const T& b_in,
+  constexpr explicit Hyperplane(const PointT& a_in, T b_in,
                                 const Child& child_in)
       : ConvexBase(child_in), a(a_in), b(b_in) {}
 
@@ -62,8 +62,8 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& tol) const {
-    return linalg::constexpr_abs(linalg::dot(a, x) - b) < tol;
+  constexpr bool contains_impl(const PointT& x, T tol) const {
+    return linalg::constexpr_abs(linalg::inner_product(a, x) - b) < tol;
   }
 
   /**
@@ -88,9 +88,9 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
    *
    * @return transformed hyperplane
    */
-  template <linalg::SquareMatrixLike Mat>
+  template <linalg::SquareMatrix Mat>
     requires(linalg::mat_cols_v<Mat> == N &&
-             std::same_as<linalg::mat_type_t<Mat>, T>)
+             std::same_as<linalg::matrix_scalar_t<Mat>, T>)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto [U_inv, event] = linalg::MatrixInverse<Mat>()(map.linear_part());
     static_cast<void>(event);
@@ -127,7 +127,7 @@ struct Hyperplane : ConvexSet<Meta, Hyperplane<Meta, Child>, Child> {
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
 
-    static constexpr size_t ChildCodom =
+    static constexpr std::size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
     static_assert(ChildCodom == N,
                   "Convex set domain does not equal the child coordinate "

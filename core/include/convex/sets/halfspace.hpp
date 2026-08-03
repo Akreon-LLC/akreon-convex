@@ -55,7 +55,7 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    * @param b bias scalar
    * @param child
    */
-  constexpr explicit Halfspace(const PointT& a_in, const T& b_in,
+  constexpr explicit Halfspace(const PointT& a_in, T b_in,
                                const Child& child_in)
       : ConvexBase(child_in), a(a_in), b(b_in) {}
 
@@ -69,13 +69,13 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    *
    * @return T/F
    */
-  constexpr bool contains_impl(const PointT& x, const T& /* tol */) const {
+  constexpr bool contains_impl(const PointT& x, T /* tol */) const {
     switch (Type) {
       case HalfspaceType::UH:
-        return linalg::dot(a, x) >= b;
+        return linalg::inner_product(a, x) >= b;
       case HalfspaceType::LH:
       default:
-        return linalg::dot(a, x) <= b;
+        return linalg::inner_product(a, x) <= b;
     }
   }
 
@@ -109,8 +109,8 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
    *
    * @return transformed halfspace
    */
-  template <linalg::SquareMatrixLike Mat>
-    requires(std::same_as<T, linalg::mat_type_t<Mat>> &&
+  template <linalg::SquareMatrix Mat>
+    requires(std::same_as<T, linalg::matrix_scalar_t<Mat>> &&
              linalg::mat_cols_v<Mat> == N)
   constexpr auto transform_impl(const affine::AffineMap<Mat>& map) const {
     const auto [U_inv, event] = linalg::MatrixInverse<Mat>()(map.linear_part());
@@ -148,7 +148,7 @@ struct Halfspace : ConvexSet<Meta, Halfspace<Meta, Child, Type>, Child> {
             .template canonicalize<AtomType::SET>(builder);
     const auto child_coord = child_builder.coord_map;
 
-    static constexpr size_t ChildCodom =
+    static constexpr std::size_t ChildCodom =
         linalg::mat_cols_v<decltype(child_coord.linear_part())>;
     static_assert(ChildCodom == N,
                   "Convex set domain does not equal the child coordinate "

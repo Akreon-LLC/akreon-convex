@@ -44,24 +44,24 @@ namespace control {
  *
  * where W = Q L, and L = Q^{-1} W.
  */
-template <ContinuousPlantModelLike Plant, size_t N>
+template <ContinuousPlantModelLike Plant, std::size_t N>
 struct PolytopicObserver {
   using Model = linalg::remove_cvref_t<Plant>;
 
   using T = plant_type_t<Model>;
   using State = plant_state_vec_t<Model>;
 
-  static constexpr size_t StateDim = plant_traits<Model>::StateDim;
-  static constexpr size_t OutputDim = plant_traits<Model>::MeasurementDim;
+  static constexpr std::size_t StateDim = plant_traits<Model>::StateDim;
+  static constexpr std::size_t OutputDim = plant_traits<Model>::MeasurementDim;
 
   using QMat = linalg::Matrix<T, StateDim, StateDim>;
   using WMat = linalg::Matrix<T, StateDim, OutputDim>;
   using LMat = linalg::Matrix<T, StateDim, OutputDim>;
   using FMat = QMat;
 
-  static constexpr size_t QDim = StateDim * (StateDim + 1) / 2;
-  static constexpr size_t WDim = OutputDim * StateDim;
-  static constexpr size_t ZDim = QDim + WDim;
+  static constexpr std::size_t QDim = StateDim * (StateDim + 1) / 2;
+  static constexpr std::size_t WDim = OutputDim * StateDim;
+  static constexpr std::size_t ZDim = QDim + WDim;
 
   using ZSpace = linalg::RowVector<T, ZDim>;
   using Fs = linalg::Vector<FMat, ZDim>;
@@ -102,11 +102,12 @@ struct PolytopicObserver {
 
     const auto q_lmi = q_constraint(Z, margin);
 
-    auto make_vertex_lmi = [&]<size_t idx>() {
+    auto make_vertex_lmi = [&]<std::size_t idx>() {
       return vertex_constraint(poly(idx), Z);
     };
 
-    auto form_intersection = [&]<size_t... Is>(std::index_sequence<Is...>) {
+    auto form_intersection = [&]<std::size_t... Is>(
+                                 std::index_sequence<Is...>) {
       return convex::Intersection(q_lmi,
                                   make_vertex_lmi.template operator()<Is>()...);
     };
@@ -130,8 +131,8 @@ struct PolytopicObserver {
             [](const QMat& E) -> QMat { return E; });
 
     Fs F_blks{};
-    for (size_t i = 0; i < QDim; ++i) F_blks(i) = Fq(i);
-    for (size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = QMat{};
+    for (std::size_t i = 0; i < QDim; ++i) F_blks(i) = Fq(i);
+    for (std::size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = QMat{};
 
     return convex::LMI(F_blks, T(-1) * margin * I, Z);
   }
@@ -162,8 +163,8 @@ struct PolytopicObserver {
         linalg::MatrixPencil<FMat, WDim>{}.template apply_full<WMat>(M_w);
 
     Fs F_blks{};
-    for (size_t i = 0; i < QDim; ++i) F_blks(i) = Fq_local(i);
-    for (size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = Fw_local(i);
+    for (std::size_t i = 0; i < QDim; ++i) F_blks(i) = Fq_local(i);
+    for (std::size_t i = 0; i < WDim; ++i) F_blks(QDim + i) = Fw_local(i);
 
     return convex::LMI(F_blks, FMat{}, Z);
   }
@@ -197,7 +198,7 @@ struct PolytopicObserver {
  *
  * @return quadratic objective atom
  */
-template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, std::size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_quadratic_objective(
     const linalg::Matrix<plant_type_t<Plant>, PolytopicObserver<Plant, N>::ZDim,
                          PolytopicObserver<Plant, N>::ZDim>& P,
@@ -217,7 +218,7 @@ constexpr auto make_polytopic_observer_quadratic_objective(
  *
  * @return PLDI optimization problem
  */
-template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, std::size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_problem(
     const linalg::Vector<Plant, N>& poly, const ZVar& Z, const auto& obj,
     plant_type_t<Plant> margin = 1e-6) {
@@ -234,7 +235,7 @@ constexpr auto make_polytopic_observer_problem(
  *
  * @return PLDI feasibility problem
  */
-template <ContinuousPlantModelLike Plant, size_t N, convex::AtomLike ZVar>
+template <ContinuousPlantModelLike Plant, std::size_t N, convex::AtomLike ZVar>
 constexpr auto make_polytopic_observer_problem(
     const linalg::Vector<Plant, N>& poly, const ZVar& Z,
     plant_type_t<Plant> margin = 1e-6) {

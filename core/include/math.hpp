@@ -12,6 +12,6 @@
 
 #pragma once
 
-#include "affine/affine.hpp"
+#include "linalg/affine/affine.hpp"
 #include "convex/convex.hpp"
 #include "linalg/linalg.hpp"

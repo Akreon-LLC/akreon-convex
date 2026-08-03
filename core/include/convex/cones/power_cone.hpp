@@ -21,7 +21,7 @@ namespace conic {
  * K_pow = { (x,t) in R_++ x R | prod(x_i)^a_i >= |t|, sum(a_i) == 1, a_i >= 0
  * } a in Q (set of rational numbers)
  */
-template <linalg::VectorLike Slack>
+template <linalg::VectorContainer Slack>
 struct PowerCone : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
   /// @brief bring into scope alias from cone base
   using ConeBase = Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC>;
@@ -47,7 +47,7 @@ struct PowerCone : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
    */
   constexpr Slack x0_impl() const {
     Slack s{};
-    for (size_t i = 0; i < M - 1; ++i) s(i) = T(1);
+    for (std::size_t i = 0; i < M - 1; ++i) s(i) = T(1);
     return s;
   }
 
@@ -60,12 +60,12 @@ struct PowerCone : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
    */
   constexpr bool in_cone_impl(const Slack& x) const {
     if (T(x(M - 1)) == T(0)) {
-      for (size_t i = 0; i < M - 1; ++i)
+      for (std::size_t i = 0; i < M - 1; ++i)
         if (x(i) < T(0)) return false;
       return true;
     } else {
       T res{};
-      for (size_t i = 0; i < M - 1; ++i) {
+      for (std::size_t i = 0; i < M - 1; ++i) {
         if (!(x(i) > T(0))) return false;
         res += alphas(i) * linalg::constexpr_ln_safe(x(i));
       }

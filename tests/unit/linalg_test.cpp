@@ -23,11 +23,11 @@ using namespace unit_test;
 
 TEST_CASE("Test field types", "[field]") {
   SECTION("Field check") {
-    STATIC_REQUIRE(FieldLike<double>);
-    STATIC_REQUIRE(FieldLike<float>);
-    STATIC_REQUIRE(FieldLike<std::complex<double>>);
-    STATIC_REQUIRE(!FieldLike<int>);
-    STATIC_REQUIRE(!FieldLike<unsigned>);
+    STATIC_REQUIRE(Field<double>);
+    STATIC_REQUIRE(Field<float>);
+    STATIC_REQUIRE(Field<std::complex<double>>);
+    STATIC_REQUIRE(!Field<int>);
+    STATIC_REQUIRE(!Field<unsigned>);
   }
 }
 
@@ -68,7 +68,7 @@ TEST_CASE("Test constexpr math", "[math]") {
 
   constexpr auto V = Vectord<5>{1.0, 2.0, 3.0, 4.0, 5.0};
   constexpr auto P = argsort_desc(V);
-  STATIC_REQUIRE(P == std::array<size_t, 5>{4, 3, 2, 1, 0});
+  STATIC_REQUIRE(P == std::array<std::size_t, 5>{4, 3, 2, 1, 0});
 
   STATIC_REQUIRE(!constexpr_ln(-1.0).has_value());
   STATIC_REQUIRE(constexpr_ln(1.0).has_value());
@@ -99,18 +99,18 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(E(0) == 2.0);
     STATIC_REQUIRE(E(1) == 4.0);
 
-    STATIC_REQUIRE(9.0 == dot(A, B));
-    STATIC_REQUIRE(10.0 != dot(A, B));
+    STATIC_REQUIRE(9.0 == inner_product(A, B));
+    STATIC_REQUIRE(10.0 != inner_product(A, B));
 
     constexpr std::complex<double> c(1.0, 2.0);
     constexpr auto X = Vectorcd<5>{c, c, c, c, c};
-    constexpr auto result = dot(conjugate(X), X);
+    constexpr auto result = inner_product(X, X);
     STATIC_REQUIRE(result == std::complex<double>{25, 0});
 
     constexpr auto G = A - B;
     STATIC_REQUIRE(G(0) == 2.0);
     STATIC_REQUIRE(G(1) == -3.0);
-    STATIC_REQUIRE(dot(G, G) == 13.0);
+    STATIC_REQUIRE(inner_product(G, G) == 13.0);
     STATIC_REQUIRE(L2<Vector<double, 2>>()(G) > 0);
     STATIC_REQUIRE(L2<Vector<double, 2>>()(G) == euclidean_distance(A, B));
     STATIC_REQUIRE(L1<Vector<double, 2>>()(G) > 0);
@@ -118,10 +118,10 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(Linf<Vector<double, 2>>()(G) == 3.0);
 
     constexpr auto GT = transpose(G);
-    STATIC_REQUIRE(GT(0)(0) == 2.0);
-    STATIC_REQUIRE(GT(1)(0) == -3.0);
+    STATIC_REQUIRE(GT(0, 0) == 2.0);
+    STATIC_REQUIRE(GT(1, 0) == -3.0);
     constexpr auto GTT = transpose(GT);
-    STATIC_REQUIRE(GTT == G);
+    STATIC_REQUIRE(as_vector(GTT) == G);
 
     constexpr auto G_col_vec = as_col_vector(G);
     constexpr auto G_row_vec = as_row_vector(G);
@@ -129,10 +129,10 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(std::same_as<decltype(G_row_vec), const RowVectord<2>>);
 
     constexpr auto G_outer_prod = outer_product(G_col_vec, G_row_vec);
-    STATIC_REQUIRE(G_outer_prod(0)(0) == 4.0);
-    STATIC_REQUIRE(G_outer_prod(0)(1) == -6.0);
-    STATIC_REQUIRE(G_outer_prod(1)(0) == -6.0);
-    STATIC_REQUIRE(G_outer_prod(1)(1) == 9.0);
+    STATIC_REQUIRE(G_outer_prod(0, 0) == 4.0);
+    STATIC_REQUIRE(G_outer_prod(0, 1) == -6.0);
+    STATIC_REQUIRE(G_outer_prod(1, 0) == -6.0);
+    STATIC_REQUIRE(G_outer_prod(1, 1) == 9.0);
 
     constexpr auto Zeros = Vectord<3>(0.0, 0.0, 0.0);
     STATIC_REQUIRE(cross(Zeros, Zeros) == Zeros);
@@ -200,7 +200,7 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto S_1x1_inv = std::get<0>(S_1x1_inv_res);
     constexpr auto S_1x1_inv_event = std::get<1>(S_1x1_inv_res);
     STATIC_REQUIRE(S_1x1_inv_event == linalg::NumericalEvent::NONE);
-    STATIC_REQUIRE(S_1x1_inv(0)(0) == 0.25);
+    STATIC_REQUIRE(S_1x1_inv(0, 0) == 0.25);
 
     constexpr auto S_1x1_zero = Matrixd<1, 1>{Vectord<1>{0.0}};
     constexpr auto S_1x1_zero_inv_res =
@@ -218,51 +218,51 @@ TEST_CASE("Test vector space types", "[vector_space]") {
                    linalg::NumericalEvent::FACTORIZATION_FAILED);
 
     constexpr auto B_11 = get_block<0, 1, 0, 1>(B);
-    STATIC_REQUIRE(B_11(0)(0) == 1.0);
+    STATIC_REQUIRE(B_11(0, 0) == 1.0);
 
     constexpr auto B_new =
         set_block<0, 1, 0, 1>(B, Matrix<double, 1, 1>{Vector<double, 1>{-2.0}});
-    STATIC_REQUIRE(B_new(0)(0) == -2.0);
-    STATIC_REQUIRE(B_new(0)(1) == 2.0);
-    STATIC_REQUIRE(B_new(1)(0) == 1.0);
-    STATIC_REQUIRE(B_new(1)(1) == 2.0);
+    STATIC_REQUIRE(B_new(0, 0) == -2.0);
+    STATIC_REQUIRE(B_new(0, 1) == 2.0);
+    STATIC_REQUIRE(B_new(1, 0) == 1.0);
+    STATIC_REQUIRE(B_new(1, 1) == 2.0);
 
     STATIC_REQUIRE(all_equal(C, D));
-    STATIC_REQUIRE(C(0)(0) == 2.0);
-    STATIC_REQUIRE(C(0)(1) == 4.0);
-    STATIC_REQUIRE(C(1)(0) == 2.0);
-    STATIC_REQUIRE(C(1)(1) == 4.0);
+    STATIC_REQUIRE(C(0, 0) == 2.0);
+    STATIC_REQUIRE(C(0, 1) == 4.0);
+    STATIC_REQUIRE(C(1, 0) == 2.0);
+    STATIC_REQUIRE(C(1, 1) == 4.0);
 
-    STATIC_REQUIRE(get_n_rows<0, 1>(B) == get_row(B, 0));
+    STATIC_REQUIRE(as_vector(get_n_rows<0, 1>(B)) == get_row(B, 0));
     STATIC_REQUIRE(all_equal(get_n_rows<0, 2>(B), B));
     STATIC_REQUIRE(get_n_cols<0, 1>(B) == transpose(get_col(B, 0)));
     STATIC_REQUIRE(all_equal(get_n_cols<0, 2>(B), B));
 
     constexpr auto BR = get_upper_right_triangular_matrix(B);
     constexpr auto BL = get_lower_left_triangular_matrix(B);
-    STATIC_REQUIRE(BR(1)(0) == 0.0);
-    STATIC_REQUIRE(BL(0)(1) == 0.0);
+    STATIC_REQUIRE(BR(1, 0) == 0.0);
+    STATIC_REQUIRE(BL(0, 1) == 0.0);
     STATIC_REQUIRE(get_diag(BR) == get_diag(BL));
 
     constexpr auto B_col_0 = get_col(B, 0);
-    STATIC_REQUIRE(B_col_0(0) == B(0)(0));
-    STATIC_REQUIRE(B_col_0(1) == B(1)(0));
+    STATIC_REQUIRE(B_col_0(0) == B(0, 0));
+    STATIC_REQUIRE(B_col_0(1) == B(1, 0));
     constexpr auto B_col_1 = get_col(B, 1);
-    STATIC_REQUIRE(B_col_1(0) == B(0)(1));
-    STATIC_REQUIRE(B_col_1(1) == B(1)(1));
+    STATIC_REQUIRE(B_col_1(0) == B(0, 1));
+    STATIC_REQUIRE(B_col_1(1) == B(1, 1));
     constexpr auto B_row_0 = get_row(B, 0);
-    STATIC_REQUIRE(B_row_0 == B(0));
+    STATIC_REQUIRE(B_row_0 == B.row(0));
     constexpr auto B_row_1 = get_row(B, 1);
-    STATIC_REQUIRE(B_row_1 == B(1));
+    STATIC_REQUIRE(B_row_1 == B.row(1));
 
     constexpr double alpha = 3.0;
     constexpr auto E = scalar_multiplication(alpha, B);
     constexpr auto F = alpha * B;
     STATIC_REQUIRE(E == F);
-    STATIC_REQUIRE(E(0)(0) == 3.0);
-    STATIC_REQUIRE(E(0)(1) == 6.0);
-    STATIC_REQUIRE(E(1)(0) == 3.0);
-    STATIC_REQUIRE(E(1)(1) == 6.0);
+    STATIC_REQUIRE(E(0, 0) == 3.0);
+    STATIC_REQUIRE(E(0, 1) == 6.0);
+    STATIC_REQUIRE(E(1, 0) == 3.0);
+    STATIC_REQUIRE(E(1, 1) == 6.0);
 
     constexpr auto BT = transpose(B);
     STATIC_REQUIRE(rows_equal_cols(BT, B));
@@ -286,16 +286,16 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     constexpr auto K = Matrixcd<2, 2>{J, J};
     // K = [[c d]; [c d]] -> K^* = [[\bar{c} \bar{c}] [\bar{d} \bar{d}]]
     constexpr auto KH = conjugate_transpose(K);
-    STATIC_REQUIRE(KH(0)(0) == c_conj);
-    STATIC_REQUIRE(KH(0)(1) == c_conj);
-    STATIC_REQUIRE(KH(1)(0) == d_conj);
-    STATIC_REQUIRE(KH(1)(1) == d_conj);
+    STATIC_REQUIRE(KH(0, 0) == c_conj);
+    STATIC_REQUIRE(KH(0, 1) == c_conj);
+    STATIC_REQUIRE(KH(1, 0) == d_conj);
+    STATIC_REQUIRE(KH(1, 1) == d_conj);
 
     constexpr auto L = K * KH;
-    STATIC_REQUIRE(L(0)(0) == c * c_conj + d * d_conj);
-    STATIC_REQUIRE(L(0)(1) == c * c_conj + d * d_conj);
-    STATIC_REQUIRE(L(1)(0) == c * c_conj + d * d_conj);
-    STATIC_REQUIRE(L(1)(1) == c * c_conj + d * d_conj);
+    STATIC_REQUIRE(L(0, 0) == c * c_conj + d * d_conj);
+    STATIC_REQUIRE(L(0, 1) == c * c_conj + d * d_conj);
+    STATIC_REQUIRE(L(1, 0) == c * c_conj + d * d_conj);
+    STATIC_REQUIRE(L(1, 1) == c * c_conj + d * d_conj);
     STATIC_REQUIRE(Fro<Matrix<std::complex<double>, 2, 2>>()(K) ==
                    constexpr_sqrt_safe(trace(L).real()));
 
@@ -383,16 +383,16 @@ TEST_CASE("Hessenberg matrices", "[hessenberg]") {
     STATIC_REQUIRE(constexpr_abs(beta(0)) > 0.0);
     STATIC_REQUIRE(constexpr_abs(beta(1)) == 0.0);
     STATIC_REQUIRE(constexpr_abs(beta(2)) == 0.0);
-    STATIC_REQUIRE(H(2)(0) == 0.0);
-    STATIC_REQUIRE(H(0)(0) == H_mat(0, 0));
-    STATIC_REQUIRE(H(0)(1) == H_mat(0, 1));
-    STATIC_REQUIRE(H(0)(2) == H_mat(0, 2));
-    STATIC_REQUIRE(H(1)(0) == H_mat(1, 0));
-    STATIC_REQUIRE(H(1)(1) == H_mat(1, 1));
-    STATIC_REQUIRE(H(1)(2) == H_mat(1, 2));
-    STATIC_REQUIRE(H(0)(2) == H_mat(0, 2));
-    STATIC_REQUIRE(H(1)(2) == H_mat(1, 2));
-    STATIC_REQUIRE(H(2)(2) == H_mat(2, 2));
+    STATIC_REQUIRE(H(2, 0) == 0.0);
+    STATIC_REQUIRE(H(0, 0) == H_mat(0, 0));
+    STATIC_REQUIRE(H(0, 1) == H_mat(0, 1));
+    STATIC_REQUIRE(H(0, 2) == H_mat(0, 2));
+    STATIC_REQUIRE(H(1, 0) == H_mat(1, 0));
+    STATIC_REQUIRE(H(1, 1) == H_mat(1, 1));
+    STATIC_REQUIRE(H(1, 2) == H_mat(1, 2));
+    STATIC_REQUIRE(H(0, 2) == H_mat(0, 2));
+    STATIC_REQUIRE(H(1, 2) == H_mat(1, 2));
+    STATIC_REQUIRE(H(2, 2) == H_mat(2, 2));
 
     constexpr auto U = H_mat.U();
     constexpr auto UTU = transpose(U) * U;
@@ -408,10 +408,10 @@ TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
         Matrixd<2, 2>{Vectord<2>{2.0, 1.0}, Vectord<2>{1.0, 2.0}};
     constexpr auto A_smat = SymmetricMatrix(A);
     STATIC_REQUIRE(A_smat.type == SymmetricOperatorType::PD);
-    STATIC_REQUIRE(A(0)(0) == A_smat(0, 0));
-    STATIC_REQUIRE(A(0)(1) == A_smat(0, 1));
-    STATIC_REQUIRE(A(1)(0) == A_smat(1, 0));
-    STATIC_REQUIRE(A(1)(1) == A_smat(1, 1));
+    STATIC_REQUIRE(A(0, 0) == A_smat(0, 0));
+    STATIC_REQUIRE(A(0, 1) == A_smat(0, 1));
+    STATIC_REQUIRE(A(1, 0) == A_smat(1, 0));
+    STATIC_REQUIRE(A(1, 1) == A_smat(1, 1));
 
     constexpr auto B =
         Matrixd<2, 2>{Vectord<2>{4.0, -1.0}, Vectord<2>{-1.0, 3.0}};
@@ -594,7 +594,8 @@ TEST_CASE("svec/smat preserve symmetric geometry", "[symmetric_matrices]") {
 
     STATIC_REQUIRE(all_equal(A_roundtrip, A));
     STATIC_REQUIRE(all_equal(make_svec(A_roundtrip), svec));
-    STATIC_REQUIRE(constexpr_abs(dot(svec, svec) - trace(A * A)) < 1e-10);
+    STATIC_REQUIRE(constexpr_abs(inner_product(svec, svec) - trace(A * A)) <
+                   1e-10);
   }
 }
 
@@ -604,7 +605,7 @@ TEST_CASE("LDL^T Factorization") {
     constexpr auto ldl = LDL(I);
     STATIC_REQUIRE(ldl.is_valid());
     STATIC_REQUIRE(ldl.is_psd());
-    STATIC_REQUIRE(get_diag(ldl.D()) == vec_traits<Vectord<10>>().fill(1.0));
+    STATIC_REQUIRE(get_diag(ldl.D()) == vector_traits<Vectord<10>>().fill(1.0));
     STATIC_REQUIRE(ldl.L() == make_identity<double, 10>());
   }
 
@@ -745,10 +746,9 @@ TEST_CASE("Matrix Pencil") {
     constexpr auto F_blks = pencil.template apply_sym_mat<Mat>(
         [](const Mat& E) constexpr { return E; });
 
-    constexpr auto s2 = constexpr_sqrt_safe(2.0);
+    constexpr auto inv_s2 = inv_sqrt2_v<double>;
     constexpr auto E11 = Mat{Vectord<2>{1.0, 0.0}, Vectord<2>{0.0, 0.0}};
-    constexpr auto E12 =
-        Mat{Vectord<2>{0.0, 1.0 / s2}, Vectord<2>{1.0 / s2, 0.0}};
+    constexpr auto E12 = Mat{Vectord<2>{0.0, inv_s2}, Vectord<2>{inv_s2, 0.0}};
     constexpr auto E22 = Mat{Vectord<2>{0.0, 0.0}, Vectord<2>{0.0, 1.0}};
 
     STATIC_REQUIRE(F_blks(0) == E11);
@@ -762,22 +762,22 @@ TEST_CASE("Matrix Pencil") {
     constexpr auto F_blks = pencil.template apply_sym_mat<Mat>(
         [](const Mat& E) constexpr { return E; });
 
-    constexpr auto s2 = constexpr_sqrt_safe(2.0);
+    constexpr auto inv_s2 = inv_sqrt2_v<double>;
     constexpr auto E11 =
         Mat{Vectord<3>{1.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0},
             Vectord<3>{0.0, 0.0, 0.0}};
     constexpr auto E21 =
-        Mat{Vectord<3>{0.0, 1.0 / s2, 0.0}, Vectord<3>{1.0 / s2, 0.0, 0.0},
+        Mat{Vectord<3>{0.0, inv_s2, 0.0}, Vectord<3>{inv_s2, 0.0, 0.0},
             Vectord<3>{0.0, 0.0, 0.0}};
     constexpr auto E22 =
         Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 1.0, 0.0},
             Vectord<3>{0.0, 0.0, 0.0}};
     constexpr auto E31 =
-        Mat{Vectord<3>{0.0, 0.0, 1.0 / s2}, Vectord<3>{0.0, 0.0, 0.0},
-            Vectord<3>{1.0 / s2, 0.0, 0.0}};
+        Mat{Vectord<3>{0.0, 0.0, inv_s2}, Vectord<3>{0.0, 0.0, 0.0},
+            Vectord<3>{inv_s2, 0.0, 0.0}};
     constexpr auto E32 =
-        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 1.0 / s2},
-            Vectord<3>{0.0, 1.0 / s2, 0.0}};
+        Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, inv_s2},
+            Vectord<3>{0.0, inv_s2, 0.0}};
     constexpr auto E33 =
         Mat{Vectord<3>{0.0, 0.0, 0.0}, Vectord<3>{0.0, 0.0, 0.0},
             Vectord<3>{0.0, 0.0, 1.0}};

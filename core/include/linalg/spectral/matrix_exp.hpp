@@ -25,20 +25,20 @@ namespace linalg {
  *
  * @return vector of indices
  */
-template <VectorLike Vec>
-  requires(ComplexLike<vec_type_t<Vec>>)
-constexpr auto make_group_permutation(const Vec& D,
-                                      scalar_type_t<Vec> tol = 1e-10) {
-  constexpr size_t N = vec_size_v<Vec>;
+template <VectorContainer Vec>
+  requires(Complex<vector_element_t<Vec>>)
+constexpr auto make_group_permutation(
+    const Vec& D, real_type_t<vector_element_t<Vec>> tol = 1e-10) {
+  constexpr std::size_t N = vector_dim_v<Vec>;
 
-  Vector<size_t, N> p;
+  Vector<std::size_t, N> p;
   Vector<bool, N> taken;
-  size_t k = 0;
+  std::size_t k = 0;
 
-  for (size_t i = 0; i < N; ++i) {
+  for (std::size_t i = 0; i < N; ++i) {
     if (taken(i)) continue;
 
-    for (size_t j = i; j < N; ++j) {
+    for (std::size_t j = i; j < N; ++j) {
       if (!taken(j) && is_same(D(j), D(i), tol)) {
         p(k++) = j;
         taken(j) = true;
@@ -56,10 +56,10 @@ constexpr auto make_group_permutation(const Vec& D,
  *
  * @return inverted permutation
  */
-template <size_t N>
-constexpr auto invert_permutation(const Vector<size_t, N>& p) {
-  Vector<size_t, N> p_inv;
-  for (size_t i = 0; i < N; ++i) p_inv(p(i)) = i;
+template <std::size_t N>
+constexpr auto invert_permutation(const Vector<std::size_t, N>& p) {
+  Vector<std::size_t, N> p_inv;
+  for (std::size_t i = 0; i < N; ++i) p_inv(p(i)) = i;
   return p_inv;
 }
 
@@ -71,13 +71,13 @@ constexpr auto invert_permutation(const Vector<size_t, N>& p) {
  *
  * @return permuted J
  */
-template <MatrixLike Mat>
+template <MatrixContainer Mat>
 constexpr auto permute_ptjp(const Mat& J,
-                            const Vector<size_t, mat_rows_v<Mat>>& p) {
-  constexpr size_t N = mat_rows_v<Mat>;
+                            const Vector<std::size_t, mat_rows_v<Mat>>& p) {
+  constexpr std::size_t N = mat_rows_v<Mat>;
   Mat J_p;
-  for (size_t i = 0; i < N; ++i)
-    for (size_t j = 0; j < N; ++j) J_p(i)(j) = J(p(i))(p(j));
+  for (std::size_t i = 0; i < N; ++i)
+    for (std::size_t j = 0; j < N; ++j) J_p(i, j) = J(p(i), p(j));
   return J_p;
 }
 
@@ -89,13 +89,13 @@ constexpr auto permute_ptjp(const Mat& J,
  *
  * @return unpermuted matrix R
  */
-template <MatrixLike Mat>
+template <MatrixContainer Mat>
 constexpr auto unpermute_papt(const Mat& A,
-                              const Vector<size_t, mat_rows_v<Mat>>& p) {
-  constexpr size_t N = mat_rows_v<Mat>;
+                              const Vector<std::size_t, mat_rows_v<Mat>>& p) {
+  constexpr std::size_t N = mat_rows_v<Mat>;
   Mat R;
-  for (size_t i = 0; i < N; ++i)
-    for (size_t j = 0; j < N; ++j) R(p(i))(p(j)) = A(i)(j);
+  for (std::size_t i = 0; i < N; ++i)
+    for (std::size_t j = 0; j < N; ++j) R(p(i), p(j)) = A(i, j);
   return R;
 }
 
@@ -106,10 +106,10 @@ constexpr auto unpermute_papt(const Mat& A,
  *
  * @return resuting matrix
  */
-template <SquareMatrixLike Mat>
+template <SquareMatrix Mat>
 constexpr auto matrix_exp(const Mat& A) {
-  using T = mat_type_t<Mat>;
-  using ScalarT = scalar_type_t<T>;
+  using T = matrix_scalar_t<Mat>;
+  using ScalarT = real_type_t<T>;
   using Complex = std::complex<ScalarT>;
 
   constexpr auto N = mat_rows_v<Mat>;
@@ -129,18 +129,18 @@ constexpr auto matrix_exp(const Mat& A) {
   const auto Jp = permute_ptjp(J, p); // P^T J P
 
   Matrix<Complex, N, N> exp_Jp;
-  size_t i = 0;
+  std::size_t i = 0;
   while (i < N) {
     // (0) form block i to j-1
-    size_t j = i + 1;
+    std::size_t j = i + 1;
     while (j < N && is_same(D(p(j)), D(p(i)))) ++j;
-    size_t chain_len = j - i;
+    std::size_t chain_len = j - i;
     const auto eig = D(p(i));
     const auto exp_lambda = constexpr_exp_lambda(eig);
 
     // (1) set exp(Jp) to exp(lambda) if this is a unique eigenvalue
     if (chain_len == 1) {
-      exp_Jp(i)(i) = exp_lambda;
+      exp_Jp(i, i) = exp_lambda;
       i = j;
       continue;
     }
@@ -149,34 +149,35 @@ constexpr auto matrix_exp(const Mat& A) {
     Matrix<Complex, N, N> N_blk, E_blk;
     // 2.a set super diag to 1s on E block (E = I + N + N^2 / 2! + ...) up to
     // chain_len representing N^0 = I
-    for (size_t a = 0; a < chain_len; ++a) E_blk(i + a)(i + a) = Complex(1);
+    for (std::size_t a = 0; a < chain_len; ++a)
+      E_blk(i + a, i + a) = Complex(1);
     // 2.b set N block (N = J_block - lambda I) where C = lambda I + N (7.6.5
     // Matrix Computations)
-    for (size_t a = 0; a < chain_len; ++a)
-      for (size_t b = a; b < chain_len; ++b)
-        N_blk(i + a)(i + b) = Jp(i + a)(i + b) - (a == b ? eig : Complex(0));
+    for (std::size_t a = 0; a < chain_len; ++a)
+      for (std::size_t b = a; b < chain_len; ++b)
+        N_blk(i + a, i + b) = Jp(i + a, i + b) - (a == b ? eig : Complex(0));
 
     // 2.c E represents N block to the chain_len power
     Matrix<Complex, N, N> P = N_blk;
     Complex inv_factorial(1);
-    for (size_t m = 1; m < chain_len; ++m) {
+    for (std::size_t m = 1; m < chain_len; ++m) {
       inv_factorial /= Complex(ScalarT(m));
-      for (size_t a = 0; a < chain_len; ++a)
-        for (size_t b = a; b < chain_len; ++b)
-          E_blk(i + a)(i + b) += (P(i + a)(i + b) * inv_factorial);
+      for (std::size_t a = 0; a < chain_len; ++a)
+        for (std::size_t b = a; b < chain_len; ++b)
+          E_blk(i + a, i + b) += (P(i + a, i + b) * inv_factorial);
       const auto upper = i + chain_len - 1;
 
       Matrix<Complex, N, N> N_sub_blk, P_sub_blk;
-      for (size_t a = i; a < upper; ++a)
-        for (size_t b = i; b < upper; ++b)
-          N_sub_blk(a)(b) = N_blk(a)(b), P_sub_blk(a)(b) = P(a)(b);
+      for (std::size_t a = i; a < upper; ++a)
+        for (std::size_t b = i; b < upper; ++b)
+          N_sub_blk(a, b) = N_blk(a, b), P_sub_blk(a, b) = P(a, b);
 
       P = P_sub_blk * N_sub_blk;
     }
 
-    for (size_t a = 0; a < chain_len; ++a)
-      for (size_t b = a; b < chain_len; ++b)
-        exp_Jp(i + a)(i + b) = E_blk(i + a)(i + b) * exp_lambda;
+    for (std::size_t a = 0; a < chain_len; ++a)
+      for (std::size_t b = a; b < chain_len; ++b)
+        exp_Jp(i + a, i + b) = E_blk(i + a, i + b) * exp_lambda;
 
     i = j;
   }

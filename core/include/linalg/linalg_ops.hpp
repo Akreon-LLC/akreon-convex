@@ -12,6 +12,7 @@
 
 #pragma once
 
+#include "operator/inner_product.hpp"
 #include "operator/operator_traits.hpp"
 #include "vector/vector.hpp"
 
@@ -27,14 +28,14 @@ namespace linalg {
  *
  * @return vector
  */
-template <VectorLike Vec>
+template <VectorContainer Vec>
 constexpr auto add(const Vec& A, const Vec& B) {
   // (dakre) below is safeguard against non-square matrix acting as vector with
   // duck type T as Vector<Vector<...>>
-  using T = vec_type_t<Vec>;
-  constexpr auto N = vec_size_v<Vec>;
+  using T = vector_element_t<Vec>;
+  constexpr auto N = vector_dim_v<Vec>;
   Vector<T, N> C;
-  for (size_t i = 0; i < N; ++i) C(i) = A(i) + B(i);
+  for (std::size_t i = 0; i < N; ++i) C(i) = A(i) + B(i);
   return C;
 }
 
@@ -43,8 +44,32 @@ constexpr auto add(const Vec& A, const Vec& B) {
  *
  * @see add
  */
-template <VectorLike Vec>
+template <VectorContainer Vec>
 constexpr auto operator+(const Vec& A, const Vec& B) {
+  return add(A, B);
+}
+
+/**
+ * @brief Add two shape-compatible matrices element by element.
+ * @param A Left matrix.
+ * @param B Right matrix of the same registered type and shape.
+ * @return Owning `Matrix` containing `A(row,col) + B(row,col)`.
+ */
+template <MatrixContainer Mat>
+constexpr auto add(const Mat& A, const Mat& B) {
+  using T = matrix_scalar_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
+  Matrix<T, Rows, Cols> result;
+  for (std::size_t row = 0; row < Rows; ++row)
+    for (std::size_t col = 0; col < Cols; ++col)
+      result(row, col) = A(row, col) + B(row, col);
+  return result;
+}
+
+/** @brief Matrix addition operator delegating to `add`. */
+template <MatrixContainer Mat>
+constexpr auto operator+(const Mat& A, const Mat& B) {
   return add(A, B);
 }
 
@@ -58,12 +83,12 @@ constexpr auto operator+(const Vec& A, const Vec& B) {
  *
  * @return vector
  */
-template <VectorLike Vec, FieldLike Alpha>
+template <VectorContainer Vec, Field Alpha>
 constexpr auto scalar_multiplication(const Alpha& alpha, const Vec& A) {
-  using T = vec_type_t<Vec>;
-  constexpr auto N = vec_size_v<Vec>;
+  using T = vector_element_t<Vec>;
+  constexpr auto N = vector_dim_v<Vec>;
   Vector<T, N> C;
-  for (size_t i = 0; i < N; ++i) C(i) = alpha * A(i);
+  for (std::size_t i = 0; i < N; ++i) C(i) = alpha * A(i);
   return C;
 }
 
@@ -72,8 +97,32 @@ constexpr auto scalar_multiplication(const Alpha& alpha, const Vec& A) {
  *
  * @see scalar_multiplication
  */
-template <VectorLike Vec, FieldLike Alpha>
+template <VectorContainer Vec, Field Alpha>
 constexpr auto operator*(const Alpha& alpha, const Vec& A) {
+  return scalar_multiplication(alpha, A);
+}
+
+/**
+ * @brief Multiply every matrix entry by a field scalar.
+ * @param alpha Scalar multiplier.
+ * @param A Matrix operand.
+ * @return Owning matrix with the same shape and registered matrix scalar type.
+ */
+template <MatrixContainer Mat, Field Alpha>
+constexpr auto scalar_multiplication(const Alpha& alpha, const Mat& A) {
+  using T = matrix_scalar_t<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
+  Matrix<T, Rows, Cols> result;
+  for (std::size_t row = 0; row < Rows; ++row)
+    for (std::size_t col = 0; col < Cols; ++col)
+      result(row, col) = alpha * A(row, col);
+  return result;
+}
+
+/** @brief Left scalar-matrix multiplication operator. */
+template <MatrixContainer Mat, Field Alpha>
+constexpr auto operator*(const Alpha& alpha, const Mat& A) {
   return scalar_multiplication(alpha, A);
 }
 
@@ -83,29 +132,15 @@ constexpr auto operator*(const Alpha& alpha, const Vec& A) {
  * @see add
  * @see scalar_multiplication
  */
-template <VectorLike Vec>
+template <VectorContainer Vec>
 constexpr auto operator-(const Vec& A, const Vec& B) {
-  using T = vec_type_t<Vec>;
-  return A + scalar_type_t<T>(-1) * B;
+  return A + vector_scalar_t<Vec>(-1) * B;
 }
 
-/**
- * @brief dot product or inner product between two vectors A and B
- *
- * A^T A = scalar or dot(A, B) = scalar
- *
- * @param vector of type T with N elements
- * @param vector of type T with N elements
- *
- * @return scalar
- */
-template <VectorLike Vec>
-constexpr auto dot(const Vec& A, const Vec& B) {
-  using T = vec_type_t<Vec>;
-  constexpr auto N = vec_size_v<Vec>;
-  T value = T(0);
-  for (size_t i = 0; i < N; ++i) value += A(i) * B(i);
-  return value;
+/** @brief Subtract two matrices as `A + (-1) * B`. */
+template <MatrixContainer Mat>
+constexpr auto operator-(const Mat& A, const Mat& B) {
+  return A + matrix_scalar_t<Mat>(-1) * B;
 }
 
 /**
@@ -118,12 +153,12 @@ constexpr auto dot(const Vec& A, const Vec& B) {
  *
  * @return (N x 1) matrix
  */
-template <VectorLike Vec>
+template <FieldVector Vec>
 constexpr auto transpose(const Vec& x) {
-  using T = vec_type_t<Vec>;
-  constexpr auto N = vec_size_v<Vec>;
+  using T = vector_element_t<Vec>;
+  constexpr auto N = vector_dim_v<Vec>;
   Matrix<T, N, 1> x_t;
-  for (size_t i = 0; i < N; ++i) x_t(i)(0) = x(i);
+  for (std::size_t i = 0; i < N; ++i) x_t(i, 0) = x(i);
   return x_t;
 }
 
@@ -134,13 +169,12 @@ constexpr auto transpose(const Vec& x) {
  *
  * @return conjugated vector
  */
-template <VectorLike Vec>
-  requires(ComplexLike<vec_type_t<Vec>>)
+template <ComplexVector Vec>
 constexpr auto conjugate(const Vec& x) {
-  using T = vec_type_t<Vec>;
-  constexpr auto N = vec_size_v<Vec>;
+  using T = vector_element_t<Vec>;
+  constexpr auto N = vector_dim_v<Vec>;
   Vector<T, N> result;
-  for (size_t i = 0; i < N; ++i) result(i) = std::conj(x(i));
+  for (std::size_t i = 0; i < N; ++i) result(i) = std::conj(x(i));
   return result;
 }
 
@@ -152,8 +186,8 @@ constexpr auto conjugate(const Vec& x) {
  *
  * @return (3x1) vector
  */
-template <VectorLike Vec>
-  requires(vec_size_v<Vec> == 3)
+template <FieldVector Vec>
+  requires(vector_dim_v<Vec> == 3)
 constexpr auto cross(const Vec& x, const Vec& y) {
   return Vec{x(1) * y(2) - x(2) * y(1), -(x(0) * y(2) - x(2) * y(0)),
              x(0) * y(1) - x(1) * y(0)};
@@ -167,13 +201,13 @@ constexpr auto cross(const Vec& x, const Vec& y) {
  *
  * @return T/F
  */
-template <VectorLike Vec>
-  requires(vec_size_v<Vec> > 0)
+template <FieldVector Vec>
+  requires(vector_dim_v<Vec> > 0)
 constexpr bool all_zero(const Vec& x) {
-  using T = vec_type_t<Vec>;
-  constexpr auto N = vec_size_v<Vec>;
+  using T = vector_element_t<Vec>;
+  constexpr auto N = vector_dim_v<Vec>;
   int cnt = 0;
-  for (size_t i = 0; i < N; ++i) cnt += x(i) == T(0);
+  for (std::size_t i = 0; i < N; ++i) cnt += x(i) == T(0);
   return cnt == N;
 }
 
@@ -184,38 +218,40 @@ constexpr bool all_zero(const Vec& x) {
  *
  * @return tuple
  */
-template <size_t idx, VectorLike Vec>
-  requires(vec_size_v<Vec> > 0 && idx < vec_size_v<Vec>)
+template <std::size_t idx, FieldVector Vec>
+  requires(vector_dim_v<Vec> > 0 && idx < vector_dim_v<Vec>)
 constexpr auto splice(const Vec& x) {
-  using T = vec_type_t<Vec>;
-  constexpr auto N = vec_size_v<Vec>;
+  using T = vector_element_t<Vec>;
+  constexpr auto N = vector_dim_v<Vec>;
   Vector<T, idx> a;
-  size_t i = 0;
+  std::size_t i = 0;
   for (; i < idx; ++i) a(i) = x(i);
   Vector<T, N - idx> b;
-  for (size_t j = 0; i < N; ++i, ++j) b(j) = x(i);
+  for (std::size_t j = 0; i < N; ++i, ++j) b(j) = x(i);
   return std::tuple(a, b);
 }
 
 /**
- * @brief outer product between two matrices A & B
+ * @brief Multiply matrix-shaped column and row operands as an outer product.
  *
  * A * B = C where C is a new matrix of Rows_of_A x Cols_of_B
  *
  * @param matrix A of type T Rows1 x Cols1 elements
  * @param matrix B of type T Cols1 x Cols2 elements
  *
- * @return matrix
+ * @return Matrix with `mat_rows_v<MatA>` rows and `mat_cols_v<MatB>` columns.
+ * The implementation uses `A(i, 0) * B(0, j)`; callers should supply a
+ * one-column left operand and one-row right operand.
  */
-template <MatrixLike MatA, MatrixLike MatB>
+template <MatrixContainer MatA, MatrixContainer MatB>
   requires(MatMulCompatible<MatA, MatB>)
 constexpr auto outer_product(const MatA& A, const MatB& B) {
-  using T = mat_type_t<MatA>;
+  using T = matrix_scalar_t<MatA>;
   constexpr auto Rows = mat_rows_v<MatA>;
   constexpr auto Cols = mat_cols_v<MatB>;
   Matrix<T, Rows, Cols> result;
-  for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) result(i)(j) = A(i)(0) * B(0)(j);
+  for (std::size_t i = 0; i < Rows; ++i)
+    for (std::size_t j = 0; j < Cols; ++j) result(i, j) = A(i, 0) * B(0, j);
   return result;
 }
 
@@ -228,12 +264,14 @@ constexpr auto outer_product(const MatA& A, const MatB& B) {
  *
  * @return A^T
  */
-template <typename T, size_t Rows, size_t Cols>
-  requires(FieldLike<T>)
-constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
+template <MatrixContainer Mat>
+constexpr auto transpose(const Mat& A) {
+  using T = matrix_scalar_t<Mat>;
+  constexpr auto Cols = mat_cols_v<Mat>;
+  constexpr auto Rows = mat_rows_v<Mat>;
   Matrix<T, Cols, Rows> result;
-  for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) result(j)(i) = A(i)(j);
+  for (std::size_t i = 0; i < Rows; ++i)
+    for (std::size_t j = 0; j < Cols; ++j) result(j, i) = A(i, j);
   return result;
 }
 
@@ -246,13 +284,13 @@ constexpr auto transpose(const Matrix<T, Rows, Cols>& A) {
  *
  * @return sum
  */
-template <SquareMatrixLike Mat>
+template <SquareMatrix Mat>
   requires(mat_rows_v<Mat> > 0)
 constexpr auto trace(const Mat& A) {
-  using T = mat_type_t<Mat>;
+  using T = matrix_scalar_t<Mat>;
   constexpr auto Rows = mat_rows_v<Mat>;
   T sum = 0;
-  for (size_t i = 0; i < Rows; ++i) sum += A(i)(i);
+  for (std::size_t i = 0; i < Rows; ++i) sum += A(i, i);
   return sum;
 }
 
@@ -265,54 +303,64 @@ constexpr auto trace(const Mat& A) {
  *
  * @return A^*
  */
-template <MatrixLike Mat>
+template <MatrixContainer Mat>
 constexpr auto conjugate_transpose(const Mat& A)
-  requires(ComplexLike<mat_type_t<Mat>>)
+  requires(Complex<matrix_scalar_t<Mat>>)
 {
   constexpr auto Rows = mat_rows_v<Mat>;
   constexpr auto Cols = mat_cols_v<Mat>;
   auto A_t = transpose(A);
-  for (size_t i = 0; i < Cols; ++i)
-    for (size_t j = 0; j < Rows; ++j) A_t(i)(j) = std::conj(A_t(i)(j));
+  for (std::size_t i = 0; i < Cols; ++i)
+    for (std::size_t j = 0; j < Rows; ++j) A_t(i, j) = std::conj(A_t(i, j));
   return A_t;
 }
 
 /**
- * @brief operator overload for matrix multiplication
+ * @brief Multiply compatible matrices with the standard row-column product.
  *
  * @param matrix A of type T Rows x Cols elements
  * @param matrix B of type T Cols x Rows elements
  *
- * @return A*B
+ * @return `Matrix<T, rows(A), cols(B)>`.
  */
-template <MatrixLike MatA, MatrixLike MatB>
+template <MatrixContainer MatA, MatrixContainer MatB>
   requires(MatMulCompatible<MatA, MatB>)
 constexpr auto operator*(const MatA& A, const MatB& B) {
-  using T = mat_type_t<MatA>;
+  using T = matrix_scalar_t<MatA>;
   constexpr auto Rows = mat_rows_v<MatA>;
   constexpr auto Cols = mat_cols_v<MatB>;
   Matrix<T, Rows, Cols> result;
-  const auto B_t = transpose(B);
-  for (size_t i = 0; i < Rows; ++i)
-    for (size_t j = 0; j < Cols; ++j) result(i)(j) = dot(A(i), B_t(j));
+  constexpr auto Inner = mat_cols_v<MatA>;
+  for (std::size_t i = 0; i < Rows; ++i) {
+    for (std::size_t j = 0; j < Cols; ++j) {
+      T value{};
+      for (std::size_t k = 0; k < Inner; ++k) value += A(i, k) * B(k, j);
+      result(i, j) = value;
+    }
+  }
   return result;
 }
 
 /**
- * @brief operator overload for matrix multiplication between matrix and vector
+ * @brief Apply a compatible matrix to a vector.
  *
  * @param matrix A of type T Rows x Cols elements
  * @param vector X of type T Cols elements
  *
- * @return A*X
+ * @return Vector over the same field with dimension `mat_rows_v<Mat>`.
  */
-template <MatrixLike Mat, VectorLike Vec>
+template <MatrixContainer Mat, VectorContainer Vec>
   requires(MatVecCompatible<Mat, Vec>)
 constexpr auto operator*(const Mat& A, const Vec& X) {
-  using T = mat_type_t<Mat>;
+  using T = matrix_scalar_t<Mat>;
   constexpr auto Rows = mat_rows_v<Mat>;
   Vector<T, Rows> result;
-  for (size_t i = 0; i < Rows; ++i) result(i) = dot(A(i), X);
+  constexpr auto Cols = mat_cols_v<Mat>;
+  for (std::size_t i = 0; i < Rows; ++i) {
+    T value{};
+    for (std::size_t j = 0; j < Cols; ++j) value += A(i, j) * X(j);
+    result(i) = value;
+  }
   return result;
 }
 
@@ -323,13 +371,13 @@ constexpr auto operator*(const Mat& A, const Vec& X) {
  *
  * @return min element
  */
-template <VectorLike Vec>
-  requires(vec_size_v<Vec> > 0)
+template <VectorContainer Vec>
+  requires(vector_dim_v<Vec> > 0)
 constexpr auto min(const Vec& x) {
-  using T = vec_type_t<Vec>;
-  constexpr size_t N = vec_size_v<Vec>;
+  using T = vector_element_t<Vec>;
+  constexpr std::size_t N = vector_dim_v<Vec>;
   T mn = x(0);
-  for (size_t i = 1; i < N; ++i) mn = x(i) < mn ? x(i) : mn;
+  for (std::size_t i = 1; i < N; ++i) mn = x(i) < mn ? x(i) : mn;
   return mn;
 }
 
@@ -340,13 +388,13 @@ constexpr auto min(const Vec& x) {
  *
  * @return max element
  */
-template <VectorLike Vec>
-  requires(vec_size_v<Vec> > 0)
+template <VectorContainer Vec>
+  requires(vector_dim_v<Vec> > 0)
 constexpr auto max(const Vec& x) {
-  using T = vec_type_t<Vec>;
-  constexpr size_t N = vec_size_v<Vec>;
+  using T = vector_element_t<Vec>;
+  constexpr std::size_t N = vector_dim_v<Vec>;
   T mx = x(0);
-  for (size_t i = 1; i < N; ++i) mx = x(i) > mx ? x(i) : mx;
+  for (std::size_t i = 1; i < N; ++i) mx = x(i) > mx ? x(i) : mx;
   return mx;
 }
 
@@ -357,14 +405,14 @@ constexpr auto max(const Vec& x) {
  *
  * @return min element
  */
-template <VectorLike Vec>
-  requires(vec_size_v<Vec> > 0)
-constexpr size_t arg_min(const Vec& x) {
-  using T = vec_type_t<Vec>;
-  constexpr size_t N = vec_size_v<Vec>;
+template <VectorContainer Vec>
+  requires(vector_dim_v<Vec> > 0)
+constexpr std::size_t arg_min(const Vec& x) {
+  using T = vector_element_t<Vec>;
+  constexpr std::size_t N = vector_dim_v<Vec>;
   T mn = x(0);
-  size_t idx{0};
-  for (size_t i = 1; i < N; ++i)
+  std::size_t idx{0};
+  for (std::size_t i = 1; i < N; ++i)
     if (x(i) < mn) mn = x(i), idx = i;
   return idx;
 }
@@ -376,14 +424,14 @@ constexpr size_t arg_min(const Vec& x) {
  *
  * @return max element
  */
-template <VectorLike Vec>
-  requires(vec_size_v<Vec> > 0)
-constexpr size_t arg_max(const Vec& x) {
-  using T = vec_type_t<Vec>;
-  constexpr size_t N = vec_size_v<Vec>;
+template <VectorContainer Vec>
+  requires(vector_dim_v<Vec> > 0)
+constexpr std::size_t arg_max(const Vec& x) {
+  using T = vector_element_t<Vec>;
+  constexpr std::size_t N = vector_dim_v<Vec>;
   T mx = x(0);
-  size_t idx{0};
-  for (size_t i = 1; i < N; ++i)
+  std::size_t idx{0};
+  for (std::size_t i = 1; i < N; ++i)
     if (x(i) > mx) mx = x(i), idx = i;
   return idx;
 }

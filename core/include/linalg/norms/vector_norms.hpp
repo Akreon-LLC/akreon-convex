@@ -27,17 +27,20 @@ namespace linalg {
  *
  * @return scalar
  */
-template <VectorLike Vec>
+template <FieldVector Vec>
 struct L2 {
-  using T = vec_type_t<Vec>;
-  using ScalarT = scalar_type_t<vec_type_t<Vec>>;
-  constexpr auto operator()(const Vec& x) const {
-    ScalarT result = 0;
-    if constexpr (RealLike<T>) result = dot(x, x);
+  using domain_type = remove_cvref_t<Vec>;
+  using scalar_type = vector_element_t<domain_type>;
+  using codomain_type = real_type_t<scalar_type>;
+
+  constexpr codomain_type operator()(const domain_type& x) const {
+    codomain_type result = 0;
+    const auto squared_norm = inner_product(x, x);
+    if constexpr (Real<scalar_type>) result = squared_norm;
     else {
-      const auto tmp = dot(conjugate(x), x);
-      AK_ASSERT(is_real(tmp) && "L2 complex norm expects real inner product");
-      result = tmp.real();
+      AK_ASSERT(is_real(squared_norm) &&
+                "L2 complex norm expects real inner product");
+      result = squared_norm.real();
     }
     return constexpr_sqrt_safe(result);
   }
@@ -52,12 +55,14 @@ struct L2 {
  *
  * @return scalar
  */
-template <VectorLike Vec>
+template <FieldVector Vec>
 struct L1 {
-  using T = vec_type_t<Vec>;
-  using ScalarT = scalar_type_t<vec_type_t<Vec>>;
-  constexpr auto operator()(const Vec& x) const {
-    ScalarT sum = 0;
+  using domain_type = remove_cvref_t<Vec>;
+  using scalar_type = vector_element_t<domain_type>;
+  using codomain_type = real_type_t<scalar_type>;
+
+  constexpr codomain_type operator()(const domain_type& x) const {
+    codomain_type sum = 0;
     for (const auto& _x : x) sum += constexpr_abs(_x);
     return sum;
   }
@@ -72,12 +77,14 @@ struct L1 {
  *
  * @return scalar
  */
-template <VectorLike Vec>
+template <FieldVector Vec>
 struct Linf {
-  using T = vec_type_t<Vec>;
-  using ScalarT = scalar_type_t<vec_type_t<Vec>>;
-  constexpr auto operator()(const Vec& x) const {
-    ScalarT mx = 0;
+  using domain_type = remove_cvref_t<Vec>;
+  using scalar_type = vector_element_t<domain_type>;
+  using codomain_type = real_type_t<scalar_type>;
+
+  constexpr codomain_type operator()(const domain_type& x) const {
+    codomain_type mx = 0;
     for (const auto& _x : x) mx = std::max(mx, constexpr_abs(_x));
     return mx;
   }

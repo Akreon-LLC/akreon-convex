@@ -21,14 +21,14 @@ namespace linalg {
 /**
  * @brief Matrix sqrt (X^{1/2})
  */
-template <SquareMatrixLike MatIn>
+template <SquareMatrix MatIn>
 struct MatrixSqrt {
   /// @brief alias & types
   using Mat = linalg::remove_cvref_t<MatIn>;
-  using T = mat_type_t<Mat>;
-  static constexpr size_t N = mat_rows_v<Mat>;
+  using T = matrix_scalar_t<Mat>;
+  static constexpr std::size_t N = mat_rows_v<Mat>;
 
-  static_assert(RealLike<T>, "Sqrt assumes reals domain");
+  static_assert(Real<T>, "Sqrt assumes reals domain");
   static_assert(N >= 1, "Sqrt requires matrix dim of at least 1");
 
   /**
@@ -53,7 +53,7 @@ struct MatrixSqrt {
     Mat Y{A};
     Mat Z{make_identity<T, N>()};
 
-    for (size_t i = 0; i < config.steps; ++i) {
+    for (std::size_t i = 0; i < config.steps; ++i) {
       const auto [Y_inv, Y_event] = MatrixInverse<Mat>()(Y);
       if (Y_event != linalg::NumericalEvent::NONE)
         return std::tuple(Mat{}, Mat{}, Y_event);

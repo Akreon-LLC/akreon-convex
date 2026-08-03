@@ -66,6 +66,12 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(linalg_test PRIVATE ../include)
   target_compile_options(linalg_test PRIVATE ${UNIT_COMPILE_OPTS} )
 
+  add_executable(linalg_contract_test unit/linalg_contract_test.cpp)
+  add_test(NAME linalg_contract_test COMMAND linalg_contract_test)
+  target_link_libraries(linalg_contract_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(linalg_contract_test PRIVATE ../include)
+  target_compile_options(linalg_contract_test PRIVATE ${UNIT_COMPILE_OPTS})
+
   add_executable(linear_systems_test unit/linear_systems_test.cpp)
   add_test(NAME linear_systems_test COMMAND linear_systems_test)
   target_link_libraries(linear_systems_test PRIVATE Catch2::Catch2WithMain)
@@ -126,11 +132,11 @@ if(BUILD_UNIT_TESTS)
   target_include_directories(one_dof_smd_test PRIVATE ../physics/include)
   target_compile_options(one_dof_smd_test PRIVATE ${UNIT_COMPILE_OPTS})
 
-  add_executable(affine_set_test unit/affine_set_test.cpp)
-  add_test(NAME affine_set_test COMMAND affine_set_test)
-  target_link_libraries(affine_set_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(affine_set_test PRIVATE ../include)
-  target_compile_options(affine_set_test PRIVATE ${UNIT_COMPILE_OPTS})
+  add_executable(affine_test unit/affine_test.cpp)
+  add_test(NAME affine_test COMMAND affine_test)
+  target_link_libraries(affine_test PRIVATE Catch2::Catch2WithMain)
+  target_include_directories(affine_test PRIVATE ../include)
+  target_compile_options(affine_test PRIVATE ${UNIT_COMPILE_OPTS})
 
   add_executable(convex_set_test unit/convex_set_test.cpp)
   add_test(NAME convex_set_test COMMAND convex_set_test)
@@ -197,6 +203,7 @@ endif()
 
 set(AKREON_TEST_TARGETS
   linalg_test
+  linalg_contract_test
   linear_systems_test
   state_feedback_test
   plant_model_test
@@ -207,7 +214,7 @@ set(AKREON_TEST_TARGETS
   one_dof_pendulum_test
   two_dof_pendulum_test
   one_dof_smd_test
-  affine_set_test
+  affine_test
   convex_set_test
   convex_fn_test
   convex_prob_test
