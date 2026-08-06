@@ -1,5 +1,5 @@
-PROJECT_NAME           = "akreon-sdk"
-PROJECT_BRIEF          = "Akreon constexpr optimization, control, and math SDK"
+PROJECT_NAME           = "akreon-core"
+PROJECT_BRIEF          = "Akreon constexpr optimization, control, and math core"
 OUTPUT_DIRECTORY       = docs/doxygen
 INPUT                  = core/include docs
 FILE_PATTERNS          = *.hpp *.md
@@ -23,8 +23,8 @@ REFERENCES_RELATION    = YES
 
 # Graphviz output
 #
-# Keep parity with akreon-native by generating call and dependency graphs, but
-# cap graph breadth/depth for the SDK's template-heavy headers. SVG output keeps
+# Keep parity with akreon-python by generating call and dependency graphs, but
+# cap graph breadth/depth for the core's template-heavy headers. SVG output keeps
 # generated diagrams readable when zoomed in browser docs.
 HAVE_DOT               = YES
 DOT_IMAGE_FORMAT       = svg

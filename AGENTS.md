@@ -2,11 +2,11 @@
 
 ## Purpose
 
-`akreon-sdk` is the developer-facing technical SDK for Akreon systems.
+`akreon-core` is the developer-facing technical core for Akreon systems.
 
 This repo includes substantial math, optimization, controls, estimation,
 modeling, and analysis to produce automated client-facing code via `.so`
-artifacts with C API wrappers and/or solver results (found in `akreon-native`)
+artifacts with C API wrappers and/or solver results (found in `akreon-python`)
 
 ## Principles
 
@@ -18,7 +18,7 @@ artifacts with C API wrappers and/or solver results (found in `akreon-native`)
 
 ## Rules
 
-- Domain logic that improves the developer-facing SDK is appropriate here.
+- Domain logic that improves the developer-facing core is appropriate here.
 - Do not move closed runner/build/deployment logic into this repo.
 - Prefer explicit models, configs, and result objects over loose dictionaries.
 - Validate inputs early and surface actionable errors.
@@ -34,7 +34,7 @@ configuration in this repo.
 After changing C++ headers or sources, run:
 `clang-format -i <touched-files>`
 
-To audit formatting across the tracked SDK sources, use:
+To audit formatting across the tracked core sources, use:
 `cmake --build <build-dir> --target clang_format_check`
 
 After code changes, run the relevant build and test flow. For host work, prefer:
@@ -46,7 +46,7 @@ After code changes, run the relevant build and test flow. For host work, prefer:
 
 Before making a change, check:
 
-1. Does this belong in the SDK?
+1. Does this belong in the core?
 2. Is this clearer for developers?
 3. Will this break existing code or workflows?
 4. Are assumptions, units, timing, and semantics explicit?
@@ -63,7 +63,7 @@ Include:
 
 - Summary
 - Changeset
-- SDK impact
+- Core impact
 - Testing
 - Gaps
 - Security issues and/or leaks, when present
@@ -71,4 +71,4 @@ Include:
 
 ## Goal
 
-Keep `akreon-sdk` clear, stable, technically rigorous, and easy for developers to use.
+Keep `akreon-core` clear, stable, technically rigorous, and easy for developers to use.

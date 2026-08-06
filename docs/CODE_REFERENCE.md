@@ -1,6 +1,6 @@
-# akreon-sdk Code Reference
+# akreon-core Code Reference
 
-This document orients the public SDK headers. The SDK is intentionally
+This document orients the public core headers. The core is intentionally
 template-heavy: dimensions, algebraic spaces, cone blocks, and control problem
 definitions are compile-time types so generated users can keep problem
 structure explicit and avoid hidden runtime allocation in real-time paths.
@@ -22,17 +22,17 @@ core/include/
     scalar/                 Scalar and field traits
     space/                  Space descriptors and coordinate maps
     vector/                 Vector container and vector traits
-  config/                   SDK assertions and solver configuration
+  config/                   Core assertions and solver configuration
 ```
 
 ## Compile-Time Model
 
-Most SDK APIs encode dimensions in types such as `linalg::Matrix<T, R, C>`,
+Most core APIs encode dimensions in types such as `linalg::Matrix<T, R, C>`,
 `linalg::Vector<T, N>`, and spaces derived from those shapes. Control models
 compose `StateSpace` with typed `PortLayout` definitions, while convex problems
 compose variables, atoms, inequalities, cone blocks, and solver configuration.
 
-The SDK's CMake project builds its verification suite; it does not currently
+The core's CMake project builds its verification suite; it does not currently
 export a library target for downstream linkage. C++ consumers use
 `core/include` as an include root and select an umbrella header:
 
@@ -234,11 +234,11 @@ types. Factorizations and algorithmic operator wrappers do not receive
 `space_traits` merely because they store or act on matrices; genuine spaces
 retain the separate element/coordinate contract.
 
-## akreon-native Integration
+## akreon-python Integration
 
-`akreon-native` is the runtime-facing consumer of the SDK. Its build sets
-`AKREON_SDK_INCLUDE_DIR` to the SDK's `core/include` directory and compiles the
-selected SDK templates directly into its native C library.
+`akreon-python` is the runtime-facing consumer of the core. Its build sets
+`AKREON_CORE_INCLUDE_DIR` to the core's `core/include` directory and compiles
+the selected core templates directly into its native C library.
 
 ```text
 control case manifests
@@ -247,23 +247,23 @@ control case manifests
 generated static case registry
         |
         v
-akreon-sdk control templates
+akreon-core control templates
         |
         v
-akreon-native C ABI -> nanobind -> Python
+akreon-python C ABI -> nanobind -> Python
 ```
 
 The manifest-generated registry bridges runtime requests to the finite set of
-dimensions and control families compiled into the native binary. The SDK keeps
-the mathematical and solver types compile-time explicit; `akreon-native` owns
+dimensions and control families compiled into the native binary. The core keeps
+the mathematical and solver types compile-time explicit; `akreon-python` owns
 runtime validation, dispatch, ABI types, Python array conversion, and wheel
 packaging. Generated customer wheels contain the compiled native surface, so
-their users do not need an SDK checkout or CMake toolchain.
+their users do not need a core checkout or CMake toolchain.
 
 This separation also keeps deployment and language-binding concerns out of the
-SDK. Adding a native runtime surface normally consists of defining or exposing
-the SDK operation here, then adding its validation, dispatch, and binding in
-`akreon-native`.
+core. Adding a native runtime surface normally consists of defining or exposing
+the core operation here, then adding its validation, dispatch, and binding in
+`akreon-python`.
 
 ## Convex Canonicalization Flow
 

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(akreon VERSION 0.0.0 LANGUAGES CXX DESCRIPTION "Akreon SDK" HOMEPAGE_URL https://github.com/dakre21/akreon_sdk)
+project(akreon VERSION 0.0.0 LANGUAGES CXX DESCRIPTION "Akreon Core" HOMEPAGE_URL https://github.com/dakre21/akreon-core)
 
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 26)
@@ -36,7 +36,7 @@ set(CLANG_FORMAT_VERSION_MAJOR "${CMAKE_MATCH_1}")
 if(NOT CLANG_FORMAT_VERSION_MAJOR STREQUAL "${AKREON_CLANG_FORMAT_MAJOR}")
   message(
     FATAL_ERROR
-      "akreon-sdk requires clang-format ${AKREON_CLANG_FORMAT_MAJOR}.x, "
+      "akreon-core requires clang-format ${AKREON_CLANG_FORMAT_MAJOR}.x, "
       "but found: ${CLANG_FORMAT_VERSION_OUTPUT}"
   )
 endif()

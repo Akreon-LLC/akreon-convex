@@ -2,7 +2,7 @@
 
 This note tracks numerical-hardening work exposed by the dynamic-weighted
 quarter-car H∞ tutorial. The issue is not currently treated as a correctness
-failure in the SDK solver. It is a conditioning and coefficient-canonicalization
+failure in the core solver. It is a conditioning and coefficient-canonicalization
 concern that can make recovered controller gains sensitive to machine-precision
 construction noise.
 
@@ -144,5 +144,5 @@ This is currently classified as:
 3. not: a control-theory modeling requirement.
 
 The tutorial-level matrix rounding is acceptable as numerical hygiene for an
-educational example, but SDK hardening should prefer explicit presolve,
+educational example, but core hardening should prefer explicit presolve,
 diagnostics, adaptive regularization, and recovery validation.
