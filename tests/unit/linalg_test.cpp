@@ -34,10 +34,21 @@ TEST_CASE("Test field types", "[field]") {
 TEST_CASE("Test constexpr math", "[math]") {
   constexpr auto res1 = constexpr_sqrt_safe(64.0) - 8.0;
   STATIC_REQUIRE(res1 < eps);
+  STATIC_REQUIRE(constexpr_sqrt(0.0).value() == 0.0);
+  STATIC_REQUIRE(constexpr_sqrt_safe(0.0) == 0.0);
+  STATIC_REQUIRE(!constexpr_sqrt(-1.0).has_value());
 
+  STATIC_REQUIRE(constexpr_pow(2.0, 0) == 1.0);
+  STATIC_REQUIRE(constexpr_pow(2.0, 3) == 8.0);
+
+  STATIC_REQUIRE(constexpr_nrt_safe<double>(0.0, 3) == 0.0);
   STATIC_REQUIRE(constexpr_abs(constexpr_nrt_safe<double>(1.0, 3) - 1.0) < eps);
   STATIC_REQUIRE(
       constexpr_abs(constexpr_nrt_safe<double>(3.0, 3) - 1.44224957031) < eps);
+  STATIC_REQUIRE(constexpr_abs(constexpr_nrt_safe<double>(-8.0, 3) + 2.0) <
+                 eps);
+  STATIC_REQUIRE(!constexpr_nrt<double>(-8.0, 2).has_value());
+  STATIC_REQUIRE(!constexpr_nrt<double>(8.0, 0).has_value());
 
   STATIC_REQUIRE(constexpr_abs(-2.0) == 2.0);
 

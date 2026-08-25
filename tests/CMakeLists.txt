@@ -25,6 +25,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   list(APPEND UNIT_COMPILE_OPTS
     -fconstexpr-depth=65536
     -fconstexpr-steps=2000000000
+    # Catch2 uses __COUNTER__, which Clang 22 diagnoses as a C2y extension
+    # under -Wpedantic even though it is supported by all CI compilers.
+    -Wno-c2y-extensions
   )
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   list(APPEND UNIT_COMPILE_OPTS

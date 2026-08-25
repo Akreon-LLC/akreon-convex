@@ -93,6 +93,10 @@ private:
     U = make_identity<Complex, Rows>();
 
     for (std::size_t i = 0; i < Cols; ++i) {
+      // A zero singular value has no inverse. Preserve the initialized basis
+      // vector instead of relying on a nonzero approximation of sqrt(0).
+      if (S(i, i) == Real(0)) continue;
+
       const auto u_i = (1 / S(i, i)) * as_complex_matrix(A) * get_col(V, i);
       for (std::size_t j = 0; j < Rows; ++j) U(j, i) = u_i(j);
     }

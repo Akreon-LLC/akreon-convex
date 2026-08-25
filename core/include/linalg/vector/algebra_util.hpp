@@ -13,6 +13,7 @@
 #pragma once
 
 #include <array>
+#include <cmath>
 #include <limits>
 #include <optional>
 
@@ -26,6 +27,21 @@
  * constexpr step budgets.
  */
 #define MAX_STEP_EVAL 256
+
+/** @brief Whether the active standard library supports P1383R2 `<cmath>`. */
+#if defined(__cpp_lib_constexpr_cmath) && __cpp_lib_constexpr_cmath >= 202306L
+#define LINALG_HAS_CXX26_CONSTEXPR_CMATH 1
+#else
+#define LINALG_HAS_CXX26_CONSTEXPR_CMATH 0
+#endif
+
+/** @brief Whether the active standard library supports P1383R2 `<complex>`. */
+#if defined(__cpp_lib_constexpr_complex) &&                                    \
+    __cpp_lib_constexpr_complex >= 202306L
+#define LINALG_HAS_CXX26_CONSTEXPR_COMPLEX_MATH 1
+#else
+#define LINALG_HAS_CXX26_CONSTEXPR_COMPLEX_MATH 0
+#endif
 
 namespace linalg {
 
@@ -88,20 +104,20 @@ constexpr T constexpr_div_safe(T num, T den, T fallback = T(0)) {
 }
 
 /**
- * @brief Multiply a real scalar by itself `power` times under the current API.
- *
- * The existing implementation initializes the result with `x`; callers use it
- * with positive powers. Consequently, `power == 0` also returns `x` rather than
- * the conventional multiplicative identity.
+ * @brief Raise a real scalar to a nonnegative integral power.
  *
  * @param x Real base.
  * @param power Nonnegative integral exponent; conventionally positive here.
  */
 template <Real T>
 constexpr T constexpr_pow(T x, std::size_t power) {
-  T res(x);
-  for (std::size_t i = 1; i < power; ++i) res *= x;
+#if LINALG_HAS_CXX26_CONSTEXPR_CMATH
+  return std::pow(x, power);
+#else
+  T res(1);
+  for (std::size_t i = 0; i < power; ++i) res *= x;
   return res;
+#endif
 }
 
 /**
@@ -115,12 +131,18 @@ constexpr T constexpr_pow(T x, std::size_t power) {
  * @param g Positive initial guess; nonpositive guesses are replaced with one.
  * @param tol Absolute squared-residual tolerance.
  * @return Approximation, or `std::nullopt` outside the real domain. The current
- * zero-input convention returns `std::numeric_limits<T>::min()`.
+ * zero-input convention returns zero.
  */
 template <Real T>
 constexpr std::optional<T> constexpr_sqrt(T x, T g = 1e-10, T tol = 1e-10) {
   if (!(x >= T(0))) return std::nullopt;
-  if (x == T(0)) return std::numeric_limits<T>::min();
+  if (x == T(0)) return T(0);
+
+#if LINALG_HAS_CXX26_CONSTEXPR_CMATH
+  (void)g;
+  (void)tol;
+  return std::sqrt(x);
+#else
   if (!(g > T(0))) g = T(1);
 
   auto abs = [](const auto& val) { return val < T(0) ? -val : val; };
@@ -131,6 +153,7 @@ constexpr std::optional<T> constexpr_sqrt(T x, T g = 1e-10, T tol = 1e-10) {
     g = T(0.5) * (g + constexpr_div_safe(x, g, g));
   }
   return g;
+#endif
 }
 
 /**
@@ -163,12 +186,20 @@ constexpr T constexpr_sqrt_safe(T x, T floor = T(0), T g = 1e-10,
  */
 template <Real T>
 constexpr T constexpr_abs(T x) {
+#if LINALG_HAS_CXX26_CONSTEXPR_CMATH
+  return std::abs(x);
+#else
   return x < T(0) ? T(-1) * x : x;
+#endif
 }
 
 template <Complex T>
 constexpr auto constexpr_abs(const T& x) {
+#if LINALG_HAS_CXX26_CONSTEXPR_COMPLEX_MATH
+  return std::abs(x);
+#else
   return constexpr_sqrt_safe(x.real() * x.real() + x.imag() * x.imag());
+#endif
 }
 
 /**
@@ -188,7 +219,7 @@ template <Real T>
 constexpr std::optional<T> constexpr_nrt(T x, std::size_t root, T g = 1e-10,
                                          T tol = 1e-10) {
   if (root == 0) return std::nullopt;
-  if (x == T(0)) return std::numeric_limits<T>::min();
+  if (x == T(0)) return T(0);
 
   T sign = T(1);
   if (x < T(0)) {
@@ -197,6 +228,14 @@ constexpr std::optional<T> constexpr_nrt(T x, std::size_t root, T g = 1e-10,
     x = -x;
   }
 
+#if LINALG_HAS_CXX26_CONSTEXPR_CMATH
+  (void)g;
+  (void)tol;
+  if (root == 1) return sign * x;
+  if (root == 2) return sign * std::sqrt(x);
+  if (root == 3) return sign * std::cbrt(x);
+  return sign * std::pow(x, T(1) / T(root));
+#else
   if (!(g > T(0))) g = T(1);
 
   auto pow_n = [&](T base, std::size_t n) {
@@ -213,6 +252,7 @@ constexpr std::optional<T> constexpr_nrt(T x, std::size_t root, T g = 1e-10,
     if (constexpr_abs(pow_n(g, root) - x) <= tol) return sign * g;
   }
   return sign * g;
+#endif
 }
 
 /**
@@ -249,12 +289,17 @@ constexpr T constexpr_nrt_safe(T x, std::size_t root, T floor = T(0),
  */
 template <Real T>
 constexpr auto constexpr_sin(T x, int terms = 16) {
+#if LINALG_HAS_CXX26_CONSTEXPR_CMATH
+  (void)terms;
+  return std::sin(x);
+#else
   T sum = x, term = x;
   for (int k = 1; k < terms; ++k) {
     term *= (-(x * x)) / (T(2 * k) * T(2 * k + 1));
     sum += term;
   }
   return sum;
+#endif
 }
 
 /**
@@ -268,12 +313,17 @@ constexpr auto constexpr_sin(T x, int terms = 16) {
  */
 template <Real T>
 constexpr auto constexpr_cos(T x, int terms = 16) {
+#if LINALG_HAS_CXX26_CONSTEXPR_CMATH
+  (void)terms;
+  return std::cos(x);
+#else
   T sum = T(1), term = T(1);
   for (int k = 1; k < terms; ++k) {
     term *= (-(x * x)) / (T(2 * k - 1) * T(2 * k));
     sum += term;
   }
   return sum;
+#endif
 }
 
 /**
@@ -289,6 +339,10 @@ constexpr auto constexpr_cos(T x, int terms = 16) {
 template <Real T>
 constexpr std::optional<T> constexpr_atanh(T x, int terms = 16) {
   if (constexpr_abs(x) >= T(1)) return std::nullopt;
+#if LINALG_HAS_CXX26_CONSTEXPR_CMATH
+  (void)terms;
+  return std::atanh(x);
+#else
   const T x2 = x * x;
   T term(x), sum(x);
   for (int k = 1; k < terms; ++k) {
@@ -296,6 +350,7 @@ constexpr std::optional<T> constexpr_atanh(T x, int terms = 16) {
     sum += (term / T(2 * k + 1));
   }
   return sum;
+#endif
 }
 
 /**
@@ -322,8 +377,13 @@ constexpr T constexpr_atanh_safe(T x, T fallback = T(0), int terms = 16) {
  */
 template <Real T>
 constexpr auto constexpr_expi(T theta, int terms = 16) {
+#if LINALG_HAS_CXX26_CONSTEXPR_COMPLEX_MATH
+  (void)terms;
+  return std::exp(std::complex<T>(T(0), theta));
+#else
   return std::complex<T>(constexpr_cos(theta, terms),
                          constexpr_sin(theta, terms));
+#endif
 }
 
 /**
@@ -338,12 +398,17 @@ constexpr auto constexpr_expi(T theta, int terms = 16) {
  */
 template <Real T>
 constexpr auto constexpr_exp(T x, int terms = 16) {
+#if LINALG_HAS_CXX26_CONSTEXPR_CMATH
+  (void)terms;
+  return std::exp(x);
+#else
   T sum(1), term(1);
   for (int k = 1; k < terms; ++k) {
     term *= x / k;
     sum += term;
   }
   return sum;
+#endif
 }
 
 /**
@@ -355,7 +420,12 @@ constexpr auto constexpr_exp(T x, int terms = 16) {
  */
 template <Complex T>
 constexpr auto constexpr_exp_lambda(const T& lambda, int terms = 16) {
+#if LINALG_HAS_CXX26_CONSTEXPR_COMPLEX_MATH
+  (void)terms;
+  return std::exp(lambda);
+#else
   return constexpr_exp(lambda.real()) * constexpr_expi(lambda.imag(), terms);
+#endif
 }
 
 /**
@@ -389,6 +459,10 @@ template <Real T>
 constexpr std::optional<T> constexpr_ln(T x_in, int terms = 16) {
   if (!(x_in > T(0))) return std::nullopt;
 
+#if LINALG_HAS_CXX26_CONSTEXPR_CMATH
+  (void)terms;
+  return std::log(x_in);
+#else
   T x = x_in;
   int e = 0;
 
@@ -406,6 +480,7 @@ constexpr std::optional<T> constexpr_ln(T x_in, int terms = 16) {
   if (!a) return std::nullopt;
 
   return T(2) * (*a) + T(e) * ln2_v<T>;
+#endif
 }
 
 /**
