@@ -106,7 +106,10 @@ constexpr auto tuple_fold_sum(Children&& children, Builder&& builder, Fn&& fn,
     auto&& child = std::get<idx>(std::forward<Children>(children));
     auto new_builder =
         std::forward<Fn>(fn)(child, std::forward<Builder>(builder));
-    auto new_selector = update_selector(selector, new_builder.coord_map);
+    auto new_selector = [&] {
+      if constexpr (idx == 0) return new_builder.coord_map;
+      else return update_selector(selector, new_builder.coord_map);
+    }();
     return tuple_fold_sum<idx + 1>(std::forward<Children>(children),
                                    std::move(new_builder), std::forward<Fn>(fn),
                                    std::move(new_selector));

@@ -169,6 +169,8 @@ TEST_CASE("Test SOC", "[cone_test]") {
     STATIC_REQUIRE(L2<Slack>()(P.apply(q) - q) < eps);
 
     STATIC_REQUIRE(soc.nu() == 2.0);
+    STATIC_REQUIRE(constexpr_abs(std::get<0>(soc.gamma_F(soc.e(), soc.e()))) <
+                   eps);
 
     constexpr Vectord<10> e{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
     STATIC_REQUIRE(soc.e() == e);
@@ -263,6 +265,9 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
   SECTION("Test psd cone api") {
     using Slack = Vectord<3>;
     constexpr PositiveSemidefiniteCone<Slack, 2> psd;
+    STATIC_REQUIRE(psd.nu() == 2.0);
+    STATIC_REQUIRE(constexpr_abs(std::get<0>(psd.gamma_F(psd.e(), psd.e()))) <
+                   eps);
     STATIC_REQUIRE(psd.in_cone(psd.x0()));
     STATIC_REQUIRE(psd.in_dual_cone(psd.y0()));
 

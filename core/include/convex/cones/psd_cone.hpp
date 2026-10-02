@@ -204,9 +204,9 @@ struct PositiveSemidefiniteCone
   /**
    * @brief barrier param
    *
-   * @return nu (M)
+   * @return nu (matrix order N, the degree of det(X))
    */
-  constexpr T nu_impl() const { return static_cast<T>(M); }
+  constexpr T nu_impl() const { return static_cast<T>(N); }
 
   /**
    * @brief e (jordan identity)
@@ -222,6 +222,14 @@ struct PositiveSemidefiniteCone
       for (std::size_t j = 0; j <= i; ++j, ++k)
         if (i == j) x(k) = T(1);
     return x;
+  }
+
+  /// Jordan square root in symmetric-vector coordinates.
+  constexpr auto sqrt_impl(const Slack& x) const {
+    const auto matrix = linalg::make_smat<N>(x);
+    const auto [root, inv_root, event] =
+        linalg::MatrixSqrt<decltype(matrix)>()(matrix);
+    return std::tuple(linalg::get_svec(root), event);
   }
 
   /**

@@ -187,13 +187,23 @@ struct PredictorCorrector {
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
-      T mu_k = Ki.trace(xk, yk) / Ki.nu();
+      // mu_global is the average complementarity of the entire Cartesian
+      // product: sum_k <x_k,y_k> / sum_k nu_k, not a local block gap.
+      // Every block uses this same target; trace_weight only converts it
+      // to that cone's Jordan trace convention.
+      const T barrier = std::apply(
+          [](const auto&... cones) { return (T(0) + ... + cones.nu()); }, K);
+      const T mu_global = linalg::inner_product(x, y) / barrier;
+      const T mu_k = mu_global * Ki.trace_weight();
       const auto [grad_xk, grad_event] = Ki.grad(xk);
       if (linalg::is_fatal_event(grad_event))
         return std::tuple(std::move(pz_rhs), Step{}, grad_event);
 
-      ConePoint rhs_c = yk + mu_k * grad_xk + Ki.circ(px_aff_k, py_aff_k);
-
+      const auto [affine_correction, correction_event] =
+          Ki.scaled_affine_correction(xk, P, px_aff_k, py_aff_k);
+      if (linalg::is_fatal_event(correction_event))
+        return std::tuple(std::move(pz_rhs), Step{}, correction_event);
+      ConePoint rhs_c = yk + mu_k * grad_xk + affine_correction;
       pz_rhs = pz_rhs - F_blk_T * P.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_REPORT_OUTPUT
       auto& cone_trace = trace_state.corrector.cone(idx);

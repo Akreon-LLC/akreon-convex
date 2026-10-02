@@ -604,3 +604,82 @@ TEST_CASE("Warm Start QP Test", "[qp_test]") {
         constexpr_abs(warm_res.iterate.z(1) - cold_res.iterate.z(1)) < rel_tol);
   }
 }
+
+TEST_CASE("QuadForm keeps the norm auxiliary coupled to its square",
+          "[qp_test]") {
+  constexpr auto x = Variable<VarMeta<Matrixd<1, 2>>>();
+  constexpr auto P = mat_traits<Matrixd<2, 2>>{}(2.0, 1.0, 1.0, 2.5);
+  constexpr auto q = Vectord<2>{-4.0, -6.0};
+  constexpr auto prob = make_problem(x).minimize(make_quad_form(P, q, 0.75, x));
+  STATIC_REQUIRE(mat_cols_v<decltype(prob.constraint_map().linear_part())> ==
+                 4);
+  STATIC_REQUIRE(prob.linear_objective() == Vectord<4>{-4.0, -6.0, 0.0, 1.0});
+  STATIC_REQUIRE(prob.builder.coord_map.translation() == Vectord<1>{0.75});
+  // At x=[1,2], 0.5*x^T*P*x=8. Both cone bounds must share u=sqrt(8).
+  const auto z = Vectord<4>{1.0, 2.0, std::sqrt(8.0), 8.0};
+  const auto mapped = prob.constraint_map()(z);
+  REQUIRE(mapped(2) >= std::hypot(mapped(0), mapped(1)) - 1e-8);
+  REQUIRE(mapped(5) >= std::hypot(mapped(3), mapped(4)) - 1e-8);
+  const auto disconnected =
+      prob.constraint_map()(Vectord<4>{1.0, 2.0, std::sqrt(8.0), 0.0});
+  REQUIRE(disconnected(5) < std::hypot(disconnected(3), disconnected(4)));
+}
+
+TEST_CASE("Corrector cross term uses dual coordinates", "[qp_test]") {
+  using Vec = Vectord<2>;
+  const auto F = make_identity<double, 2>();
+  const Matrix<double, 0, 2> A{};
+  const auto cones = std::tuple(NonnegOrthantCone<Vec>{});
+  const NoEqualityCoupling<Vec, Vector<double, 0>> eq;
+  const PredictorCorrector<1, decltype(F), decltype(A), Vec, Vec> pc;
+
+  for (double scale : {1.0, 7.0}) {
+    const auto x = scale * Vec{2.0, 4.0};
+    const Vec y{3.0, 5.0};
+    const auto px = scale * Vec{0.5, -0.25};
+    const Vec py{-0.75, 0.5};
+    const auto factor = LDL(make_diag(Vec{1.5 / scale, 1.25 / scale}));
+#ifdef AKREON_REPORT_OUTPUT
+    PdIpmIterTrace<double, 1> trace{};
+#endif
+    const auto [rhs, step, event] =
+        pc.corrector(Vec{}, px, py, cones, factor, eq, F, Vec{}, Vec{},
+                     Vector<double, 0>{}, x, y
+#ifdef AKREON_REPORT_OUTPUT
+                     ,
+                     trace
+#endif
+        );
+    REQUIRE(event == NumericalEvent::NONE);
+    // mu=13; rhs=-(y-mu/x+px*py/x), independent of primal scaling.
+    REQUIRE(all_equal(rhs, Vec{3.6875, -1.71875}, 1e-10));
+    REQUIRE(all_equal(step.py, Vec{}, 1e-10));
+  }
+}
+
+TEST_CASE("Corrector centers a product cone with a shared gap", "[qp_test]") {
+  using Vec = Vectord<5>;
+  const auto F = make_identity<double, 5>();
+  const Matrix<double, 0, 5> A{};
+  const auto cones = std::tuple(NonnegOrthantCone<Vectord<2>>{},
+                                SecondOrderCone<Vectord<3>>{});
+  const NoEqualityCoupling<Vec, Vector<double, 0>> eq;
+  const PredictorCorrector<2, decltype(F), decltype(A), Vec, Vec> pc;
+  const auto factor = LDL(make_diag(Vec{1.5, 1.25, 7.0 / 3, 7.0 / 3, 7.0 / 3}));
+#ifdef AKREON_REPORT_OUTPUT
+  PdIpmIterTrace<double, 2> trace{};
+#endif
+  const auto [rhs, step, event] =
+      pc.corrector(Vec{}, Vec{}, Vec{}, cones, factor, eq, F, Vec{}, Vec{},
+                   Vector<double, 0>{}, Vec{2.0, 4.0, 0.0, 0.0, 3.0},
+                   Vec{3.0, 5.0, 0.0, 0.0, 7.0}
+#ifdef AKREON_REPORT_OUTPUT
+                   ,
+                   trace
+#endif
+      );
+  REQUIRE(event == NumericalEvent::NONE);
+  // <x,y>/nu=47/4. SOC's Jordan trace contributes twice its Euclidean dot.
+  REQUIRE(all_equal(rhs, Vec{2.875, -2.0625, 0.0, 0.0, 5.0 / 6}, 1e-9));
+  REQUIRE(all_equal(step.py, Vec{}, 1e-9));
+}

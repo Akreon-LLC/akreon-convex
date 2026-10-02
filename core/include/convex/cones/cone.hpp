@@ -17,6 +17,7 @@
 
 #include "convex/cone_traits.hpp"
 #include "linalg/operator/hessian.hpp"
+#include "linalg/operator/ldl.hpp"
 
 namespace conic {
 
@@ -214,6 +215,62 @@ struct Cone {
     static_assert(ConeType::SYMMETRIC == CType,
                   "Nonsymmetric cone is not equipped with Jordan Algebras");
     return self().inv_impl(x);
+  }
+
+  /// Jordan trace weight relative to the Euclidean inner product.
+  constexpr T trace_weight() const {
+    const auto identity = e();
+    return trace(identity, identity) /
+           linalg::inner_product(identity, identity);
+  }
+
+  /**
+   * @brief Affine second-order correction in dual coordinates under NT scaling.
+   *
+   * In the Euclidean Jordan algebra, let L_lambda(v) = lambda circ v.
+   * With lambda = W^-1*x = W*y, solve
+   * L_lambda(v) = (W^-1*px) circ (W*py), then return W^-1*v.
+   * This converts the affine product to the reduced dual-step equation;
+   * it is not a geometric cross product or an orthogonal-vector operation.
+   *
+   * Reference: L. Vandenberghe, "The CVXOPT linear and quadratic cone program
+   * solvers," sections 4 (NT scaling) and 5, equation (19b).
+   * https://www.seas.ucla.edu/~vandenbe/publications/coneprog.pdf
+   */
+  template <typename Scaling>
+  constexpr auto scaled_affine_correction(const Slack& x, const Scaling& P,
+                                          const Slack& px,
+                                          const Slack& py) const {
+    static_assert(ConeType::SYMMETRIC == CType,
+                  "NT correction requires a symmetric cone");
+    return self().scaled_affine_correction_impl(x, P, px, py);
+  }
+
+  /// Common symmetric-cone implementation using Jordan operations.
+  template <typename Scaling>
+  constexpr auto scaled_affine_correction_impl(const Slack& x, const Scaling& P,
+                                               const Slack& px,
+                                               const Slack& py) const {
+    const auto [root, root_event] = self().sqrt_impl(P.x);
+    if (linalg::is_fatal_event(root_event))
+      return std::tuple(Slack{}, root_event);
+    const auto [inv_root, inv_event] = inv(root);
+    if (linalg::is_fatal_event(inv_event))
+      return std::tuple(Slack{}, inv_event);
+    const auto W_inv = Scaling(root);
+    const auto W = Scaling(inv_root);
+    const auto lambda = W_inv.apply(x);
+    HessianMat jordan{};
+    for (std::size_t j = 0; j < M; ++j) {
+      Slack basis{};
+      basis(j) = T(1);
+      const auto column = circ(lambda, basis);
+      for (std::size_t i = 0; i < M; ++i) jordan(i, j) = column(i);
+    }
+    const auto [correction, event] =
+        linalg::LDL(jordan).solve(circ(W_inv.apply(px), W.apply(py)));
+    if (linalg::is_fatal_event(event)) return std::tuple(Slack{}, event);
+    return std::tuple(W_inv.apply(correction), event);
   }
 
   /**

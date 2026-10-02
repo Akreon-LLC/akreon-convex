@@ -454,7 +454,7 @@ struct SecondOrderCone
 
     const auto tr_xy = trace_impl(x, y);
 
-    return std::tuple(nu_impl() * linalg::constexpr_ln_safe(tr_xy) -
+    return std::tuple(nu_impl() * linalg::constexpr_ln_safe(tr_xy / nu_impl()) -
                           linalg::constexpr_ln_safe(det_x) -
                           linalg::constexpr_ln_safe(det_y),
                       linalg::NumericalEvent::NONE);
@@ -484,6 +484,11 @@ struct SecondOrderCone
 
     const auto res = (T(1) / det) * adj_v;
     return std::tuple(res, linalg::NumericalEvent::NONE);
+  }
+
+  /// Event-returning Jordan square root for the common cone implementation.
+  constexpr auto sqrt_impl(const Slack& x) const {
+    return std::tuple(sqrt(x), linalg::NumericalEvent::NONE);
   }
 
   /**
