@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "linalg/affine/affine_map.hpp"
 #include "config/assert.hpp"
 #include "convex/canonical_emission.hpp"
@@ -121,11 +123,47 @@ struct CanonicalFormBuilder {
             LocalEmissionLike Emission>
   constexpr auto realize(int idx, const LiftedMap& lift_map,
                          const Emission& emission) const {
+    // Lifted atoms copy the child's selector columns, then append their own
+    // auxiliaries. The copied prefix already uses global column indices; only
+    // the appended suffix is fresh, even when the requested target is ADD.
+    constexpr std::size_t ChildCols = linalg::mat_cols_v<CoordMapT>;
+    constexpr std::size_t LocalCols = emission_local_coord_cols_v<Emission>;
+    constexpr std::size_t LocalRows = emission_local_coord_rows_v<Emission>;
+    constexpr std::size_t ConeCols = cone_block_map_cols_v<CB>;
+    constexpr std::size_t EqCols =
+        linalg::mat_cols_v<affine::affine_mat_t<EqMap>>;
+    constexpr std::size_t GlobalCols = std::max({ChildCols, ConeCols, EqCols});
+    static_assert(
+        ChildCols >= N && LocalCols > ChildCols,
+        "Lifted emission must preserve child columns and append auxiliaries");
+    constexpr std::size_t FullCols = GlobalCols + LocalCols - ChildCols;
+    linalg::Matrix<T, LocalRows, FullCols> F{};
+    const auto local_F = emission.local_coord_map.linear_part();
+    F = linalg::set_block<0, LocalRows, 0, ChildCols>(
+        F, linalg::get_block<0, LocalRows, 0, ChildCols>(local_F));
+    F = linalg::set_block<0, LocalRows, GlobalCols, FullCols>(
+        F, linalg::get_block<0, LocalRows, ChildCols, LocalCols>(local_F));
+    const auto global_map = affine::AffineMap<decltype(F)>(
+        F, emission.local_coord_map.translation());
+
+    // Lifted atoms carry the child's accumulated equality map. Preserve its
+    // indices and pad it to the same global width as the cone map.
+    constexpr std::size_t LocalEqCols = emission_local_eq_cols_v<Emission>;
+    constexpr std::size_t LocalEqRows = emission_local_eq_rows_v<Emission>;
+    static_assert(
+        LocalEqCols <= GlobalCols,
+        "Lifted emission equality map must use existing global columns");
+    linalg::Matrix<T, LocalEqRows, FullCols> A{};
+    if constexpr (LocalEqRows > 0 && LocalEqCols > 0)
+      A = linalg::set_block<0, LocalEqRows, 0, LocalEqCols>(
+          A, emission.local_eq_map.linear_part());
+    const auto global_eq_map =
+        affine::AffineMap<decltype(A)>(A, emission.local_eq_map.translation());
     const auto traced = add_cone_trace<Type, Emission>(emission);
-    const auto local_builder = make_builder<DecVarDom>(
-        emission.local_coord_map, cb, emission.local_eq_map, traced);
-    return local_builder.template make<Type>(idx, lift_map,
-                                             emission.local_cones);
+    const auto local_builder =
+        make_builder<DecVarDom>(global_map, cb, global_eq_map, traced);
+    return local_builder.template make<convex::AtomType::CAP>(
+        idx, lift_map, emission.local_cones);
   }
 
   /**

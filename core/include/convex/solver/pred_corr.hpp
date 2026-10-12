@@ -187,10 +187,13 @@ struct PredictorCorrector {
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
-      // mu_global is the average complementarity of the entire Cartesian
-      // product: sum_k <x_k,y_k> / sum_k nu_k, not a local block gap.
-      // Every block uses this same target; trace_weight only converts it
-      // to that cone's Jordan trace convention.
+      // Center every block toward the same product-cone complementarity:
+      // mu_global = sum_k <x_k,y_k> / sum_k nu_k (Euclidean coordinates).
+      // A block's Jordan trace satisfies trace_k(u,v) = weight_k * <u,v>.
+      // Its reduced residual therefore uses mu_k = weight_k * mu_global
+      // with grad(x_k) = -inv(x_k). At the target, x_k circ y_k = mu_k * e_k.
+      // Orthant/PSD have weight 1; SOC has weight 2. This converts units,
+      // rather than centering each block at its own trace_k(x_k,y_k)/nu_k.
       const T barrier = std::apply(
           [](const auto&... cones) { return (T(0) + ... + cones.nu()); }, K);
       const T mu_global = linalg::inner_product(x, y) / barrier;

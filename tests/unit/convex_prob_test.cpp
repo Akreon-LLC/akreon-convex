@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 #include <iostream>
 
 #include "math.hpp"
@@ -768,7 +769,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob3.validate());
 
     STATIC_REQUIRE(prob3.linear_objective() ==
-                   Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0});
+                   Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob3.constraint_cones())>::value ==
                    4);
 
@@ -777,14 +778,21 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
         10);
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob3.constraint_map().linear_part())> ==
-        5);
-    constexpr mat_traits<Matrix<double, 10, 5>> F_mat;
-    constexpr auto F =
-        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), F));
+        6);
+    // Each operand and the objective have distinct epigraph columns.
+    constexpr auto expected_F = [] {
+      Matrixd<10, 6> value{};
+      value(0, 0) = 1.0;
+      value(2, 3) = 1.0;
+      value(3, 1) = 1.0;
+      value(5, 4) = 1.0;
+      value(6, 3) = 1.0;
+      value(6, 4) = 1.0;
+      value(7, 2) = 1.0;
+      value(9, 5) = 1.0;
+      return value;
+    }();
+    STATIC_REQUIRE(all_equal(prob3.constraint_map().linear_part(), expected_F));
     STATIC_REQUIRE(
         prob3.constraint_map().translation() ==
         Vectord<10>{0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0});
@@ -799,7 +807,7 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
     STATIC_REQUIRE(prob5.validate());
 
     STATIC_REQUIRE(prob5.linear_objective() ==
-                   Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0});
+                   Vectord<6>{0.0, 0.0, 0.0, 0.0, 0.0, 1.0});
     STATIC_REQUIRE(std::tuple_size<decltype(prob5.constraint_cones())>::value ==
                    4);
 
@@ -808,13 +816,15 @@ TEST_CASE("Convex Problem Formation", "[convex_problem]") {
         10);
     STATIC_REQUIRE(
         linalg::mat_cols_v<decltype(prob5.constraint_map().linear_part())> ==
-        5);
-    constexpr auto F1 =
-        F_mat(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-              0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0,
-              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-    STATIC_REQUIRE(all_equal(prob5.constraint_map().linear_part(), F1));
+        6);
+    constexpr auto expected_F1 = [&] {
+      auto value = expected_F;
+      value(2, 3) = -1.0;
+      value(5, 4) = -1.0;
+      return value;
+    }();
+    STATIC_REQUIRE(
+        all_equal(prob5.constraint_map().linear_part(), expected_F1));
     STATIC_REQUIRE(
         prob5.constraint_map().translation() ==
         Vectord<10>{0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0});
@@ -1020,4 +1030,67 @@ TEST_CASE("Scalar Concave Max. Problems", "[convex_problem]") {
                    Vectord<6>{0.0, 0.5 * inv_sqrt2, 0.5 * inv_sqrt2, 0.0,
                               0.5 * inv_sqrt2, 0.5 * inv_sqrt2});
   }
+}
+
+TEST_CASE("Lifted emissions preserve shared columns across nested sum terms",
+          "[convex_prob]") {
+  constexpr auto x = Variable<VarMeta<Matrixd<1, 2>>>();
+  constexpr auto nested = Exp(Square(x(0)));
+  constexpr auto problem =
+      make_problem(x)
+          .in_set(Hyperplane(Vectord<2>{1.0, -1.0}, 0.0, x))
+          .minimize(Sum(Square(x(1)), nested, nested));
+  // One sibling auxiliary followed by two separate square/exp chains.
+  STATIC_REQUIRE(problem.validate());
+  STATIC_REQUIRE(mat_cols_v<decltype(problem.constraint_map().linear_part())> ==
+                 7);
+  STATIC_REQUIRE(problem.linear_objective() ==
+                 Vectord<7>{0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0});
+  STATIC_REQUIRE(problem.equality_map().linear_part() ==
+                 Matrixd<1, 7>{Vectord<7>{1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0}});
+  STATIC_REQUIRE(problem.equality_map().translation() == Vectord<1>{0.0});
+  // The exp argument must refer to its own square, not a copied or sibling
+  // auxiliary. Check the actual emitted cone coordinates at a known witness.
+  const Vectord<7> witness{2.0,           2.0, 4.0,          4.0,
+                           std::exp(4.0), 4.0, std::exp(4.0)};
+  const auto mapped = problem.constraint_map()(witness);
+  REQUIRE(mapped(6) == 4.0);
+  REQUIRE(mapped(7) == 1.0);
+  REQUIRE(mapped(8) == witness(4));
+  REQUIRE(mapped(12) == 4.0);
+  REQUIRE(mapped(13) == 1.0);
+  REQUIRE(mapped(14) == witness(6));
+  auto changed = witness;
+  changed(3) = 5.0;
+  const auto changed_map = problem.constraint_map()(changed);
+  REQUIRE(changed_map(6) == 5.0);
+  REQUIRE(changed_map(12) == 4.0);
+  // Both square constraints must reject lowering their bounds at x=2.
+  changed = witness;
+  changed(3) = 0.0;
+  changed(5) = 0.0;
+  const auto invalid = problem.constraint_map()(changed);
+  REQUIRE(invalid(5) < std::hypot(invalid(3), invalid(4)));
+  REQUIRE(invalid(11) < std::hypot(invalid(9), invalid(10)));
+}
+
+TEST_CASE("Lifted emissions append every fresh auxiliary after prior terms",
+          "[convex_prob]") {
+  constexpr auto x = Variable<VarMeta<Matrixd<1, 2>>>();
+  constexpr auto problem =
+      make_problem(x).minimize(Sum(Square(x(0)), Abs(x(1)), Exp(Square(x(0)))));
+  STATIC_REQUIRE(problem.validate());
+  STATIC_REQUIRE(problem.linear_objective() ==
+                 Vectord<7>{0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0});
+  // Abs owns two fresh columns, while the later square/exp chain owns two
+  // more. None may reuse the first square's auxiliary or each other's inputs.
+  const Vectord<7> witness{2.0, -3.0, 4.0, 3.0, 3.0, 4.0, std::exp(4.0)};
+  const auto mapped = problem.constraint_map()(witness);
+  REQUIRE(mapped(3) == 0.0);
+  REQUIRE(mapped(4) == 6.0);
+  REQUIRE(mapped(5) == 0.0);
+  REQUIRE(mapped(6) == 3.0);
+  REQUIRE(mapped(7) == 3.0);
+  REQUIRE(mapped(11) == 4.0);
+  REQUIRE(mapped(13) == witness(6));
 }

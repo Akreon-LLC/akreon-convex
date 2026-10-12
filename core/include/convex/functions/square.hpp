@@ -231,14 +231,7 @@ struct Square : Atom<Meta, Square<Meta, Child>, Child> {
     const auto emission =
         conic::LocalEmission(coord_map_up, cones, child_builder.eq_map);
 
-    if constexpr (Dom > decltype(child_builder)::N) {
-      // The child already emitted an auxiliary referenced by this map.
-      // Preserve that global column; ADD would append a disconnected copy.
-      return child_builder.template realize<AtomType::CAP>(idx, lift_map,
-                                                           emission);
-    } else {
-      return child_builder.template realize<Type>(idx, lift_map, emission);
-    }
+    return child_builder.template realize<Type>(idx, lift_map, emission);
   }
 
   /** @brief member vars */

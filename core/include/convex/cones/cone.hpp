@@ -217,7 +217,19 @@ struct Cone {
     return self().inv_impl(x);
   }
 
-  /// Jordan trace weight relative to the Euclidean inner product.
+  /**
+   * @brief Convert Euclidean complementarity to this cone's Jordan trace units.
+   *
+   * For the supported symmetric cones, trace(u, v) = weight * <u, v>.
+   * Evaluate that constant ratio at the Jordan identity: weight is 1 for
+   * the orthant and PSD (svec coordinates), and 2 for SOC.
+   *
+   * The predictor-corrector uses mu_global = <x, y> / sum_k nu_k over the
+   * entire product cone. Multiplying by this weight gives the local coefficient
+   * of grad(x_k) = -inv(x_k) in its reduced complementarity residual.
+   * This is a cone-specific normalization, independent of the current iterate;
+   * it does not compute a local gap or change the shared centering target.
+   */
   constexpr T trace_weight() const {
     const auto identity = e();
     return trace(identity, identity) /
