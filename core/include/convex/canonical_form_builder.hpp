@@ -58,18 +58,21 @@ struct CanonicalFormBuilder {
    * @brief make new builder with tuple of cones and input cone lift map
    * selecting upon input index
    *
+   * @tparam SharedCols existing global prefix copied by a lifted emission;
+   * zero retains the legacy layout selected by Type
+   *
    * @param idx negative index from the end of the updated coordinate domain
    * @param lift_map affine map that selects the lifted epigraph coordinate
    * @param cones emitted cones from the child atom
    *
    * @return builder with updated cone block, equality map, and coordinate map
    */
-  template <convex::AtomType Type, affine::AffineMapLike LiftedMap,
-            typename... Cs>
+  template <convex::AtomType Type, std::size_t SharedCols = 0,
+            affine::AffineMapLike LiftedMap, typename... Cs>
   constexpr auto make(int idx, const LiftedMap& lift_map,
                       const std::tuple<Cs...>& cones) const {
-    const auto new_map = this->template update_map<Type>();
-    const auto new_eq_map = this->template update_eq_map<Type>();
+    const auto new_map = this->template update_map<Type, SharedCols>();
+    const auto new_eq_map = this->template update_eq_map<Type, SharedCols>();
     static constexpr std::size_t FullDom =
         linalg::mat_cols_v<decltype(new_map.linear_part())>;
 
@@ -123,47 +126,14 @@ struct CanonicalFormBuilder {
             LocalEmissionLike Emission>
   constexpr auto realize(int idx, const LiftedMap& lift_map,
                          const Emission& emission) const {
-    // Lifted atoms copy the child's selector columns, then append their own
-    // auxiliaries. The copied prefix already uses global column indices; only
-    // the appended suffix is fresh, even when the requested target is ADD.
+    // The child selector is an existing global prefix; only the emission's
+    // trailing columns are fresh. Keep the requested atom type for tracing.
     constexpr std::size_t ChildCols = linalg::mat_cols_v<CoordMapT>;
-    constexpr std::size_t LocalCols = emission_local_coord_cols_v<Emission>;
-    constexpr std::size_t LocalRows = emission_local_coord_rows_v<Emission>;
-    constexpr std::size_t ConeCols = cone_block_map_cols_v<CB>;
-    constexpr std::size_t EqCols =
-        linalg::mat_cols_v<affine::affine_mat_t<EqMap>>;
-    constexpr std::size_t GlobalCols = std::max({ChildCols, ConeCols, EqCols});
-    static_assert(
-        ChildCols >= N && LocalCols > ChildCols,
-        "Lifted emission must preserve child columns and append auxiliaries");
-    constexpr std::size_t FullCols = GlobalCols + LocalCols - ChildCols;
-    linalg::Matrix<T, LocalRows, FullCols> F{};
-    const auto local_F = emission.local_coord_map.linear_part();
-    F = linalg::set_block<0, LocalRows, 0, ChildCols>(
-        F, linalg::get_block<0, LocalRows, 0, ChildCols>(local_F));
-    F = linalg::set_block<0, LocalRows, GlobalCols, FullCols>(
-        F, linalg::get_block<0, LocalRows, ChildCols, LocalCols>(local_F));
-    const auto global_map = affine::AffineMap<decltype(F)>(
-        F, emission.local_coord_map.translation());
-
-    // Lifted atoms carry the child's accumulated equality map. Preserve its
-    // indices and pad it to the same global width as the cone map.
-    constexpr std::size_t LocalEqCols = emission_local_eq_cols_v<Emission>;
-    constexpr std::size_t LocalEqRows = emission_local_eq_rows_v<Emission>;
-    static_assert(
-        LocalEqCols <= GlobalCols,
-        "Lifted emission equality map must use existing global columns");
-    linalg::Matrix<T, LocalEqRows, FullCols> A{};
-    if constexpr (LocalEqRows > 0 && LocalEqCols > 0)
-      A = linalg::set_block<0, LocalEqRows, 0, LocalEqCols>(
-          A, emission.local_eq_map.linear_part());
-    const auto global_eq_map =
-        affine::AffineMap<decltype(A)>(A, emission.local_eq_map.translation());
     const auto traced = add_cone_trace<Type, Emission>(emission);
-    const auto local_builder =
-        make_builder<DecVarDom>(global_map, cb, global_eq_map, traced);
-    return local_builder.template make<convex::AtomType::CAP>(
-        idx, lift_map, emission.local_cones);
+    const auto local_builder = make_builder<DecVarDom>(
+        emission.local_coord_map, cb, emission.local_eq_map, traced);
+    return local_builder.template make<Type, ChildCols>(idx, lift_map,
+                                                        emission.local_cones);
   }
 
   /**
@@ -309,6 +279,20 @@ private:
     }
   }
 
+  /// Shared-prefix layout for lifted emissions, used by both map updates.
+  template <std::size_t SharedCols>
+  static constexpr std::size_t lifted_domain() {
+    constexpr std::size_t CoordCols = linalg::mat_cols_v<CoordMapT>;
+    constexpr std::size_t ConeCols = cone_block_map_cols_v<CB>;
+    constexpr std::size_t EqCols =
+        linalg::mat_cols_v<affine::affine_mat_t<EqMap>>;
+    static_assert(
+        SharedCols >= N && CoordCols > SharedCols,
+        "Lifted emission must preserve child columns and append auxiliaries");
+    const auto global_cols = std::max({SharedCols, ConeCols, EqCols});
+    return global_cols + CoordCols - SharedCols;
+  }
+
   /**
    * @brief Update the accumulated cone map for the next canonicalization step.
    *
@@ -318,7 +302,7 @@ private:
    * @return affine map with preserved rows and any newly realized coordinate
    * rows
    */
-  template <convex::AtomType Type>
+  template <convex::AtomType Type, std::size_t SharedCols = 0>
   constexpr auto update_map() const {
     const auto& cone_map = cb.map;
     using ConeMapT = affine::affine_mat_t<decltype(cone_map)>;
@@ -332,23 +316,26 @@ private:
     static constexpr std::size_t ConeDom = linalg::mat_cols_v<ConeMapT>;
     static constexpr std::size_t ConeCodom = linalg::mat_rows_v<ConeMapT>;
     static constexpr std::size_t ConeAux = ConeDom == 0 ? 0 : ConeDom - N;
-    static constexpr std::size_t CoordAux = CoordDom - N;
+    static constexpr std::size_t PrefixCols = SharedCols == 0 ? N : SharedCols;
+    static constexpr std::size_t CoordAux = CoordDom - PrefixCols;
 
     static constexpr bool is_op =
         Type == convex::AtomType::ADD || Type == convex::AtomType::CAP;
     static constexpr bool is_add = Type == convex::AtomType::ADD;
 
     /// (dakre) F cols: [ dec vars | cone aux | coord aux ]
-    static constexpr std::size_t FullDom =
-        is_add
-            ? (N + ConeAux + CoordAux)
-            : (is_op ? ((ConeDom > CoordDom) ? ConeDom : CoordDom) : CoordDom);
+    static constexpr std::size_t FullDom = [] {
+      if constexpr (SharedCols > 0) return lifted_domain<SharedCols>();
+      else
+        return is_add ? (N + ConeAux + CoordAux)
+                      : (is_op ? std::max(ConeDom, CoordDom) : CoordDom);
+    }();
     static constexpr std::size_t FullCodom = ConeCodom + CoordCodom;
 
     static constexpr std::size_t CoordAuxStartCol =
-        is_add ? ((ConeDom == 0) ? N : ConeDom) : N;
-    static constexpr std::size_t CoordAuxEndCol =
-        is_add ? (CoordAuxStartCol + CoordAux) : CoordDom;
+        SharedCols > 0 ? FullDom - CoordAux
+                       : (is_add ? ((ConeDom == 0) ? N : ConeDom) : N);
+    static constexpr std::size_t CoordAuxEndCol = CoordAuxStartCol + CoordAux;
 
     linalg::Matrix<T, FullCodom, FullDom> F{};
     linalg::Vector<T, FullCodom> g{};
@@ -361,17 +348,20 @@ private:
         g(i) = cone_map.translation()(i);
     }
 
-    /// (1) fill bottom left from coord map
+    /// (1) preserve the decision/shared prefix from the child
     const auto A = coord_map.linear_part();
-    const auto dec_spanning_blk = linalg::get_block<0, CoordCodom, 0, N>(A);
-    F = linalg::set_block<ConeCodom, FullCodom, 0, N>(F, dec_spanning_blk);
+    const auto dec_spanning_blk =
+        linalg::get_block<0, CoordCodom, 0, PrefixCols>(A);
+    F = linalg::set_block<ConeCodom, FullCodom, 0, PrefixCols>(
+        F, dec_spanning_blk);
 
     /// (2) fill bottom right with new aux vars from latest cone
     if constexpr (Type != convex::AtomType::VAR &&
-                  ((is_add && CoordAux > 0) || (!is_add && CoordDom > N))) {
+                  (SharedCols > 0 || (is_add && CoordAux > 0) ||
+                   (!is_add && CoordDom > N))) {
       static_assert(CoordAuxEndCol > CoordAuxStartCol);
       const auto coord_aux_blk =
-          linalg::get_block<0, CoordCodom, N, CoordDom>(A);
+          linalg::get_block<0, CoordCodom, PrefixCols, CoordDom>(A);
       F = linalg::set_block<ConeCodom, FullCodom, CoordAuxStartCol,
                             CoordAuxEndCol>(F, coord_aux_blk);
     }
@@ -391,7 +381,7 @@ private:
    *
    * @return equality map with column layout aligned to the cone map
    */
-  template <convex::AtomType Type>
+  template <convex::AtomType Type, std::size_t SharedCols = 0>
   constexpr auto update_eq_map() const {
     using EqMapT = affine::affine_mat_t<EqMap>;
 
@@ -409,9 +399,12 @@ private:
         Type == convex::AtomType::ADD || Type == convex::AtomType::CAP;
     static constexpr bool is_add = Type == convex::AtomType::ADD;
 
-    static constexpr std::size_t FullDom =
-        is_add ? (N + EqAux + CoordAux)
-               : (is_op ? ((EqDom > CoordDom) ? EqDom : CoordDom) : CoordDom);
+    static constexpr std::size_t FullDom = [] {
+      if constexpr (SharedCols > 0) return lifted_domain<SharedCols>();
+      else
+        return is_add ? (N + EqAux + CoordAux)
+                      : (is_op ? std::max(EqDom, CoordDom) : CoordDom);
+    }();
 
     static constexpr std::size_t CoordAuxStartCol =
         is_add ? ((EqDom == 0) ? N : EqDom) : N;
@@ -426,7 +419,10 @@ private:
       for (std::size_t i = 0; i < EqCodom; ++i) b(i) = eq_map.translation()(i);
     }
 
-    if constexpr (EqCodom != 0 && Type != convex::AtomType::VAR &&
+    // Lifted emissions inherit global equality columns: copy once and pad.
+    // Only the legacy local-coordinate path rebases equality auxiliaries.
+    if constexpr (SharedCols == 0 && EqCodom != 0 &&
+                  Type != convex::AtomType::VAR &&
                   ((is_add && EqAux > 0) || (!is_add && EqDom > N))) {
       static_assert(CoordAuxEndCol > CoordAuxStartCol);
       const auto coord_aux_blk =
