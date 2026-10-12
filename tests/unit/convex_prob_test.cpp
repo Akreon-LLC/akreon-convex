@@ -1094,3 +1094,59 @@ TEST_CASE("Lifted emissions append every fresh auxiliary after prior terms",
   REQUIRE(mapped(11) == 4.0);
   REQUIRE(mapped(13) == witness(6));
 }
+
+TEST_CASE("Set emissions share the lifted-atom column layout",
+          "[convex_prob]") {
+  using Space = Matrixd<1, 2>;
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto ball0 =
+      NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L1>(
+          Vectord<2>{0.0, 0.0}, 2.0, x);
+  constexpr auto ball1 =
+      NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L1>(
+          Vectord<2>{1.0, 0.0}, 2.0, x);
+  constexpr auto bounded = make_problem(x).in_set(ball0).in_set(ball1);
+  STATIC_REQUIRE(mat_cols_v<decltype(bounded.builder.cb.map.linear_part())> ==
+                 6);
+  // A no-auxiliary set and an equality preserve both earlier auxiliary blocks.
+  constexpr auto problem = bounded
+                               .in_set(Polyhedron(make_identity<double, 2>(),
+                                                  Vectord<2>{2.0, 2.0}, x))
+                               .in_set(Hyperplane(Vectord<2>{1.0, 1.0}, 0.0, x))
+                               .minimize(Square(x(0)));
+  STATIC_REQUIRE(problem.validate());
+  STATIC_REQUIRE(problem.linear_objective() ==
+                 Vectord<7>{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0});
+  STATIC_REQUIRE(problem.equality_map().linear_part() ==
+                 Matrixd<1, 7>{Vectord<7>{1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0}});
+  constexpr Vectord<7> witness{0.5, -0.5, 0.5, 0.5, 0.5, 0.5, 0.25};
+  constexpr auto mapped = problem.constraint_map()(witness);
+  for (std::size_t i = 0; i < 16; ++i) REQUIRE(mapped(i) >= 0.0);
+  auto changed = witness;
+  changed(2) = 1.0;
+  const auto changed_map = problem.constraint_map()(changed);
+  REQUIRE(changed_map(0) == mapped(0) + 0.5);
+  for (std::size_t i = 7; i < 19; ++i) REQUIRE(changed_map(i) == mapped(i));
+}
+
+TEST_CASE("Atom type does not determine column ownership", "[convex_prob]") {
+  using Space = Matrixd<1, 2>;
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto first = Square(x(0)).canonicalize<AtomType::FN>(
+      create_empty_cblk_builder<Space>());
+  constexpr auto child = x.canonicalize<AtomType::FN>(first);
+  constexpr auto recipe =
+      affine::AffineMap(Matrixd<1, 3>{Vectord<3>{1.0, 0.0, 1.0}}, Vectord<1>{});
+  constexpr LocalEmission emission(
+      recipe, std::make_tuple(NonnegOrthantCone<Vectord<1>>{}), child.eq_map);
+  constexpr auto fn = child.realize<AtomType::FN>(emission);
+  constexpr auto add = child.realize<AtomType::ADD>(emission);
+  constexpr auto cap = child.realize<AtomType::CAP>(emission);
+  STATIC_REQUIRE(fn.cb.map.linear_part() == add.cb.map.linear_part());
+  STATIC_REQUIRE(fn.cb.map.linear_part() == cap.cb.map.linear_part());
+  STATIC_REQUIRE(fn.eq_map.linear_part() == add.eq_map.linear_part());
+  STATIC_REQUIRE(fn.eq_map.linear_part() == cap.eq_map.linear_part());
+  STATIC_REQUIRE(mat_cols_v<decltype(fn.cb.map.linear_part())> == 4);
+  STATIC_REQUIRE(fn.cb.map.linear_part()(3, 2) == 0.0);
+  STATIC_REQUIRE(fn.cb.map.linear_part()(3, 3) == 1.0);
+}
