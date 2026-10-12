@@ -285,23 +285,46 @@ private:
     }
   }
 
-  struct ColumnLayout {
-    std::size_t prefix_cols;
-    std::size_t auxiliary_start;
-    std::size_t full_cols;
-  };
-
-  /// All recipes preserve a global prefix and append only their fresh suffix.
+  /**
+   * @brief Column placement for an emission in the accumulated canonical
+   * domain.
+   *
+   * The recipe's [0, SharedCols) prefix references existing global columns.
+   * Its [SharedCols, CoordCols) suffix contains fresh auxiliary variables.
+   * Earlier cones or equalities may own columns beyond the shared prefix, so
+   * the fresh suffix starts after the widest existing domain, at
+   * max(SharedCols, cone columns, equality columns). Existing indices stay
+   * fixed.
+   *
+   * Both map updates use this layout: cone assembly relocates the fresh suffix,
+   * while inherited equality coefficients retain their indices and gain zero
+   * columns for the new auxiliaries. No placement depends on AtomType.
+   *
+   * @tparam SharedCols number of recipe columns already in global coordinates,
+   * including all original decision-variable columns
+   */
   template <std::size_t SharedCols>
-  static constexpr ColumnLayout column_layout() {
-    constexpr std::size_t CoordCols = linalg::mat_cols_v<CoordMapT>;
-    static_assert(SharedCols >= N && CoordCols >= SharedCols,
-                  "Emission must preserve the decision/shared prefix");
-    constexpr std::size_t GlobalCols =
-        std::max({SharedCols, cone_block_map_cols_v<CB>,
-                  linalg::mat_cols_v<affine::affine_mat_t<EqMap>>});
-    return {SharedCols, GlobalCols, GlobalCols + CoordCols - SharedCols};
-  }
+  struct ColumnLayout {
+    static constexpr std::size_t CoordCols = linalg::mat_cols_v<CoordMapT>;
+
+    /// Construct and validate placement from this builder's fixed-size maps.
+    constexpr ColumnLayout()
+        : prefix_cols(SharedCols),
+          auxiliary_start(
+              std::max({SharedCols, cone_block_map_cols_v<CB>,
+                        linalg::mat_cols_v<affine::affine_mat_t<EqMap>>})),
+          full_cols(auxiliary_start + CoordCols - SharedCols) {
+      static_assert(SharedCols >= N && CoordCols >= SharedCols,
+                    "Emission must preserve the decision/shared prefix");
+    }
+
+    const std::size_t
+        prefix_cols; ///< Recipe columns copied without relocation.
+    const std::size_t
+        auxiliary_start;         ///< First global column for fresh auxiliaries.
+    const std::size_t full_cols; ///< Global width after appending CoordCols -
+                                 ///< SharedCols columns.
+  };
 
   /**
    * @brief Update the accumulated cone map for the next canonicalization step.
@@ -325,7 +348,7 @@ private:
 
     static constexpr std::size_t ConeDom = linalg::mat_cols_v<ConeMapT>;
     static constexpr std::size_t ConeCodom = linalg::mat_rows_v<ConeMapT>;
-    constexpr auto layout = column_layout<SharedCols>();
+    constexpr ColumnLayout<SharedCols> layout{};
     constexpr std::size_t PrefixCols = layout.prefix_cols;
     constexpr std::size_t CoordAux = CoordDom - PrefixCols;
     constexpr std::size_t FullDom = layout.full_cols;
@@ -383,7 +406,7 @@ private:
 
     static constexpr std::size_t EqDom = linalg::mat_cols_v<EqMapT>;
     static constexpr std::size_t EqCodom = linalg::mat_rows_v<EqMapT>;
-    constexpr auto layout = column_layout<SharedCols>();
+    constexpr ColumnLayout<SharedCols> layout{};
     constexpr std::size_t FullDom = layout.full_cols;
 
     linalg::Matrix<T, EqCodom, FullDom> A{};
