@@ -204,6 +204,11 @@ if(BUILD_FUNCTIONAL_TESTS)
   target_include_directories(quad_form_fuzz PRIVATE ../include)
   target_compile_options(quad_form_fuzz PRIVATE ${FUNC_COMPILE_OPTS})
 
+  add_executable(sdp_fuzz_test functional/sdp_fuzz_test.cpp)
+  add_test(NAME sdp_fuzz_test COMMAND sdp_fuzz_test)
+  target_include_directories(sdp_fuzz_test PRIVATE ../include)
+  target_compile_options(sdp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
+
   add_executable(qp_fuzz_test functional/qp_fuzz_test.cpp)
   target_include_directories(qp_fuzz_test PRIVATE ../include)
   target_compile_options(qp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})

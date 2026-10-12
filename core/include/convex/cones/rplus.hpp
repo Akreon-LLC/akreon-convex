@@ -273,9 +273,15 @@ struct NonnegOrthantCone
                                                const Slack& px,
                                                const Slack& py) const {
     Slack correction{};
-    for (std::size_t i = 0; i < M; ++i)
-      correction(i) = px(i) * py(i) * (T(1) / std::max(x(i), eps));
-    return std::tuple(correction, linalg::NumericalEvent::NONE);
+    bool safeguarded = false;
+    for (std::size_t i = 0; i < M; ++i) {
+      const T xi_safe = std::max(x(i), eps);
+      safeguarded = safeguarded || (xi_safe != x(i));
+      correction(i) = px(i) * py(i) * (T(1) / xi_safe);
+    }
+    return std::tuple(correction,
+                      safeguarded ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                                  : linalg::NumericalEvent::NONE);
   }
 
   /**
