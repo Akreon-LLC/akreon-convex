@@ -259,6 +259,32 @@ struct NonnegOrthantCone
   }
 
   /**
+   * @brief Componentwise form of the NT-scaled affine correction for R^n_+.
+   *
+   * Here x circ y is componentwise multiplication. Complementarity gives
+   * y_i*dx_i + x_i*dy_i = mu - x_i*y_i - px_i*py_i.
+   * Dividing by x_i gives
+   * dy_i = -(y_i/x_i)*dx_i - [y_i - mu/x_i + px_i*py_i/x_i].
+   * Thus the reduced dual residual needs px_i*py_i/x_i, not the raw product.
+   * The existing interior safeguard bounds the denominator away from zero.
+   */
+  template <typename Scaling>
+  constexpr auto scaled_affine_correction_impl(const Slack& x, const Scaling&,
+                                               const Slack& px,
+                                               const Slack& py) const {
+    Slack correction{};
+    bool safeguarded = false;
+    for (std::size_t i = 0; i < M; ++i) {
+      const T xi_safe = std::max(x(i), eps);
+      safeguarded = safeguarded || (xi_safe != x(i));
+      correction(i) = px(i) * py(i) * (T(1) / xi_safe);
+    }
+    return std::tuple(correction,
+                      safeguarded ? linalg::NumericalEvent::NUMERICAL_SAFEGUARD
+                                  : linalg::NumericalEvent::NONE);
+  }
+
+  /**
    * @brief trace
    *
    * trace(x circ y) = sum(x_i y_i)

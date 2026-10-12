@@ -187,13 +187,26 @@ struct PredictorCorrector {
       const auto F_blk = linalg::get_block<Start, End, 0, N>(F);
       const auto F_blk_T = linalg::transpose(F_blk);
 
-      T mu_k = Ki.trace(xk, yk) / Ki.nu();
+      // Center every block toward the same product-cone complementarity:
+      // mu_global = sum_k <x_k,y_k> / sum_k nu_k (Euclidean coordinates).
+      // A block's Jordan trace satisfies trace_k(u,v) = weight_k * <u,v>.
+      // Its reduced residual therefore uses mu_k = weight_k * mu_global
+      // with grad(x_k) = -inv(x_k). At the target, x_k circ y_k = mu_k * e_k.
+      // Orthant/PSD have weight 1; SOC has weight 2. This converts units,
+      // rather than centering each block at its own trace_k(x_k,y_k)/nu_k.
+      const T barrier = std::apply(
+          [](const auto&... cones) { return (T(0) + ... + cones.nu()); }, K);
+      const T mu_global = linalg::inner_product(x, y) / barrier;
+      const T mu_k = mu_global * Ki.trace_weight();
       const auto [grad_xk, grad_event] = Ki.grad(xk);
       if (linalg::is_fatal_event(grad_event))
         return std::tuple(std::move(pz_rhs), Step{}, grad_event);
 
-      ConePoint rhs_c = yk + mu_k * grad_xk + Ki.circ(px_aff_k, py_aff_k);
-
+      const auto [affine_correction, correction_event] =
+          Ki.scaled_affine_correction(xk, P, px_aff_k, py_aff_k);
+      if (linalg::is_fatal_event(correction_event))
+        return std::tuple(std::move(pz_rhs), Step{}, correction_event);
+      ConePoint rhs_c = yk + mu_k * grad_xk + affine_correction;
       pz_rhs = pz_rhs - F_blk_T * P.apply(rpk) - F_blk_T * rhs_c;
 #ifdef AKREON_REPORT_OUTPUT
       auto& cone_trace = trace_state.corrector.cone(idx);

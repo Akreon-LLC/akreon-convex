@@ -248,7 +248,8 @@ private:
         res.stalled = true;
         return;
       }
-      const auto M_ldl = linalg::LDL(regularize(M_blk, A, config.reg));
+      const auto M_ldl =
+          linalg::LDL(regularize(M_blk, A, config.reg), config.schur);
       const auto [eq_opt, coupling_event] = make_equality_coupling(M_ldl, A);
       if (linalg::is_fatal_event(coupling_event) || !eq_opt.has_value()) {
         res.event = coupling_event;

@@ -48,6 +48,26 @@ TEST_CASE("Test cone formations", "[cone_test]") {
 }
 
 TEST_CASE("Test R^n_+ cone", "[cone_test]") {
+  SECTION("Affine correction reports denominator safeguards") {
+    using Slack = Vectord<4>;
+    constexpr NonnegOrthantCone<Slack> rplus;
+    constexpr auto scaling = std::get<0>(rplus.H(rplus.e(), rplus.e()));
+    constexpr Slack px{2.0, 1.0, -1.0, 0.0};
+    constexpr Slack py{3.0, -2.0, 2.0, 1.0};
+    constexpr auto interior = rplus.scaled_affine_correction(
+        Slack{2.0, 4.0, 1.0, rplus.eps}, scaling, px, py);
+    STATIC_REQUIRE(std::get<1>(interior) == NumericalEvent::NONE);
+    STATIC_REQUIRE(std::get<0>(interior) == Slack{3.0, -0.5, -2.0, 0.0});
+
+    // Zero, positive below the floor, and negative denominators all clamp.
+    // A safeguard is reported even when the corresponding numerator is zero.
+    constexpr auto clamped = rplus.scaled_affine_correction(
+        Slack{2.0, 0.0, rplus.eps / 2.0, -1.0}, scaling, px, py);
+    STATIC_REQUIRE(std::get<1>(clamped) == NumericalEvent::NUMERICAL_SAFEGUARD);
+    STATIC_REQUIRE(std::get<0>(clamped) ==
+                   Slack{3.0, -2.0 / rplus.eps, -2.0 / rplus.eps, 0.0});
+  }
+
   SECTION("Test rplus cone api") {
     using Slack = Vectord<12>;
     constexpr NonnegOrthantCone<Slack> rplus;
@@ -169,6 +189,8 @@ TEST_CASE("Test SOC", "[cone_test]") {
     STATIC_REQUIRE(L2<Slack>()(P.apply(q) - q) < eps);
 
     STATIC_REQUIRE(soc.nu() == 2.0);
+    STATIC_REQUIRE(constexpr_abs(std::get<0>(soc.gamma_F(soc.e(), soc.e()))) <
+                   eps);
 
     constexpr Vectord<10> e{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
     STATIC_REQUIRE(soc.e() == e);
@@ -263,6 +285,9 @@ TEST_CASE("Test PSD Cone", "[cone_test]") {
   SECTION("Test psd cone api") {
     using Slack = Vectord<3>;
     constexpr PositiveSemidefiniteCone<Slack, 2> psd;
+    STATIC_REQUIRE(psd.nu() == 2.0);
+    STATIC_REQUIRE(constexpr_abs(std::get<0>(psd.gamma_F(psd.e(), psd.e()))) <
+                   eps);
     STATIC_REQUIRE(psd.in_cone(psd.x0()));
     STATIC_REQUIRE(psd.in_dual_cone(psd.y0()));
 
