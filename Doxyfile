@@ -1,3 +1,6 @@
+# Copyright © 2025-2026 Akreon LLC
+# SPDX-License-Identifier: Apache-2.0
+
 PROJECT_NAME           = "akreon-core"
 PROJECT_BRIEF          = "Akreon constexpr optimization, control, and math core"
 OUTPUT_DIRECTORY       = docs/doxygen

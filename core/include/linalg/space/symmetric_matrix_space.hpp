@@ -1,4 +1,7 @@
-/* Copyright © 2025 Akreon LLC. All rights reserved. */
+/*
+ * Copyright © 2025-2026 Akreon LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #pragma once
 

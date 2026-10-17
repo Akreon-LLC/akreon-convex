@@ -1,21 +1,24 @@
 # akreon-core
 
-`akreon-core` is the constexpr-oriented C++ foundation for Akreon's fixed size
-linear algebra, convex optimization, dynamics, and control synthesis APIs.
+`akreon-core` is the open-source, constexpr-oriented C++ foundation for Akreon's
+fixed size linear algebra, convex optimization, dynamics, and control synthesis
+APIs.
 Dimensions and problem structure are expressed through compile time types.
 
 `akreon-python` is the primary runtime integration: it includes the core headers,
 compiles manifest selected control problem shapes into native code, and exposes
 those static core specializations through a stable C ABI and Python bindings.
 
-## Legal
+## License
 
-- Proprietary license: `LICENSE`
-- IP protection playbook: `LEGAL.md`
-- Contribution policy: `CONTRIBUTING.md`
-- NDA template: `legal/templates/NDA.md`
-- Evaluation order form template: `legal/templates/Evaluation-Order-Form.md`
-- Contributor agreement template: `legal/Contributor-Agreement.md`
+Licensed under the Apache License, Version 2.0 (`Apache-2.0`).
+See [LICENSE](LICENSE).
+
+Copyright © 2025-2026 Akreon LLC
+
+Created and maintained by David Akre.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution terms.
 
 ## Core Development
 
@@ -33,6 +36,10 @@ Notes:
 
 - `host-default` requires network access for `Catch2` via `FetchContent`.
 - Use `host-functional-only` in offline environments.
+- The core uses the C++ standard library; unit tests fetch Catch2 v3.8.1
+  ([Boost Software License 1.0](https://github.com/catchorg/Catch2/blob/v3.8.1/LICENSE.txt)).
+- Development tooling includes clang-format 22; documentation uses Doxygen and
+  optionally Graphviz.
 
 This repository's CMake surface is for core development and verification. The
 core does not currently publish a CMake library target; C++ consumers add

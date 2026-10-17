@@ -1,3 +1,6 @@
+# Copyright © 2025-2026 Akreon LLC
+# SPDX-License-Identifier: Apache-2.0
+
 cmake_minimum_required(VERSION 3.22)
 
 project(akreon VERSION 0.0.0 LANGUAGES CXX DESCRIPTION "Akreon Core" HOMEPAGE_URL https://github.com/dakre21/akreon-core)
