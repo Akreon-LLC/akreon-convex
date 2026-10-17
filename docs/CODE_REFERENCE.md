@@ -60,6 +60,33 @@ participate in linear algebra without being assigned a coordinate-space policy.
 `coordinate_map` is reserved for representation conversion, while
 `operator_traits` describes the types accepted and returned by linear action.
 
+### Eigen decomposition configuration
+
+`EigenDecomposition(A)` uses a fixed-size Hessenberg reduction and bounded
+shifted QR. The nominal configuration allows 256 QR steps and uses a relative
+deflation tolerance of `8 * epsilon` for the real scalar type. Input scaling is
+handled internally; eigenvalues retain the input's units. Check `converged`
+before consuming eigenvalues or eigenvectors.
+
+To tune the budget without losing the scalar-specific defaults:
+
+```cpp
+using Mat = linalg::Matrix<double, 3, 3>;
+auto cfg = linalg::EigenDecomposition<Mat>::default_config();
+cfg.steps = 512;
+const auto result = linalg::EigenDecomposition(A, cfg); // A has type Mat
+```
+
+The existing `config::FactorConfig<Real>` overload remains available. For this
+algorithm, `tol` is a positive relative deflation tolerance and `floor_eps` is a
+positive eigenvector normalization floor. Invalid or nonfinite parameters and
+nonfinite input return `converged == false`; an exhausted iteration budget also
+returns false. These defaults do not change other factorizations' configurations.
+Hermitian eigenvectors use the accumulated orthonormal similarity basis. Real
+non-Hermitian inputs can retain isolated conjugate-pair blocks in Schur form.
+Householder reflector signs, and consequently individual QR factors and
+eigenvector phases, can differ while preserving the represented operation.
+
 ### Matrix container
 
 `Matrix<T, Rows, Cols>` is an owning, fixed-size container whose shape is part

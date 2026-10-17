@@ -25,7 +25,7 @@ using namespace config;
 
 constexpr double rel_tol = 1e-3;
 
-TEST_CASE("Polyhedron Test", "[lp_test]") {
+TEST_CASE("LP canonicalizes and solves polyhedron objectives", "[lp_test]") {
   using Space = Matrixd<1, 2>;
   constexpr auto x = Variable<VarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
@@ -167,364 +167,346 @@ TEST_CASE("Polyhedron Test", "[lp_test]") {
   }
 }
 
-TEST_CASE("Halfspace and Hyperplane LP Test", "[lp_test]") {
+TEST_CASE("LP solves intersected halfspace and hyperplane constraints",
+          "[lp_test]") {
   using Space = Matrixd<1, 2>;
 
-  SECTION("Min c^Tx s.t. inter(halfspace, hyperplane)") {
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
 
-    constexpr mat_traits<Matrixd<2, 2>> A_nonneg_mat;
-    constexpr auto A_nonneg = A_nonneg_mat(-1.0, 0.0, 0.0, -1.0);
-    constexpr auto b_nonneg = Vectord<2>{0.0, 0.0};
-    constexpr auto nonneg = Polyhedron(A_nonneg, b_nonneg, x);
+  constexpr mat_traits<Matrixd<2, 2>> A_nonneg_mat;
+  constexpr auto A_nonneg = A_nonneg_mat(-1.0, 0.0, 0.0, -1.0);
+  constexpr auto b_nonneg = Vectord<2>{0.0, 0.0};
+  constexpr auto nonneg = Polyhedron(A_nonneg, b_nonneg, x);
 
-    constexpr Halfspace<HalfspaceMeta<Space>, decltype(x), HalfspaceType::LH>
-        x0_upper_bound(Vectord<2>{1.0, 0.0}, 0.5, x);
-    constexpr auto simplex_face = Hyperplane(Vectord<2>{1.0, 1.0}, 1.0, x);
+  constexpr Halfspace<HalfspaceMeta<Space>, decltype(x), HalfspaceType::LH>
+      x0_upper_bound(Vectord<2>{1.0, 0.0}, 0.5, x);
+  constexpr auto simplex_face = Hyperplane(Vectord<2>{1.0, 1.0}, 1.0, x);
 
-    constexpr auto feasible_set =
-        Intersection(nonneg, x0_upper_bound, simplex_face);
-    constexpr auto prob_constr = prob_init.in_set(feasible_set);
+  constexpr auto feasible_set =
+      Intersection(nonneg, x0_upper_bound, simplex_face);
+  constexpr auto prob_constr = prob_init.in_set(feasible_set);
 
-    constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = WeightedSum<Space>()(c, x);
-    constexpr auto prob_min = prob_constr.minimize(cx);
+  constexpr auto c = Vectord<2>{2.0, -1.0};
+  constexpr auto cx = WeightedSum<Space>()(c, x);
+  constexpr auto prob_min = prob_constr.minimize(cx);
 
-    constexpr mat_traits<Matrixd<3, 2>> F_mat;
-    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0);
-    constexpr auto g_exp = Vectord<3>{0.0, 0.0, 0.5};
-    constexpr mat_traits<Matrixd<1, 2>> Aeq_mat;
-    constexpr auto Aeq = Aeq_mat(1.0, 1.0);
+  constexpr mat_traits<Matrixd<3, 2>> F_mat;
+  constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0);
+  constexpr auto g_exp = Vectord<3>{0.0, 0.0, 0.5};
+  constexpr mat_traits<Matrixd<1, 2>> Aeq_mat;
+  constexpr auto Aeq = Aeq_mat(1.0, 1.0);
 
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(prob_min.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 3);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 2);
-    STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
-    STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
-    STATIC_REQUIRE(all_equal(prob_min.equality_map().linear_part(), Aeq));
-    STATIC_REQUIRE(prob_min.equality_map().translation() == Vectord<1>{1.0});
-    STATIC_REQUIRE(prob_min.linear_objective() == c);
-  }
+  STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+  STATIC_REQUIRE(prob_min.validate());
+  STATIC_REQUIRE(
+      std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+  STATIC_REQUIRE(
+      mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 3);
+  STATIC_REQUIRE(
+      mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 2);
+  STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
+  STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+  STATIC_REQUIRE(all_equal(prob_min.equality_map().linear_part(), Aeq));
+  STATIC_REQUIRE(prob_min.equality_map().translation() == Vectord<1>{1.0});
+  STATIC_REQUIRE(prob_min.linear_objective() == c);
 }
 
-TEST_CASE("Polyhedron and Affine Subspace LP Test", "[lp_test]") {
+TEST_CASE("LP solves intersected polyhedron and affine subspace constraints",
+          "[lp_test]") {
   using Space = Matrixd<1, 2>;
 
-  SECTION("Min c^T x s.t. inter(poly, affine subspace)") {
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
 
-    constexpr mat_traits<Matrixd<3, 2>> A_poly_mat;
-    constexpr auto A_poly = A_poly_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 0.0);
-    constexpr auto b_poly = Vectord<3>{0.0, 0.0, 0.5};
-    constexpr auto poly = Polyhedron(A_poly, b_poly, x);
+  constexpr mat_traits<Matrixd<3, 2>> A_poly_mat;
+  constexpr auto A_poly = A_poly_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 0.0);
+  constexpr auto b_poly = Vectord<3>{0.0, 0.0, 0.5};
+  constexpr auto poly = Polyhedron(A_poly, b_poly, x);
 
-    constexpr auto A_aff = make_identity<double, 2>();
-    constexpr auto b_aff = Vectord<2>{0.0, 1.0};
-    constexpr auto affine_set = AffineSubspace(A_aff, b_aff, x);
+  constexpr auto A_aff = make_identity<double, 2>();
+  constexpr auto b_aff = Vectord<2>{0.0, 1.0};
+  constexpr auto affine_set = AffineSubspace(A_aff, b_aff, x);
 
-    constexpr auto feasible_set = Intersection(poly, affine_set);
-    constexpr auto prob_constr = prob_init.in_set(feasible_set);
+  constexpr auto feasible_set = Intersection(poly, affine_set);
+  constexpr auto prob_constr = prob_init.in_set(feasible_set);
 
-    constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = WeightedSum<Space>()(c, x);
-    constexpr auto prob_min = prob_constr.minimize(cx);
+  constexpr auto c = Vectord<2>{2.0, -1.0};
+  constexpr auto cx = WeightedSum<Space>()(c, x);
+  constexpr auto prob_min = prob_constr.minimize(cx);
 
-    constexpr mat_traits<Matrixd<3, 2>> F_mat;
-    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0);
-    constexpr auto g_exp = Vectord<3>{0.0, 0.0, 0.5};
+  constexpr mat_traits<Matrixd<3, 2>> F_mat;
+  constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0);
+  constexpr auto g_exp = Vectord<3>{0.0, 0.0, 0.5};
 
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(prob_min.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 1);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 3);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 2);
-    STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
-    STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
-    STATIC_REQUIRE(all_equal(prob_min.equality_map().linear_part(),
-                             make_identity<double, 2>()));
-    STATIC_REQUIRE(prob_min.equality_map().translation() ==
-                   Vectord<2>{0.0, 1.0});
-    STATIC_REQUIRE(prob_min.linear_objective() == c);
+  STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+  STATIC_REQUIRE(prob_min.validate());
+  STATIC_REQUIRE(
+      std::tuple_size<decltype(prob_min.constraint_cones())>::value == 1);
+  STATIC_REQUIRE(
+      mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 3);
+  STATIC_REQUIRE(
+      mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 2);
+  STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
+  STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+  STATIC_REQUIRE(all_equal(prob_min.equality_map().linear_part(),
+                           make_identity<double, 2>()));
+  STATIC_REQUIRE(prob_min.equality_map().translation() == Vectord<2>{0.0, 1.0});
+  STATIC_REQUIRE(prob_min.linear_objective() == c);
 
-    constexpr PrimalDualIPM solver(prob_min);
-    constexpr auto res = solver.res;
+  constexpr PrimalDualIPM solver(prob_min);
+  constexpr auto res = solver.res;
 
-    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+  STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+  STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
 #ifdef AKREON_REPORT_OUTPUT
-    constexpr auto trace = solver.trace;
-    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
-                   config::SolverResult::OPTIMAL);
+  constexpr auto trace = solver.trace;
+  STATIC_REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0)) < rel_tol);
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - 1.0) < rel_tol);
-  }
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0)) < rel_tol);
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - 1.0) < rel_tol);
 }
 
-TEST_CASE("L1 Ball LP Test", "[lp_test]") {
+TEST_CASE("LP minimizes a linear objective over an L1 ball", "[lp_test]") {
   using Space = Matrixd<1, 2>;
 
-  SECTION("Min c^T x s.t. L1 ball") {
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
 
-    constexpr auto center = Vectord<2>{0.0, 0.0};
-    constexpr auto radius = 1.5;
-    constexpr auto ball =
-        NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L1>(center,
+  constexpr auto center = Vectord<2>{0.0, 0.0};
+  constexpr auto radius = 1.5;
+  constexpr auto ball =
+      NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L1>(center,
+                                                                   radius, x);
+  constexpr auto prob_constr = prob_init.in_set(ball);
+
+  constexpr auto c = Vectord<2>{2.0, -1.0};
+  constexpr auto cx = WeightedSum<Space>()(c, x);
+  constexpr auto prob_min = prob_constr.minimize(cx);
+
+  constexpr mat_traits<Matrixd<7, 4>> F_mat;
+  constexpr auto F_exp = F_mat(
+      1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, -1.0, 0.0, 1.0, 0.0, 0.0, -1.0,
+      0.0, 1.0, 0.0, 0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+  constexpr auto g_exp = Vectord<7>{0.0, 0.0, 0.0, 0.0, radius, 0.0, 0.0};
+  constexpr auto obj_exp = Vectord<4>{2.0, -1.0, 0.0, 0.0};
+
+  STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+  STATIC_REQUIRE(prob_min.validate());
+  STATIC_REQUIRE(
+      std::tuple_size<decltype(prob_min.constraint_cones())>::value == 4);
+  STATIC_REQUIRE(
+      mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 7);
+  STATIC_REQUIRE(
+      mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 4);
+  STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
+  STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+  STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
+
+  constexpr PrimalDualIPM solver(prob_min);
+  constexpr auto res = solver.res;
+
+  STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+  STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+#ifdef AKREON_REPORT_OUTPUT
+  constexpr auto trace = solver.trace;
+  STATIC_REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
+#endif
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) + radius) < rel_tol);
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1)) < rel_tol);
+}
+
+TEST_CASE("LP minimizes a linear objective over a Linf ball", "[lp_test]") {
+  using Space = Matrixd<1, 2>;
+
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+
+  constexpr auto center = Vectord<2>{0.0, 0.0};
+  constexpr auto radius = 1.5;
+  constexpr auto ball =
+      NormBall<NormBallMeta<Space>, decltype(x), NormBallType::Linf>(center,
                                                                      radius, x);
-    constexpr auto prob_constr = prob_init.in_set(ball);
+  constexpr auto prob_constr = prob_init.in_set(ball);
 
-    constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = WeightedSum<Space>()(c, x);
-    constexpr auto prob_min = prob_constr.minimize(cx);
+  constexpr auto c = Vectord<2>{2.0, -1.0};
+  constexpr auto cx = WeightedSum<Space>()(c, x);
+  constexpr auto prob_min = prob_constr.minimize(cx);
 
-    constexpr mat_traits<Matrixd<7, 4>> F_mat;
-    constexpr auto F_exp = F_mat(
-        1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, -1.0, 0.0, 1.0, 0.0, 0.0, -1.0,
-        0.0, 1.0, 0.0, 0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-    constexpr auto g_exp = Vectord<7>{0.0, 0.0, 0.0, 0.0, radius, 0.0, 0.0};
-    constexpr auto obj_exp = Vectord<4>{2.0, -1.0, 0.0, 0.0};
+  constexpr mat_traits<Matrixd<4, 2>> F_mat;
+  constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, -1.0);
+  constexpr auto g_exp = Vectord<4>{radius, radius, radius, radius};
 
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(prob_min.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 4);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 7);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 4);
-    STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
-    STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
-    STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
+  STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+  STATIC_REQUIRE(prob_min.validate());
+  STATIC_REQUIRE(
+      std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
+  STATIC_REQUIRE(
+      mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 4);
+  STATIC_REQUIRE(
+      mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 2);
+  STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
+  STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+  STATIC_REQUIRE(prob_min.linear_objective() == c);
 
-    constexpr PrimalDualIPM solver(prob_min);
-    constexpr auto res = solver.res;
+  constexpr PrimalDualIPM solver(prob_min);
+  constexpr auto res = solver.res;
 
-    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+  STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+  STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
 #ifdef AKREON_REPORT_OUTPUT
-    constexpr auto trace = solver.trace;
-    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
-                   config::SolverResult::OPTIMAL);
+  constexpr auto trace = solver.trace;
+  STATIC_REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) + radius) < rel_tol);
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1)) < rel_tol);
-  }
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) + radius) < rel_tol);
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - radius) < rel_tol);
 }
 
-TEST_CASE("Linf Ball LP Test", "[lp_test]") {
-  using Space = Matrixd<1, 2>;
-
-  SECTION("Min c^T x s.t. Linf ball") {
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
-
-    constexpr auto center = Vectord<2>{0.0, 0.0};
-    constexpr auto radius = 1.5;
-    constexpr auto ball =
-        NormBall<NormBallMeta<Space>, decltype(x), NormBallType::Linf>(
-            center, radius, x);
-    constexpr auto prob_constr = prob_init.in_set(ball);
-
-    constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = WeightedSum<Space>()(c, x);
-    constexpr auto prob_min = prob_constr.minimize(cx);
-
-    constexpr mat_traits<Matrixd<4, 2>> F_mat;
-    constexpr auto F_exp = F_mat(1.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, -1.0);
-    constexpr auto g_exp = Vectord<4>{radius, radius, radius, radius};
-
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(prob_min.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 2);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 4);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 2);
-    STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
-    STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
-    STATIC_REQUIRE(prob_min.linear_objective() == c);
-
-    constexpr PrimalDualIPM solver(prob_min);
-    constexpr auto res = solver.res;
-
-    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
-#ifdef AKREON_REPORT_OUTPUT
-    constexpr auto trace = solver.trace;
-    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
-                   config::SolverResult::OPTIMAL);
-#endif
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) + radius) < rel_tol);
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - radius) < rel_tol);
-  }
-}
-
-TEST_CASE("L1 Function LP Test", "[lp_test]") {
+TEST_CASE("LP solves an L1 epigraph with a lower bound", "[lp_test]") {
   using Space = Matrixd<1, 2>;
   using Codom = Matrixd<1, 1>;
 
-  SECTION("Min x0 s.t. L1 fn and x0 >= 1") {
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
-    constexpr auto x0 = x(0);
-    constexpr auto geq =
-        Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 1.0);
-    constexpr auto prob_constr = prob_init.add_constraint(geq);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+  constexpr auto x0 = x(0);
+  constexpr auto geq =
+      Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 1.0);
+  constexpr auto prob_constr = prob_init.add_constraint(geq);
 
-    constexpr auto l1 =
-        Norm<NormMeta<Space, Codom>, decltype(x), L1<Vectord<2>>>(x);
-    constexpr auto prob_min = prob_constr.minimize(l1);
+  constexpr auto l1 =
+      Norm<NormMeta<Space, Codom>, decltype(x), L1<Vectord<2>>>(x);
+  constexpr auto prob_min = prob_constr.minimize(l1);
 
-    constexpr mat_traits<Matrixd<8, 5>> F_mat;
-    constexpr auto F_exp = F_mat(
-        1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
-        0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0,
-        -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-    constexpr auto g_exp = Vectord<8>{-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    constexpr auto obj_exp = Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0};
+  constexpr mat_traits<Matrixd<8, 5>> F_mat;
+  constexpr auto F_exp = F_mat(
+      1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+      -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, -1.0,
+      1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+  constexpr auto g_exp = Vectord<8>{-1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  constexpr auto obj_exp = Vectord<5>{0.0, 0.0, 0.0, 0.0, 1.0};
 
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(prob_min.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 5);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 8);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 5);
-    STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
-    STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
-    STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
+  STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+  STATIC_REQUIRE(prob_min.validate());
+  STATIC_REQUIRE(
+      std::tuple_size<decltype(prob_min.constraint_cones())>::value == 5);
+  STATIC_REQUIRE(
+      mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 8);
+  STATIC_REQUIRE(
+      mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 5);
+  STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
+  STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+  STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
 
-    constexpr PrimalDualIPM solver(prob_min);
-    constexpr auto res = solver.res;
+  constexpr PrimalDualIPM solver(prob_min);
+  constexpr auto res = solver.res;
 
-    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+  STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+  STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
 #ifdef AKREON_REPORT_OUTPUT
-    constexpr auto trace = solver.trace;
-    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
-                   config::SolverResult::OPTIMAL);
+  constexpr auto trace = solver.trace;
+  STATIC_REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1)) < rel_tol);
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(4) - 1.0) < rel_tol);
-  }
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1)) < rel_tol);
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(4) - 1.0) < rel_tol);
 }
 
-TEST_CASE("Linf Function LP Test", "[lp_test]") {
+TEST_CASE("LP solves a Linf epigraph with a lower bound", "[lp_test]") {
   using Space = Matrixd<1, 2>;
   using Codom = Matrixd<1, 1>;
 
-  SECTION("Min x0 s.t. Linf fn x0 >= 1") {
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
-    constexpr auto x1 = x(1);
-    constexpr auto leq =
-        Inequality<InequalityType::LEQ, decltype(x1), double>(x1, -2.0);
-    constexpr auto prob_constr = prob_init.add_constraint(leq);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+  constexpr auto x1 = x(1);
+  constexpr auto leq =
+      Inequality<InequalityType::LEQ, decltype(x1), double>(x1, -2.0);
+  constexpr auto prob_constr = prob_init.add_constraint(leq);
 
-    constexpr auto linf =
-        Norm<NormMeta<Space, Codom>, decltype(x), Linf<Vectord<2>>>(x);
-    constexpr auto prob_min = prob_constr.minimize(linf);
+  constexpr auto linf =
+      Norm<NormMeta<Space, Codom>, decltype(x), Linf<Vectord<2>>>(x);
+  constexpr auto prob_min = prob_constr.minimize(linf);
 
-    constexpr mat_traits<Matrixd<5, 3>> F_mat;
-    constexpr auto F_exp = F_mat(0.0, -1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
-                                 -1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
-    constexpr auto g_exp = Vectord<5>{-2.0, 0.0, 0.0, 0.0, 0.0};
-    constexpr auto obj_exp = Vectord<3>{0.0, 0.0, 1.0};
+  constexpr mat_traits<Matrixd<5, 3>> F_mat;
+  constexpr auto F_exp = F_mat(0.0, -1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
+                               -1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
+  constexpr auto g_exp = Vectord<5>{-2.0, 0.0, 0.0, 0.0, 0.0};
+  constexpr auto obj_exp = Vectord<3>{0.0, 0.0, 1.0};
 
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(prob_min.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 5);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 3);
-    STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
-    STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
-    STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
+  STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+  STATIC_REQUIRE(prob_min.validate());
+  STATIC_REQUIRE(
+      std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+  STATIC_REQUIRE(
+      mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 5);
+  STATIC_REQUIRE(
+      mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 3);
+  STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
+  STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+  STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
 
-    constexpr PrimalDualIPM solver(prob_min);
-    constexpr auto res = solver.res;
+  constexpr PrimalDualIPM solver(prob_min);
+  constexpr auto res = solver.res;
 
-    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+  STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+  STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
 #ifdef AKREON_REPORT_OUTPUT
-    constexpr auto trace = solver.trace;
-    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
-                   config::SolverResult::OPTIMAL);
+  constexpr auto trace = solver.trace;
+  STATIC_REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) + 2.0) < rel_tol);
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(2) - 2.0) < rel_tol);
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0)) <= 2.0 + rel_tol);
-  }
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) + 2.0) < rel_tol);
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(2) - 2.0) < rel_tol);
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0)) <= 2.0 + rel_tol);
 }
 
-TEST_CASE("Max Function LP Test", "[lp_test]") {
+TEST_CASE("LP minimizes Max with componentwise lower bounds", "[lp_test]") {
   using Space = Matrixd<1, 2>;
-  SECTION("Min max(x) s.t. x >= 1.5") {
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
-    constexpr auto x0 = x(0);
-    constexpr auto x1 = x(1);
-    constexpr auto x0_geq =
-        Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 1.5);
-    constexpr auto x1_geq =
-        Inequality<InequalityType::GEQ, decltype(x1), double>(x1, 1.5);
-    constexpr auto prob_constr =
-        prob_init.add_constraint(x0_geq).add_constraint(x1_geq);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+  constexpr auto x0 = x(0);
+  constexpr auto x1 = x(1);
+  constexpr auto x0_geq =
+      Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 1.5);
+  constexpr auto x1_geq =
+      Inequality<InequalityType::GEQ, decltype(x1), double>(x1, 1.5);
+  constexpr auto prob_constr =
+      prob_init.add_constraint(x0_geq).add_constraint(x1_geq);
 
-    constexpr auto mx = Max(x);
-    constexpr auto prob_min = prob_constr.minimize(mx);
+  constexpr auto mx = Max(x);
+  constexpr auto prob_min = prob_constr.minimize(mx);
 
-    constexpr mat_traits<Matrixd<4, 3>> F_mat;
-    constexpr auto F_exp =
-        F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
-    constexpr auto g_exp = Vectord<4>{-1.5, -1.5, 0.0, 0.0};
-    constexpr auto obj_exp = Vectord<3>{0.0, 0.0, 1.0};
+  constexpr mat_traits<Matrixd<4, 3>> F_mat;
+  constexpr auto F_exp =
+      F_mat(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, -1.0, 0.0, 1.0, 0.0, -1.0, 1.0);
+  constexpr auto g_exp = Vectord<4>{-1.5, -1.5, 0.0, 0.0};
+  constexpr auto obj_exp = Vectord<3>{0.0, 0.0, 1.0};
 
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(prob_min.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 4);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 3);
-    STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
-    STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
-    STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
+  STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+  STATIC_REQUIRE(prob_min.validate());
+  STATIC_REQUIRE(
+      std::tuple_size<decltype(prob_min.constraint_cones())>::value == 3);
+  STATIC_REQUIRE(
+      mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 4);
+  STATIC_REQUIRE(
+      mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 3);
+  STATIC_REQUIRE(all_equal(prob_min.constraint_map().linear_part(), F_exp));
+  STATIC_REQUIRE(prob_min.constraint_map().translation() == g_exp);
+  STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
 
-    constexpr PrimalDualIPM solver(prob_min);
-    constexpr auto res = solver.res;
+  constexpr PrimalDualIPM solver(prob_min);
+  constexpr auto res = solver.res;
 
-    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+  STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+  STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
 #ifdef AKREON_REPORT_OUTPUT
-    constexpr auto trace = solver.trace;
-    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
-                   config::SolverResult::OPTIMAL);
+  constexpr auto trace = solver.trace;
+  STATIC_REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.5) < rel_tol);
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - 1.5) < rel_tol);
-  }
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.5) < rel_tol);
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(1) - 1.5) < rel_tol);
 }
 
-TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
+TEST_CASE("LP canonicalizes and solves Sum equality and inequality constraints",
+          "[lp_test]") {
   using Space = Matrixd<1, 2>;
 
   SECTION("sum(x) == 1") {
@@ -620,88 +602,82 @@ TEST_CASE("Sum Constraint LP Test", "[lp_test]") {
   }
 }
 
-TEST_CASE("Abs Function LP Test", "[lp_test]") {
+TEST_CASE("LP minimizes Abs with a lower bound", "[lp_test]") {
   using Space = Matrixd<1, 1>;
 
-  SECTION("Min abs(x) s.t. x0 >= 1") {
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
-    constexpr auto abs_x = Abs(x);
-    constexpr auto x0 = x(0);
-    constexpr auto geq =
-        Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 1.0);
-    constexpr auto prob_constr = prob_init.add_constraint(geq);
-    constexpr auto prob_min = prob_constr.minimize(abs_x);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
+  constexpr auto abs_x = Abs(x);
+  constexpr auto x0 = x(0);
+  constexpr auto geq =
+      Inequality<InequalityType::GEQ, decltype(x0), double>(x0, 1.0);
+  constexpr auto prob_constr = prob_init.add_constraint(geq);
+  constexpr auto prob_min = prob_constr.minimize(abs_x);
 
-    constexpr auto obj_exp = Vectord<3>{0.0, 0.0, 1.0};
+  constexpr auto obj_exp = Vectord<3>{0.0, 0.0, 1.0};
 
-    STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
-    STATIC_REQUIRE(prob_min.validate());
-    STATIC_REQUIRE(
-        std::tuple_size<decltype(prob_min.constraint_cones())>::value == 6);
-    STATIC_REQUIRE(
-        mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 6);
-    STATIC_REQUIRE(
-        mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 3);
-    STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
+  STATIC_REQUIRE(is_problem_set_v<decltype(prob_min)>);
+  STATIC_REQUIRE(prob_min.validate());
+  STATIC_REQUIRE(
+      std::tuple_size<decltype(prob_min.constraint_cones())>::value == 6);
+  STATIC_REQUIRE(
+      mat_rows_v<decltype(prob_min.constraint_map().linear_part())> == 6);
+  STATIC_REQUIRE(
+      mat_cols_v<decltype(prob_min.constraint_map().linear_part())> == 3);
+  STATIC_REQUIRE(prob_min.linear_objective() == obj_exp);
 
-    constexpr PrimalDualIPM solver(prob_min);
-    constexpr auto res = solver.res;
+  constexpr PrimalDualIPM solver(prob_min);
+  constexpr auto res = solver.res;
 
-    STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
+  STATIC_REQUIRE(res.tag == SolverResult::OPTIMAL);
+  STATIC_REQUIRE(res.num_iter > 0 && res.num_iter < PD_IPM_STEPS);
 #ifdef AKREON_REPORT_OUTPUT
-    constexpr auto trace = solver.trace;
-    STATIC_REQUIRE(trace[res.num_iter - 1].tag ==
-                   config::SolverResult::OPTIMAL);
+  constexpr auto trace = solver.trace;
+  STATIC_REQUIRE(trace[res.num_iter - 1].tag == config::SolverResult::OPTIMAL);
 #endif
-    STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
+  STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
 
-    // log(res, trace);
-  }
+  // log(res, trace);
 }
 
-TEST_CASE("Warm Start LP Test", "[lp_test]") {
+TEST_CASE("LP warm start reuses an iterate on a polyhedron", "[lp_test]") {
   using Space = Matrixd<1, 2>;
 
-  SECTION("Warm start reuses LP iterate on polyhedron problem") {
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto prob_init = make_problem(x);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto prob_init = make_problem(x);
 
-    constexpr auto A_mat = mat_traits<Matrixd<5, 2>>();
-    constexpr auto A =
-        A_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 2.0, 1.0, -1.0, 2.0);
-    constexpr auto b = Vectord<5>{0.0, 0.0, 4.0, 5.0, 2.0};
-    constexpr auto poly = Polyhedron(A, b, x);
-    constexpr auto prob_constr = prob_init.in_set(poly);
+  constexpr auto A_mat = mat_traits<Matrixd<5, 2>>();
+  constexpr auto A = A_mat(-1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 2.0, 1.0, -1.0, 2.0);
+  constexpr auto b = Vectord<5>{0.0, 0.0, 4.0, 5.0, 2.0};
+  constexpr auto poly = Polyhedron(A, b, x);
+  constexpr auto prob_constr = prob_init.in_set(poly);
 
-    constexpr auto c = Vectord<2>{2.0, -1.0};
-    constexpr auto cx = WeightedSum<Space>()(c, x);
-    constexpr auto prob_min = prob_constr.minimize(cx);
+  constexpr auto c = Vectord<2>{2.0, -1.0};
+  constexpr auto cx = WeightedSum<Space>()(c, x);
+  constexpr auto prob_min = prob_constr.minimize(cx);
 
-    constexpr PrimalDualIPM cold_solver(prob_min);
-    constexpr auto cold_res = cold_solver.res;
+  constexpr PrimalDualIPM cold_solver(prob_min);
+  constexpr auto cold_res = cold_solver.res;
 
-    constexpr PrimalDualIPM warm_solver(prob_min, cold_res.iterate);
-    constexpr auto warm_res = warm_solver.res;
+  constexpr PrimalDualIPM warm_solver(prob_min, cold_res.iterate);
+  constexpr auto warm_res = warm_solver.res;
 
-    STATIC_REQUIRE(cold_res.tag == SolverResult::OPTIMAL);
-    STATIC_REQUIRE(warm_res.tag == SolverResult::OPTIMAL);
+  STATIC_REQUIRE(cold_res.tag == SolverResult::OPTIMAL);
+  STATIC_REQUIRE(warm_res.tag == SolverResult::OPTIMAL);
 #ifdef AKREON_REPORT_OUTPUT
-    constexpr auto cold_trace = cold_solver.trace;
-    constexpr auto warm_trace = warm_solver.trace;
-    STATIC_REQUIRE(cold_trace[cold_res.num_iter - 1].tag ==
-                   config::SolverResult::OPTIMAL);
-    STATIC_REQUIRE(warm_trace[warm_res.num_iter - 1].tag ==
-                   config::SolverResult::OPTIMAL);
+  constexpr auto cold_trace = cold_solver.trace;
+  constexpr auto warm_trace = warm_solver.trace;
+  STATIC_REQUIRE(cold_trace[cold_res.num_iter - 1].tag ==
+                 config::SolverResult::OPTIMAL);
+  STATIC_REQUIRE(warm_trace[warm_res.num_iter - 1].tag ==
+                 config::SolverResult::OPTIMAL);
 #endif
-    STATIC_REQUIRE(warm_res.num_iter > 0 && warm_res.num_iter < PD_IPM_STEPS);
-    STATIC_REQUIRE(warm_res.num_iter <= cold_res.num_iter);
-    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0)) < rel_tol);
-    STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - 1.0) < rel_tol);
-    STATIC_REQUIRE(
-        constexpr_abs(warm_res.iterate.z(0) - cold_res.iterate.z(0)) < rel_tol);
-    STATIC_REQUIRE(
-        constexpr_abs(warm_res.iterate.z(1) - cold_res.iterate.z(1)) < rel_tol);
-  }
+  STATIC_REQUIRE(warm_res.num_iter > 0 && warm_res.num_iter < PD_IPM_STEPS);
+  STATIC_REQUIRE(warm_res.num_iter <= cold_res.num_iter);
+  STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0)) < rel_tol);
+  STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - 1.0) < rel_tol);
+  STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(0) - cold_res.iterate.z(0)) <
+                 rel_tol);
+  STATIC_REQUIRE(constexpr_abs(warm_res.iterate.z(1) - cold_res.iterate.z(1)) <
+                 rel_tol);
 }

@@ -20,7 +20,7 @@
 using namespace linalg;
 using namespace unit_test;
 
-TEST_CASE("Test linear ODE", "[dot(x) = Ax]") {
+TEST_CASE("Matrix exponential solves constant linear ODEs", "[dot(x) = Ax]") {
   SECTION("Zero matrix -> Identity") {
     constexpr auto Z = Matrix<double, 2, 2>{};
     constexpr auto res = matrix_exp(Z);
@@ -46,7 +46,8 @@ TEST_CASE("Test linear ODE", "[dot(x) = Ax]") {
   }
 }
 
-TEST_CASE("Test linear system", "[y=Ax]") {
+TEST_CASE("Matrix-vector multiplication computes row inner products",
+          "[y=Ax]") {
   constexpr auto x = Vectord<3>{3.0, -2.0, 1.0};
   constexpr auto A = Matrixd<3, 3>{x, x, x};
   constexpr auto y = A * x;
@@ -55,7 +56,7 @@ TEST_CASE("Test linear system", "[y=Ax]") {
   STATIC_REQUIRE(y(2) == 14.0);
 }
 
-TEST_CASE("Test QR Decomposition", "[A = QR]") {
+TEST_CASE("QR reconstructs real and complex matrices", "[A = QR]") {
   SECTION("Real A") {
     constexpr auto x1 = Vectord<3>{1.0, 1.0, 0.0};
     constexpr auto x2 = Vectord<3>{1.0, 0.0, 1.0};
@@ -134,7 +135,8 @@ TEST_CASE("Test QR Decomposition", "[A = QR]") {
   }
 }
 
-TEST_CASE("Least squares", "[R x = Q^T b]") {
+TEST_CASE("Least-squares solve recovers real and complex solutions",
+          "[R x = Q^T b]") {
   SECTION("Real A") {
     constexpr auto x1 = Vectord<2>{1.0, 1.0};
     constexpr auto x2 = Vectord<2>{1.0, 2.0};
@@ -210,7 +212,9 @@ TEST_CASE("Least squares", "[R x = Q^T b]") {
   }
 }
 
-TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
+TEST_CASE(
+    "Eigen decomposition recovers eigenpairs of real and complex matrices",
+    "[A X = Lambda X]") {
   SECTION("Diagonal A") {
     constexpr auto diag = Vectord<3>{1.0, 2.0, 3.0};
     constexpr auto A = make_diag<double, 3>(diag);
@@ -311,7 +315,8 @@ TEST_CASE("Eigen Decomposition", "[A X = Lambda X]") {
   }
 }
 
-TEST_CASE("SVD", "[A = U Sigma VT]") {
+TEST_CASE("SVD reconstructs matrices and reports singular values",
+          "[A = U Sigma VT]") {
   SECTION("Known SVD") {
     constexpr auto x1 = Vectord<2>{1.0, 0.0};
     constexpr auto x2 = Vectord<2>{0.0, 2.0};
@@ -405,4 +410,159 @@ TEST_CASE("SVD", "[A = U Sigma VT]") {
     constexpr auto USVT = U * (as_complex_matrix(S) * VT);
     STATIC_REQUIRE(all_equal(A, USVT));
   }
+}
+
+TEST_CASE(
+    "Eigenvectors use their computed eigenvalues during back substitution",
+    "[eigen][regression]") {
+  constexpr auto A =
+      Matrixd<3, 3>{Vectord<3>{2.0, 1.0, -1.0}, Vectord<3>{0.0, 3.0, 2.0},
+                    Vectord<3>{0.0, 0.0, 5.0}};
+  constexpr auto result = EigenDecomposition(A);
+  STATIC_REQUIRE(result.converged);
+  STATIC_REQUIRE(all_equal(as_complex_matrix(A) * result.V,
+                           result.V * make_diag(result.lambda)));
+}
+
+TEST_CASE("Eigen QR deflates subdiagonals before reporting convergence",
+          "[eigen][regression]") {
+  // This matrix is already Hessenberg, but its nonzero subdiagonals mean
+  // Hessenberg reduction alone cannot establish spectral convergence.
+  constexpr auto A =
+      Matrixd<3, 3>{Vectord<3>{2.0, 1.0, 0.0}, Vectord<3>{1.0, 2.0, 1.0},
+                    Vectord<3>{0.0, 1.0, 2.0}};
+  constexpr auto result = EigenDecomposition(A);
+  STATIC_REQUIRE(result.converged);
+  STATIC_REQUIRE(all_equal(as_complex_matrix(A) * result.V,
+                           result.V * make_diag(result.lambda)));
+  STATIC_REQUIRE(all_equal(conjugate_transpose(result.V) * result.V,
+                           make_identity<std::complex<double>, 3>()));
+  constexpr auto root2 = constexpr_sqrt_safe(2.0);
+  STATIC_REQUIRE(constexpr_abs(result.lambda(0).real() - (2 + root2)) < eps);
+  STATIC_REQUIRE(constexpr_abs(result.lambda(1).real() - 2) < eps);
+  STATIC_REQUIRE(constexpr_abs(result.lambda(2).real() - (2 - root2)) < eps);
+
+  constexpr config::FactorConfig<double> no_iterations{.steps = 0};
+  constexpr auto unfinished = EigenDecomposition(A, no_iterations);
+  STATIC_REQUIRE(!unfinished.converged);
+  constexpr config::FactorConfig<double> configured{
+      .steps = 128, .tol = 1e-12, .floor_eps = 1e-14};
+  constexpr auto explicit_result = EigenDecomposition(A, configured);
+  STATIC_REQUIRE(explicit_result.converged);
+  STATIC_REQUIRE(
+      all_equal(as_complex_matrix(A) * explicit_result.V,
+                explicit_result.V * make_diag(explicit_result.lambda)));
+}
+
+TEST_CASE("Real Schur conjugate blocks preserve eigenpair residuals",
+          "[eigen][regression]") {
+  constexpr auto A =
+      Matrixd<3, 3>{Vectord<3>{0.0, -2.0, 1.0}, Vectord<3>{2.0, 0.0, 3.0},
+                    Vectord<3>{0.0, 0.0, 4.0}};
+  constexpr auto result = EigenDecomposition(A);
+  STATIC_REQUIRE(result.converged);
+  STATIC_REQUIRE(all_equal(as_complex_matrix(A) * result.V,
+                           result.V * make_diag(result.lambda)));
+  STATIC_REQUIRE(constexpr_abs(result.lambda(0).imag() - 2.0) < eps);
+  STATIC_REQUIRE(constexpr_abs(result.lambda(1).imag() + 2.0) < eps);
+}
+
+TEST_CASE("Scalar eigen decomposition needs no Hessenberg reduction",
+          "[eigen][regression]") {
+  constexpr auto A = Matrixd<1, 1>{Vectord<1>{-3.0}};
+  constexpr auto result = EigenDecomposition(A);
+  STATIC_REQUIRE(result.converged);
+  STATIC_REQUIRE(result.lambda(0) == std::complex<double>(-3.0));
+  STATIC_REQUIRE(result.V == make_identity<std::complex<double>, 1>());
+}
+
+TEST_CASE("QR preserves complex reflector phases in its packed representation",
+          "[qr][regression]") {
+  constexpr auto A =
+      Matrixcd<3, 2>{Vectorcd<2>{std::complex<double>(1.0, 2.0),
+                                 std::complex<double>(3.0, -1.0)},
+                     Vectorcd<2>{std::complex<double>(-2.0, 1.0),
+                                 std::complex<double>(0.0, 4.0)},
+                     Vectorcd<2>{std::complex<double>(2.0, -3.0),
+                                 std::complex<double>(1.0, 1.0)}};
+  constexpr auto result = QR(A);
+  STATIC_REQUIRE(all_equal(result.Q() * result.R(), A));
+  STATIC_REQUIRE(all_equal(conjugate_transpose(result.Q()) * result.Q(),
+                           make_identity<std::complex<double>, 3>()));
+}
+
+TEST_CASE("Complex triangular eigenvectors retain independent complex roots",
+          "[eigen][regression]") {
+  constexpr auto A =
+      Matrixcd<2, 2>{Vectorcd<2>{std::complex<double>(1.0, -2.0),
+                                 std::complex<double>(3.0, 1.0)},
+                     Vectorcd<2>{std::complex<double>(0.0, 0.0),
+                                 std::complex<double>(4.0, 3.0)}};
+  constexpr auto result = EigenDecomposition(A);
+  STATIC_REQUIRE(result.converged);
+  STATIC_REQUIRE(all_equal(A * result.V, result.V * make_diag(result.lambda)));
+}
+
+TEST_CASE("Eigen deflation tolerance scales with the input matrix",
+          "[eigen][regression]") {
+  const auto A =
+      Matrixd<3, 3>{Vectord<3>{2.0, 1.0, 0.0}, Vectord<3>{1.0, 2.0, 1.0},
+                    Vectord<3>{0.0, 1.0, 2.0}};
+  for (const double scale : {1e-6, 1.0, 1e6}) {
+    CAPTURE(scale);
+    const auto result = EigenDecomposition(scale * A);
+    REQUIRE(result.converged);
+    REQUIRE(all_equal(as_complex_matrix(A) * result.V,
+                      result.V * make_diag((1.0 / scale) * result.lambda)));
+  }
+}
+
+TEST_CASE(
+    "Eigen decomposition rejects invalid configuration and nonfinite input",
+    "[eigen][regression]") {
+  constexpr auto A = make_identity<double, 2>();
+  constexpr auto invalid =
+      EigenDecomposition(A, config::FactorConfig<double>{.tol = -1.0});
+  STATIC_REQUIRE(!invalid.converged);
+  auto nonfinite = A;
+  nonfinite(0, 0) = std::numeric_limits<double>::infinity();
+  REQUIRE(!EigenDecomposition(nonfinite).converged);
+}
+
+TEST_CASE("Float SVD retains a small nonzero singular direction",
+          "[svd][regression]") {
+  // Forming A^T A can round its smallest eigenvalue to zero or below, even
+  // though A has full rank. Recovering sigma from A*v preserves this direction.
+  constexpr auto A = Matrix<float, 2, 2>{Vector<float, 2>{1.0f, 1.0f},
+                                         Vector<float, 2>{1.0f, 1.0001f}};
+  constexpr auto result = SVD(A);
+  STATIC_REQUIRE(result.converged);
+  STATIC_REQUIRE(result.S(1, 1) > 0.0f);
+  STATIC_REQUIRE(all_equal(as_complex_matrix(A),
+                           result.U * (as_complex_matrix(result.S) * result.VT),
+                           1e-5f));
+}
+
+TEST_CASE(
+    "Eigen shifts resolve a small coupled block beside a large eigenvalue",
+    "[eigen][regression]") {
+  constexpr auto A =
+      Matrixd<3, 3>{Vectord<3>{2e-5, 1e-5, 0.0}, Vectord<3>{1e-5, 2e-5, 0.0},
+                    Vectord<3>{0.0, 0.0, 4.0}};
+  constexpr auto result = EigenDecomposition(A);
+  STATIC_REQUIRE(result.converged);
+  STATIC_REQUIRE(all_equal(as_complex_matrix(A) * result.V,
+                           result.V * make_diag(result.lambda)));
+  STATIC_REQUIRE(constexpr_abs(result.lambda(1).real() - 3e-5) < 1e-12);
+  STATIC_REQUIRE(constexpr_abs(result.lambda(2).real() - 1e-5) < 1e-12);
+}
+
+TEST_CASE("Complex QR shifts resolve a conjugate spectrum off the real axis",
+          "[eigen][regression]") {
+  constexpr auto A = Matrixcd<2, 2>{
+      Vectorcd<2>{std::complex<double>(0.0), std::complex<double>(-1.0)},
+      Vectorcd<2>{std::complex<double>(1.0), std::complex<double>(0.0)}};
+  constexpr auto result = EigenDecomposition(A);
+  STATIC_REQUIRE(result.converged);
+  STATIC_REQUIRE(all_equal(A * result.V, result.V * make_diag(result.lambda)));
 }

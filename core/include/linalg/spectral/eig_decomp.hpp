@@ -12,6 +12,8 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 
 #include "linalg/operator/hessenberg.hpp"
 #include "qr.hpp"
@@ -21,8 +23,13 @@ namespace linalg {
 /**
  * @brief EigenDecomposition class definition
  *
- * Solves the following equation A X = Lambda X via QR and successive
- * similarity transforms to diagonalize A into eigenvalues.
+ * Computes A V = V diag(lambda) using bounded shifted QR on Hessenberg form.
+ * Real matrices may retain isolated conjugate-pair blocks in real Schur form.
+ * Hermitian eigenvectors use the accumulated orthonormal similarity basis.
+ * Nonconvergence or invalid configuration/input leaves converged false.
+ * Coupled Hermitian spectra are ordered by decreasing eigenvalue; diagonal
+ * inputs retain their coordinate order. Other spectra have no ordering
+ * contract.
  */
 template <SquareMatrix Mat>
 struct EigenDecomposition {
@@ -34,6 +41,16 @@ struct EigenDecomposition {
   using Complex = std::conditional_t<linalg::Complex<T>, T, std::complex<Real>>;
 
   static constexpr std::size_t N = mat_rows_v<Mat>;
+  static_assert(N > 0, "Eigen decomposition requires a nonempty matrix");
+
+  /// Bounded shifted-QR budget; tol is relative to the largest input entry.
+  /// These defaults are specific to eigen solves and do not alter QR/LDL
+  /// defaults.
+  static constexpr config::FactorConfig<Real> default_config() {
+    return {.steps = 256,
+            .tol = Real(8) * std::numeric_limits<Real>::epsilon(),
+            .floor_eps = std::numeric_limits<Real>::min()};
+  }
 
   /**
    * @brief CTOR
@@ -46,12 +63,13 @@ struct EigenDecomposition {
    * @brief CTOR
    *
    * @param A mat to be spectrally decomposed
-   * @param config (FactorConfig)
+   * @param config_in Iteration budget, relative deflation tolerance, and
+   * eigenvector normalization floor (FactorConfig).
    */
   constexpr explicit EigenDecomposition(
       const Mat& A, const config::FactorConfig<Real>& config_in)
       : config(config_in) {
-    solver_qr(A);
+    solve_qr(A);
   }
 
   /**
@@ -80,6 +98,14 @@ struct EigenDecomposition {
   bool converged{false};     ///< eigenvalue convergence flag
 
 private:
+  // Shift radicands may be tiny even after scaling a matrix with separated
+  // spectral blocks. Use relative squared-residual accuracy for these roots.
+  static constexpr Real spectral_sqrt(Real value) {
+    return constexpr_sqrt_safe(value, Real(0), Real(1),
+                               Real(4) * std::numeric_limits<Real>::epsilon() *
+                                   value);
+  }
+
   /**
    * @brief solve A X = Lambda X via QR
    *
@@ -91,89 +117,184 @@ private:
    * @return (void)
    */
   constexpr void solve_qr(const Mat& A) {
-    // 1. calculate hessenberg matrix
-    const auto H_mat = Hessenberg(A);
-    auto H = H_mat.H();
+    if (!std::isfinite(config.tol) || config.tol <= Real(0) ||
+        !std::isfinite(config.floor_eps) || config.floor_eps <= Real(0))
+      return;
+    for (std::size_t r = 0; r < N; ++r)
+      for (std::size_t c = 0; c < N; ++c)
+        if (!std::isfinite(constexpr_abs(A(r, c)))) return;
 
-    // 2. setup unitary basis for eigenvectors
-    auto U = H_mat.U();
-
+    Real scale = 0;
+    for (std::size_t r = 0; r < N; ++r)
+      for (std::size_t c = 0; c < N; ++c)
+        scale = std::max(scale, constexpr_abs(A(r, c)));
+    // Work at unit scale so quadratic shifts and scalar square roots do not
+    // inherit an absolute accuracy limit from the magnitude of the input.
+    auto normalized = A;
+    if (scale > Real(0))
+      for (std::size_t r = 0; r < N; ++r)
+        for (std::size_t c = 0; c < N; ++c) normalized(r, c) /= scale;
+    // Scalar and 2x2 matrices are already Hessenberg; avoid an empty reduction.
+    auto [H, U] = [&] {
+      if constexpr (N > 2) {
+        const auto reduction = Hessenberg(normalized);
+        return std::tuple{reduction.H(), reduction.U()};
+      } else return std::tuple{normalized, make_identity<T, N>()};
+    }();
+    const Real threshold = config.tol;
+    const bool hermitian = [&] {
+      if constexpr (linalg::Real<T>)
+        return all_equal(normalized, transpose(normalized), threshold);
+      else
+        return all_equal(normalized, conjugate_transpose(normalized),
+                         threshold);
+    }();
     Vector<Complex, N> eigs;
 
-    // 3. the practical QR iteration on H -- form quasi triangular matrix in
-    // real schur form and extract eigenvalues depending on real / complex form
-    // of 2x2 or 1x1 schur blocks
-    for (std::size_t i = 0; i < config.steps; ++i) {
-      const auto qr = QR(H);
-      const auto Q = qr.Q();
-      const auto R = qr.R();
-
-      // R U = U^T (U R) U = U^T H U (similarity transform)
-      H = R * Q;
-
-      // continue to map orthogonal basis Q onto unitary coords from orig H
-      U = U * Q;
-
-      // (dakre) iterate through the upper hessenberg to acquire eigenvalues
+    // Deflate actual subdiagonals. Hessenberg entries below them are already
+    // zero and cannot establish convergence. Real Schur form may retain only
+    // isolated 2x2 blocks with complex conjugate eigenvalues.
+    auto deflate = [&] {
+      for (std::size_t r = 1; r < N; ++r)
+        if (constexpr_abs(H(r, r - 1)) <= threshold) H(r, r - 1) = T(0);
+      bool done = true;
+      for (std::size_t r = 1; r < N; ++r) {
+        if (H(r, r - 1) == T(0)) continue;
+        if constexpr (linalg::Complex<T>) done = false;
+        else {
+          const Real half_difference = (H(r - 1, r - 1) - H(r, r)) / 2;
+          const Real discriminant =
+              half_difference * half_difference + H(r - 1, r) * H(r, r - 1);
+          if (hermitian || discriminant >= 0 ||
+              (r > 1 && H(r - 1, r - 2) != T(0)) ||
+              (r + 1 < N && H(r + 1, r) != T(0)))
+            done = false;
+        }
+      }
+      return done;
+    };
+    converged = deflate();
+    for (std::size_t iteration = 0; !converged && iteration < config.steps;
+         ++iteration) {
+      // Shift at the bottom of the remaining active block. For real roots use
+      // the trailing 2x2 root nearest its last diagonal (Wilkinson shift).
+      std::size_t end = N;
+      while (end > 1 && H(end - 1, end - 2) == T(0)) --end;
+      if constexpr (linalg::Real<T>) {
+        while (!hermitian && end > 2 && H(end - 2, end - 3) == T(0)) {
+          const Real d = (H(end - 2, end - 2) - H(end - 1, end - 1)) / 2;
+          if (d * d + H(end - 2, end - 1) * H(end - 1, end - 2) >= 0) break;
+          end -= 2;
+          while (end > 1 && H(end - 1, end - 2) == T(0)) --end;
+        }
+      }
+      T shift = H(end - 1, end - 1);
+      if constexpr (linalg::Real<T>) {
+        if (end > 1) {
+          const Real a = H(end - 2, end - 2), d = H(end - 1, end - 1);
+          const Real delta = (a - d) / 2;
+          const Real discriminant =
+              delta * delta + H(end - 2, end - 1) * H(end - 1, end - 2);
+          if (discriminant >= 0) {
+            const Real root = spectral_sqrt(discriminant);
+            shift = (a + d) / 2 + (delta >= 0 ? -root : root);
+          }
+        }
+      }
       if constexpr (linalg::Complex<T>) {
-        for (std::size_t j = 0; j < N; ++j) eigs(j) = H(j, j);
-      } else {
-        // (dakre) Hessenberg forms Real Schur Decomposition on the
-        // quasi-triangular matrix. Complex eigs come in pairs, and if c is zero
-        // then its strictly real 1x1 block
+        if (end > 1) {
+          const Complex center =
+              (H(end - 2, end - 2) + H(end - 1, end - 1)) / Real(2);
+          const Complex delta =
+              (H(end - 2, end - 2) - H(end - 1, end - 1)) / Real(2);
+          const Complex disc =
+              delta * delta + H(end - 2, end - 1) * H(end - 1, end - 2);
+          const Real radius = constexpr_abs(disc);
+          const Complex root(
+              spectral_sqrt(
+                  std::max(Real(0), (radius + disc.real()) / Real(2))),
+              (disc.imag() < Real(0) ? Real(-1) : Real(1)) *
+                  spectral_sqrt(
+                      std::max(Real(0), (radius - disc.real()) / Real(2))));
+          const Complex plus = center + root, minus = center - root;
+          shift = constexpr_abs(plus - shift) < constexpr_abs(minus - shift)
+                      ? plus
+                      : minus;
+        }
+      }
+      auto shifted = H;
+      for (std::size_t j = 0; j < N; ++j) shifted(j, j) -= shift;
+      bool double_shift = false;
+      T trace = T(0), determinant = T(0);
+      if constexpr (linalg::Real<T>) {
+        if (end > 1 && !hermitian) {
+          const T a = H(end - 2, end - 2), d = H(end - 1, end - 1);
+          const T b = H(end - 2, end - 1), c = H(end - 1, end - 2);
+          double_shift = (a - d) * (a - d) / 4 + b * c < 0;
+          trace = a + d;
+          determinant = a * d - b * c;
+        }
+      }
+      if (double_shift) {
+        // A real quadratic shift follows a conjugate pair without stagnating
+        // on its real part. Apply its QR basis as a similarity transform.
+        shifted = H * H - trace * H;
+        for (std::size_t j = 0; j < N; ++j) shifted(j, j) += determinant;
+      }
+      const auto qr = QR(shifted);
+      const auto Q = qr.Q();
+      if (double_shift) H = transpose(Q) * (H * Q);
+      else {
+        H = qr.R() * Q;
+        for (std::size_t j = 0; j < N; ++j) H(j, j) += shift;
+      }
+      // QR similarity preserves Hessenberg structure in exact arithmetic.
+      // Do not let roundoff below the band seed new active blocks later.
+      for (std::size_t r = 2; r < N; ++r)
+        for (std::size_t c = 0; c + 1 < r; ++c) H(r, c) = T(0);
+      U = U * Q;
+      converged = deflate();
+    }
+    if (!converged) return;
+
+    for (std::size_t j = 0; j < N; ++j) {
+      eigs(j) = Complex(H(j, j));
+      if constexpr (linalg::Real<T>) {
+        if (j + 1 < N && H(j + 1, j) != T(0)) {
+          const Real center = (H(j, j) + H(j + 1, j + 1)) / 2;
+          const Real delta = (H(j, j) - H(j + 1, j + 1)) / 2;
+          const Real discriminant = delta * delta + H(j, j + 1) * H(j + 1, j);
+          const Real imaginary = spectral_sqrt(-discriminant);
+          eigs(j) = Complex(center, imaginary);
+          eigs(j + 1) = Complex(center, -imaginary);
+          ++j;
+        }
+      }
+    }
+    // Back substitution and complex-block seeding read lambda; populate every
+    // entry before either operation rather than after constructing its vector.
+    lambda = eigs;
+    if (hermitian) {
+      // The accumulated similarity basis is already orthonormal. Back solving
+      // nearly repeated eigenvalues would unnecessarily destroy that property.
+      V = as_complex_matrix(U);
+      // Preserve diagonal input order; order a coupled Hermitian spectrum by
+      // decreasing eigenvalue, as in the existing two-dimensional interface.
+      bool diagonal_input = true;
+      for (std::size_t r = 0; r < N; ++r)
+        for (std::size_t c = 0; c < N; ++c)
+          if (r != c && A(r, c) != T(0)) diagonal_input = false;
+      if (!diagonal_input) {
         for (std::size_t j = 0; j < N; ++j) {
-          const Real& a = H(j, j);
-          if (j + 1 == N) {
-            eigs(j) = Complex(a, 0);
-            continue;
-          }
-          const Real& c = H(j + 1, j);
-          const Real& d = H(j + 1, j + 1);
-          if (constexpr_abs(c) <
-              config.tol * (constexpr_abs(c) + constexpr_abs(d))) {
-            eigs(j) = Complex(a, 0);
-            continue;
-          }
-
-          // (dakre) lambda^2 - (a + d) lambda + (ad - bc) = 0
-          // t = a + d, delta = ad - bc, mu = 0.5 * (a - d)
-          // t^2 - 4 delta then sub in the scalars above to form lambda
-          const Real& b = H(j, j + 1);
-          const auto t = a + d;
-          const auto mu = 0.5 * (a - d);
-          const auto D = mu * mu + b * c;
-
-          if (D >= 0) {
-            eigs(j) = Complex(t / 2 + constexpr_sqrt_safe(D), 0.0);
-            eigs(j + 1) = Complex(t / 2 - constexpr_sqrt_safe(D), 0.0);
-          } else {
-            eigs(j) = Complex(t / 2, constexpr_sqrt_safe(D));
-            eigs(j + 1) = Complex(t / 2, -1 * constexpr_sqrt_safe(D));
-          }
-
-          j++;
+          std::size_t largest = j;
+          for (std::size_t k = j + 1; k < N; ++k)
+            if (lambda(k).real() > lambda(largest).real()) largest = k;
+          std::swap(lambda(j), lambda(largest));
+          for (std::size_t r = 0; r < N; ++r) std::swap(V(r, j), V(r, largest));
         }
       }
-
-      if (N > 2) {
-        Real res(0);
-        for (std::size_t r = 2; r < N; r += 2) {
-          for (std::size_t c = 0; c < r - 1; ++c) {
-            if constexpr (linalg::Complex<T>)
-              res += (std::conj(H(r, c)) * H(r, c)).real();
-            else res += H(r, c) * H(r, c);
-          }
-        }
-
-        if (res < config.tol * config.tol) {
-          converged = true;
-          break;
-        }
-      } else {
-        // (dakre) TODO N = 2 keeps schur block form so need to determine
-        // appropriate way to say "converged"
-        converged = true;
-      }
+      for (std::size_t j = 0; j < N; ++j) lambda(j) *= scale;
+      return;
     }
 
     // 3.a prepare back solve for eigenvectors via Jordan blocks
@@ -220,7 +341,7 @@ private:
       int GM = 0, defect = 0;
       if (AM > 1) {
         const auto I = make_identity<Complex, N>();
-        GM = N - QR(as_complex_matrix(A) - eigs(i) * I).rank();
+        GM = N - QR(as_complex_matrix(normalized) - eigs(i) * I).rank();
         defect = std::max(0, AM - GM);
       }
 
@@ -228,7 +349,7 @@ private:
         Vector<Complex, N> x;
 
         // (a) solve normally
-        if (!is_real(eigs(i)) && i > 0) {
+        if (linalg::Real<T> && eigs(i).imag() != Real(0) && i > 0) {
           // (0) seed & back solve homogenous case (H - lambda I) x = 0
           seed_complex_block(H, i, x);
           back_sub_1x1_block(H, i, x);
@@ -262,7 +383,7 @@ private:
         }
       } else {
         // (b) solve for jordan block
-        if (!is_real(eigs(i)) && i > 0) {
+        if (linalg::Real<T> && eigs(i).imag() != Real(0) && i > 0) {
           // (0) setup jordan chain with padded dim to defect to ensure valid
           // block creation
           const int chain_len = std::min(1 + defect, (i + 1) / 2);
@@ -336,6 +457,7 @@ private:
         }
       }
     }
+    for (std::size_t j = 0; j < N; ++j) lambda(j) *= scale;
   }
 
   /**
@@ -352,13 +474,33 @@ private:
     // (dakre) solve (H - lambda I) x = 0 by way of back sub from idx to top
     // (H_rr - Lambda) x_r + sum_0^idx H_rc * x_c = 0 ... isolate x_r and
     // solve
-    for (int r = idx - 1; r >= 0; --r) {
-      Complex sum(0);
-      for (int c = r + 1; c <= idx; ++c) sum += Complex(H(r, c)) * x(c);
-
+    for (int r = ((linalg::Real<T> && lambda(idx).imag() != Real(0)) ? idx - 2
+                                                                     : idx - 1);
+         r >= 0; --r) {
+      Complex rhs(0);
+      for (int c = r + 1; c <= idx; ++c) rhs -= Complex(H(r, c)) * x(c);
+      if constexpr (linalg::Real<T>) {
+        if (r > 0 && H(r, r - 1) != T(0)) {
+          // Back substitution above an isolated conjugate pair must solve its
+          // coupled 2x2 block, rather than treating it as two triangular rows.
+          Complex upper_rhs(0);
+          for (int c = r + 1; c <= idx; ++c)
+            upper_rhs -= Complex(H(r - 1, c)) * x(c);
+          const Complex a = Complex(H(r - 1, r - 1)) - lambda(idx);
+          const Complex b = Complex(H(r - 1, r));
+          const Complex c = Complex(H(r, r - 1));
+          const Complex d = Complex(H(r, r)) - lambda(idx);
+          const Complex det = a * d - b * c;
+          if (det != Complex(0)) {
+            x(r - 1) = (d * upper_rhs - b * rhs) / det;
+            x(r) = (a * rhs - c * upper_rhs) / det;
+          }
+          --r;
+          continue;
+        }
+      }
       const auto denom = Complex(H(r, r)) - lambda(idx);
-      if (denom == Complex(0)) x(r) = Complex(0);
-      else x(r) = -sum / denom;
+      x(r) = denom == Complex(0) ? Complex(0) : rhs / denom;
     }
   }
 
@@ -458,7 +600,7 @@ private:
   }
 
   /** @brief member vars */
-  config::FactorConfig<Real> config;
+  config::FactorConfig<Real> config = default_config();
 };
 
 } // namespace linalg

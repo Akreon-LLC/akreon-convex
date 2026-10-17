@@ -22,60 +22,59 @@ using namespace convex;
 using namespace affine;
 using namespace conic;
 
-TEST_CASE("Test affine subspace", "[convex_sets]") {
-  SECTION("Test affine subspace") {
-    using Space = Matrixd<1, 3>;
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto I = make_identity<double, 3>();
-    constexpr auto affine_set = AffineSubspace(I, Vectord<3>{}, x);
-    STATIC_REQUIRE(affine_set.is_well_formed());
-    STATIC_REQUIRE(affine_set.contains(Vectord<3>{}));
-    STATIC_REQUIRE(!affine_set.contains(Vectord<3>{1.0, 1.0, 1.0}));
+TEST_CASE("AffineSubspace membership and equality canonicalization",
+          "[convex_sets]") {
+  using Space = Matrixd<1, 3>;
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto I = make_identity<double, 3>();
+  constexpr auto affine_set = AffineSubspace(I, Vectord<3>{}, x);
+  STATIC_REQUIRE(affine_set.is_well_formed());
+  STATIC_REQUIRE(affine_set.contains(Vectord<3>{}));
+  STATIC_REQUIRE(!affine_set.contains(Vectord<3>{1.0, 1.0, 1.0}));
 
-    constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder =
-        affine_set.template canonicalize<AtomType::SET>(builder);
-    constexpr auto cone_block = new_builder.cb;
-    constexpr auto eq_map = new_builder.eq_map;
+  constexpr auto builder = create_empty_cblk_builder<Space>();
+  constexpr auto new_builder =
+      affine_set.template canonicalize<AtomType::SET>(builder);
+  constexpr auto cone_block = new_builder.cb;
+  constexpr auto eq_map = new_builder.eq_map;
 
-    STATIC_REQUIRE(eq_map == affine::AffineMap(I, Vectord<3>{}));
-    constexpr auto cones = cone_block.cones;
-    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 0);
-    STATIC_REQUIRE(cone_block.validate());
-  }
+  STATIC_REQUIRE(eq_map == affine::AffineMap(I, Vectord<3>{}));
+  constexpr auto cones = cone_block.cones;
+  constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+  STATIC_REQUIRE(sz == 0);
+  STATIC_REQUIRE(cone_block.validate());
 }
 
-TEST_CASE("Test ellipsoid set", "[convex_sets]") {
-  SECTION("Test ellipsoid set (implicitly closed)") {
-    using Space = Matrixd<1, 2>;
-    constexpr auto c = Vector<double, 2>{1.5, 2.0};
-    constexpr auto P = make_identity<double, 2>();
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto ellipsoid = Ellipsoid(c, P, x);
-    REQUIRE(ellipsoid.is_well_formed());
-    STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
-    STATIC_REQUIRE(ellipsoid.contains(c));
-    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
-    STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
+TEST_CASE("Closed Ellipsoid membership and SOC canonicalization",
+          "[convex_sets]") {
+  using Space = Matrixd<1, 2>;
+  constexpr auto c = Vector<double, 2>{1.5, 2.0};
+  constexpr auto P = make_identity<double, 2>();
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto ellipsoid = Ellipsoid(c, P, x);
+  REQUIRE(ellipsoid.is_well_formed());
+  STATIC_REQUIRE(!ellipsoid.contains(Vectord<2>{}));
+  STATIC_REQUIRE(ellipsoid.contains(c));
+  STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{c(0) + 0.1, c(1) - 0.5}));
+  STATIC_REQUIRE(ellipsoid.contains(Vectord<2>{1.5, 1.0}));
 
-    constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto cone_block =
-        ellipsoid.template canonicalize<AtomType::SET>(builder).cb;
-    constexpr auto F_mat = mat_traits<Matrixd<3, 2>>();
-    constexpr auto F = F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
-    STATIC_REQUIRE(
-        cone_block.map ==
-        affine::AffineMap(F, Vectord<3>{-1.0 * c(0), -1.0 * c(1), 1.0}));
+  constexpr auto builder = create_empty_cblk_builder<Space>();
+  constexpr auto cone_block =
+      ellipsoid.template canonicalize<AtomType::SET>(builder).cb;
+  constexpr auto F_mat = mat_traits<Matrixd<3, 2>>();
+  constexpr auto F = F_mat(1.0, 0.0, 0.0, 1.0, 0.0, 0.0);
+  STATIC_REQUIRE(
+      cone_block.map ==
+      affine::AffineMap(F, Vectord<3>{-1.0 * c(0), -1.0 * c(1), 1.0}));
 
-    constexpr auto cones = cone_block.cones;
-    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 1);
-    STATIC_REQUIRE(cone_block.validate());
-  }
+  constexpr auto cones = cone_block.cones;
+  constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+  STATIC_REQUIRE(sz == 1);
+  STATIC_REQUIRE(cone_block.validate());
 }
 
-TEST_CASE("Test halfspace convex set", "[convex_sets]") {
+TEST_CASE("Hyperplane and closed halfspace membership and canonicalization",
+          "[convex_sets]") {
   SECTION("Test hyperplane") {
     using Space = Matrixd<1, 3>;
     constexpr Vector<double, 3> point{0.1, 0.2, 0.3};
@@ -173,76 +172,73 @@ TEST_CASE("Test halfspace convex set", "[convex_sets]") {
   }
 }
 
-TEST_CASE("Test LMI", "[convex_sets]") {
-  SECTION("Test LMI", "[B + A(x) >= 0]") {
-    using Space = linalg::Matrixd<1, 2>;
-    constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
-    constexpr auto A0 = mat_traits<linalg::Matrixd<2, 2>>()(1.0, 0.5, 0.5, 2.0);
-    constexpr auto A1 =
-        mat_traits<linalg::Matrixd<2, 2>>()(2.0, -0.25, -0.25, 1.5);
-    constexpr auto B = mat_traits<linalg::Matrixd<2, 2>>()(3.0, 1.0, 1.0, 4.0);
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr linalg::Vector<linalg::Matrixd<2, 2>, 2> A{A0, A1};
-    constexpr LMI set(A, B, x);
-    STATIC_REQUIRE(set.is_well_formed());
-    STATIC_REQUIRE(set.contains(Vectord<2>{}));
-    STATIC_REQUIRE(set.contains(Vectord<2>{0.5, 0.5}));
-    STATIC_REQUIRE(!set.contains(Vectord<2>{-2.0, -2.0}));
+TEST_CASE("LMI membership and PSD canonicalization", "[convex_sets]") {
+  using Space = linalg::Matrixd<1, 2>;
+  constexpr auto sqrt2 = constexpr_sqrt_safe(2.0);
+  constexpr auto A0 = mat_traits<linalg::Matrixd<2, 2>>()(1.0, 0.5, 0.5, 2.0);
+  constexpr auto A1 =
+      mat_traits<linalg::Matrixd<2, 2>>()(2.0, -0.25, -0.25, 1.5);
+  constexpr auto B = mat_traits<linalg::Matrixd<2, 2>>()(3.0, 1.0, 1.0, 4.0);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr linalg::Vector<linalg::Matrixd<2, 2>, 2> A{A0, A1};
+  constexpr LMI set(A, B, x);
+  STATIC_REQUIRE(set.is_well_formed());
+  STATIC_REQUIRE(set.contains(Vectord<2>{}));
+  STATIC_REQUIRE(set.contains(Vectord<2>{0.5, 0.5}));
+  STATIC_REQUIRE(!set.contains(Vectord<2>{-2.0, -2.0}));
 
-    constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto cone_block =
-        set.template canonicalize<AtomType::SET>(builder).cb;
+  constexpr auto builder = create_empty_cblk_builder<Space>();
+  constexpr auto cone_block =
+      set.template canonicalize<AtomType::SET>(builder).cb;
 
-    constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
-    constexpr auto F = F_mat(1.0, 2.0, 0.5 * sqrt2, -0.25 * sqrt2, 2.0, 1.5);
-    STATIC_REQUIRE(cone_block.map ==
-                   affine::AffineMap(F, Vectord<3>{3.0, sqrt2, 4.0}));
+  constexpr mat_traits<Matrix<double, 3, 2>> F_mat;
+  constexpr auto F = F_mat(1.0, 2.0, 0.5 * sqrt2, -0.25 * sqrt2, 2.0, 1.5);
+  STATIC_REQUIRE(cone_block.map ==
+                 affine::AffineMap(F, Vectord<3>{3.0, sqrt2, 4.0}));
 
-    constexpr auto cones = cone_block.cones;
-    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 1);
-    STATIC_REQUIRE(cone_block.validate());
-  }
+  constexpr auto cones = cone_block.cones;
+  constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+  STATIC_REQUIRE(sz == 1);
+  STATIC_REQUIRE(cone_block.validate());
 }
 
-TEST_CASE("Polyhedron", "[convex_sets]") {
-  SECTION("Test Closed Polyhedron", "[A x <= b]") {
-    using Space = Matrix<double, 1, 3>;
-    mat_traits<Matrix<double, 7, 3>> A_mat;
-    constexpr auto A =
-        A_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
-              0.0, 1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 0.0);
-    STATIC_REQUIRE(mat_rows_v<decltype(A)> == 7);
-    STATIC_REQUIRE(mat_cols_v<decltype(A)> == 3);
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr Vector<double, 7> b{1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 2.0};
-    constexpr auto poly = Polyhedron(A, b, x);
+TEST_CASE("Closed Polyhedron membership and inequality canonicalization",
+          "[convex_sets]") {
+  using Space = Matrix<double, 1, 3>;
+  mat_traits<Matrix<double, 7, 3>> A_mat;
+  constexpr auto A =
+      A_mat(1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+            0.0, 1.0, 0.0, 0.0, -1.0, 1.0, 1.0, 0.0);
+  STATIC_REQUIRE(mat_rows_v<decltype(A)> == 7);
+  STATIC_REQUIRE(mat_cols_v<decltype(A)> == 3);
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr Vector<double, 7> b{1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 2.0};
+  constexpr auto poly = Polyhedron(A, b, x);
 
-    STATIC_REQUIRE(poly.is_well_formed());
-    STATIC_REQUIRE(poly.contains(Vector<double, 3>{}));
-    STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
-    STATIC_REQUIRE(poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
+  STATIC_REQUIRE(poly.is_well_formed());
+  STATIC_REQUIRE(poly.contains(Vector<double, 3>{}));
+  STATIC_REQUIRE(!poly.contains(Vector<double, 3>{1.0, 2.0, 3.0}));
+  STATIC_REQUIRE(poly.contains(Vector<double, 3>{1.0, 0.0, 0.0}));
 
-    constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto cone_block =
-        poly.template canonicalize<AtomType::SET>(builder).cb;
+  constexpr auto builder = create_empty_cblk_builder<Space>();
+  constexpr auto cone_block =
+      poly.template canonicalize<AtomType::SET>(builder).cb;
 
-    constexpr mat_traits<Matrix<double, 7, 3>> P_mat;
-    constexpr auto P =
-        P_mat(-1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-              0.0, -1.0, 0.0, 0.0, 1.0, -1.0, -1.0, 0.0);
+  constexpr mat_traits<Matrix<double, 7, 3>> P_mat;
+  constexpr auto P =
+      P_mat(-1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+            0.0, -1.0, 0.0, 0.0, 1.0, -1.0, -1.0, 0.0);
 
-    STATIC_REQUIRE(linalg::all_equal(cone_block.map.linear_part(), P));
-    STATIC_REQUIRE(cone_block.map.translation() == b);
+  STATIC_REQUIRE(linalg::all_equal(cone_block.map.linear_part(), P));
+  STATIC_REQUIRE(cone_block.map.translation() == b);
 
-    constexpr auto cones = cone_block.cones;
-    constexpr auto sz = std::tuple_size<decltype(cones)>::value;
-    STATIC_REQUIRE(sz == 1);
-    STATIC_REQUIRE(cone_block.validate());
-  }
+  constexpr auto cones = cone_block.cones;
+  constexpr auto sz = std::tuple_size<decltype(cones)>::value;
+  STATIC_REQUIRE(sz == 1);
+  STATIC_REQUIRE(cone_block.validate());
 }
 
-TEST_CASE("Test norm ball convex set", "[convex_sets]") {
+TEST_CASE("Closed norm ball membership and canonicalization", "[convex_sets]") {
   SECTION("Test closed L2 norm ball") {
     using Space = Matrixf<1, 2>;
     constexpr auto c = Vector<float, 2>{1.f, 3.f};

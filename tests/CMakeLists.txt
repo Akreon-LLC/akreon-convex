@@ -190,11 +190,16 @@ if(BUILD_UNIT_TESTS)
   target_compile_options(sdp_test PRIVATE ${UNIT_COMPILE_OPTS})
 endif()
 
-if(BUILD_FUNCTIONAL_TESTS)
+# Run decomposition stress coverage with unit tests, even when other functional
+# tests are disabled. Keep the standalone target available for functional builds.
+if(BUILD_UNIT_TESTS OR BUILD_FUNCTIONAL_TESTS)
   add_executable(linalg_fuzz_test functional/linalg_fuzz_test.cpp)
   target_include_directories(linalg_fuzz_test PRIVATE ../include)
   target_compile_options(linalg_fuzz_test PRIVATE ${UNIT_COMPILE_OPTS})
+  add_test(NAME linalg_fuzz_test COMMAND linalg_fuzz_test)
+endif()
 
+if(BUILD_FUNCTIONAL_TESTS)
   add_executable(lp_fuzz_test functional/lp_fuzz_test.cpp)
   target_include_directories(lp_fuzz_test PRIVATE ../include)
   target_compile_options(lp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})

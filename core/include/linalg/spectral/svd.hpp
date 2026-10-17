@@ -66,39 +66,21 @@ private:
     converged = result.converged;
     if (!converged) return;
 
-    // 2. convert eigenvalues to singular values
-    const auto tmp_lambdas = result.lambda;
-    Vector<Real, Cols> lambdas;
-    for (std::size_t i = 0; i < Cols; ++i) {
-      AK_ASSERT(is_real(tmp_lambdas(i)) &&
-                "SVD expects real eigenvalues from A^*A");
-      if (!is_real(tmp_lambdas(i))) {
-        converged = false;
-        return;
-      }
-
-      lambdas(i) = tmp_lambdas(i).real();
-    }
-
-    // (dakre) these eigenvectors are projected onto the row space thus
-    // resembling the right singular vectors of the row space of Lambda above
-    // U (A^T A) VT -> U Sigma VT
     const auto& V = result.V;
-
-    for (std::size_t i = 0; i < Cols; ++i)
-      S(i, i) = constexpr_sqrt_safe(std::max<Real>(0, lambdas(i)));
-
-    // 3. back-solve for U with VT & sigmas
-    // Sigma^{-1} A V = U
     U = make_identity<Complex, Rows>();
-
     for (std::size_t i = 0; i < Cols; ++i) {
-      // A zero singular value has no inverse. Preserve the initialized basis
-      // vector instead of relying on a nonzero approximation of sqrt(0).
-      if (S(i, i) == Real(0)) continue;
-
-      const auto u_i = (1 / S(i, i)) * as_complex_matrix(A) * get_col(V, i);
-      for (std::size_t j = 0; j < Rows; ++j) U(j, i) = u_i(j);
+      // Recover sigma from A*v, rather than clipping a rounded eigenvalue of
+      // A^*A to zero. In float, the latter can discard a small but nonzero
+      // singular direction and break reconstruction of a full-rank matrix.
+      const auto column = as_complex_matrix(A) * get_col(V, i);
+      Real scale = 0;
+      for (const auto& value : column)
+        scale = std::max(scale, constexpr_abs(value));
+      if (scale == Real(0)) continue;
+      auto normalized = column;
+      for (std::size_t j = 0; j < Rows; ++j) normalized(j) /= scale;
+      S(i, i) = scale * L2<Vector<Complex, Rows>>()(normalized);
+      for (std::size_t j = 0; j < Rows; ++j) U(j, i) = column(j) / S(i, i);
     }
 
     VT = conjugate_transpose(V);
