@@ -6,8 +6,9 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
-#include "math.hpp"
-#include "test_helpers.hpp"
+#include <akreon/linalg/linalg.hpp>
+#include <akreon/convex/convex.hpp>
+#include <akreon/convex/test_helpers.hpp>
 
 using namespace linalg;
 using namespace convex;

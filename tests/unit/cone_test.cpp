@@ -8,8 +8,9 @@
 #include <iostream>
 #include <random>
 
-#include "math.hpp"
-#include "test_helpers.hpp"
+#include <akreon/linalg/linalg.hpp>
+#include <akreon/convex/convex.hpp>
+#include <akreon/convex/test_helpers.hpp>
 
 using namespace linalg;
 using namespace convex;
@@ -617,4 +618,18 @@ TEST_CASE("PSD cone scaling and interior-point identities", "[cone_test]") {
       REQUIRE(!psd.in_cone(x + (alpha_hit + boundary_eps) * p));
     }
   }
+}
+
+TEST_CASE("PSD cone Jordan trace", "[symmetric_matrices]") {
+  using Slack = Vectord<3>;
+  constexpr conic::PositiveSemidefiniteCone<Slack, 2> psd;
+  constexpr auto x = Slack{2.0, 3.0, 5.0};
+  constexpr auto y = Slack{7.0, 0.0, 11.0};
+
+  constexpr auto X = make_smat<2>(x);
+  constexpr auto Y = make_smat<2>(y);
+
+  STATIC_REQUIRE(psd.trace(x, y) == 69.0);
+  STATIC_REQUIRE(psd.trace(x, y) == trace(X * Y));
+  STATIC_REQUIRE(psd.trace(x, psd.e()) == trace(X));
 }

@@ -1,10 +1,10 @@
 # Copyright © 2025-2026 Akreon LLC
 # SPDX-License-Identifier: Apache-2.0
 
-PROJECT_NAME           = "akreon-core"
-PROJECT_BRIEF          = "Akreon constexpr optimization, control, and math core"
+PROJECT_NAME           = "akreon-convex"
+PROJECT_BRIEF          = "DCP atoms and expression composition, convex sets and cones, canonicalization, convex problems, primal-dual interior-point solving, Schur/KKT machinery, and solver diagnostics."
 OUTPUT_DIRECTORY       = docs/doxygen
-INPUT                  = core/include docs
+INPUT                  = include/akreon docs
 FILE_PATTERNS          = *.hpp *.md
 RECURSIVE              = YES
 EXCLUDE_PATTERNS       = */docs/doxygen/*

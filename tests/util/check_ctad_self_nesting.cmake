@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 set(_akreon_scan_roots
-  "${SOURCE_DIR}/core/include/convex"
+  "${SOURCE_DIR}/include/akreon/convex"
   "${SOURCE_DIR}/tests"
 )
 

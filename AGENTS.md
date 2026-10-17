@@ -2,11 +2,9 @@
 
 ## Purpose
 
-`akreon-core` is the developer-facing technical core for Akreon systems.
+`akreon-convex` is the developer-facing technical core for Akreon systems.
 
-This repo includes substantial math, optimization, controls, estimation,
-modeling, and analysis to produce automated client-facing code via `.so`
-artifacts with C API wrappers and/or solver results (found in `akreon-python`)
+Owns convex modeling and optimization. Depends on Akreon::Linalg.
 
 ## Principles
 
@@ -38,9 +36,9 @@ To audit formatting across the tracked core sources, use:
 `cmake --build <build-dir> --target clang_format_check`
 
 After code changes, run the relevant build and test flow. For host work, prefer:
-`cmake --preset host-default`
+`cmake --preset host-default` (supply local dependency overrides from README.md as needed)
 `cmake --build --preset host-default -j`
-`ctest --test-dir out/build/host-default/tests --output-on-failure`
+`ctest --test-dir out/build/host-default --output-on-failure`
 
 ## When changing code
 
@@ -71,4 +69,4 @@ Include:
 
 ## Goal
 
-Keep `akreon-core` clear, stable, technically rigorous, and easy for developers to use.
+Keep `akreon-convex` clear, stable, technically rigorous, and easy for developers to use.

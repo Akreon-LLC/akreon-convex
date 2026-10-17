@@ -1,86 +1,48 @@
-# Copyright © 2025-2026 Akreon LLC
-# SPDX-License-Identifier: Apache-2.0
+cmake_minimum_required(VERSION 3.30)
+project(AkreonConvex VERSION 0.1.0 LANGUAGES CXX)
+option(BUILD_UNIT_TESTS "Build Catch2 unit tests" ${PROJECT_IS_TOP_LEVEL})
+option(BUILD_FUNCTIONAL_TESTS "Build functional tests" ${PROJECT_IS_TOP_LEVEL})
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+include(cmake/AkreonDependencies.cmake)
+akreon_resolve_dependency(linalg AkreonLinalg Akreon::Linalg)
 
-cmake_minimum_required(VERSION 3.22)
+add_library(akreon_convex INTERFACE)
+add_library(Akreon::Convex ALIAS akreon_convex)
+set_target_properties(akreon_convex PROPERTIES EXPORT_NAME Convex)
+target_compile_features(akreon_convex INTERFACE cxx_std_26)
+target_include_directories(akreon_convex INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_link_libraries(akreon_convex INTERFACE Akreon::Linalg)
+add_library(akreon_convex_test_support INTERFACE)
+add_library(Akreon::ConvexTestSupport ALIAS akreon_convex_test_support)
+set_target_properties(akreon_convex_test_support PROPERTIES EXPORT_NAME ConvexTestSupport)
+target_link_libraries(akreon_convex_test_support INTERFACE Akreon::Convex Akreon::LinalgTestSupport)
+target_include_directories(akreon_convex_test_support INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/test-support>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_DATADIR}/akreon-convex/test-support>)
+install(DIRECTORY test-support/ DESTINATION ${CMAKE_INSTALL_DATADIR}/akreon-convex/test-support)
 
-project(akreon VERSION 0.0.0 LANGUAGES CXX DESCRIPTION "Akreon Core" HOMEPAGE_URL https://github.com/dakre21/akreon-core)
+install(TARGETS akreon_convex akreon_convex_test_support EXPORT AkreonConvexTargets)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(EXPORT AkreonConvexTargets NAMESPACE Akreon:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/AkreonConvex)
+configure_package_config_file(cmake/AkreonConvexConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/AkreonConvexConfig.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/AkreonConvex)
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/AkreonConvexConfigVersion.cmake
+  VERSION ${PROJECT_VERSION} COMPATIBILITY SameMajorVersion)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/AkreonConvexConfig.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/AkreonConvexConfigVersion.cmake
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/AkreonConvex)
 
-set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_STANDARD 26)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-set(AKREON_CLANG_FORMAT_MAJOR 22)
-
-find_program(CLANG_FORMAT_BIN NAMES clang-format REQUIRED)
-
-execute_process(
-  COMMAND ${CLANG_FORMAT_BIN} --version
-  OUTPUT_VARIABLE CLANG_FORMAT_VERSION_OUTPUT
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-string(
-  REGEX MATCH
-  "clang-format version ([0-9]+)"
-  CLANG_FORMAT_VERSION_MATCH
-  "${CLANG_FORMAT_VERSION_OUTPUT}"
-)
-
-if(NOT CLANG_FORMAT_VERSION_MATCH)
-  message(
-    FATAL_ERROR
-      "Unable to determine clang-format version from: "
-      "${CLANG_FORMAT_VERSION_OUTPUT}"
-  )
+if(PROJECT_IS_TOP_LEVEL AND (BUILD_UNIT_TESTS OR BUILD_FUNCTIONAL_TESTS))
+  enable_testing()
+  add_subdirectory(tests)
 endif()
-
-set(CLANG_FORMAT_VERSION_MAJOR "${CMAKE_MATCH_1}")
-
-if(NOT CLANG_FORMAT_VERSION_MAJOR STREQUAL "${AKREON_CLANG_FORMAT_MAJOR}")
-  message(
-    FATAL_ERROR
-      "akreon-core requires clang-format ${AKREON_CLANG_FORMAT_MAJOR}.x, "
-      "but found: ${CLANG_FORMAT_VERSION_OUTPUT}"
-  )
+find_program(CLANG_FORMAT_BIN NAMES clang-format-22 clang-format)
+if(PROJECT_IS_TOP_LEVEL AND CLANG_FORMAT_BIN)
+  file(GLOB_RECURSE format_files CONFIGURE_DEPENDS include/*.hpp tests/*.cpp tests/*.hpp test-support/*.hpp examples/*.cpp)
+  add_custom_target(clang_format_check COMMAND ${CLANG_FORMAT_BIN} --dry-run --Werror ${format_files} VERBATIM)
+  add_custom_target(clang_format_fix COMMAND ${CLANG_FORMAT_BIN} -i ${format_files} VERBATIM)
 endif()
-
-file(
-  GLOB_RECURSE AKREON_FORMAT_FILES
-  CONFIGURE_DEPENDS
-  "${CMAKE_SOURCE_DIR}/core/include/*.hpp"
-  "${CMAKE_SOURCE_DIR}/tests/*.hpp"
-  "${CMAKE_SOURCE_DIR}/tests/*.cpp"
-)
-
-if(CLANG_FORMAT_BIN)
-  add_custom_target(
-    clang_format_check
-    COMMAND ${CLANG_FORMAT_BIN} --dry-run --Werror ${AKREON_FORMAT_FILES}
-    COMMENT "Checking C/C++ formatting with clang-format"
-    VERBATIM
-  )
-
-  add_custom_target(
-    clang_format_fix
-    COMMAND ${CLANG_FORMAT_BIN} -i ${AKREON_FORMAT_FILES}
-    COMMENT "Formatting C/C++ sources with clang-format"
-    VERBATIM
-  )
-endif()
-
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Werror)
-endif()
-
-option(BUILD_UNIT_TESTS "Build Catch2-based unit tests" ON)
-option(BUILD_FUNCTIONAL_TESTS "Build functional/fuzz test executables" ON)
-
-function(akreon_configure_target target_name)
-  if(NOT TARGET ${target_name})
-    message(FATAL_ERROR "akreon_configure_target: target '${target_name}' not found")
-  endif()
-endfunction()
-
-include(FetchContent)
-
-add_subdirectory(tests)

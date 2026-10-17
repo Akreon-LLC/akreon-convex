@@ -8,7 +8,8 @@
 #include <cstdio>
 #include <random>
 
-#include "math.hpp"
+#include <akreon/linalg/linalg.hpp>
+#include <akreon/convex/convex.hpp>
 
 using namespace linalg;
 using namespace convex;

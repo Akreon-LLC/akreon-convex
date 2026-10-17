@@ -87,18 +87,9 @@ Expose additional diagnostics in `PrimalDualResult` or native result surfaces:
 The goal is to tell users whether a returned solution is merely feasible under
 tolerances or also numerically robust for recovery.
 
-### 3. H∞ gain-recovery diagnostics
+### 3. H∞ gain recovery
 
-H∞ state-feedback recovery computes a gain from decision variables, e.g.
-`K = Y Q^{-1}`. Add diagnostics around recovery:
-
-- eigenvalue or pivot health of `Q`,
-- condition estimate for the recovery solve,
-- event code when `Q` is near singular,
-- optional warning/status when the recovered gain is likely fragile.
-
-This is distinct from KKT regularization: the IPM step can be stabilized while
-gain recovery remains ill-conditioned.
+See akreon-control `docs/GAIN_RECOVERY.md`.
 
 ### 4. Adaptive regularization policy
 
