@@ -19,7 +19,9 @@
 namespace linalg {
 
 /**
- * @brief A = GG^T cholesky decomposition where A in S^n_++
+ * @brief Factors a real positive-definite matrix as A = G G^T.
+ *
+ * @tparam Mat Real square matrix type.
  */
 template <SquareMatrix Mat>
 struct Cholesky : SymmetricOperator<Mat, Cholesky<Mat>> {
@@ -36,17 +38,17 @@ struct Cholesky : SymmetricOperator<Mat, Cholesky<Mat>> {
   static_assert(N > 1, "GG^T requires as least 2x2 matrix");
 
   /**
-   * @brief CTOR
+   * @brief Factor A as G G^T using Cholesky column updates.
    *
-   * @param A (matrix)
+   * @param[in] A Real symmetric positive-definite input matrix.
    */
   constexpr explicit Cholesky(const Mat& A) : SymmetricBase(A) { factor(A); }
 
   /**
-   * @brief CTOR
+   * @brief Compute Cholesky factors with explicit settings.
    *
-   * @param A (matrix)
-   * @param config (FactorConfig)
+   * @param[in] A Real symmetric positive-definite input matrix.
+   * @param[in] config_in Factorization settings and definiteness tolerance.
    */
   constexpr explicit Cholesky(const Mat& A,
                               const config::FactorConfig<T>& config_in)
@@ -55,19 +57,17 @@ struct Cholesky : SymmetricOperator<Mat, Cholesky<Mat>> {
   }
 
   /**
-   * @brief G
+   * @brief Reconstruct the lower-triangular Cholesky factor.
    *
-   * @return G
+   * @return Matrix<T, N, N> containing G such that A = G G^T.
    */
   constexpr auto G() const { return make_lower_triangle<Mat>(G_vec); }
 
 private:
   /**
-   * @brief GG^T of A in S^n_++
+   * @brief Compute and pack the lower Cholesky factor.
    *
-   * @param A (matrix)
-   *
-   * @return void
+   * @param[in] A Positive-definite input matrix copied for column updates.
    */
   constexpr void factor(Mat A) {
     auto chol = [&]<std::size_t j = 0>(this auto&& self) {
@@ -75,6 +75,7 @@ private:
         return;
       } else {
         constexpr std::size_t next = j + 1;
+        // Subtract contributions of the previously computed columns of G.
         if constexpr (j > 0) {
           const auto A_jn_j = get_block<j, SymmetricBase::N, j, next>(A);
           const auto A_jn_0j = get_block<j, SymmetricBase::N, 0, j>(A);
@@ -83,6 +84,7 @@ private:
           A = set_block<j, SymmetricBase::N, j, next>(A, lhs);
         }
         const auto A_jn_j = get_block<j, SymmetricBase::N, j, next>(A);
+        // Take the positive pivot root, then scale the remaining column.
         const auto a_jj = constexpr_sqrt_safe(A(j, j));
         A = set_block<j, SymmetricBase::N, j, next>(A, T(1) / a_jj * A_jn_j);
         return self.template operator()<next>();
@@ -91,6 +93,7 @@ private:
 
     chol();
 
+    // Pack the completed lower factor, including its diagonal.
     G_vec = get_lower_triangle_with_diag(A);
 
     this->compute_definiteness(get_diag(A), config.tol);

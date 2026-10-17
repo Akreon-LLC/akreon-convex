@@ -50,13 +50,9 @@ private:
   static constexpr ScalarT G = 9.81;
 };
 
-TEST_CASE("Test SMD", "[smd]") {
-  SECTION("Static case") {
+TEST_CASE("Spring-mass-damper energy, forces and integration", "[smd]") {
+  SECTION("T, V and Qnc vanish at rest at the potential minimum") {
     constexpr auto Q = seed_Q(Vector<double, 1>{0.0});
-
-    STATIC_REQUIRE(Q(0, 0) == 0.0);
-    STATIC_REQUIRE(Q(0, 1) == 1e-4);
-    STATIC_REQUIRE(Q(0, 2) == 2e-4);
 
     constexpr auto smd = SMD<double>(Q, 1.0, 2.0, 3.0);
 
@@ -69,7 +65,7 @@ TEST_CASE("Test SMD", "[smd]") {
     STATIC_REQUIRE(Qnc == Vector<double, 1>{});
   }
 
-  SECTION("Simulate simple case") {
+  SECTION("Solve matches ten damped steps with h = 0.01 s") {
     Vector<double, 10> expected{1.00015, 1.00015,  1.0001,   0.999999, 0.99985,
                                 0.99965, 0.999402, 0.999104, 0.998757, 0.99836};
     const double h = 0.01;

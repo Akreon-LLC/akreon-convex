@@ -75,7 +75,10 @@ private:
     // (2) Next calculate the eigenvalues of the matrix and check signs of the
     // eigenvalues by running count
     const auto eig_decomp = EigenDecomposition(A);
-    if (!eig_decomp.converged) return;
+    if (!eig_decomp.converged) {
+      this->type = SymmetricOperatorType::INV;
+      return;
+    }
 
     // (3) Compute definiteness of matrix
     this->compute_definiteness(eig_decomp.lambda, tol);

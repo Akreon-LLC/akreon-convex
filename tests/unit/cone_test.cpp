@@ -29,8 +29,9 @@ static constexpr bool ok_psd_event(const linalg::NumericalEvent& event) {
          event == linalg::NumericalEvent::NUMERICAL_SAFEGUARD;
 }
 
-TEST_CASE("Test cone formations", "[cone_test]") {
-  SECTION("Test exp cone") {
+TEST_CASE("Exponential and power cone initial points belong to their cones",
+          "[cone_test]") {
+  SECTION("ExpCone initial points support single and product cones") {
     using Slack = Vectord<3>;
     constexpr ExpCone<Slack> exp_cone;
     STATIC_REQUIRE(exp_cone.in_cone(exp_cone.x0()));
@@ -39,7 +40,7 @@ TEST_CASE("Test cone formations", "[cone_test]") {
     STATIC_REQUIRE(exp_cone9.in_cone(exp_cone9.x0()));
   }
 
-  SECTION("Test power cone") {
+  SECTION("PowerCone initial point satisfies equal weights") {
     using Slack = Vectord<4>;
     constexpr vector_traits<Vectord<3>> vec_t;
     constexpr PowerCone<Slack> pcone(vec_t.fill(1.0 / 3.0));
@@ -47,7 +48,7 @@ TEST_CASE("Test cone formations", "[cone_test]") {
   }
 }
 
-TEST_CASE("Test R^n_+ cone", "[cone_test]") {
+TEST_CASE("Nonnegative cone scaling and numerical safeguards", "[cone_test]") {
   SECTION("Affine correction reports denominator safeguards") {
     using Slack = Vectord<4>;
     constexpr NonnegOrthantCone<Slack> rplus;
@@ -165,7 +166,8 @@ TEST_CASE("Test R^n_+ cone", "[cone_test]") {
   }
 }
 
-TEST_CASE("Test SOC", "[cone_test]") {
+TEST_CASE("Second-order cone scaling and interior-point identities",
+          "[cone_test]") {
   SECTION("Test soc cone api") {
     using Slack = Vectord<10>;
     constexpr SecondOrderCone<Slack> soc;
@@ -281,7 +283,7 @@ TEST_CASE("Test SOC", "[cone_test]") {
   }
 }
 
-TEST_CASE("Test PSD Cone", "[cone_test]") {
+TEST_CASE("PSD cone scaling and interior-point identities", "[cone_test]") {
   SECTION("Test psd cone api") {
     using Slack = Vectord<3>;
     constexpr PositiveSemidefiniteCone<Slack, 2> psd;

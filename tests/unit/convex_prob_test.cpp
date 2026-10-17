@@ -24,7 +24,8 @@ using namespace affine;
 using namespace conic;
 using namespace unit_test;
 
-TEST_CASE("Test var setup", "[convex_vars]") {
+TEST_CASE("Variable views and compositions preserve canonical layout",
+          "[convex_vars]") {
   SECTION("Canonical layout and emission traits") {
     using Space = Matrixd<1, 3>;
     constexpr auto x = Variable<VarMeta<Space>>();
@@ -418,7 +419,8 @@ TEST_CASE("Test var setup", "[convex_vars]") {
   }
 }
 
-TEST_CASE("Simple function ops", "[convex_ops]") {
+TEST_CASE("Function composition preserves values and canonical maps",
+          "[convex_ops]") {
   SECTION("Composed abs") {
     using Space = Matrixd<1, 1>;
     constexpr auto x = Variable<VarMeta<Space>>();
@@ -583,34 +585,32 @@ TEST_CASE("Simple function ops", "[convex_ops]") {
   }
 }
 
-TEST_CASE("Simple convex set ops", "[convex_ops]") {
-  SECTION("Intersection of sets") {
-    using Space = Matrixd<1, 3>;
-    constexpr Vector<double, 3> point{1.0, 2.0, 3.0};
-    constexpr auto b = 0.6;
-    constexpr auto x = Variable<VarMeta<Space>>();
-    constexpr auto hyperplane = Hyperplane(point, b, x);
-    STATIC_REQUIRE(hyperplane.is_well_formed());
+TEST_CASE("Set intersection combines canonical constraints", "[convex_ops]") {
+  using Space = Matrixd<1, 3>;
+  constexpr Vector<double, 3> point{1.0, 2.0, 3.0};
+  constexpr auto b = 0.6;
+  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto hyperplane = Hyperplane(point, b, x);
+  STATIC_REQUIRE(hyperplane.is_well_formed());
 
-    constexpr auto r = 2.0;
-    constexpr auto ball =
-        NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L2>(
-            Vectord<3>{}, r, x);
-    STATIC_REQUIRE(ball.is_well_formed());
+  constexpr auto r = 2.0;
+  constexpr auto ball =
+      NormBall<NormBallMeta<Space>, decltype(x), NormBallType::L2>(Vectord<3>{},
+                                                                   r, x);
+  STATIC_REQUIRE(ball.is_well_formed());
 
-    constexpr auto intersection = Intersection(hyperplane, ball);
+  constexpr auto intersection = Intersection(hyperplane, ball);
 
-    constexpr auto builder = create_empty_cblk_builder<Space>();
-    constexpr auto new_builder =
-        intersection.template canonicalize<AtomType::CAP>(builder);
-    constexpr auto canon_cb = new_builder.cb;
-    constexpr auto eq_map = new_builder.eq_map;
-    STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 1);
-    STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 4);
-    STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 3);
-    STATIC_REQUIRE(mat_rows_v<decltype(eq_map.linear_part())> == 1);
-    STATIC_REQUIRE(mat_cols_v<decltype(eq_map.linear_part())> == 3);
-  }
+  constexpr auto builder = create_empty_cblk_builder<Space>();
+  constexpr auto new_builder =
+      intersection.template canonicalize<AtomType::CAP>(builder);
+  constexpr auto canon_cb = new_builder.cb;
+  constexpr auto eq_map = new_builder.eq_map;
+  STATIC_REQUIRE(std::tuple_size<decltype(canon_cb.cones)>::value == 1);
+  STATIC_REQUIRE(mat_rows_v<decltype(canon_cb.map.linear_part())> == 4);
+  STATIC_REQUIRE(mat_cols_v<decltype(canon_cb.map.linear_part())> == 3);
+  STATIC_REQUIRE(mat_rows_v<decltype(eq_map.linear_part())> == 1);
+  STATIC_REQUIRE(mat_cols_v<decltype(eq_map.linear_part())> == 3);
 }
 
 TEST_CASE("Convex Problem Formation", "[convex_problem]") {

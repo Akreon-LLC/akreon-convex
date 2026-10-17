@@ -52,13 +52,9 @@ private:
   static constexpr ScalarT G = 9.81;
 };
 
-TEST_CASE("Test Pendulum", "[pendulum]") {
-  SECTION("Static case") {
+TEST_CASE("One-DOF pendulum energy, forces and integration", "[pendulum]") {
+  SECTION("T, V and Qnc vanish at rest at the potential minimum") {
     constexpr auto Q = seed_Q(Vector<double, 1>{0.0});
-
-    STATIC_REQUIRE(Q(0, 0) == 0.0);
-    STATIC_REQUIRE(Q(0, 1) == 1e-4);
-    STATIC_REQUIRE(Q(0, 2) == 2e-4);
 
     constexpr auto pendulum = Pendulum<double>(Q, 1.0, 2.0);
 
@@ -73,7 +69,7 @@ TEST_CASE("Test Pendulum", "[pendulum]") {
     STATIC_REQUIRE(Qnc == Vector<double, 1>{});
   }
 
-  SECTION("Simulate simple case {theta = pi/4, h = 0.01, epochs = 10}") {
+  SECTION("Solve matches ten steps from theta = pi/4 with h = 0.01 s") {
     Vector<double, 10> expected{0.784905, 0.783618, 0.781638, 0.778967,
                                 0.775607, 0.77156,  0.766829, 0.761417,
                                 0.755329, 0.748568};

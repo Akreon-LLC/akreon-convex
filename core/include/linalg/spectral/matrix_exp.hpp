@@ -18,12 +18,12 @@
 namespace linalg {
 
 /**
- * @brief group permutation
+ * @brief Group approximately equal eigenvalues into contiguous index runs.
  *
- * @param vector of eigenvalues
- * @param tolerance
- *
- * @return vector of indices
+ * @tparam Vec Vector type with complex scalar entries.
+ * @param[in] D Complex eigenvalue vector.
+ * @param[in] tol Absolute tolerance for comparing eigenvalues.
+ * @return Vector<std::size_t, N> mapping grouped positions to original indices.
  */
 template <VectorContainer Vec>
   requires(Complex<vector_element_t<Vec>>)
@@ -50,11 +50,11 @@ constexpr auto make_group_permutation(
 }
 
 /**
- * @brief invert permutation
+ * @brief Invert an index permutation.
  *
- * @param vector representing group permuation
- *
- * @return inverted permutation
+ * @tparam N Number of permuted indices.
+ * @param[in] p Permutation of indices 0 through N-1.
+ * @return Vector<std::size_t, N> satisfying p_inv(p(i)) = i.
  */
 template <std::size_t N>
 constexpr auto invert_permutation(const Vector<std::size_t, N>& p) {
@@ -64,12 +64,12 @@ constexpr auto invert_permutation(const Vector<std::size_t, N>& p) {
 }
 
 /**
- * @brief permute P^T J P
+ * @brief Reorder matrix rows and columns by the same permutation.
  *
- * @param Matrix J (jordan form)
- * @param vector p (permutation)
- *
- * @return permuted J
+ * @tparam Mat Square matrix type.
+ * @param[in] J Square matrix to reorder.
+ * @param[in] p Permutation mapping new indices to original indices.
+ * @return Matrix of type Mat with entry (i,j) = J(p(i),p(j)).
  */
 template <MatrixContainer Mat>
 constexpr auto permute_ptjp(const Mat& J,
@@ -82,12 +82,12 @@ constexpr auto permute_ptjp(const Mat& J,
 }
 
 /**
- * @brief unpermute P^T A P equivalent to P A P^T
+ * @brief Scatter matrix entries through a row-and-column permutation.
  *
- * @param Matrix A (orig)
- * @param vector p (permutation)
- *
- * @return unpermuted matrix R
+ * @tparam Mat Square matrix type.
+ * @param[in] A Square matrix whose entries are scattered.
+ * @param[in] p Permutation mapping source indices to destination indices.
+ * @return Matrix R of type Mat satisfying R(p(i),p(j)) = A(i,j).
  */
 template <MatrixContainer Mat>
 constexpr auto unpermute_papt(const Mat& A,
@@ -100,11 +100,13 @@ constexpr auto unpermute_papt(const Mat& A,
 }
 
 /**
- * @brief matrix exponential solution for x(t) = e^{A t} x(0)
+ * @brief Compute exp(A) using its eigenvector and generalized-eigenvector
+ * basis.
  *
- * @param matrix A type T with N x N elements
- *
- * @return resuting matrix
+ * @tparam Mat Square matrix type.
+ * @param[in] A Square input matrix.
+ * @return Complex N-by-N matrix exp(A), or a zero matrix if decomposition or
+ * inversion fails.
  */
 template <SquareMatrix Mat>
 constexpr auto matrix_exp(const Mat& A) {
@@ -115,6 +117,7 @@ constexpr auto matrix_exp(const Mat& A) {
   constexpr auto N = mat_rows_v<Mat>;
   static_assert(N >= 1, "Matrix exponential requires at least 1 row");
 
+  // Transform A to the eigenvector/generalized-eigenvector basis.
   const auto eig_decomp = EigenDecomposition(A);
   if (!eig_decomp.converged) return Matrix<Complex, N, N>{};
 
@@ -124,6 +127,7 @@ constexpr auto matrix_exp(const Mat& A) {
   const auto D = eig_decomp.lambda;
   const auto J = V_inv * (as_complex_matrix(A) * V);
 
+  // Group repeated eigenvalues into contiguous blocks of J.
   const auto p = make_group_permutation(D);
   const auto p_inv = invert_permutation(p);
   const auto Jp = permute_ptjp(J, p); // P^T J P
@@ -131,33 +135,31 @@ constexpr auto matrix_exp(const Mat& A) {
   Matrix<Complex, N, N> exp_Jp;
   std::size_t i = 0;
   while (i < N) {
-    // (0) form block i to j-1
+    // Identify the block sharing the eigenvalue at index i.
     std::size_t j = i + 1;
     while (j < N && is_same(D(p(j)), D(p(i)))) ++j;
     std::size_t chain_len = j - i;
     const auto eig = D(p(i));
     const auto exp_lambda = constexpr_exp_lambda(eig);
 
-    // (1) set exp(Jp) to exp(lambda) if this is a unique eigenvalue
+    // A scalar block contributes exp(lambda).
     if (chain_len == 1) {
       exp_Jp(i, i) = exp_lambda;
       i = j;
       continue;
     }
 
-    // (2) process the jordan block N = (J_block - lambda I)
+    // For J_block = lambda*I + N, evaluate exp(lambda)*exp(N).
     Matrix<Complex, N, N> N_blk, E_blk;
-    // 2.a set super diag to 1s on E block (E = I + N + N^2 / 2! + ...) up to
-    // chain_len representing N^0 = I
+    // Initialize exp(N) with its identity term.
     for (std::size_t a = 0; a < chain_len; ++a)
       E_blk(i + a, i + a) = Complex(1);
-    // 2.b set N block (N = J_block - lambda I) where C = lambda I + N (7.6.5
-    // Matrix Computations)
+    // Extract the upper-triangular nilpotent part N = J_block - lambda*I.
     for (std::size_t a = 0; a < chain_len; ++a)
       for (std::size_t b = a; b < chain_len; ++b)
         N_blk(i + a, i + b) = Jp(i + a, i + b) - (a == b ? eig : Complex(0));
 
-    // 2.c E represents N block to the chain_len power
+    // Accumulate I + N + N^2/2! + ... through the block's nilpotency bound.
     Matrix<Complex, N, N> P = N_blk;
     Complex inv_factorial(1);
     for (std::size_t m = 1; m < chain_len; ++m) {
@@ -182,6 +184,7 @@ constexpr auto matrix_exp(const Mat& A) {
     i = j;
   }
 
+  // Undo the grouping and map exp(J) back as V*exp(J)*V^-1.
   const auto exp_J = unpermute_papt(exp_Jp, p_inv);
   return V * (exp_J * V_inv);
 }

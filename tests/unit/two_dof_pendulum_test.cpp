@@ -68,18 +68,27 @@ private:
   static constexpr ScalarT G = 9.81;
 };
 
-TEST_CASE("Test Pendulum", "[pendulum]") {
-  SECTION("Static case") {
+TEST_CASE("seed_Q offsets each coordinate across three samples",
+          "[dynamics][seed_Q]") {
+  constexpr auto scalar_Q = seed_Q(Vector<double, 1>{0.0});
+  STATIC_REQUIRE(scalar_Q(0, 0) == 0.0);
+  STATIC_REQUIRE(scalar_Q(0, 1) == 1e-4);
+  STATIC_REQUIRE(scalar_Q(0, 2) == 2e-4);
+
+  constexpr auto Q = seed_Q(Vector<double, 2>{0.0, 0.0});
+  STATIC_REQUIRE(Q(0, 0) == 0.0);
+  STATIC_REQUIRE(Q(0, 1) == 1e-4);
+  STATIC_REQUIRE(Q(0, 2) == 2e-4);
+
+  STATIC_REQUIRE(Q(1, 0) == 0.0);
+  STATIC_REQUIRE(Q(1, 1) == 1e-4);
+  STATIC_REQUIRE(Q(1, 2) == 2e-4);
+}
+
+TEST_CASE("Two-DOF pendulum energy, forces and integration", "[pendulum]") {
+  SECTION("T, V and Qnc vanish at rest at the potential minimum") {
     constexpr auto zeros = Vector<double, 2>{0.0, 0.0};
     constexpr auto Q = seed_Q(zeros);
-
-    STATIC_REQUIRE(Q(0, 0) == 0.0);
-    STATIC_REQUIRE(Q(0, 1) == 1e-4);
-    STATIC_REQUIRE(Q(0, 2) == 2e-4);
-
-    STATIC_REQUIRE(Q(1, 0) == 0.0);
-    STATIC_REQUIRE(Q(1, 1) == 1e-4);
-    STATIC_REQUIRE(Q(1, 2) == 2e-4);
 
     constexpr auto pendulum = Pendulum<double>(Q, 1.0, 2.0, 1.0, 2.0);
 
@@ -91,7 +100,7 @@ TEST_CASE("Test Pendulum", "[pendulum]") {
     STATIC_REQUIRE(Qnc == Vector<double, 2>{});
   }
 
-  SECTION("Simulate simple case {theta = pi/4, h = 0.01, epochs = 10}") {
+  SECTION("Solve matches ten steps from angles pi/4 and pi/6 with h = 0.01 s") {
     Vector<double, 10> expected_theta_one{
         0.785144, 0.784337, 0.783077, 0.781367, 0.77921,
         0.776609, 0.77357,  0.770096, 0.766195, 0.761873};

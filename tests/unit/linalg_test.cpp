@@ -21,17 +21,18 @@
 using namespace linalg;
 using namespace unit_test;
 
-TEST_CASE("Test field types", "[field]") {
-  SECTION("Field check") {
-    STATIC_REQUIRE(Field<double>);
-    STATIC_REQUIRE(Field<float>);
-    STATIC_REQUIRE(Field<std::complex<double>>);
-    STATIC_REQUIRE(!Field<int>);
-    STATIC_REQUIRE(!Field<unsigned>);
-  }
+TEST_CASE(
+    "Field accepts floating-point and complex scalars and rejects integers",
+    "[field]") {
+  STATIC_REQUIRE(Field<double>);
+  STATIC_REQUIRE(Field<float>);
+  STATIC_REQUIRE(Field<std::complex<double>>);
+  STATIC_REQUIRE(!Field<int>);
+  STATIC_REQUIRE(!Field<unsigned>);
 }
 
-TEST_CASE("Test constexpr math", "[math]") {
+TEST_CASE("Constexpr math evaluates known values and rejects invalid domains",
+          "[math]") {
   constexpr auto res1 = constexpr_sqrt_safe(64.0) - 8.0;
   STATIC_REQUIRE(res1 < eps);
   STATIC_REQUIRE(constexpr_sqrt(0.0).value() == 0.0);
@@ -89,7 +90,8 @@ TEST_CASE("Test constexpr math", "[math]") {
   STATIC_REQUIRE(constexpr_ln(1e-10).has_value());
 }
 
-TEST_CASE("Test vector space types", "[vector_space]") {
+TEST_CASE("Vector and matrix arithmetic preserve values and shapes",
+          "[vector_space]") {
   SECTION("Static vector checks") {
     constexpr auto A = Vectord<2>{1.0, 2.0};
     constexpr auto B = Vectord<2>{-1.0, 5.0};
@@ -111,7 +113,6 @@ TEST_CASE("Test vector space types", "[vector_space]") {
     STATIC_REQUIRE(E(1) == 4.0);
 
     STATIC_REQUIRE(9.0 == inner_product(A, B));
-    STATIC_REQUIRE(10.0 != inner_product(A, B));
 
     constexpr std::complex<double> c(1.0, 2.0);
     constexpr auto X = Vectorcd<5>{c, c, c, c, c};
@@ -337,7 +338,7 @@ TEST_CASE("Householder vectors", "[householder]") {
     STATIC_REQUIRE(all_equal(transpose(P) * P, I));
 
     constexpr auto Px = P * x;
-    constexpr auto expected = Vectord<4>{5.47723, 0.0, 0.0, 0.0};
+    constexpr auto expected = Vectord<4>{-5.47723, 0.0, 0.0, 0.0};
     STATIC_REQUIRE(euclidean_distance(Px, expected) <= eps);
   }
 
@@ -383,34 +384,32 @@ TEST_CASE("Householder vectors", "[householder]") {
 }
 
 TEST_CASE("Hessenberg matrices", "[hessenberg]") {
-  SECTION("Real hessenberg matrix") {
-    constexpr auto a = Vectord<3>{1.0, 2.0, 3.0};
-    constexpr auto b = Vectord<3>{4.0, 5.0, 6.0};
-    constexpr auto c = Vectord<3>{7.0, 8.0, 9.0};
-    constexpr auto A = Matrixd<3, 3>{a, b, c};
-    constexpr auto H_mat = Hessenberg(A);
-    constexpr auto H = H_mat.H();
-    constexpr auto beta = H_mat.beta;
-    STATIC_REQUIRE(constexpr_abs(beta(0)) > 0.0);
-    STATIC_REQUIRE(constexpr_abs(beta(1)) == 0.0);
-    STATIC_REQUIRE(constexpr_abs(beta(2)) == 0.0);
-    STATIC_REQUIRE(H(2, 0) == 0.0);
-    STATIC_REQUIRE(H(0, 0) == H_mat(0, 0));
-    STATIC_REQUIRE(H(0, 1) == H_mat(0, 1));
-    STATIC_REQUIRE(H(0, 2) == H_mat(0, 2));
-    STATIC_REQUIRE(H(1, 0) == H_mat(1, 0));
-    STATIC_REQUIRE(H(1, 1) == H_mat(1, 1));
-    STATIC_REQUIRE(H(1, 2) == H_mat(1, 2));
-    STATIC_REQUIRE(H(0, 2) == H_mat(0, 2));
-    STATIC_REQUIRE(H(1, 2) == H_mat(1, 2));
-    STATIC_REQUIRE(H(2, 2) == H_mat(2, 2));
+  constexpr auto a = Vectord<3>{1.0, 2.0, 3.0};
+  constexpr auto b = Vectord<3>{4.0, 5.0, 6.0};
+  constexpr auto c = Vectord<3>{7.0, 8.0, 9.0};
+  constexpr auto A = Matrixd<3, 3>{a, b, c};
+  constexpr auto H_mat = Hessenberg(A);
+  constexpr auto H = H_mat.H();
+  constexpr auto beta = H_mat.beta;
+  STATIC_REQUIRE(constexpr_abs(beta(0)) > 0.0);
+  STATIC_REQUIRE(constexpr_abs(beta(1)) == 0.0);
+  STATIC_REQUIRE(constexpr_abs(beta(2)) == 0.0);
+  STATIC_REQUIRE(H(2, 0) == 0.0);
+  STATIC_REQUIRE(H(0, 0) == H_mat(0, 0));
+  STATIC_REQUIRE(H(0, 1) == H_mat(0, 1));
+  STATIC_REQUIRE(H(0, 2) == H_mat(0, 2));
+  STATIC_REQUIRE(H(1, 0) == H_mat(1, 0));
+  STATIC_REQUIRE(H(1, 1) == H_mat(1, 1));
+  STATIC_REQUIRE(H(1, 2) == H_mat(1, 2));
+  STATIC_REQUIRE(H(0, 2) == H_mat(0, 2));
+  STATIC_REQUIRE(H(1, 2) == H_mat(1, 2));
+  STATIC_REQUIRE(H(2, 2) == H_mat(2, 2));
 
-    constexpr auto U = H_mat.U();
-    constexpr auto UTU = transpose(U) * U;
-    STATIC_REQUIRE(all_equal(UTU, make_identity<double, 3>()));
+  constexpr auto U = H_mat.U();
+  constexpr auto UTU = transpose(U) * U;
+  STATIC_REQUIRE(all_equal(UTU, make_identity<double, 3>()));
 
-    STATIC_REQUIRE(all_equal(H, transpose(U) * A * U));
-  }
+  STATIC_REQUIRE(all_equal(H, transpose(U) * A * U));
 }
 
 TEST_CASE("S^n via QR factorization", "[symmetric_matrices]") {
@@ -577,41 +576,37 @@ TEST_CASE("Matrix square root", "[matrix_sqrt]") {
 }
 
 TEST_CASE("PSD cone Jordan trace", "[symmetric_matrices]") {
-  SECTION("2x2 trace matches matrix product trace") {
-    using Slack = Vectord<3>;
-    constexpr conic::PositiveSemidefiniteCone<Slack, 2> psd;
-    constexpr auto x = Slack{2.0, 3.0, 5.0};
-    constexpr auto y = Slack{7.0, 0.0, 11.0};
+  using Slack = Vectord<3>;
+  constexpr conic::PositiveSemidefiniteCone<Slack, 2> psd;
+  constexpr auto x = Slack{2.0, 3.0, 5.0};
+  constexpr auto y = Slack{7.0, 0.0, 11.0};
 
-    constexpr auto X = make_smat<2>(x);
-    constexpr auto Y = make_smat<2>(y);
+  constexpr auto X = make_smat<2>(x);
+  constexpr auto Y = make_smat<2>(y);
 
-    STATIC_REQUIRE(psd.trace(x, y) == 69.0);
-    STATIC_REQUIRE(psd.trace(x, y) == trace(X * Y));
-    STATIC_REQUIRE(psd.trace(x, psd.e()) == trace(X));
-  }
+  STATIC_REQUIRE(psd.trace(x, y) == 69.0);
+  STATIC_REQUIRE(psd.trace(x, y) == trace(X * Y));
+  STATIC_REQUIRE(psd.trace(x, psd.e()) == trace(X));
 }
 
 TEST_CASE("svec/smat preserve symmetric geometry", "[symmetric_matrices]") {
-  SECTION("3x3 round-trip and Frobenius norm") {
-    constexpr auto A = Matrixd<3, 3>{
-        Vectord<3>{2.0, -1.0, 3.0},
-        Vectord<3>{-1.0, 4.0, 0.5},
-        Vectord<3>{3.0, 0.5, 5.0},
-    };
+  constexpr auto A = Matrixd<3, 3>{
+      Vectord<3>{2.0, -1.0, 3.0},
+      Vectord<3>{-1.0, 4.0, 0.5},
+      Vectord<3>{3.0, 0.5, 5.0},
+  };
 
-    constexpr auto svec = get_svec(A);
-    constexpr auto A_roundtrip = make_smat<3>(svec);
+  constexpr auto svec = get_svec(A);
+  constexpr auto A_roundtrip = make_smat<3>(svec);
 
-    STATIC_REQUIRE(all_equal(A_roundtrip, A));
-    STATIC_REQUIRE(all_equal(make_svec(A_roundtrip), svec));
-    STATIC_REQUIRE(constexpr_abs(inner_product(svec, svec) - trace(A * A)) <
-                   1e-10);
-  }
+  STATIC_REQUIRE(all_equal(A_roundtrip, A));
+  STATIC_REQUIRE(all_equal(make_svec(A_roundtrip), svec));
+  STATIC_REQUIRE(constexpr_abs(inner_product(svec, svec) - trace(A * A)) <
+                 1e-10);
 }
 
 TEST_CASE("LDL^T Factorization") {
-  SECTION("Simple I") {
+  SECTION("Identity matrix factors exactly") {
     constexpr auto I = make_identity<double, 10>();
     constexpr auto ldl = LDL(I);
     STATIC_REQUIRE(ldl.is_valid());
@@ -620,13 +615,13 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(ldl.L() == make_identity<double, 10>());
   }
 
-  SECTION("Bad Zeros") {
+  SECTION("Zero matrix is rejected by LDL") {
     constexpr auto Z = Matrixd<6, 6>{};
     constexpr auto ldl = LDL(Z);
     STATIC_REQUIRE(!ldl.is_valid());
   }
 
-  SECTION("Indefinite Mat") {
+  SECTION("Diagonal indefinite matrix factors and solves") {
     constexpr auto A_mat = mat_traits<Matrixd<4, 4>>();
     constexpr auto A = A_mat(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
                              -1.0, 0.0, 0.0, 0.0, 0.0, -1.0);
@@ -714,7 +709,8 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(L2<Vectord<5>>()(y - b) < eps);
   }
 
-  SECTION("Indefinite but okay") {
+  SECTION(
+      "Coupled indefinite matrix reconstructs and solves within tolerance") {
     constexpr auto A_mat = mat_traits<Matrixd<4, 4>>();
     constexpr auto A = A_mat(2.0, 0.4, -0.2, 0.1, 0.4, -0.92, -0.38, 0.21, -0.2,
                              -0.38, 2.89, 0.91, 0.1, 0.21, 0.91, -1.8625);
@@ -734,14 +730,14 @@ TEST_CASE("LDL^T Factorization") {
     STATIC_REQUIRE(L2<Vectord<4>>()(y - b) < eps);
   }
 
-  SECTION("Bad singular tiny pivot") {
+  SECTION("Tiny leading pivot is rejected") {
     constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
     constexpr auto A = A_mat(1e-12, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, -1.0);
     constexpr auto ldl = LDL(A);
     STATIC_REQUIRE(!ldl.is_valid());
   }
 
-  SECTION("Bad near singular") {
+  SECTION("Near-singular matrix is rejected") {
     constexpr auto A_mat = mat_traits<Matrixd<3, 3>>();
     constexpr auto A =
         A_mat(1.0, 0.999999, 0.0, 0.999999, 0.999998, 0.0, 0.0, 0.0, 1.0);
@@ -821,7 +817,7 @@ TEST_CASE("Matrix Pencil") {
 }
 
 TEST_CASE("Cholesky Factorization") {
-  SECTION("Simple I") {
+  SECTION("Identity matrix factors exactly") {
     constexpr auto I = make_identity<double, 5>();
     constexpr auto chol = Cholesky(I);
     STATIC_REQUIRE(chol.is_valid());
@@ -875,4 +871,30 @@ TEST_CASE("Cholesky Factorization") {
     STATIC_REQUIRE(all_equal(chol.G(), G_exp, 1e-6));
     STATIC_REQUIRE(all_equal(A, chol.G() * transpose(chol.G()), 1e-6));
   }
+}
+
+TEST_CASE("Householder reflection of a negative axis vector is orthogonal",
+          "[householder][regression]") {
+  constexpr auto x = Vectord<3>{-2.0, 0.0, 0.0};
+  constexpr auto reflector = HouseholderVector(x);
+  constexpr auto identity = make_identity<double, 3>();
+  constexpr auto P =
+      identity - reflector.beta * outer_product(as_col_vector(reflector.v),
+                                                as_row_vector(reflector.v));
+  STATIC_REQUIRE(reflector.beta == 2.0);
+  STATIC_REQUIRE(P * x == Vectord<3>{2.0, 0.0, 0.0});
+  STATIC_REQUIRE(transpose(P) * P == identity);
+}
+
+TEST_CASE("Householder remains orthogonal with a tiny tail near deflation",
+          "[householder][regression]") {
+  // Squaring the old positive-leading cancellation term underflowed in float.
+  constexpr auto x = Vector<float, 3>{1.0f, 1e-12f, -2e-12f};
+  constexpr auto reflector = HouseholderVector(x);
+  constexpr auto identity = make_identity<float, 3>();
+  constexpr auto P =
+      identity - reflector.beta * outer_product(as_col_vector(reflector.v),
+                                                as_row_vector(reflector.v));
+  STATIC_REQUIRE(all_equal(transpose(P) * P, identity, 1e-6f));
+  STATIC_REQUIRE(all_equal(P * x, Vector<float, 3>{-1.0f, 0.0f, 0.0f}, 1e-6f));
 }
