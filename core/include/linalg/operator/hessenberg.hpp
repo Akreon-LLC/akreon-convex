@@ -17,10 +17,12 @@
 
 namespace linalg {
 /**
- * @brief Hessenberg Matrix
+ * @brief Reduces A to upper Hessenberg form H = U^* A U.
  *
- * H is an upper right triangular matrix formed by successive Householder
- * reductions creating the similarity transform: H = U_0^T A U_0.
+ * Householder similarities eliminate entries below the first subdiagonal.
+ * Packed reflector tails reconstruct the orthogonal or unitary basis U.
+ *
+ * @tparam Mat Square real or complex matrix type.
  */
 template <SquareMatrix Mat>
 struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
@@ -32,14 +34,9 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
   using OperatorBase::N;
 
   /**
-   * @brief CTOR
+   * @brief Reduce A by two-sided Householder similarities.
    *
-   * Householder reduction to hessenberg form
-   *
-   * A in R^nxn to H = U_0^T A U_0 where H is upper Hessenberg and U_0 is
-   * unitary
-   *
-   * @param Matrix A of type T with N x N elements
+   * @param[in] A Square input matrix to reduce to upper Hessenberg form.
    */
   constexpr explicit Hessenberg(const Mat& A) {
     H_pack = A;
@@ -47,6 +44,7 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
                                 std::integral_constant<std::size_t, k>) {
       const auto& H_block = get_n_rows<k + 1, N>(H_pack);
       const auto& H_col = get_col(H_block, k);
+      // Reflect the column tail onto its first subdiagonal entry.
       const auto h = HouseholderVector(H_col);
 
       const auto& v = as_col_vector(h.v);
@@ -54,7 +52,7 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
 
       if (beta(k) == real_type_t<T>(0)) return;
 
-      // (P1...Pk-1)^T A (P1...Pk-1)
+      // Left update: H <- (I - beta*v*v^*) H on the active rows.
       auto H_block_kn = get_n_cols<k, N>(H_block);
       if constexpr (Complex<T>)
         H_block_kn =
@@ -65,7 +63,7 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
         for (std::size_t j = k, b = 0; j < N; ++j, ++b)
           H_pack(i, j) = H_block_kn(a, b);
 
-      // (P1...Pk)^T A (P1...Pk) -- handling case when Pk is of order N - k
+      // Right update: H <- H (I - beta*v*v^*) completes the similarity.
       auto H_zn_kn = get_block<0, N, k + 1, N>(H_pack);
       if constexpr (Complex<T>)
         H_zn_kn = H_zn_kn - H_zn_kn * (beta(k) * v * conjugate_transpose(v));
@@ -75,15 +73,16 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
         for (std::size_t j = k + 1, b = 0; j < N; ++j, ++b)
           H_pack(i, j) = H_zn_kn(a, b);
 
+      // Pack reflector tails below the band; H() restores these zeros.
       for (std::size_t j = k + 2, a = 1; j < N; ++j, ++a)
         H_pack(j, k) = v(a, 0);
     });
   }
 
   /**
-   * @brief operator override to acquire H from Hessenberg object
+   * @brief Extract the upper Hessenberg matrix.
    *
-   * @return Matrix of type T with N x N elements (upper right triangular)
+   * @return Matrix<T, N, N> with zeros below the first subdiagonal.
    */
   constexpr auto H() const {
     Matrix<T, N, N> res{};
@@ -97,14 +96,9 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
   }
 
   /**
-   * @brief simple getter for unitary matrix
+   * @brief Reconstruct the orthogonal or unitary similarity basis.
    *
-   * Get unitary matrix U from factored householder matrix
-   *
-   * To acquire U we simply apply reflections in the reverse order starting with
-   * U = I => U^* A U = H
-   *
-   * @return U of type T N x N
+   * @return Matrix<T, N, N> containing U such that H = U^* A U.
    */
   constexpr auto U() const {
     auto U = make_identity<T, N>();
@@ -117,6 +111,7 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
 
       const auto& v_col = as_col_vector(v);
 
+      // Accumulate the same column-space changes used in the reduction.
       auto U_block = get_n_cols<k + 1, N>(U);
       if constexpr (Complex<T>)
         U_block = U_block -
@@ -131,12 +126,11 @@ struct Hessenberg : Endomorphism<Mat, Hessenberg<Mat>> {
   }
 
   /**
-   * @brief indexing into upper right H
+   * @brief Read an entry of the Hessenberg matrix.
    *
-   * @param row index
-   * @param col index
-   *
-   * @return elem
+   * @param[in] i Zero-based row index.
+   * @param[in] j Zero-based column index.
+   * @return Scalar T; zero below the first subdiagonal.
    */
   constexpr auto operator()(std::size_t i, std::size_t j) const {
     if (i >= 2 && j <= (i - 2)) return T(0);

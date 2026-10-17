@@ -21,15 +21,13 @@
 namespace linalg {
 
 /**
- * @brief EigenDecomposition class definition
+ * @brief Computes eigenvalues and eigenvectors satisfying A V = V diag(lambda).
  *
- * Computes A V = V diag(lambda) using bounded shifted QR on Hessenberg form.
- * Real matrices may retain isolated conjugate-pair blocks in real Schur form.
- * Hermitian eigenvectors use the accumulated orthonormal similarity basis.
- * Nonconvergence or invalid configuration/input leaves converged false.
- * Coupled Hermitian spectra are ordered by decreasing eigenvalue; diagonal
- * inputs retain their coordinate order. Other spectra have no ordering
- * contract.
+ * Reduces A to Hessenberg form, applies shifted QR to obtain Schur form,
+ * then recovers eigenvectors in the original coordinates. Hermitian matrices
+ * use the accumulated orthonormal basis directly.
+ *
+ * @tparam Mat Square real or complex matrix type.
  */
 template <SquareMatrix Mat>
 struct EigenDecomposition {
@@ -43,9 +41,11 @@ struct EigenDecomposition {
   static constexpr std::size_t N = mat_rows_v<Mat>;
   static_assert(N > 0, "Eigen decomposition requires a nonempty matrix");
 
-  /// Bounded shifted-QR budget; tol is relative to the largest input entry.
-  /// These defaults are specific to eigen solves and do not alter QR/LDL
-  /// defaults.
+  /**
+   * @brief Construct the nominal shifted-QR configuration.
+   * @return FactorConfig<Real> with 256 steps, relative tol = 8*epsilon,
+   * and floor_eps = the smallest positive normal Real value.
+   */
   static constexpr config::FactorConfig<Real> default_config() {
     return {.steps = 256,
             .tol = Real(8) * std::numeric_limits<Real>::epsilon(),
@@ -53,18 +53,19 @@ struct EigenDecomposition {
   }
 
   /**
-   * @brief CTOR
+   * @brief Compute eigenvalues and eigenvectors using the nominal
+   * configuration.
    *
-   * @param matrix A of type T with Rows x Cols elements
+   * @param[in] A Square input matrix.
    */
   constexpr explicit EigenDecomposition(const Mat& A) { solve_qr(A); }
 
   /**
-   * @brief CTOR
+   * @brief Compute eigenvalues and eigenvectors with explicit settings.
    *
-   * @param A mat to be spectrally decomposed
-   * @param config_in Iteration budget, relative deflation tolerance, and
-   * eigenvector normalization floor (FactorConfig).
+   * @param[in] A Square input matrix.
+   * @param[in] config_in Iteration budget, relative deflation tolerance, and
+   * normalization floor.
    */
   constexpr explicit EigenDecomposition(
       const Mat& A, const config::FactorConfig<Real>& config_in)
@@ -73,11 +74,10 @@ struct EigenDecomposition {
   }
 
   /**
-   * @brief get spectral radius
+   * @brief Select the eigenvalue whose magnitude is the spectral radius.
    *
-   * AKA maximum magnitude of a matrix as dictated by its max abs eigenvalue
-   *
-   * @return rho
+   * @return Complex eigenvalue with greatest magnitude; zero for a zero
+   * spectrum.
    */
   constexpr auto spectral_radius() const {
     Complex rho(0.0);
@@ -98,8 +98,11 @@ struct EigenDecomposition {
   bool converged{false};     ///< eigenvalue convergence flag
 
 private:
-  // Shift radicands may be tiny even after scaling a matrix with separated
-  // spectral blocks. Use relative squared-residual accuracy for these roots.
+  /**
+   * @brief Compute a shift root with relative squared-residual accuracy.
+   * @param[in] value Nonnegative real radicand.
+   * @return Real approximation to sqrt(value).
+   */
   static constexpr Real spectral_sqrt(Real value) {
     return constexpr_sqrt_safe(value, Real(0), Real(1),
                                Real(4) * std::numeric_limits<Real>::epsilon() *
@@ -107,14 +110,9 @@ private:
   }
 
   /**
-   * @brief solve A X = Lambda X via QR
+   * @brief Recover eigenpairs by shifted QR and Schur back substitution.
    *
-   * Following the practical QR Algorithm 7.5 in Matrix Computations
-   *
-   * @param matrix A of type T with N x N elements
-   * @param tolerance dictating algorithm convergence
-   *
-   * @return (void)
+   * @param[in] A Square input matrix; updates lambda, V, and converged.
    */
   constexpr void solve_qr(const Mat& A) {
     if (!std::isfinite(config.tol) || config.tol <= Real(0) ||
@@ -128,13 +126,12 @@ private:
     for (std::size_t r = 0; r < N; ++r)
       for (std::size_t c = 0; c < N; ++c)
         scale = std::max(scale, constexpr_abs(A(r, c)));
-    // Work at unit scale so quadratic shifts and scalar square roots do not
-    // inherit an absolute accuracy limit from the magnitude of the input.
+    // Normalize A by its largest entry; restore eigenvalue units at the end.
     auto normalized = A;
     if (scale > Real(0))
       for (std::size_t r = 0; r < N; ++r)
         for (std::size_t c = 0; c < N; ++c) normalized(r, c) /= scale;
-    // Scalar and 2x2 matrices are already Hessenberg; avoid an empty reduction.
+    // Reduce to H = U^* (A/scale) U; orders one and two are already Hessenberg.
     auto [H, U] = [&] {
       if constexpr (N > 2) {
         const auto reduction = Hessenberg(normalized);
@@ -151,9 +148,8 @@ private:
     }();
     Vector<Complex, N> eigs;
 
-    // Deflate actual subdiagonals. Hessenberg entries below them are already
-    // zero and cannot establish convergence. Real Schur form may retain only
-    // isolated 2x2 blocks with complex conjugate eigenvalues.
+    // Split blocks at negligible subdiagonals. Convergence requires triangular
+    // form, or isolated real 2x2 blocks representing conjugate eigenvalues.
     auto deflate = [&] {
       for (std::size_t r = 1; r < N; ++r)
         if (constexpr_abs(H(r, r - 1)) <= threshold) H(r, r - 1) = T(0);
@@ -176,8 +172,8 @@ private:
     converged = deflate();
     for (std::size_t iteration = 0; !converged && iteration < config.steps;
          ++iteration) {
-      // Shift at the bottom of the remaining active block. For real roots use
-      // the trailing 2x2 root nearest its last diagonal (Wilkinson shift).
+      // Locate the last unresolved block, skipping deflated scalar roots and
+      // isolated real blocks with conjugate eigenvalues.
       std::size_t end = N;
       while (end > 1 && H(end - 1, end - 2) == T(0)) --end;
       if constexpr (linalg::Real<T>) {
@@ -188,6 +184,7 @@ private:
           while (end > 1 && H(end - 1, end - 2) == T(0)) --end;
         }
       }
+      // Choose the trailing 2x2 root nearest the last diagonal as the shift.
       T shift = H(end - 1, end - 1);
       if constexpr (linalg::Real<T>) {
         if (end > 1) {
@@ -236,11 +233,11 @@ private:
         }
       }
       if (double_shift) {
-        // A real quadratic shift follows a conjugate pair without stagnating
-        // on its real part. Apply its QR basis as a similarity transform.
+        // Use the real quadratic H^2 - trace*H + determinant*I for a pair.
         shifted = H * H - trace * H;
         for (std::size_t j = 0; j < N; ++j) shifted(j, j) += determinant;
       }
+      // Update H by QR similarity and accumulate its basis change in U.
       const auto qr = QR(shifted);
       const auto Q = qr.Q();
       if (double_shift) H = transpose(Q) * (H * Q);
@@ -248,8 +245,7 @@ private:
         H = qr.R() * Q;
         for (std::size_t j = 0; j < N; ++j) H(j, j) += shift;
       }
-      // QR similarity preserves Hessenberg structure in exact arithmetic.
-      // Do not let roundoff below the band seed new active blocks later.
+      // Restore the exact Hessenberg zeros after the similarity update.
       for (std::size_t r = 2; r < N; ++r)
         for (std::size_t c = 0; c + 1 < r; ++c) H(r, c) = T(0);
       U = U * Q;
@@ -257,6 +253,7 @@ private:
     }
     if (!converged) return;
 
+    // Extract eigenvalues from diagonal entries and real 2x2 Schur blocks.
     for (std::size_t j = 0; j < N; ++j) {
       eigs(j) = Complex(H(j, j));
       if constexpr (linalg::Real<T>) {
@@ -271,15 +268,12 @@ private:
         }
       }
     }
-    // Back substitution and complex-block seeding read lambda; populate every
-    // entry before either operation rather than after constructing its vector.
+    // Populate the spectrum used by Schur-block seeding and back substitution.
     lambda = eigs;
     if (hermitian) {
-      // The accumulated similarity basis is already orthonormal. Back solving
-      // nearly repeated eigenvalues would unnecessarily destroy that property.
+      // Hermitian Schur form is diagonal; its eigenvectors are U.
       V = as_complex_matrix(U);
-      // Preserve diagonal input order; order a coupled Hermitian spectrum by
-      // decreasing eigenvalue, as in the existing two-dimensional interface.
+      // Sort coupled Hermitian eigenpairs; keep diagonal input order.
       bool diagonal_input = true;
       for (std::size_t r = 0; r < N; ++r)
         for (std::size_t c = 0; c < N; ++c)
@@ -297,7 +291,7 @@ private:
       return;
     }
 
-    // 3.a prepare back solve for eigenvectors via Jordan blocks
+    // Track columns assigned to repeated roots and generalized eigenvectors.
     std::array<bool, N> used{false};
 
     auto indices_equal = [&](const Vector<Complex, N>& D,
@@ -319,21 +313,11 @@ private:
       return -1;
     };
 
-    // 4. back substitute now for solving eigenvectors
-    // a. check for normal form (AM == 1)
-    //  - solve for root (H - lambda I) x = 0
-    //  - apply coordinate map to x (evec) from unitary basis U to get it
-    //  aligned in A
-    // b. solve jordan block (AM > 1)
+    // Solve in Schur coordinates from the last block upward, then map by U.
     for (int i = static_cast<int>(N) - 1; i >= 0; --i) {
       if (used[i]) continue;
 
-      // Jordan block
-      // - AM = algebraic multiplicity (# of repeated lambda)
-      // - GM = geometric multiplicity (# of linearly independent
-      // eigenvectors for lambda)
-      // - Defect = # of extra generalized evecs to span the space the Jordan
-      // block lies in
+      // Estimate the Jordan defect from multiplicity and nullity.
       int AM = 0;
       std::for_each(eigs.begin(), eigs.end(), [&](const auto& val) {
         AM += constexpr_abs(eigs(i) - val) < config.tol;
@@ -348,13 +332,13 @@ private:
       if (0 == defect) {
         Vector<Complex, N> x;
 
-        // (a) solve normally
+        // Recover ordinary eigenvectors when no Jordan defect is detected.
         if (linalg::Real<T> && eigs(i).imag() != Real(0) && i > 0) {
-          // (0) seed & back solve homogenous case (H - lambda I) x = 0
+          // Seed the Schur block and solve (H - lambda_i I)x = 0.
           seed_complex_block(H, i, x);
           back_sub_1x1_block(H, i, x);
 
-          // (1) map vec(s)... conjugate pairs onto A
+          // Map both conjugate eigenvectors to the original coordinates.
           auto v = map_to_A(U, x);
           for (std::size_t j = 0; j < N; ++j) V(j, i) = v(j);
 
@@ -363,41 +347,38 @@ private:
           v = map_to_A(U, conjugate(x));
           for (std::size_t j = 0; j < N; ++j) V(j, i) = v(j);
 
-          // (2) set eig to lambda
           lambda(i) = eigs(i);
 
           used[i] = true;
         } else {
-          // (0) seed & back solve homogenous case (H - lambda I) x = 0
+          // Seed the Schur block and solve (H - lambda_i I)x = 0.
           seed_real_block(i, x);
           back_sub_1x1_block(H, i, x);
 
-          // (1) map vec onto A
+          // Map the Schur-coordinate eigenvector by U.
           auto v = map_to_A(U, x);
           for (std::size_t j = 0; j < N; ++j) V(j, i) = v(j);
 
-          // (2) set eig to lambda
           lambda(i) = eigs(i);
 
           used[i] = true;
         }
       } else {
-        // (b) solve for jordan block
+        // Build generalized eigenvectors for a defective repeated root.
         if (linalg::Real<T> && eigs(i).imag() != Real(0) && i > 0) {
-          // (0) setup jordan chain with padded dim to defect to ensure valid
-          // block creation
+          // Bound the chain length by the defect and available Schur columns.
           const int chain_len = std::min(1 + defect, (i + 1) / 2);
           Vector<Vector<Complex, N>, N> chain;
 
-          // (1) seed and back solve for homogenous case (H - lambda I) x = 0
+          // Start the chain with a solution of (H - lambda_i I)x_0 = 0.
           seed_complex_block(H, i, chain(0));
           back_sub_1x1_block(H, i, chain(0));
 
-          // (2) back solve for each (H - lambda I) x_k = x_{k+1}
+          // Extend the chain with (H - lambda_i I)x_k = x_{k-1}.
           for (int k = 1; k < chain_len; ++k)
             back_sub_shifted_rhs(H, lambda(i), chain(k - 1), chain(k));
 
-          // (3) map back to A... [i, i-1, ...]
+          // Assign mapped chain vectors to matching eigenvalue columns.
           auto slots = indices_equal(eigs, eigs(i));
 
           for (int k = 0; k < chain_len; ++k) {
@@ -408,11 +389,10 @@ private:
 
             for (std::size_t j = 0; j < N; ++j) V(j, slot_idx) = v(j);
 
-            // (4) set lambda from eig
             lambda(slot_idx) = eigs(i);
           }
 
-          // (3.b) map complex conjugate pair onto A... [i - chain_len, ...]
+          // Map the conjugate chain to columns for the conjugate root.
           auto slots_conj = indices_equal(eigs, std::conj(eigs(i)));
 
           for (int k = 0; k < chain_len; ++k) {
@@ -423,24 +403,22 @@ private:
 
             for (std::size_t j = 0; j < N; ++j) V(j, slot_idx) = vbar(j);
 
-            // (4) set lambda from eig
             lambda(slot_idx) = std::conj(eigs(i));
           }
         } else {
-          // (0) setup jordan chain with padded dim to defect to ensure valid
-          // block creation
+          // Bound the chain length by the defect and available Schur columns.
           const int chain_len = std::min(1 + defect, 1 + i);
           Vector<Vector<Complex, N>, N> chain;
 
-          // (1) seed and back solve for homogenous case (H - lambda I) x = 0
+          // Start the chain with a solution of (H - lambda_i I)x_0 = 0.
           seed_real_block(i, chain(0));
           back_sub_1x1_block(H, i, chain(0));
 
-          // (2) back solve for each (H - lambda I) x_k = x_{k+1}
+          // Extend the chain with (H - lambda_i I)x_k = x_{k-1}.
           for (int k = 1; k < chain_len; ++k)
             back_sub_shifted_rhs(H, eigs(i), chain(k - 1), chain(k));
 
-          // (3) map back to A
+          // Map the chain to the original coordinates.
           auto slots = indices_equal(eigs, eigs(i));
 
           for (int k = 0; k < chain_len; ++k) {
@@ -451,7 +429,6 @@ private:
 
             for (std::size_t j = 0; j < N; ++j) V(j, slot_idx) = v(j);
 
-            // (4) set lambda from eig
             lambda(slot_idx) = eigs(i);
           }
         }
@@ -461,19 +438,18 @@ private:
   }
 
   /**
-   * @brief back substitution for the real 1x1 block from Schur Form
+   * @brief Back-substitute through scalar and real conjugate-pair Schur blocks.
    *
-   * @param real schur upper triangular matrix H
-   * @param index of eigenvalue to back solve
-   * @param mutable eigenvector x
-   *
-   * @return (void)
+   * @param[in] H Schur matrix in normalized coordinates.
+   * @param[in] idx Index of the seeded eigenvalue or end of its conjugate
+   * block.
+   * @param[in,out] x Seeded Schur-coordinate vector, completed by back
+   * substitution.
    */
   constexpr void back_sub_1x1_block(const Mat& H, int idx,
                                     Vector<Complex, N>& x) {
-    // (dakre) solve (H - lambda I) x = 0 by way of back sub from idx to top
-    // (H_rr - Lambda) x_r + sum_0^idx H_rc * x_c = 0 ... isolate x_r and
-    // solve
+    // Start above the seeded scalar or 2x2 block and solve toward the first
+    // row.
     for (int r = ((linalg::Real<T> && lambda(idx).imag() != Real(0)) ? idx - 2
                                                                      : idx - 1);
          r >= 0; --r) {
@@ -481,8 +457,7 @@ private:
       for (int c = r + 1; c <= idx; ++c) rhs -= Complex(H(r, c)) * x(c);
       if constexpr (linalg::Real<T>) {
         if (r > 0 && H(r, r - 1) != T(0)) {
-          // Back substitution above an isolated conjugate pair must solve its
-          // coupled 2x2 block, rather than treating it as two triangular rows.
+          // Solve the coupled 2x2 system for the preceding conjugate block.
           Complex upper_rhs(0);
           for (int c = r + 1; c <= idx; ++c)
             upper_rhs -= Complex(H(r - 1, c)) * x(c);
@@ -505,19 +480,17 @@ private:
   }
 
   /**
-   * @brief back sub for shifted repeated lambda case
+   * @brief Solve (H - eig*I)x = rhs by backward substitution.
    *
-   * @param matrix of type T with N x N elements
-   * @param complex lambda
-   * @param rhs v_{k-1} eigen vector
-   * @param mutable eigen vector (this stages update)
-   *
-   * @return (void)
+   * @param[in] H Schur matrix in normalized coordinates.
+   * @param[in] eig Eigenvalue defining the shifted system.
+   * @param[in] rhs Previous generalized eigenvector in the chain.
+   * @param[out] x Computed Schur-coordinate solution.
    */
   constexpr void back_sub_shifted_rhs(const Mat& H, const Complex& eig,
                                       const Vector<Complex, N>& rhs,
                                       Vector<Complex, N>& x) {
-    // (dakre) back solve (H - lambda I) x = rhs
+    // Solve (H - eig*I)x = rhs from the last row upward.
     for (int r = int(N) - 1; r >= 0; --r) {
       Complex sum(0);
       for (int c = r + 1; c < int(N); ++c) sum += H(r, c) * x(c);
@@ -528,13 +501,11 @@ private:
   }
 
   /**
-   * @brief seed the complex 2x2 block from Schur Form
+   * @brief Seed a null vector of a real 2x2 conjugate-eigenvalue block.
    *
-   * @param real schur upper triangular matrix H
-   * @param index of eigenvalue to back solve
-   * @param mutable eigenvector x
-   *
-   * @return (void)
+   * @param[in] H Real Schur matrix.
+   * @param[in] idx Last row of the 2x2 block and index of its eigenvalue.
+   * @param[in,out] x Vector receiving the two block components.
    */
   constexpr void seed_complex_block(const Mat& H, int idx,
                                     Vector<Complex, N>& x) {
@@ -543,7 +514,7 @@ private:
     const auto& c = H(idx, idx - 1);
     const auto& d = H(idx, idx);
 
-    // seed eigenvector at position idx to kick of back substitution
+    // Choose between two null vectors of the 2x2 block using the larger pivot.
     const Complex la = lambda(idx) - Complex(a);
     Complex z0, z1;
     if (L2<Vector<T, 1>>()(Vector<T, 1>{b}) >= L2<Vector<Complex, 1>>()(la)) {
@@ -567,11 +538,10 @@ private:
   }
 
   /**
-   * @brief seed real eigenvector
+   * @brief Initialize a scalar Schur block with a coordinate basis vector.
    *
-   * @param mutable eigenvector x
-   *
-   * @return (void)
+   * @param[in] idx Coordinate to set to one.
+   * @param[out] x Vector set to zero except at idx.
    */
   constexpr void seed_real_block(int idx, Vector<Complex, N>& x) {
     for (std::size_t i = 0; i < N; ++i) x(i) = Complex(0);
@@ -579,12 +549,12 @@ private:
   }
 
   /**
-   * @brief map eigenvector from H to A
+   * @brief Map a Schur-coordinate vector into the original basis and normalize
+   * it.
    *
-   * @param unitary basis U from real schur upper triangular form on H
-   * @param eigenvector v
-   *
-   * @return eigenvector in basis A
+   * @param[in] U Accumulated orthogonal or unitary similarity basis.
+   * @param[in] x Vector in Schur coordinates.
+   * @return Vector<Complex, N> containing U*x divided by its floored norm.
    */
   constexpr auto map_to_A(const Mat& U, const Vector<Complex, N>& x) {
     Vector<Complex, N> v;
@@ -595,6 +565,7 @@ private:
       v(j) = sum;
     }
 
+    // Normalize v = U*x with a lower bound on its norm.
     const auto norm = std::max(L2<Vector<Complex, N>>()(v), config.floor_eps);
     return T(1) / norm * v;
   }

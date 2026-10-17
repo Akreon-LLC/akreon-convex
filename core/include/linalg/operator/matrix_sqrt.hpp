@@ -20,6 +20,8 @@ namespace linalg {
 
 /**
  * @brief Matrix sqrt (X^{1/2})
+ *
+ * @tparam MatIn Real square matrix type.
  */
 template <SquareMatrix MatIn>
 struct MatrixSqrt {
@@ -32,24 +34,21 @@ struct MatrixSqrt {
   static_assert(N >= 1, "Sqrt requires matrix dim of at least 1");
 
   /**
-   * @brief operator
+   * @brief Compute the matrix square root and inverse square root.
    *
-   * @param A (matrix)
-   *
-   * @return (A^{1/2}, A^{-1/2}, event)
+   * @param[in] A Real square input matrix for Denman-Beavers iteration.
+   * @return Tuple (Mat root, Mat inverse_root, NumericalEvent event).
    */
   constexpr auto operator()(const Mat& A) const { return apply(A); }
 
   /**
-   * @brief apply
+   * @brief Compute the matrix square root and inverse square root.
    *
-   * Denman-Beavers iteration (quadratic convergence)
-   *
-   * @param A (matrix)
-   *
-   * @return (A^{1/2}, A^{-1/2}, event)
+   * @param[in] A Real square input matrix for Denman-Beavers iteration.
+   * @return Tuple (Mat root, Mat inverse_root, NumericalEvent event).
    */
   constexpr auto apply(const Mat& A) const {
+    // Initialize the coupled Denman-Beavers iterates for A^(1/2) and A^(-1/2).
     Mat Y{A};
     Mat Z{make_identity<T, N>()};
 
@@ -62,9 +61,11 @@ struct MatrixSqrt {
       if (Z_event != linalg::NumericalEvent::NONE)
         return std::tuple(Mat{}, Mat{}, Z_event);
 
+      // Y_{k+1} = (Y_k + Z_k^-1)/2; Z_{k+1} = (Z_k + Y_k^-1)/2.
       const auto Y_next = T(0.5) * (Y + Z_inv);
       const auto Z_next = T(0.5) * (Z + Y_inv);
 
+      // Accept when the square-root residual Y^2 - A meets tolerance.
       if (all_equal(Y_next * Y_next, A, config.tol))
         return std::tuple(Y_next, Z_next, linalg::NumericalEvent::NONE);
 

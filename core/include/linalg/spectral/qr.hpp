@@ -18,17 +18,13 @@
 
 namespace linalg {
 /**
- * @brief QR decomposition class definition
+ * @brief Factors A = Q R using Householder reflections.
  *
- * Orthonormalizes a given Matrix into an orthogonal basis Q and upper right
- * triangular matrix R. Deprecated gram schmidt for householder for better
- * numerical properties.
+ * Successive reflections eliminate each column below its diagonal. The upper
+ * triangle stores R; reflector tails and coefficients reconstruct the full
+ * orthogonal or unitary Q. For wide matrices, factor A^* to obtain an LQ form.
  *
- * Q is now compact in householder where A = QR => Q = A R^{-1} in the
- * representation of this class
- *
- * For short and fat matrices just transpose A -> QR -> transpose result back
- * into A = L Q result
+ * @tparam Mat Input matrix type with at least as many rows as columns.
  */
 template <MatrixContainer Mat>
 struct QR {
@@ -44,17 +40,17 @@ struct QR {
                 "QR Factorization requires [square | overdetermined] system");
 
   /**
-   * @brief CTOR
+   * @brief Factor A using Householder reflections.
    *
-   * @param A (matrix of type T with Rows x Cols elements)
+   * @param[in] A Input matrix with Rows >= Cols.
    */
   constexpr QR(const Mat& A) { solve_householder(A); }
 
   /**
-   * @brief CTOR
+   * @brief Factor A with an explicit solve configuration.
    *
-   * @param A (matrix)
-   * @param config (FactorConfig)
+   * @param[in] A Input matrix with Rows >= Cols.
+   * @param[in] config_in Factorization settings and triangular pivot floor.
    */
   constexpr QR(const Mat& A, const config::FactorConfig<ScalarT>& config_in)
       : config(config_in) {
@@ -62,26 +58,24 @@ struct QR {
   }
 
   /**
-   * @brief get Q from compact householder Q
+   * @brief Reconstruct the full orthogonal or unitary factor.
    *
-   * To acquire Q we simply apply reflections in the reverse order with Q = I to
-   * start. Then A = QR.
-   *
-   * @return orthonormal Q
+   * @return Matrix<T, Rows, Rows> containing Q in A = Q R.
    */
   constexpr auto Q() const { return get_unitary_matrix(); }
 
   /**
-   * @brief basic get function for R matrix
+   * @brief Extract the upper-trapezoidal factor.
    *
-   * @return R
+   * @return Matrix<T, Rows, Cols> containing R in A = Q R.
    */
   constexpr auto R() const { return get_upper_right_triangular_matrix(H); }
 
   /**
-   * @brief get rank of matrix
+   * @brief Estimate rank from the diagonal of R.
    *
-   * @return rank
+   * @param[in] tol Absolute threshold for counting nonzero diagonal entries.
+   * @return Number of diagonal magnitudes greater than tol (std::size_t).
    */
   constexpr auto rank(ScalarT tol = 1e-6) const {
     const auto LT = R();
@@ -93,13 +87,12 @@ struct QR {
   }
 
   /**
-   * @brief least squares solver A x = b using QR decomposition
+   * @brief Solve A x = b in the least-squares sense.
    *
-   * LSQ method: A x = b => Q R x = b => R x = Q^T b
+   * Project c = Q^* b, then back-substitute through the leading block of R.
    *
-   * @param vector b representing the outputs or observables of a linear system
-   *
-   * @return (x, event)
+   * @param[in] b Right-hand side with Rows entries.
+   * @return Tuple (Vector<T, Cols> x, NumericalEvent event).
    */
   constexpr auto solve(const Vector<T, Rows>& b) const {
     Vector<T, Rows> c;
@@ -115,26 +108,9 @@ struct QR {
 
 private:
   /**
-   * @brief construct householder matrix from A (solve QR where Q is compact
-   * form)
+   * @brief Reduce A to R and pack its Householder reflectors.
    *
-   * Premultiplication matrix-vector product update with rank-1 update
-   * PA = (I - beta v v^T) A = A - (beta v)*(v^T A)
-   *
-   * Postmultiplication
-   * AP = A*(I - beta v v^T) = A - (A v)(beta v)^T
-   *
-   * Householder essentially annihilates subdiagonal column entries based on
-   * each successive iterations reflections. Look at premultiplication case:
-   *
-   * P0 A annhiliates first col and creates basis vector in spanning first dir.
-   * P1 P0 A annihilates second col and creates basis spanning 2 dim now... so
-   * on and so forth till R = Pk Pk-1 ... P0 A where R is our right upper
-   * triangular matrix
-   *
-   * @param matrix A of type T with Rows x Cols elements
-   *
-   * @return (void)
+   * @param[in] A Input matrix copied into the packed factor storage.
    */
   constexpr void solve_householder(Mat A) {
     H = A;
@@ -143,10 +119,12 @@ private:
       const auto& Q_jm = get_n_rows<j, Rows>(H);
       const auto& Q_jm_j = get_col(Q_jm, j);
 
+      // Construct P_j to eliminate rows j+1,... in column j.
       const auto& q = HouseholderVector(Q_jm_j);
       beta(j) = q.beta;
       const auto& v = as_col_vector(q.v);
 
+      // Apply P_j = I - beta*v*v^* to the trailing block from the left.
       auto Q_jm_jn = get_n_cols<j, Cols>(Q_jm);
       if constexpr (Complex<T>)
         Q_jm_jn = Q_jm_jn - (beta(j) * v) * (conjugate_transpose(v) * Q_jm_jn);
@@ -156,17 +134,15 @@ private:
         for (std::size_t l = j, b = 0; l < Cols; ++l, ++b)
           H(k, l) = Q_jm_jn(a, b);
 
+      // Store the reflector tail in the eliminated entries; v(0) is implicit.
       for (std::size_t k = j + 1, a = 1; k < Rows; ++k, ++a) H(k, j) = v(a, 0);
     });
   }
 
   /**
-   * @brief get unitary matrix U from factored householder matrix
+   * @brief Reconstruct Q by applying packed reflectors in reverse order.
    *
-   * To acquire U we simply apply reflections in the reverse order starting with
-   * U = I => U^* A U = H
-   *
-   * @return unitary matrix U
+   * @return Matrix<T, Rows, Rows> containing the full factor Q.
    */
   constexpr auto get_unitary_matrix() const {
     auto U = make_identity<T, Rows>();
@@ -192,14 +168,11 @@ private:
   }
 
   /**
-   * @brief back solve linear systems of equations
+   * @brief Back-substitute through the leading triangular block of R.
    *
-   * R x = rhs
-   *
-   * @param upper right triangular R matrix
-   * @param rhs vector to be solved
-   *
-   * @return (x, event)
+   * @param[in] R Upper-trapezoidal factor.
+   * @param[in] rhs Projected right-hand side; uses the first Cols entries.
+   * @return Tuple (Vector<T, Cols> x, NumericalEvent event).
    */
   constexpr auto back_solve(const Matrix<T, Rows, Cols>& R,
                             const Vector<T, Rows>& rhs) const {
@@ -212,6 +185,7 @@ private:
 
       AK_ASSERT(R(i, i) != T(0) &&
                 "QR back_solve requires non-zero diagonal in R");
+      // Floor a small pivot while preserving its sign or complex phase.
       T d = R(i, i);
       ScalarT mag = constexpr_abs(d);
       if (mag <= config.floor_eps) {
@@ -225,9 +199,8 @@ private:
   }
 
   /** @brief QR decomposition for matrix input A */
-  Mat H;                ///< orthonormal basis Q (slighty different than GS
-                        ///< as its fully compact and can use straight up)
-  Vector<T, Rows> beta; ///< beta scalars
+  Mat H; ///< R in the upper triangle; packed reflector tails below it.
+  Vector<T, Rows> beta;                 ///< beta scalars
   config::FactorConfig<ScalarT> config; ///< Factor config
 };
 

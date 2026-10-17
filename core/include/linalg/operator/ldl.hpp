@@ -21,7 +21,9 @@
 namespace linalg {
 
 /**
- * @brief LDL^T factorization of a square / symmetric matrix A
+ * @brief Factors a real symmetric matrix as A = L D L^T without pivoting.
+ *
+ * @tparam Mat Square symmetric matrix type.
  */
 template <SquareMatrix Mat>
 struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
@@ -38,17 +40,17 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   static_assert(N > 1, "LDL^T requires at least a 2x2 matrix");
 
   /**
-   * @brief CTOR
+   * @brief Factor a symmetric matrix as A = L D L^T.
    *
-   * @param A (matrix)
+   * @param[in] A Square symmetric input matrix.
    */
   constexpr explicit LDL(const Mat& A) : SymmetricBase(A) { factor(A); }
 
   /**
-   * @brief CTOR
+   * @brief Factor a symmetric matrix with explicit pivot tolerance.
    *
-   * @param A (matrix)
-   * @param config (FactorConfig)
+   * @param[in] A Square symmetric input matrix.
+   * @param[in] config_in Factorization settings, including pivot tolerance.
    */
   constexpr explicit LDL(const Mat& A, const config::FactorConfig<T>& config_in)
       : SymmetricBase(A), config(config_in) {
@@ -56,31 +58,26 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   }
 
   /**
-   * @brief D
+   * @brief Reconstruct the diagonal factor.
    *
-   * @return D diag mat
+   * @return Matrix<T, N, N> containing D.
    */
   constexpr auto D() const { return make_diag(D_vec); }
 
   /**
-   * @brief L
+   * @brief Reconstruct the unit lower-triangular factor.
    *
-   * @return L mat
+   * @return Matrix<T, N, N> containing L.
    */
   constexpr auto L() const { return make_unit_lower_triangle<Mat>(L_vec); }
 
   /**
-   * @brief solve (forward solve)
+   * @brief Solve A x = b using the stored LDL^T factors.
    *
-   * A x = b, A = LDL^T
-   * L ( D ( L^T x) ) = b
-   * L^T x = z
-   * D z = y
-   * L y = b
+   * Solve L y = b, D z = y, then L^T x = z.
    *
-   * @param vector b
-   *
-   * @return x
+   * @param[in] b Right-hand side with N entries.
+   * @return Tuple (Vector<T, N> x, NumericalEvent event).
    */
   constexpr auto solve(const Vector<T, N>& b) const {
     const auto L_mat = L();
@@ -93,11 +90,9 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   }
 
   /**
-   * @brief det
+   * @brief Compute the determinant from the diagonal pivots.
    *
-   * det(A) = prod_i^n(d_{ii})
-   *
-   * @return det(A)
+   * @return Scalar T equal to the product of the entries of D.
    */
   constexpr T det() const {
     T res{1};
@@ -106,11 +101,12 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
   }
 
   /**
-   * @brief apply
+   * @brief Solve A X = Y one column at a time.
    *
-   * @param Y (mat)
-   *
-   * @return A^{-1} Y
+   * @tparam MatIn Matrix type sharing the factorization scalar type.
+   * @param[in] Y Right-hand-side matrix with N rows.
+   * @return Tuple (solution matrix X, NumericalEvent event); X = A^-1 Y on
+   * success.
    */
   template <linalg::MatrixContainer MatIn>
     requires(std::same_as<linalg::matrix_scalar_t<MatIn>, T>)
@@ -131,20 +127,17 @@ struct LDL : SymmetricOperator<Mat, LDL<Mat>> {
 
 private:
   /**
-   * @brief LDL^T of a square matrix
+   * @brief Compute and pack the unpivoted LDL^T factors.
    *
-   * @param A (matrix)
-   *
-   * @return void
+   * @param[in] A Symmetric input matrix copied for in-place column updates.
    */
   constexpr void factor(Mat A) {
     const auto& tol = config.tol;
     auto ldl_t = [&]<std::size_t j = 0>(this auto&& self) -> bool {
-      /// (dakre) base case for recursion
+      // Advance one column at a time until L and D are complete.
       if constexpr (j >= SymmetricBase::N) return true;
       else {
-        /// (dakre) handle j = 0 iteration separately (don't have prior intertia
-        /// build up, only need to scale first col by first diag elem)
+        // The first pivot has no contributions from earlier columns.
         constexpr std::size_t next = j + 1;
         if constexpr (j == 0) {
           if (constexpr_abs(A(0, 0)) < tol) return false;
@@ -154,7 +147,7 @@ private:
 
           A = set_block<next, SymmetricBase::N, 0, next>(A, col_up);
         } else {
-          /// (dakre) nominal LDL^T algo denoted in Golub & Van Load p. 158
+          // Form v_k = L(j,k)*D(k,k) and d_j = A(j,j) - L(j,:)*v.
           Vector<T, j> v{};
           for (std::size_t k = 0; k < j; ++k) v(k) = A(j, k) * A(k, k);
 
@@ -167,6 +160,7 @@ private:
             const auto A_col = get_block<next, SymmetricBase::N, j, next>(A);
             const auto A_blk = get_block<next, SymmetricBase::N, 0, j>(A);
 
+            // Remove prior-column contributions, then divide by the new pivot.
             const auto col_up =
                 T(1) / A(j, j) * (A_col - as_col_vector(A_blk * v));
 
@@ -182,6 +176,7 @@ private:
       return;
     }
 
+    // Pack unit-lower L separately from diagonal D; D determines the inertia.
     L_vec = get_lower_triangle(A);
     D_vec = get_diag(A);
 
@@ -189,14 +184,11 @@ private:
   }
 
   /**
-   * @brief forward solve
+   * @brief Solve the unit lower-triangular system L y = b.
    *
-   * L y = b
-   *
-   * @param matrix L
-   * @param vector b
-   *
-   * @return y
+   * @param[in] L_mat Unit lower-triangular factor.
+   * @param[in] b Right-hand side.
+   * @return Vector<T, N> containing y.
    */
   constexpr auto forward_solve(const Mat& L_mat, const Vector<T, N>& b) const {
     Vector<T, N> y{};
@@ -209,11 +201,10 @@ private:
   }
 
   /**
-   * @brief diag solve
+   * @brief Solve the diagonal system D z = y.
    *
-   * @param y (vec)
-   *
-   * @return (z, event)
+   * @param[in] y Right-hand side from forward substitution.
+   * @return Tuple (Vector<T, N> z, NumericalEvent event).
    */
   constexpr auto diag_solve(const Vector<T, N>& y) const {
     Vector<T, N> z{};
@@ -229,12 +220,11 @@ private:
   }
 
   /**
-   * @brief back solve
+   * @brief Solve the unit upper-triangular system L^T x = z.
    *
-   * @param matrix L
-   * @param vector z
-   *
-   * @return vector x
+   * @param[in] L_mat Transpose of the stored unit lower-triangular factor.
+   * @param[in] z Right-hand side from the diagonal solve.
+   * @return Vector<T, N> containing x.
    */
   constexpr auto back_solve(const Mat& L_mat, const Vector<T, N>& z) const {
     Vector<T, N> x{};

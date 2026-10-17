@@ -41,8 +41,9 @@ template <typename T, std::size_t N>
   requires(Field<T> && N > 0)
 struct HouseholderVector {
   /**
-   * @brief Compute the compact reflector representation for `x`.
-   * @param x Vector to reduce toward the first coordinate axis.
+   * @brief Construct a compact Householder reflector for x.
+   *
+   * @param[in] x Vector to reduce toward the first coordinate axis.
    */
   constexpr HouseholderVector(const Vector<T, N>& x) : beta(real_type_t<T>(0)) {
     make_householder(x, std::integral_constant<std::size_t, N>{});
@@ -52,10 +53,15 @@ struct HouseholderVector {
   real_type_t<T> beta; ///< Real coefficient in `I - beta * v * v^*`.
 
 private:
-  /** @brief Compute the general `N > 1` reflector representation. */
+  /**
+   * @brief Compute the reflector for N > 1.
+   *
+   * The unnamed dimension tag selects the general-size overload.
+   *
+   * @param[in] x Input vector used to populate v and beta.
+   */
   constexpr void make_householder(const Vector<T, N>& x, auto) {
-    // Scale before forming squared norms. The opposite-sign leading term
-    // avoids cancellation and keeps the packed tail bounded near deflation.
+    // Scale x before computing its norm and reflector direction.
     real_type_t<T> scale = 0;
     for (const auto& value : x) scale = std::max(scale, constexpr_abs(value));
     v(0) = T(1);
@@ -63,6 +69,7 @@ private:
     for (std::size_t i = 0; i < N; ++i) v(i) = x(i) / scale;
     const auto norm = L2<Vector<T, N>>()(v);
     if constexpr (Complex<T>) {
+      // Choose the leading phase so x + phase*||x||*e_0 avoids cancellation.
       const auto phase = v(0) == T(0) ? T(1) : v(0) / constexpr_abs(v(0));
       v(0) += phase * norm;
       // QR and Hessenberg packing reconstruct the leading entry as one.
@@ -76,6 +83,8 @@ private:
         v(0) = T(1);
         return;
       }
+      // Use the opposite-sign reflection and normalize its leading entry to
+      // one.
       const auto leading = v(0) + (v(0) >= T(0) ? norm : -norm);
       v = (T(1) / leading) * v;
       v(0) = T(1);
@@ -83,7 +92,12 @@ private:
     }
   }
 
-  /** @brief Construct the identity-reflector representation for `N == 1`. */
+  /**
+   * @brief Construct the identity reflector for N == 1.
+   *
+   * The unnamed input vector is unused; the dimension tag selects this
+   * overload.
+   */
   constexpr void make_householder(const Vector<T, N>&,
                                   std::integral_constant<std::size_t, 1>) {
     beta = real_type_t<T>(0);

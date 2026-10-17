@@ -17,11 +17,13 @@
 namespace linalg {
 
 /**
- * @brief Singular value decomposition class definition
+ * @brief Computes A = U Sigma V^* from the eigendecomposition of A^* A.
  *
- * Decompose any matrix A into U Sigma V^T where U are the left singular
- * vectors, Sigma are the singular values, and V^T are the right singular
- * vectors
+ * Right singular vectors come from A^* A; each product A*v_i yields its
+ * singular value and left singular vector. Singular triplets are sorted
+ * by decreasing singular value.
+ *
+ * @tparam Mat Input matrix type with at least as many rows as columns.
  */
 template <MatrixContainer Mat>
 struct SVD {
@@ -35,10 +37,9 @@ struct SVD {
   static constexpr std::size_t Cols = mat_cols_v<Mat>;
 
   /**
-   * @brief CTOR
+   * @brief Compute singular triplets for A.
    *
-   * @param matrix A of type T with Rows x Cols elements
-   * @param tolerance dictating algorithm convergence
+   * @param[in] A Input matrix with Rows >= Cols.
    */
   constexpr SVD(const Mat& A) : converged(false) { svd(A); }
 
@@ -50,18 +51,17 @@ struct SVD {
 
 private:
   /**
-   * @brief solve A = U Sigma V^T
+   * @brief Recover singular triplets from the Gram matrix.
    *
-   * @param matrix A of type T with Rows x Cols elements
-   *
-   * @return (void)
+   * @param[in] A Input matrix used to populate U, S, VT, and converged.
    */
   constexpr void svd(const Mat& A) {
-    // 1. compute A^T A then solve eigen decomposition
+    // Form the Hermitian Gram matrix M = A^* A.
     Matrix<T, Cols, Cols> M;
     if constexpr (linalg::Real<T>) M = transpose(A) * A;
     else M = conjugate_transpose(A) * A;
 
+    // Its orthonormal eigenvectors provide the right singular basis V.
     const auto result = EigenDecomposition(M);
     converged = result.converged;
     if (!converged) return;
@@ -69,9 +69,7 @@ private:
     const auto& V = result.V;
     U = make_identity<Complex, Rows>();
     for (std::size_t i = 0; i < Cols; ++i) {
-      // Recover sigma from A*v, rather than clipping a rounded eigenvalue of
-      // A^*A to zero. In float, the latter can discard a small but nonzero
-      // singular direction and break reconstruction of a full-rank matrix.
+      // Compute sigma_i = ||A*v_i|| with scaling, then u_i = A*v_i / sigma_i.
       const auto column = as_complex_matrix(A) * get_col(V, i);
       Real scale = 0;
       for (const auto& value : column)
@@ -83,22 +81,21 @@ private:
       for (std::size_t j = 0; j < Rows; ++j) U(j, i) = column(j) / S(i, i);
     }
 
+    // Store the right factor V^* for reconstruction.
     VT = conjugate_transpose(V);
 
-    // 4. sort singular values & vectors largest -> smallest
+    // Apply one descending permutation to sigma_i, u_i, and v_i.
     sort_svd_desc();
   }
 
   /**
-   * @brief sort SVD result in descending manner
-   *
-   * @return (void)
+   * @brief Reorder singular values and their vectors in descending order.
    */
   constexpr void sort_svd_desc() {
-    // 1. acquire permutation indices
+    // Determine the order from the diagonal of Sigma.
     const auto P = argsort_desc(get_diag(S));
 
-    // 2. pemute singular vectors and values
+    // Permute U columns and V^* rows together with their singular values.
     Matrix<Real, Rows, Cols> S_tmp;
     Matrix<Complex, Rows, Rows> U_tmp;
     Matrix<Complex, Cols, Cols> VT_tmp;
@@ -111,7 +108,6 @@ private:
       for (std::size_t c = 0; c < Cols; ++c) VT_tmp(i, c) = VT(idx, c);
     }
 
-    // 3. store result
     S = S_tmp;
     U = U_tmp;
     VT = VT_tmp;
