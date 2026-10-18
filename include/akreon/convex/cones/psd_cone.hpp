@@ -6,6 +6,7 @@
 #pragma once
 
 #include "cone.hpp"
+#include "akreon/linalg/space/symmetric_matrix_space.hpp"
 #include "akreon/linalg/operator/matrix_inverse.hpp"
 #include "akreon/linalg/operator/matrix_sqrt.hpp"
 
@@ -58,6 +59,21 @@ struct PositiveSemidefiniteCone
 
   static_assert(M == N * (N + 1) / 2,
                 "Encoded dim for PSD Cone does not align with slack dim");
+
+  /// @brief Ambient vector space of real symmetric matrices.
+  using ambient_space = linalg::SymmetricMatrixSpace<T, N>;
+  /// @brief Canonical matrix representation of an ambient-space element.
+  using element_type = linalg::space_element_t<ambient_space>;
+
+  /**
+   * @brief Closed-cone membership, including semidefinite boundary elements.
+   *
+   * Uses the element's numerical PSD classification and tolerance. In contrast,
+   * in_cone() checks the positive-definite interior required by the solver.
+   */
+  static constexpr bool contains(const element_type& element) {
+    return element.is_psd();
+  }
 
   /**
    * @brief default x in K

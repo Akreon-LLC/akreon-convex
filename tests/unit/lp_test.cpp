@@ -631,7 +631,7 @@ TEST_CASE("LP minimizes Abs with a lower bound", "[lp_test]") {
 #endif
   STATIC_REQUIRE(linalg::constexpr_abs(res.iterate.z(0) - 1.0) < rel_tol);
 
-  // log(res, trace);
+  // log(res);
 }
 
 TEST_CASE("LP warm start reuses an iterate on a polyhedron", "[lp_test]") {

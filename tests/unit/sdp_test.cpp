@@ -77,7 +77,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
 #endif
 
 #ifdef AKREON_REPORT_OUTPUT
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res);
 #endif
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(res.num_iter > 0);
@@ -133,7 +133,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     const auto& res = solver.res;
 #ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res);
 #endif
 
     REQUIRE(res.tag == SolverResult::OPTIMAL);
@@ -216,7 +216,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     const auto& res = solver.res;
 #ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res);
 #endif
 
     REQUIRE(res.tag == SolverResult::OPTIMAL);
@@ -392,7 +392,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
     const auto& res = solver.res;
 #ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res);
 #endif
 
     REQUIRE(res.tag == SolverResult::OPTIMAL);

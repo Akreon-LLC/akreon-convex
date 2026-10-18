@@ -1,11 +1,16 @@
 # akreon-convex
 
-DCP atoms and expression composition, convex sets and cones, canonicalization, convex problems, primal-dual interior-point solving, Schur/KKT machinery, and solver diagnostics.
+Optimization domains, DCP atoms and expression composition, convex sets and cones, canonicalization, convex problems, primal-dual interior-point solving, Schur/KKT machinery, and solver diagnostics.
 
 Header-only C++26 library. Public target: `Akreon::Convex`; installed package:
-`AkreonConvex`. Dependencies: `Akreon::Linalg`.
+`AkreonConvex`.
 Modeling and solver APIs use `convex` and `conic`, with solver settings in `config`.
 Public headers live under `include/akreon/convex/`. Only canonical `akreon/...` include paths are supported.
+
+## Compatibility
+
+For supported problem classes, modeling/solver limitations, and planned
+extensions, see the [support matrix and roadmap](docs/ROADMAP.md).
 
 ## Build and test
 
@@ -23,8 +28,6 @@ ctest --test-dir build --output-on-failure
 same local-source overrides when configuring presets. Tests default on only for
 the top-level project. Disable tests using `-DBUILD_UNIT_TESTS=OFF
 -DBUILD_FUNCTIONAL_TESTS=OFF`.
-Formatting is available through `clang_format_check` and `clang_format_fix`;
-clang-format is optional for package consumers.
 
 ## Dependencies
 
@@ -56,6 +59,7 @@ cmake --install build --prefix /absolute/path/akreon-install
 cmake -S examples/consumer -B build/consumer \
   -DCMAKE_PREFIX_PATH=/absolute/path/akreon-install
 cmake --build build/consumer
+./build/consumer/consumer
 ctest --test-dir build/consumer --output-on-failure
 ```
 
@@ -68,10 +72,36 @@ add_executable(consumer main.cpp)
 target_link_libraries(consumer PRIVATE Akreon::Convex)
 ```
 
-Its [main.cpp](examples/consumer/main.cpp) includes `<akreon/convex/convex.hpp>`
-and uses a fixed-size vector to check the public include and dependency setup.
+Its [main.cpp](examples/consumer/main.cpp) creates and solves a linear program:
+minimize `x0 + 2*x1` subject to `x0 >= 1`, `x1 >= 2`, and `x0 + x1 <= 6`.
+It checks solver status, feasibility, and the expected optimum `x = [1, 2]`
+with objective value `5`, printing the solution and returning nonzero on failure.
 Follow the same pattern in your own project, setting `CMAKE_PREFIX_PATH` to the
 installation prefix. `Akreon::Linalg` propagates through
 `Akreon::Convex`, along with include directories and the C++ standard requirement.
 Installed packages resolve their dependencies without fetching source.
-API details are in [docs/CODE_REFERENCE.md](docs/CODE_REFERENCE.md).
+
+## Documentation
+
+The [architecture guide](docs/ARCHITECTURE.md) is the Doxygen landing page.
+Contributor workflow is in [CONTRIBUTING.md](CONTRIBUTING.md); test coverage is
+in [tests/README.md](tests/README.md).
+API and algorithm documentation is generated from the header comments. To build
+both together, install Doxygen and Graphviz, then run from this repository:
+
+```sh
+doxygen Doxyfile
+```
+
+Open `docs/doxygen/html/index.html`. The same generated HTML directory can be
+published to GitHub Pages; no separate copy of the architecture guide is needed.
+
+## Citation
+
+If you use this software in research, please cite it using the metadata in
+[CITATION.cff](CITATION.cff).
+
+## License and notices
+
+Licensed under [Apache 2.0](LICENSE). See [NOTICE](NOTICE) for attribution
+information.

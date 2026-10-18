@@ -40,6 +40,10 @@ using GeoMeanConvexMeta =
 /**
  * @brief geometric mean f(x) = (prod_{i=1}^n x_i)^{1/n} is concave on dom f =
  * R^n_++
+ *
+ * @warning Partial modeling implementation. Canonicalization requires the
+ * power cone; end-to-end solver support is in progress.
+ * @see @ref convex_support_roadmap "Support and Roadmap"
  */
 template <typename Meta, typename Child>
 struct GeoMean : Atom<Meta, GeoMean<Meta, Child>, Child> {

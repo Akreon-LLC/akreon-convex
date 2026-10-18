@@ -41,6 +41,10 @@ using LogSumExpConcaveMeta =
  * @brief log sum exp = smooth max function
  *
  * lse(x) = log(sum_i^n(e^{x_i})) which is a smooth mapping from R^n to R
+ *
+ * @warning Partial modeling implementation. Canonicalization requires the
+ * exponential cone; end-to-end solver support is in progress.
+ * @see @ref convex_support_roadmap "Support and Roadmap"
  */
 template <typename Meta, typename Child>
 struct LogSumExp : Atom<Meta, LogSumExp<Meta, Child>, Child> {

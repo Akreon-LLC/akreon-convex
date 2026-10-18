@@ -194,7 +194,7 @@ TEST_CASE("Geometric mean evaluates and canonicalizes affine compositions",
 TEST_CASE("InvPos evaluates and canonicalizes affine compositions",
           "[convex_fn]") {
   using Space = Matrixd<1, 1>;
-  constexpr auto x = Variable<NonnegVarMeta<Space>>();
+  constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto inv_pos_fn = InvPos(x);
   STATIC_REQUIRE(inv_pos_fn(Vectord<1>{1.0}) == 1.0);
   STATIC_REQUIRE(inv_pos_fn(Vectord<1>{2.0}) == 0.5);
@@ -248,7 +248,7 @@ TEST_CASE("InvPos evaluates and canonicalizes affine compositions",
 TEST_CASE("Log evaluates and canonicalizes affine compositions",
           "[convex_fn]") {
   using Space = Matrixd<1, 1>;
-  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto log_fn = Log(x);
   STATIC_REQUIRE(log_fn(Vectord<1>{1.0}) == 0.0);
 
@@ -596,7 +596,7 @@ TEST_CASE("LogSumExp evaluates and canonicalizes affine compositions",
 TEST_CASE("Sqrt evaluates and canonicalizes affine compositions",
           "[convex_fn]") {
   using Space = Matrixd<1, 1>;
-  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto x = Variable<NonnegVarMeta<Space>>();
   constexpr auto sqrt_fn = Sqrt(x);
   STATIC_REQUIRE(sqrt_fn(Vectord<1>{0.0}) == constexpr_sqrt_safe(0.0));
   STATIC_REQUIRE(sqrt_fn(Vectord<1>{2.0}) == constexpr_sqrt_safe(2.0));

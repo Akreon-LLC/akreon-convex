@@ -39,6 +39,10 @@ using LogConvexMeta =
  * @brief log function
  *
  * f(x) = log(x), x in R_++
+ *
+ * @warning Partial modeling implementation. Canonicalization requires the
+ * exponential cone; end-to-end solver support is in progress.
+ * @see @ref convex_support_roadmap "Support and Roadmap"
  */
 template <typename Meta, typename Child>
   requires(dom_size_v<meta_dom_t<Meta>> == 1)

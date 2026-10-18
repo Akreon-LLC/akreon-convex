@@ -37,6 +37,10 @@ using KLDivConcaveMeta = ConvexAtomMeta<KLDivDom<Dom>, KLDivConcaveCodom<Codom>,
 
 /**
  * @brief kl divergence D_kl(p || q) = sum(p_i log(p_i / q_i))
+ *
+ * @warning Partial modeling implementation. Canonicalization requires the
+ * exponential cone; end-to-end solver support is in progress.
+ * @see @ref convex_support_roadmap "Support and Roadmap"
  */
 template <typename Meta, typename Child>
 struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
@@ -59,8 +63,8 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
       : ConvexBase(child_in), p(p_in),
         lift_map(affine::make_map_id<LiftedVarMat<T>>()) {
     for (const auto& x : p) {
-      AK_ASSERT(x < T(0) &&
-                "KLDivergence expects each fixed p entry to satisfy x < 0");
+      AK_ASSERT(x > T(0) &&
+                "KLDivergence expects each fixed p entry to satisfy x > 0");
       (void)x;
     }
   }
@@ -77,8 +81,8 @@ struct KLDivergence : Atom<Meta, KLDivergence<Meta, Child>, Child> {
       const affine::AffineMap<LiftedVarMat<T>>& map_in)
       : ConvexBase(child_in), p(p_in), lift_map(map_in) {
     for (const auto& x : p) {
-      AK_ASSERT(x < T(0) &&
-                "KLDivergence expects each fixed p entry to satisfy x < 0");
+      AK_ASSERT(x > T(0) &&
+                "KLDivergence expects each fixed p entry to satisfy x > 0");
       (void)x;
     }
   }

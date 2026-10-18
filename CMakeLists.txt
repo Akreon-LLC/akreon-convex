@@ -26,6 +26,7 @@ install(DIRECTORY test-support/ DESTINATION ${CMAKE_INSTALL_DATADIR}/akreon-conv
 
 install(TARGETS akreon_convex akreon_convex_test_support EXPORT AkreonConvexTargets)
 install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES LICENSE NOTICE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME})
 install(EXPORT AkreonConvexTargets NAMESPACE Akreon:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/AkreonConvex)
 configure_package_config_file(cmake/AkreonConvexConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/AkreonConvexConfig.cmake

@@ -16,6 +16,10 @@ namespace conic {
  * To support F block being affine in x then aux vars the coords
  * are strided by 3*N nominally. So u coords are the first M/3 rows, v are the
  * next M/3 rows, and w are the final rows
+ *
+ * @warning Partial cone implementation. Step-length and compatible
+ * asymmetric-cone solver support are incomplete; not supported for solves.
+ * @see @ref convex_support_roadmap "Support and Roadmap"
  */
 template <linalg::VectorContainer Slack>
 struct ExpCone : public Cone<Slack, ExpCone<Slack>, ConeType::ASYMMETRIC> {

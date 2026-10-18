@@ -13,6 +13,10 @@ namespace conic {
  *
  * K_pow = { (x,t) in R_++ x R | prod(x_i)^a_i >= |t|, sum(a_i) == 1, a_i >= 0
  * } a in Q (set of rational numbers)
+ *
+ * @warning Partial cone implementation. Step-length and compatible
+ * asymmetric-cone solver support are incomplete; not supported for solves.
+ * @see @ref convex_support_roadmap "Support and Roadmap"
  */
 template <linalg::VectorContainer Slack>
 struct PowerCone : public Cone<Slack, PowerCone<Slack>, ConeType::ASYMMETRIC> {
