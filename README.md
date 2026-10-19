@@ -101,7 +101,18 @@ published to GitHub Pages; no separate copy of the architecture guide is needed.
 If you use this software in research, please cite it using the metadata in
 [CITATION.cff](CITATION.cff).
 
-## License and notices
+## Project history and licensing
 
-Licensed under [Apache 2.0](LICENSE). See [NOTICE](NOTICE) for attribution
-information.
+`akreon-convex` evolved from the former Akreon SDK. Its Git history is retained
+to preserve development provenance from before the repository split.
+
+Some historical revisions contain the SDK's former proprietary license and
+related legal notices. These describe the earlier licensing structure, rather
+than the terms for the current `akreon-convex` source.
+
+**The current `main` branch is distributed under the [Apache License 2.0](LICENSE)**,
+with attribution in [NOTICE](NOTICE).
+
+When using an older commit, consult the license and notices associated with that
+revision. Earlier SDK-era version labels do not represent standalone
+`akreon-convex` releases.
