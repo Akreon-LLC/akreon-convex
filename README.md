@@ -1,94 +1,107 @@
-# akreon-core
+# akreon-convex
 
-`akreon-core` is the open-source, constexpr-oriented C++ foundation for Akreon's
-fixed size linear algebra, convex optimization, dynamics, and control synthesis
-APIs.
-Dimensions and problem structure are expressed through compile time types.
+Optimization domains, DCP atoms and expression composition, convex sets and cones, canonicalization, convex problems, primal-dual interior-point solving, Schur/KKT machinery, and solver diagnostics.
 
-`akreon-python` is the primary runtime integration: it includes the core headers,
-compiles manifest selected control problem shapes into native code, and exposes
-those static core specializations through a stable C ABI and Python bindings.
+Header-only C++26 library. Public target: `Akreon::Convex`; installed package:
+`AkreonConvex`.
+Modeling and solver APIs use `convex` and `conic`, with solver settings in `config`.
+Public headers live under `include/akreon/convex/`. Only canonical `akreon/...` include paths are supported.
 
-## License
+## Compatibility
 
-Licensed under the Apache License, Version 2.0 (`Apache-2.0`).
-See [LICENSE](LICENSE).
+For supported problem classes, modeling/solver limitations, and planned
+extensions, see the [support matrix and roadmap](docs/ROADMAP.md).
 
-Copyright © 2025-2026 Akreon LLC
+## Build and test
 
-Created and maintained by David Akre.
+Use CMake 3.30+ (for the exported `cxx_std_26` requirement) and a C++26-capable compiler with constexpr math support.
+From this checkout:
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution terms.
-
-## Core Development
-
-**Recommended: CMake Presets**
-
-1. `cmake --preset host-default`
-1. `cmake --build --preset host-default -j`
-
-Available local developer/test presets:
-
-- `host-default`
-- `host-functional-only`
-
-Notes:
-
-- `host-default` requires network access for `Catch2` via `FetchContent`.
-- Use `host-functional-only` in offline environments.
-- The core uses the C++ standard library; unit tests fetch Catch2 v3.8.1
-  ([Boost Software License 1.0](https://github.com/catchorg/Catch2/blob/v3.8.1/LICENSE.txt)).
-- Development tooling includes clang-format 22; documentation uses Doxygen and
-  optionally Graphviz.
-
-This repository's CMake surface is for core development and verification. The
-core does not currently publish a CMake library target; C++ consumers add
-`core/include` to their include path and include the relevant umbrella header:
-
-- `math.hpp` for linear algebra and convex optimization
-- `control.hpp` for control models and synthesis
-- `dynamics.hpp` for dynamical-system abstractions
-
-The linalg API uses one field-aware vector pairing:
-
-```cpp
-constexpr linalg::Vector<double, 3> x{1.0, 2.0, 3.0};
-constexpr linalg::Vector<double, 3> y{4.0, 5.0, 6.0};
-constexpr auto xy = linalg::inner_product(x, y);
+```sh
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DFETCHCONTENT_SOURCE_DIR_AKREON_LINALG=/absolute/path/akreon-linalg
+cmake --build build --parallel 2
+ctest --test-dir build --output-on-failure
 ```
 
-`inner_product(x, y)` delegates to `StandardInnerProduct`. Over real fields it
-computes `sum(x(i) * y(i))`; over complex fields it computes
-`sum(conj(x(i)) * y(i))`. Norm functions expose explicit domain, scalar, and
-real codomain associated types through `norm_traits`.
+`host-default` and `host-functional-only` presets are also available. Pass the
+same local-source overrides when configuring presets. Tests default on only for
+the top-level project. Disable tests using `-DBUILD_UNIT_TESTS=OFF
+-DBUILD_FUNCTIONAL_TESTS=OFF`.
 
-**Manual flags (if needed)**
+## Dependencies
 
-1. `cmake -S . -B <build-dir> -DBUILD_UNIT_TESTS=<ON|OFF> -DBUILD_FUNCTIONAL_TESTS=<ON|OFF>`
-1. `cmake --build <build-dir> -j`
+The library depends on `akreon-linalg` (`Akreon::Linalg`).
+Each dependency resolves in this order:
 
-## Integration Through akreon-python
+1. An explicit local checkout via `FETCHCONTENT_SOURCE_DIR_AKREON_LINALG`.
+2. An installed CMake package found through `CMAKE_PREFIX_PATH`.
+3. FetchContent from the corresponding `Akreon-LLC/akreon-<name>` Git repository,
+   pinned to the planned `v0.1.0` release.
 
-The sibling `akreon-python` repository is the supported runtime and Python
-integration layer. By default, its CMake configuration resolves the core from
-`../akreon-core/core/include`. A different checkout can be selected explicitly:
+The build command above uses local checkouts. No sibling-directory layout or
+Git submodules are required. Until release tags exist, use local checkouts or
+installed packages. For private Git access or another compatible release, set
+`AKREON_LINALG_GIT_REPOSITORY` / `AKREON_LINALG_GIT_TAG`.
 
-```bash
-cmake -S ../akreon-python -B ../akreon-python/build \
-  -DAKREON_CORE_INCLUDE_DIR=/path/to/akreon-core/core/include
-cmake --build ../akreon-python/build -j
+Unit tests use installed Catch2 3 or fetch v3.8.1. For offline testing, pass
+`-DFETCHCONTENT_SOURCE_DIR_CATCH2=/absolute/path/to/Catch2`.
+
+## Install and consume
+
+The [consumer example](examples/consumer) shows how a separate CMake project
+uses the installed library. Ensure `akreon-linalg` is installed
+into the same prefix (or include their prefixes in `CMAKE_PREFIX_PATH`). After
+building above, install this package, then configure, build, and test the example:
+
+```sh
+cmake --install build --prefix /absolute/path/akreon-install
+cmake -S examples/consumer -B build/consumer \
+  -DCMAKE_PREFIX_PATH=/absolute/path/akreon-install
+cmake --build build/consumer
+./build/consumer/consumer
+ctest --test-dir build/consumer --output-on-failure
 ```
 
-Control manifests select the dimensions and problem families compiled into the
-binary. `akreon-python` then delegates to the corresponding core templates
-behind its C ABI and nanobind Python module. Runtime users consume
-`akreon-python` or a generated customer wheel; they do not need to configure
-or build the core directly.
+The example's [CMakeLists.txt](examples/consumer/CMakeLists.txt) finds the package
+and links its `consumer` executable:
 
-## Test
+```cmake
+find_package(AkreonConvex 0.1 CONFIG REQUIRED)
+add_executable(consumer main.cpp)
+target_link_libraries(consumer PRIVATE Akreon::Convex)
+```
 
-1. `ctest --test-dir out/build/host-default/tests --output-on-failure` (unit tests)
-1. `./out/build/host-default/tests/linalg_fuzz_test` for randomized linalg checks
+Its [main.cpp](examples/consumer/main.cpp) creates and solves a linear program:
+minimize `x0 + 2*x1` subject to `x0 >= 1`, `x1 >= 2`, and `x0 + x1 <= 6`.
+It checks solver status, feasibility, and the expected optimum `x = [1, 2]`
+with objective value `5`, printing the solution and returning nonzero on failure.
+Follow the same pattern in your own project, setting `CMAKE_PREFIX_PATH` to the
+installation prefix. `Akreon::Linalg` propagates through
+`Akreon::Convex`, along with include directories and the C++ standard requirement.
+Installed packages resolve their dependencies without fetching source.
 
-See [docs/CODE_REFERENCE.md](docs/CODE_REFERENCE.md) for the header layout,
-compile-time model, and Python integration boundary.
+## Documentation
+
+The [architecture guide](docs/ARCHITECTURE.md) is the Doxygen landing page.
+Contributor workflow is in [CONTRIBUTING.md](CONTRIBUTING.md); test coverage is
+in [tests/README.md](tests/README.md).
+API and algorithm documentation is generated from the header comments. To build
+both together, install Doxygen and Graphviz, then run from this repository:
+
+```sh
+doxygen Doxyfile
+```
+
+Open `docs/doxygen/html/index.html`. The same generated HTML directory can be
+published to GitHub Pages; no separate copy of the architecture guide is needed.
+
+## Citation
+
+If you use this software in research, please cite it using the metadata in
+[CITATION.cff](CITATION.cff).
+
+## License and notices
+
+Licensed under [Apache 2.0](LICENSE). See [NOTICE](NOTICE) for attribution
+information.

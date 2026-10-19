@@ -8,8 +8,9 @@
 #include <cmath>
 #include <iostream>
 
-#include "math.hpp"
-#include "test_helpers.hpp"
+#include <akreon/linalg/linalg.hpp>
+#include <akreon/convex/convex.hpp>
+#include <akreon/convex/test_helpers.hpp>
 
 using namespace linalg;
 using namespace convex;

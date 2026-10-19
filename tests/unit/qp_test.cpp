@@ -6,8 +6,9 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
-#include "math.hpp"
-#include "test_helpers.hpp"
+#include <akreon/linalg/linalg.hpp>
+#include <akreon/convex/convex.hpp>
+#include <akreon/convex/test_helpers.hpp>
 
 using namespace linalg;
 using namespace convex;
@@ -321,7 +322,7 @@ TEST_CASE("Sqrt maximization solves on the unit interval", "[qp_test]") {
 TEST_CASE("Harmonic mean maximization solves with a fixed component sum",
           "[qp_test]") {
   using Space = Matrixd<1, 2>;
-  constexpr auto x = Variable<VarMeta<Space>>();
+  constexpr auto x = Variable<PosVarMeta<Space>>();
   constexpr auto prob_init = make_problem(x);
   constexpr auto hmean_x = HarmonicMean(x);
   constexpr auto inv_sqrt2 = inv_sqrt2_v<double>;
@@ -432,6 +433,9 @@ TEST_CASE("Rotated SOC constraints solve square and reciprocal problems",
   }
 
   SECTION("Min x0 s.t. 1/x <= 1, x >= 0") {
+    constexpr auto positive_x = Variable<PosVarMeta<Space>>();
+    constexpr auto x0 = positive_x(0);
+    constexpr auto prob_init = make_problem(positive_x);
     constexpr auto inv_pos = InvPos(x0);
     constexpr auto leq =
         Inequality<InequalityType::LEQ, decltype(inv_pos), double>(inv_pos,

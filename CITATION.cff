@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it using this metadata."
+type: software
+title: "akreon-convex"
+authors:
+  - family-names: Akre
+    given-names: David
+    affiliation: Akreon LLC
+abstract: "A library for convex modeling and optimization with primal-dual interior-point solving."
+repository-code: "https://github.com/Akreon-LLC/akreon-convex"
+license: Apache-2.0

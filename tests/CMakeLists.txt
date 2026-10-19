@@ -1,259 +1,89 @@
-# Copyright © 2025-2026 Akreon LLC
-# SPDX-License-Identifier: Apache-2.0
-
-cmake_minimum_required(VERSION 3.22)
-
-include_directories(../core/include)
-include_directories(util)
-
-add_custom_target(ctad_self_nesting_check
-  COMMAND ${CMAKE_COMMAND}
-    -DSOURCE_DIR=${CMAKE_SOURCE_DIR}
-    -P ${CMAKE_CURRENT_SOURCE_DIR}/util/check_ctad_self_nesting.cmake
-  COMMENT "Checking for risky CTAD self-nesting patterns"
-  VERBATIM
-)
-
-set(UNIT_COMPILE_OPTS
-  -ffunction-sections
-  -fdata-sections
-  -fvisibility=hidden
-  -fno-rtti
-  -flto
-  -Oz
-  -DAKREON_REPORT_OUTPUT
-)
-
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  list(APPEND UNIT_COMPILE_OPTS
-    -fconstexpr-depth=65536
-    -fconstexpr-steps=2000000000
-    # Catch2 uses __COUNTER__, which Clang 22 diagnoses as a C2y extension
-    # under -Wpedantic even though it is supported by all CI compilers.
-    -Wno-c2y-extensions
-  )
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-  list(APPEND UNIT_COMPILE_OPTS
-    -fconstexpr-depth=65536
-    -fconstexpr-ops-limit=2000000000
-  )
-endif()
-
-set(FUNC_COMPILE_OPTS
-  -ffunction-sections
-  -fdata-sections
-  -fvisibility=hidden
-  -fno-rtti
-  -flto
-  -fno-exceptions
-  -fno-unwind-tables
-  -fno-asynchronous-unwind-tables
-  -Oz
-  -DAKREON_REPORT_OUTPUT
-)
+function(akreon_test_options target)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(${target} PRIVATE -fconstexpr-depth=65536 -fconstexpr-steps=2000000000)
+  elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(${target} PRIVATE -fconstexpr-depth=65536 -fconstexpr-ops-limit=2000000000)
+  endif()
+  target_compile_definitions(${target} PRIVATE AKREON_REPORT_OUTPUT)
+endfunction()
 
 if(BUILD_UNIT_TESTS)
-  FetchContent_Declare(
-    Catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG        v3.8.1
-  )
-
-  FetchContent_MakeAvailable(Catch2)
-
-  include(CTest)
-
-  enable_testing()
-
-  # Unit Tests
-  add_executable(linalg_test unit/linalg_test.cpp)
-  add_test(NAME linalg_test COMMAND linalg_test)
-  target_link_libraries(linalg_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(linalg_test PRIVATE ../include)
-  target_compile_options(linalg_test PRIVATE ${UNIT_COMPILE_OPTS} )
-
-  add_executable(linalg_contract_test unit/linalg_contract_test.cpp)
-  add_test(NAME linalg_contract_test COMMAND linalg_contract_test)
-  target_link_libraries(linalg_contract_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(linalg_contract_test PRIVATE ../include)
-  target_compile_options(linalg_contract_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(linear_systems_test unit/linear_systems_test.cpp)
-  add_test(NAME linear_systems_test COMMAND linear_systems_test)
-  target_link_libraries(linear_systems_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(linear_systems_test PRIVATE ../include)
-  target_compile_options(linear_systems_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(state_feedback_test unit/state_feedback_test.cpp)
-  add_test(NAME state_feedback_test COMMAND state_feedback_test)
-  target_link_libraries(state_feedback_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(state_feedback_test PRIVATE ../include)
-  target_compile_options(state_feedback_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(plant_model_test unit/plant_model_test.cpp)
-  add_test(NAME plant_model_test COMMAND plant_model_test)
-  target_link_libraries(plant_model_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(plant_model_test PRIVATE ../include)
-  target_compile_options(plant_model_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(controller_test unit/controller_test.cpp)
-  add_test(NAME controller_test COMMAND controller_test)
-  target_link_libraries(controller_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(controller_test PRIVATE ../include)
-  target_compile_options(controller_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(state_observer_test unit/state_observer_test.cpp)
-  add_test(NAME state_observer_test COMMAND state_observer_test)
-  target_link_libraries(state_observer_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(state_observer_test PRIVATE ../include)
-  target_compile_options(state_observer_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(polytopic_observer_test unit/polytopic_observer_test.cpp)
-  add_test(NAME polytopic_observer_test COMMAND polytopic_observer_test)
-  target_link_libraries(polytopic_observer_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(polytopic_observer_test PRIVATE ../include)
-  target_compile_options(polytopic_observer_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(polytopic_state_feedback_test unit/polytopic_state_feedback_test.cpp)
-  add_test(NAME polytopic_state_feedback_test COMMAND polytopic_state_feedback_test)
-  target_link_libraries(polytopic_state_feedback_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(polytopic_state_feedback_test PRIVATE ../include)
-  target_compile_options(polytopic_state_feedback_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(one_dof_pendulum_test unit/one_dof_pendulum_test.cpp)
-  add_test(NAME one_dof_pendulum_test COMMAND one_dof_pendulum_test)
-  target_link_libraries(one_dof_pendulum_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(one_dof_pendulum_test PRIVATE ../physics/include)
-  target_compile_options(one_dof_pendulum_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(two_dof_pendulum_test unit/two_dof_pendulum_test.cpp)
-  add_test(NAME two_dof_pendulum_test COMMAND two_dof_pendulum_test)
-  target_link_libraries(two_dof_pendulum_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(two_dof_pendulum_test PRIVATE ../physics/include)
-  target_compile_options(two_dof_pendulum_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(one_dof_smd_test unit/one_dof_smd_test.cpp)
-  add_test(NAME one_dof_smd_test COMMAND one_dof_smd_test)
-  target_link_libraries(one_dof_smd_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(one_dof_smd_test PRIVATE ../physics/include)
-  target_compile_options(one_dof_smd_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(affine_test unit/affine_test.cpp)
-  add_test(NAME affine_test COMMAND affine_test)
-  target_link_libraries(affine_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(affine_test PRIVATE ../include)
-  target_compile_options(affine_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(convex_set_test unit/convex_set_test.cpp)
-  add_test(NAME convex_set_test COMMAND convex_set_test)
-  target_link_libraries(convex_set_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(convex_set_test PRIVATE ../include)
-  target_compile_options(convex_set_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(convex_fn_test unit/convex_fn_test.cpp)
-  add_test(NAME convex_fn_test COMMAND convex_fn_test)
-  target_link_libraries(convex_fn_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(convex_fn_test PRIVATE ../include)
-  target_compile_options(convex_fn_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(convex_prob_test unit/convex_prob_test.cpp)
-  add_test(NAME convex_prob_test COMMAND convex_prob_test)
-  target_link_libraries(convex_prob_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(convex_prob_test PRIVATE ../include)
-  target_compile_options(convex_prob_test PRIVATE ${UNIT_COMPILE_OPTS})
+  include(FetchContent)
+  find_package(Catch2 3 CONFIG QUIET)
+  if(NOT TARGET Catch2::Catch2WithMain)
+    FetchContent_Declare(Catch2 GIT_REPOSITORY https://github.com/catchorg/Catch2.git GIT_TAG v3.8.1)
+    FetchContent_MakeAvailable(Catch2)
+  endif()
 
   add_executable(cone_test unit/cone_test.cpp)
+  target_link_libraries(cone_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport Catch2::Catch2WithMain)
+  akreon_test_options(cone_test)
   add_test(NAME cone_test COMMAND cone_test)
-  target_link_libraries(cone_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(cone_test PRIVATE ../include)
-  target_compile_options(cone_test PRIVATE ${UNIT_COMPILE_OPTS})
+
+  add_executable(convex_fn_test unit/convex_fn_test.cpp)
+  target_link_libraries(convex_fn_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport Catch2::Catch2WithMain)
+  akreon_test_options(convex_fn_test)
+  add_test(NAME convex_fn_test COMMAND convex_fn_test)
+
+  add_executable(convex_prob_test unit/convex_prob_test.cpp)
+  target_link_libraries(convex_prob_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport Catch2::Catch2WithMain)
+  akreon_test_options(convex_prob_test)
+  add_test(NAME convex_prob_test COMMAND convex_prob_test)
+
+  add_executable(convex_set_test unit/convex_set_test.cpp)
+  target_link_libraries(convex_set_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport Catch2::Catch2WithMain)
+  akreon_test_options(convex_set_test)
+  add_test(NAME convex_set_test COMMAND convex_set_test)
 
   add_executable(lp_test unit/lp_test.cpp)
+  target_link_libraries(lp_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport Catch2::Catch2WithMain)
+  akreon_test_options(lp_test)
   add_test(NAME lp_test COMMAND lp_test)
-  target_link_libraries(lp_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(lp_test PRIVATE ../include)
-  target_compile_options(lp_test PRIVATE ${UNIT_COMPILE_OPTS})
 
   add_executable(qp_test unit/qp_test.cpp)
+  target_link_libraries(qp_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport Catch2::Catch2WithMain)
+  akreon_test_options(qp_test)
   add_test(NAME qp_test COMMAND qp_test)
-  target_link_libraries(qp_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(qp_test PRIVATE ../include)
-  target_compile_options(qp_test PRIVATE ${UNIT_COMPILE_OPTS})
-
-  add_executable(socp_test unit/socp_test.cpp)
-  add_test(NAME socp_test COMMAND socp_test)
-  target_link_libraries(socp_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(socp_test PRIVATE ../include)
-  target_compile_options(socp_test PRIVATE ${UNIT_COMPILE_OPTS})
 
   add_executable(sdp_test unit/sdp_test.cpp)
+  target_link_libraries(sdp_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport Catch2::Catch2WithMain)
+  akreon_test_options(sdp_test)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+      AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16
+      AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 17)
+    # GCC 16 speculatively constant-evaluates runtime PSD solves with the
+    # suite's two-billion-op budget. Bound that work here: canonicalization
+    # stays constexpr, while these SDP solves already execute at runtime.
+    target_compile_options(sdp_test PRIVATE -fconstexpr-ops-limit=1000000)
+  endif()
   add_test(NAME sdp_test COMMAND sdp_test)
-  target_link_libraries(sdp_test PRIVATE Catch2::Catch2WithMain)
-  target_include_directories(sdp_test PRIVATE ../include)
-  target_compile_options(sdp_test PRIVATE ${UNIT_COMPILE_OPTS})
-endif()
 
-# Run decomposition stress coverage with unit tests, even when other functional
-# tests are disabled. Keep the standalone target available for functional builds.
-if(BUILD_UNIT_TESTS OR BUILD_FUNCTIONAL_TESTS)
-  add_executable(linalg_fuzz_test functional/linalg_fuzz_test.cpp)
-  target_include_directories(linalg_fuzz_test PRIVATE ../include)
-  target_compile_options(linalg_fuzz_test PRIVATE ${UNIT_COMPILE_OPTS})
-  add_test(NAME linalg_fuzz_test COMMAND linalg_fuzz_test)
+  add_executable(socp_test unit/socp_test.cpp)
+  target_link_libraries(socp_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport Catch2::Catch2WithMain)
+  akreon_test_options(socp_test)
+  add_test(NAME socp_test COMMAND socp_test)
+
 endif()
 
 if(BUILD_FUNCTIONAL_TESTS)
   add_executable(lp_fuzz_test functional/lp_fuzz_test.cpp)
-  target_include_directories(lp_fuzz_test PRIVATE ../include)
-  target_compile_options(lp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
-
-  add_executable(quad_form_fuzz functional/quad_form_fuzz.cpp)
-  add_test(NAME quad_form_fuzz COMMAND quad_form_fuzz)
-  target_include_directories(quad_form_fuzz PRIVATE ../include)
-  target_compile_options(quad_form_fuzz PRIVATE ${FUNC_COMPILE_OPTS})
-
-  add_executable(sdp_fuzz_test functional/sdp_fuzz_test.cpp)
-  add_test(NAME sdp_fuzz_test COMMAND sdp_fuzz_test)
-  target_include_directories(sdp_fuzz_test PRIVATE ../include)
-  target_compile_options(sdp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
+  target_link_libraries(lp_fuzz_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport)
+  akreon_test_options(lp_fuzz_test)
+  add_test(NAME lp_fuzz_test COMMAND lp_fuzz_test)
 
   add_executable(qp_fuzz_test functional/qp_fuzz_test.cpp)
-  target_include_directories(qp_fuzz_test PRIVATE ../include)
-  target_compile_options(qp_fuzz_test PRIVATE ${FUNC_COMPILE_OPTS})
+  target_link_libraries(qp_fuzz_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport)
+  akreon_test_options(qp_fuzz_test)
+  add_test(NAME qp_fuzz_test COMMAND qp_fuzz_test)
+
+  add_executable(quad_form_fuzz functional/quad_form_fuzz.cpp)
+  target_link_libraries(quad_form_fuzz PRIVATE Akreon::Convex Akreon::ConvexTestSupport)
+  akreon_test_options(quad_form_fuzz)
+  add_test(NAME quad_form_fuzz COMMAND quad_form_fuzz)
+
+  add_executable(sdp_fuzz_test functional/sdp_fuzz_test.cpp)
+  target_link_libraries(sdp_fuzz_test PRIVATE Akreon::Convex Akreon::ConvexTestSupport)
+  akreon_test_options(sdp_fuzz_test)
+  add_test(NAME sdp_fuzz_test COMMAND sdp_fuzz_test)
 endif()
-
-set(AKREON_TEST_TARGETS
-  linalg_test
-  linalg_contract_test
-  linear_systems_test
-  state_feedback_test
-  plant_model_test
-  controller_test
-  state_observer_test
-  polytopic_observer_test
-  polytopic_state_feedback_test
-  one_dof_pendulum_test
-  two_dof_pendulum_test
-  one_dof_smd_test
-  affine_test
-  convex_set_test
-  convex_fn_test
-  convex_prob_test
-  pd_ipm_output_test
-  cone_test
-  lp_test
-  qp_test
-  socp_test
-  linalg_fuzz_test
-  lp_fuzz_test
-  qp_fuzz_test
-  quad_form_fuzz
-  sdp_fuzz_test
-)
-
-foreach(_ak_target IN LISTS AKREON_TEST_TARGETS)
-  if(TARGET ${_ak_target})
-    add_dependencies(${_ak_target} ctad_self_nesting_check)
-    akreon_configure_target(${_ak_target})
-  endif()
-endforeach()
+add_test(NAME ctad_self_nesting_check COMMAND ${CMAKE_COMMAND} -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -P ${CMAKE_CURRENT_SOURCE_DIR}/util/check_ctad_self_nesting.cmake)

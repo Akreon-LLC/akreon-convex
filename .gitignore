@@ -49,3 +49,7 @@ build
 Testing
 out
 docs/doxygen/
+
+# Local CI/development dependency checkouts
+.deps/
+CMakeUserPresets.json

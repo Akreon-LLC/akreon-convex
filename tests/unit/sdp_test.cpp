@@ -6,8 +6,9 @@
 #include <algorithm>
 #include <catch2/catch_test_macros.hpp>
 
-#include "math.hpp"
-#include "test_helpers.hpp"
+#include <akreon/linalg/linalg.hpp>
+#include <akreon/convex/convex.hpp>
+#include <akreon/convex/test_helpers.hpp>
 
 using namespace linalg;
 using namespace convex;
@@ -76,7 +77,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
 #endif
 
 #ifdef AKREON_REPORT_OUTPUT
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res);
 #endif
     REQUIRE(res.tag == SolverResult::OPTIMAL);
     REQUIRE(res.num_iter > 0);
@@ -132,7 +133,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     const auto& res = solver.res;
 #ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res);
 #endif
 
     REQUIRE(res.tag == SolverResult::OPTIMAL);
@@ -215,7 +216,7 @@ TEST_CASE("Minimal SDP", "[sdp_test]") {
     const auto& res = solver.res;
 #ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res);
 #endif
 
     REQUIRE(res.tag == SolverResult::OPTIMAL);
@@ -391,7 +392,7 @@ TEST_CASE("PSD Feasibility", "[sdp_test]") {
     const auto& res = solver.res;
 #ifdef AKREON_REPORT_OUTPUT
     const auto& trace = solver.trace;
-    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res, trace);
+    if (res.tag != SolverResult::OPTIMAL || res.stalled) log(res);
 #endif
 
     REQUIRE(res.tag == SolverResult::OPTIMAL);

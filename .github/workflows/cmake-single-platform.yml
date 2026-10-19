@@ -33,6 +33,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/checkout@v4
+        with:
+          repository: Akreon-LLC/akreon-linalg
+          ref: ${{ vars.AKREON_LINALG_REF || 'main' }}
+          path: .deps/akreon-linalg
+          token: ${{ secrets.AKREON_DEPENDENCY_TOKEN || github.token }}
+
       - name: Install compiler toolchains
         run: |
           sudo apt-get update
@@ -93,12 +100,17 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
             -DCMAKE_C_COMPILER="$CC" \
             -DCMAKE_CXX_COMPILER="$CXX" \
+            -DFETCHCONTENT_SOURCE_DIR_AKREON_LINALG="$GITHUB_WORKSPACE/.deps/akreon-linalg" \
             "${CMAKE_COMPILER_ARGS[@]}"
 
       # --- Build ---
       - name: Build
         run: |
-          if [[ "${{ matrix.compiler }}" == "clang22" ]]; then
+          if [[ "${{ matrix.compiler }}" == "gcc16" ]]; then
+            # Constexpr solver tests can be memory-heavy; serialize compilation
+            # and report the commands, elapsed time, and peak resident memory.
+            /usr/bin/time -v cmake --build --preset ${{ env.PRESET }} --parallel 1 --verbose
+          elif [[ "${{ matrix.compiler }}" == "clang22" ]]; then
             cmake --build --preset ${{ env.PRESET }} --parallel 1
           else
             cmake --build --preset ${{ env.PRESET }} --parallel 2
@@ -109,7 +121,16 @@ jobs:
 
       # --- Test ---
       - name: Run tests
-        run: ctest --test-dir out/build/host-default/tests --output-on-failure -C ${{ env.BUILD_TYPE }}
+        run: ctest --test-dir out/build/host-default --output-on-failure -C ${{ env.BUILD_TYPE }}
+
+      - name: Install and test package consumer
+        run: |
+          cmake --install out/build/host-default --prefix "$RUNNER_TEMP/akreon-install"
+          cmake -S examples/consumer -B "$RUNNER_TEMP/consumer" \
+            -DCMAKE_PREFIX_PATH="$RUNNER_TEMP/akreon-install" \
+            "${{ matrix.compiler == 'clang22' && '-DCMAKE_CXX_FLAGS=-stdlib=libc++' || '-DCMAKE_CXX_FLAGS=' }}"
+          cmake --build "$RUNNER_TEMP/consumer"
+          ctest --test-dir "$RUNNER_TEMP/consumer" --output-on-failure
 
   docs:
     name: Doxygen docs

@@ -8,8 +8,9 @@
 #include <iostream>
 #include <random>
 
-#include "math.hpp"
-#include "test_helpers.hpp"
+#include <akreon/linalg/linalg.hpp>
+#include <akreon/convex/convex.hpp>
+#include <akreon/convex/test_helpers.hpp>
 
 using namespace linalg;
 using namespace convex;
@@ -617,4 +618,52 @@ TEST_CASE("PSD cone scaling and interior-point identities", "[cone_test]") {
       REQUIRE(!psd.in_cone(x + (alpha_hit + boundary_eps) * p));
     }
   }
+}
+
+TEST_CASE("PSD cone Jordan trace", "[symmetric_matrices]") {
+  using Slack = Vectord<3>;
+  constexpr conic::PositiveSemidefiniteCone<Slack, 2> psd;
+  constexpr auto x = Slack{2.0, 3.0, 5.0};
+  constexpr auto y = Slack{7.0, 0.0, 11.0};
+
+  constexpr auto X = make_smat<2>(x);
+  constexpr auto Y = make_smat<2>(y);
+
+  STATIC_REQUIRE(psd.trace(x, y) == 69.0);
+  STATIC_REQUIRE(psd.trace(x, y) == trace(X * Y));
+  STATIC_REQUIRE(psd.trace(x, psd.e()) == trace(X));
+}
+
+TEST_CASE("PSD cone owns membership in the symmetric ambient space",
+          "[cone_test][contracts]") {
+  using Space = linalg::SymmetricMatrixSpace<double, 2>;
+  using Psd =
+      conic::PositiveSemidefiniteCone<linalg::space_coordinate_t<Space>, 2>;
+  STATIC_REQUIRE(std::same_as<Psd::ambient_space, Space>);
+  STATIC_REQUIRE(
+      std::same_as<Psd::element_type, linalg::space_element_t<Space>>);
+
+  constexpr auto pd =
+      linalg::from_coordinates<Space>(Vectord<3>{2.0, 0.0, 3.0});
+  constexpr auto boundary =
+      linalg::from_coordinates<Space>(Vectord<3>{1.0, 0.0, 0.0});
+  constexpr auto zero =
+      linalg::from_coordinates<Space>(Vectord<3>{0.0, 0.0, 0.0});
+  constexpr auto indefinite =
+      linalg::from_coordinates<Space>(Vectord<3>{1.0, 0.0, -1.0});
+  constexpr auto negative =
+      linalg::from_coordinates<Space>(Vectord<3>{-1.0, 0.0, -2.0});
+  STATIC_REQUIRE(Psd::contains(pd));
+  STATIC_REQUIRE(Psd::contains(boundary));
+  STATIC_REQUIRE(Psd::contains(zero));
+  STATIC_REQUIRE(!Psd::contains(indefinite));
+  STATIC_REQUIRE(!Psd::contains(negative));
+
+  // The solver's interior check remains strict even though the closed set
+  // includes rank-deficient elements.
+  constexpr Psd cone;
+  STATIC_REQUIRE(cone.in_cone(linalg::coordinates<Space>(pd)));
+  // Zero-pivot Cholesky paths cannot be evaluated as constant expressions.
+  REQUIRE(!cone.in_cone(linalg::coordinates<Space>(boundary)));
+  REQUIRE(!cone.in_cone(linalg::coordinates<Space>(zero)));
 }
