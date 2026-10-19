@@ -101,6 +101,8 @@ published to GitHub Pages; no separate copy of the architecture guide is needed.
 If you use this software in research, please cite it using the metadata in
 [CITATION.cff](CITATION.cff).
 
+[![DOI](https://zenodo.org/badge/1024451979.svg)](https://doi.org/10.5281/zenodo.23485482)
+
 ## Project history and licensing
 
 `akreon-convex` evolved from the former Akreon SDK. Its Git history is retained
