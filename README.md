@@ -1,120 +1,116 @@
 # akreon-convex
 
-Optimization domains, DCP atoms and expression composition, convex sets and cones, canonicalization, convex problems, primal-dual interior-point solving, Schur/KKT machinery, and solver diagnostics.
+Header-only C++26 convex modeling and optimization, built on [akreon-linalg](https://github.com/Akreon-LLC/akreon-linalg).
 
-Header-only C++26 library. Public target: `Akreon::Convex`; installed package:
-`AkreonConvex`.
-Modeling and solver APIs use `convex` and `conic`, with solver settings in `config`.
-Public headers live under `include/akreon/convex/`. Only canonical `akreon/...` include paths are supported.
+[Documentation](https://akreon-llc.github.io/akreon-convex/) · [Architecture](docs/ARCHITECTURE.md) · [Supported capabilities](docs/ROADMAP.md) · [C++ example](examples/consumer/main.cpp) · [Releases](https://github.com/Akreon-LLC/akreon-convex/releases)
 
-## Compatibility
+[![DOI](https://zenodo.org/badge/1024451979.svg)](https://doi.org/10.5281/zenodo.23485482)
 
-For supported problem classes, modeling/solver limitations, and planned
-extensions, see the [support matrix and roadmap](docs/ROADMAP.md).
+## Capabilities
+
+Typed variables, DCP expressions, objectives, and constraints are canonicalized into a conic program and solved by a primal-dual predictor-corrector interior-point method. Models and canonicalization support constant evaluation; results include primal/dual iterates, status, numerical events, and optional structural traces.
+
+| Problem class | Support |
+|---|---|
+| LP, SOCP, SDP | Supported and tested |
+| Convex QP and QCQP | Available conic reformulations |
+| Exponential and power cones | Partial modeling/canonicalization; solver incomplete |
+| Mixed-integer optimization | Planned |
+
+An atom or canonicalization rule alone does not establish solver support. See the [roadmap](docs/ROADMAP.md) for limits.
+
+## Example
+
+The [consumer example](examples/consumer/main.cpp) models and solves a linear program, then checks feasibility and the expected optimum. It also demonstrates installed-package integration.
 
 ## Build and test
 
-Use CMake 3.30+ (for the exported `cxx_std_26` requirement) and a C++26-capable compiler with constexpr math support.
-From this checkout:
+Requirements:
+
+- CMake 3.30 or newer.
+- A C++26-capable compiler with the required constexpr math support.
+- Git access for retrieving released dependencies when they are not available locally.
+
+Clone the repository and build:
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
-  -DFETCHCONTENT_SOURCE_DIR_AKREON_LINALG=/absolute/path/akreon-linalg
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --parallel 2
 ctest --test-dir build --output-on-failure
 ```
 
-`host-default` and `host-functional-only` presets are also available. Pass the
-same local-source overrides when configuring presets. Tests default on only for
-the top-level project. Disable tests using `-DBUILD_UNIT_TESTS=OFF
--DBUILD_FUNCTIONAL_TESTS=OFF`.
-
-## Dependencies
-
-The library depends on `akreon-linalg` (`Akreon::Linalg`).
-Each dependency resolves in this order:
-
-1. An explicit local checkout via `FETCHCONTENT_SOURCE_DIR_AKREON_LINALG`.
-2. An installed CMake package found through `CMAKE_PREFIX_PATH`.
-3. FetchContent from the corresponding `Akreon-LLC/akreon-<name>` Git repository,
-   pinned to the planned `v0.1.0` release.
-
-The build command above uses local checkouts. No sibling-directory layout or
-Git submodules are required. Until release tags exist, use local checkouts or
-installed packages. For private Git access or another compatible release, set
-`AKREON_LINALG_GIT_REPOSITORY` / `AKREON_LINALG_GIT_TAG`.
-
-Unit tests use installed Catch2 3 or fetch v3.8.1. For offline testing, pass
-`-DFETCHCONTENT_SOURCE_DIR_CATCH2=/absolute/path/to/Catch2`.
-
-## Install and consume
-
-The [consumer example](examples/consumer) shows how a separate CMake project
-uses the installed library. Ensure `akreon-linalg` is installed
-into the same prefix (or include their prefixes in `CMAKE_PREFIX_PATH`). After
-building above, install this package, then configure, build, and test the example:
+For local development against an existing Linalg checkout:
 
 ```sh
-cmake --install build --prefix /absolute/path/akreon-install
-cmake -S examples/consumer -B build/consumer \
-  -DCMAKE_PREFIX_PATH=/absolute/path/akreon-install
-cmake --build build/consumer
-./build/consumer/consumer
-ctest --test-dir build/consumer --output-on-failure
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+  -DFETCHCONTENT_SOURCE_DIR_AKREON_LINALG=/absolute/path/akreon-linalg
 ```
 
-The example's [CMakeLists.txt](examples/consumer/CMakeLists.txt) finds the package
-and links its `consumer` executable:
+The `host-default` and `host-functional-only` CMake presets are also available.
+
+Unit and functional tests are enabled by default for top-level builds. Disable them with:
+
+```sh
+-DBUILD_UNIT_TESTS=OFF -DBUILD_FUNCTIONAL_TESTS=OFF
+```
+
+Catch2 3 is used for tests; it is not a production dependency.
+
+## Dependency management
+
+Dependency resolution follows this precedence:
+
+1. Explicit local source checkout using `FETCHCONTENT_SOURCE_DIR_AKREON_LINALG`.
+2. Installed `AkreonLinalg` CMake package through `CMAKE_PREFIX_PATH`.
+3. CMake FetchContent using the pinned upstream `v0.1.0` release.
+
+Users may override the upstream repository or revision using `AKREON_LINALG_GIT_REPOSITORY` and `AKREON_LINALG_GIT_TAG`.
+
+No Git submodules or prescribed sibling-directory layout are required.
+
+## Use in another CMake project
+
+The public CMake target is `Akreon::Convex`, exported by the `AkreonConvex` package.
 
 ```cmake
 find_package(AkreonConvex 0.1 CONFIG REQUIRED)
-add_executable(consumer main.cpp)
-target_link_libraries(consumer PRIVATE Akreon::Convex)
+
+add_executable(my_optimizer main.cpp)
+target_link_libraries(my_optimizer PRIVATE Akreon::Convex)
 ```
 
-Its [main.cpp](examples/consumer/main.cpp) creates and solves a linear program:
-minimize `x0 + 2*x1` subject to `x0 >= 1`, `x1 >= 2`, and `x0 + x1 <= 6`.
-It checks solver status, feasibility, and the expected optimum `x = [1, 2]`
-with objective value `5`, printing the solution and returning nonzero on failure.
-Follow the same pattern in your own project, setting `CMAKE_PREFIX_PATH` to the
-installation prefix. `Akreon::Linalg` propagates through
-`Akreon::Convex`, along with include directories and the C++ standard requirement.
-Installed packages resolve their dependencies without fetching source.
+Public headers are available under:
 
-## Documentation
+```cpp
+#include <akreon/convex/convex.hpp>
+```
 
-The [architecture guide](docs/ARCHITECTURE.md) is the Doxygen landing page.
-Contributor workflow is in [CONTRIBUTING.md](CONTRIBUTING.md); test coverage is
-in [tests/README.md](tests/README.md).
-API and algorithm documentation is generated from the header comments. To build
-both together, install Doxygen and Graphviz, then run from this repository:
+The target propagates its include paths, C++ standard requirement, and `Akreon::Linalg` dependency.
+
+To install the library:
+
+```sh
+cmake --install build --prefix /absolute/path/akreon-install
+```
+
+Ensure `akreon-linalg` is also installed and discoverable through the same prefix or `CMAKE_PREFIX_PATH`. Installed packages resolve dependencies through CMake without fetching source.
+
+The [consumer example](examples/consumer) demonstrates installed-package discovery and linking.
+
+## Documentation and verification
+
+See [architecture](docs/ARCHITECTURE.md), [support and roadmap](docs/ROADMAP.md), [contributing](CONTRIBUTING.md), and [security](SECURITY.md).
+
+Generate API documentation with Doxygen and Graphviz installed:
 
 ```sh
 doxygen Doxyfile
 ```
 
-Open `docs/doxygen/html/index.html`. The same generated HTML directory can be
-published to GitHub Pages; no separate copy of the architecture guide is needed.
+Open `docs/doxygen/html/index.html`. Tests cover implemented cases, not every dimension or conditioning regime.
 
-## Citation
+## Citation and license
 
-If you use this software in research, please cite it using the metadata in
-[CITATION.cff](CITATION.cff).
+For research citation, use [CITATION.cff](CITATION.cff). Licensed under [Apache 2.0](LICENSE); see [NOTICE](NOTICE) for attribution.
 
-[![DOI](https://zenodo.org/badge/1024451979.svg)](https://doi.org/10.5281/zenodo.23485482)
-
-## Project history and licensing
-
-`akreon-convex` evolved from the former Akreon SDK. Its Git history is retained
-to preserve development provenance from before the repository split.
-
-Some historical revisions contain the SDK's former proprietary license and
-related legal notices. These describe the earlier licensing structure, rather
-than the terms for the current `akreon-convex` source.
-
-**The current `main` branch is distributed under the [Apache License 2.0](LICENSE)**,
-with attribution in [NOTICE](NOTICE).
-
-When using an older commit, consult the license and notices associated with that
-revision. Earlier SDK-era version labels do not represent standalone
-`akreon-convex` releases.
+This repository retains history from the former Akreon SDK. Older revisions carry their own license terms; SDK-era version labels are not standalone Convex releases.
