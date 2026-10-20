@@ -14,6 +14,6 @@ and execution. Follow [CONTRIBUTING.md](../CONTRIBUTING.md) for formatting and C
   to the result; generic helpers come from `Akreon::LinalgTestSupport`.
 
 The [consumer example](../examples/consumer) verifies installed-package consumption;
-its configure/build/run commands are maintained in the README. Numerical coverage
+build and test commands are in the [root README](../README.md#build-and-test). Numerical coverage
 describes regression tests, not proof for all dimensions or input conditioning.
 See the [support roadmap](../docs/ROADMAP.md) for compatibility and known gaps.
