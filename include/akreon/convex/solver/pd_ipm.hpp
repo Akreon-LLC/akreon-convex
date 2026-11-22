@@ -550,7 +550,15 @@ private:
 
     const auto curr = compute_residuals(F, A, g, c, b, z, nu, x, y);
 
-    constexpr auto zeta{1.05};
+    constexpr T residual_growth{1.05};
+    // Allow residuals to move within feasibility tolerances so roundoff near
+    // zero does not force smaller steps while the gap is still closing.
+    const T dual_limit =
+        std::max(residual_growth * curr.rd_norm, config.dual_feas_tol);
+    const T primal_limit =
+        std::max(residual_growth * curr.rp_norm, config.primal_feas_tol);
+    const T equality_limit =
+        std::max(residual_growth * curr.req_norm, config.primal_feas_tol);
 
     for (std::size_t i = 0; i < config.backtrack_steps; ++i) {
       const auto z_tmp = z + ax * pz;
@@ -561,9 +569,9 @@ private:
       const auto tmp =
           compute_residuals(F, A, g, c, b, z_tmp, nu_tmp, x_tmp, y_tmp);
 
-      const bool inflation_check = tmp.rd_norm <= zeta * curr.rd_norm &&
-                                   tmp.rp_norm <= zeta * curr.rp_norm &&
-                                   tmp.req_norm <= zeta * curr.req_norm;
+      const bool inflation_check = tmp.rd_norm <= dual_limit &&
+                                   tmp.rp_norm <= primal_limit &&
+                                   tmp.req_norm <= equality_limit;
 
       if (check_functional_proximity(K, x_tmp, y_tmp) && inflation_check) {
         x = x_tmp;

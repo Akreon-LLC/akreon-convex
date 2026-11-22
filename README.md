@@ -56,13 +56,27 @@ Unit and functional tests are enabled by default for top-level builds. Disable t
 
 Catch2 3 is used for tests; it is not a production dependency.
 
+### Optional sanitizer checks
+
+Use GCC or Clang with a GNU-compatible driver and installed sanitizer runtimes.
+
+```sh
+cmake --preset host-sanitized
+cmake --build --preset host-sanitized --parallel 2
+ctest --preset host-sanitized
+```
+
+For a custom test build, set `-DAKREON_CONVEX_ENABLE_SANITIZERS=ON`. This
+instruments the Convex test executables through `Akreon::LinalgSanitizers`,
+available in Linalg `v0.1.1` and later.
+
 ## Dependency management
 
 Dependency resolution follows this precedence:
 
 1. Explicit local source checkout using `FETCHCONTENT_SOURCE_DIR_AKREON_LINALG`.
 2. Installed `AkreonLinalg` CMake package through `CMAKE_PREFIX_PATH`.
-3. CMake FetchContent using the pinned upstream `v0.1.0` release.
+3. CMake FetchContent using the pinned upstream `v0.1.1` release.
 
 Users may override the upstream repository or revision using `AKREON_LINALG_GIT_REPOSITORY` and `AKREON_LINALG_GIT_TAG`.
 
